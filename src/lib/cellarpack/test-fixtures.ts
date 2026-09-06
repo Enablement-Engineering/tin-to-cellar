@@ -48,10 +48,7 @@ export async function makeTestManifest(): Promise<CellarPackManifest> {
               minimumContrastWithInk: 'high',
             },
             overlay: {
-              label: 'JARRED',
-              mode: 'write-in-line',
-              textColor: '#241D16',
-              preferredAlignment: 'center',
+              mode: 'blank',
             },
           },
         ],

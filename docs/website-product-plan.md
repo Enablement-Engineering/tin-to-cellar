@@ -40,7 +40,7 @@ Tin to Cellar should let a non-designer complete this workflow while preserving 
 
 - Validate that users can successfully move from prompt generation to pack import across separate ChatGPT/Codex and browser sessions.
 - Learn which surface presets, shapes, and failure cases occur frequently enough to merit first-class support.
-- Determine whether users prefer handwritten dates, typed dates, or a mix without prematurely adding inventory-management features.
+- Verify that the blank writing surface is usable for handwritten dates.
 
 ### Suggested validation measures for a consent-based beta
 
@@ -99,7 +99,7 @@ Is comfortable downloading a skill or copying a structured prompt. Values determ
 2. **Research before resemblance.** The generator must first research the actual tin/package artwork and record sources before making a recognizable adaptation.
 3. **Adapt, do not counterfeit.** Explain that the result is original cellar art informed by visual characteristics, not a replacement commercial label.
 4. **One source of geometry truth.** The pack describes artwork; the selected stock describes imposition. The UI never silently rewrites one to match the other.
-5. **The artwork makes room; HTML supplies precision.** Generated art includes a light, visually integrated blank date-writing surface. The website adds crisp `JARRED` or `CELLARED` text and a writing line inside its declared region.
+5. **The artwork owns the writing surface.** Generated art includes a light, visually integrated blank date-writing surface. The website prints it without adding words, lines, or dates.
 6. **Local by default.** Browsing a ZIP and editing a project should not send files off-device.
 7. **Recoverable exploration.** Reordering, cropping, duplication, removal, calibration, and variant selection can be undone or reset.
 8. **Provenance is visible but never printed unintentionally.** Sources and variant notes belong in inspection UI and optional metadata exports, not the label face.
@@ -111,11 +111,11 @@ Is comfortable downloading a skill or copying a structured prompt. Values determ
 1. User starts a new project.
 2. User pastes tobacco names, one per line, or leaves the list empty.
 3. User chooses a label shape and finished size, or starts from a stock preset.
-4. User chooses bleed and date-field behavior.
+4. User chooses label geometry and art direction.
 5. User optionally adds reference URLs and identifies local inspiration files they plan to attach later.
 6. The site displays a concise request summary and identifies missing or contradictory choices.
 
-If the tobacco list is empty, the generated prompt explicitly asks the agent to interview the user about blends, manufacturer ambiguity, label count, geometry, date-field wording, reference materials, desired similarity, and deliverable format before beginning research or generation.
+If the tobacco list is empty, the generated prompt explicitly asks the agent to interview the user about blends, manufacturer ambiguity, label count, geometry, writing-surface placement, reference materials, desired similarity, and deliverable format before beginning research or generation.
 
 ### Stage B — Handoff to an agent
 
@@ -207,9 +207,9 @@ Priorities: **P0** is required for a useful public MVP; **P1** is a deliberate f
 
 **Acceptance criteria**
 
-- User can request `JARRED`, `CELLARED`, blank line only, or no date treatment.
+- Every label includes one blank writing surface with no words or writing line.
 - The generated prompt asks for a light, low-texture, high-contrast blank surface integrated into each design and kept inside the safe area.
-- The site explains that the model creates the decorative surface while Tin to Cellar renders the small label and line crisply.
+- The site explains that the artwork contains the complete blank writing surface.
 - The request prevents model-generated dates or fake handwriting inside the reserved region.
 
 #### TTC-06 — Add reference URLs and planned local images (P0)
@@ -293,7 +293,7 @@ Priorities: **P0** is required for a useful public MVP; **P1** is a deliberate f
 
 **Acceptance criteria**
 
-- Only non-destructive fields such as display name, maker, default variant, or date-field wording can be changed in the browser.
+- Only non-destructive fields such as display name, maker, default variant, or writing-surface placement can be changed in the browser.
 - The application never fabricates provenance or silently changes image geometry.
 - User edits are identified separately from generator-supplied metadata in any re-exported pack.
 
@@ -347,18 +347,14 @@ Priorities: **P0** is required for a useful public MVP; **P1** is a deliberate f
 - The app warns when the image lacks sufficient pixels for the intended printed size at the documented quality threshold.
 - The app does not imply that zoom can restore missing resolution.
 
-#### TTC-17 — Render the writable date treatment (P0)
+#### TTC-17 — Preserve the blank writing surface (P0)
 
-**Story:** As a collector, I want crisp date-field microcopy and a generous writing line over the artwork’s light surface so that the field prints clearly and remains usable by hand.
+The artwork contains the entire light writing surface. The website prints it as supplied, with no added words, lines, or dates.
 
-**Acceptance criteria**
-
-- The site renders `JARRED`, `CELLARED`, or the selected alternative as HTML/vector text rather than relying on text generated in the bitmap.
-- The line, type, and contrast remain legible at actual printed size.
-- The overlay stays inside both the manifest-declared write-in region and finished-label safe area.
-- A visual warning appears if the declared surface is too small or too close to the cut edge.
-- Users can toggle the wording without regenerating artwork.
-- The light writable background comes from the artwork; if it is absent or too dark, the label is flagged rather than silently covered with an unrelated opaque patch.
+- Validate measured writing-region geometry against the finished trim and safe area.
+- Keep the writing region unrotated.
+- Flag an absent, dark, or unsuitable surface for artwork repair.
+- Accept only `overlay: {"mode": "blank"}`.
 
 #### TTC-18 — Inspect guides without printing them (P0)
 
@@ -403,7 +399,7 @@ Priorities: **P0** is required for a useful public MVP; **P1** is a deliberate f
 
 **Acceptance criteria**
 
-- PDF preserves page size, label geometry, crop, overlay text, page count, and calibration selection.
+- PDF preserves page size, label geometry, crop, page count, and calibration selection.
 - Self-contained HTML includes required artwork/assets without depending on remote URLs.
 - Both outputs omit provenance and controls from printed pages while retaining a human-readable project summary outside the print region where appropriate.
 - Exported filenames are safe, understandable, and do not expose local source paths.
@@ -416,7 +412,7 @@ Priorities: **P0** is required for a useful public MVP; **P1** is a deliberate f
 **Acceptance criteria**
 
 - Export can include selected variants or all composed labels.
-- Each image has documented pixel dimensions, physical-size metadata where supported, finished/bleed interpretation, and whether the date overlay is included.
+- Each image has documented pixel dimensions, physical-size metadata where supported, finished/bleed interpretation, and the blank writing-surface geometry.
 - Filenames are deterministic and collision-safe.
 - Export does not bake preview guides unless explicitly requested as a diagnostic option.
 
@@ -431,7 +427,7 @@ Priorities: **P0** is required for a useful public MVP; **P1** is a deliberate f
 - User can explicitly save/download a project file containing arrangement and references to included assets.
 - Browser-local autosave, if offered, shows storage usage and can be deleted.
 - A user can clear all locally stored Tin to Cellar data from within the product.
-- Version incompatibilities are reported before any migration attempt.
+- Unsupported formats are rejected with a request for a conforming CellarPack.
 
 #### TTC-24 — Produce a support bundle without artwork (P1)
 
@@ -481,7 +477,7 @@ Priorities: **P0** is required for a useful public MVP; **P1** is a deliberate f
 - **Not calibrated:** Printing remains possible, but the product recommends plain-paper calibration and labels the risk.
 - **Page mismatch:** Show expected versus detected/selected page settings where possible.
 - **Exporting:** Keep editing disabled only for the affected action; do not discard the project on failure.
-- **Export complete:** Identify exactly what was saved, page count, stock geometry, and whether guides/date overlay were included.
+- **Export complete:** Identify exactly what was saved, page count, stock geometry, and whether proof guides were included.
 
 ## 10. Accessibility requirements
 
@@ -569,7 +565,7 @@ These are framed around user-visible trust, not internal architecture tasks.
 
 **Story:** As a collector writing by hand, I want the light date surface to remain usable after image generation, clipping, and print so that decorative art does not obscure the date.
 
-**Validation:** Test surface dimensions, luminance/texture, inkjet output, common pen/pencil types, overlay contrast, and distance from cut edge on representative shapes. Use a declared minimum region and flag nonconforming packs.
+**Validation:** Test surface dimensions, luminance/texture, inkjet output, common pen/pencil types, handwriting contrast, and distance from cut edge on representative shapes. Use a declared minimum region and flag nonconforming packs.
 
 ### RISK-08 — Research/provenance completeness
 
@@ -647,7 +643,7 @@ These are framed around user-visible trust, not internal architecture tasks.
 ### Non-blocking discovery questions
 
 1. Do users usually print one of each blend or several duplicates?
-2. Do users date with pen, pencil, or a typed date, and what minimum physical writing area works in practice?
+2. What minimum physical writing area works for pen and pencil?
 3. How often do users have an original tin/photo versus relying on web research?
 4. Is a contact sheet useful primarily for variant selection, archival reference, or both?
 5. Which non-Avery stock families should follow based on observed demand?
@@ -663,7 +659,7 @@ Tin to Cellar MVP is ready for a limited beta only when:
 - Malformed and hostile fixture packs fail safely with actionable messages.
 - Avery 94502 geometry has documented provenance and has been verified with a physical sheet.
 - Direct print, PDF, and HTML outputs pass the agreed physical measurement tolerance on the supported matrix.
-- The date-writing surface and overlay remain fully inside the safe area on all supported shapes and are legible in physical tests.
+- The date-writing surface remains fully inside the safe area on all supported shapes and is usable in physical tests.
 - The full workflow can be completed without a mouse.
 - No pack content, tobacco names, prompts, or source URLs leave the browser during the local print workflow.
 - The ChatGPT deep link has been tested, while copyable prompts remain a fully functional fallback.

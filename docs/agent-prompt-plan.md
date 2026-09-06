@@ -2,7 +2,7 @@
 
 Status: historical prompt plan. Use the [current workflow](simplified-workflow.md) and [portable instructions](../public/agent/tin-to-cellar-prompt.md) for the supported contract. The website no longer adds text or writing lines to artwork. The [design system](design-system.md) governs current website presentation.
 
-This prompt follows current official OpenAI guidance: define the outcome and success criteria, keep stable instructions before dynamic user input, ask for the smallest missing field, use an explicit retrieval budget, distinguish sourced facts from creative work, establish stopping conditions, and visually inspect rendered artifacts before finalizing. OpenAI also documents that image models can still struggle with precise text and structured composition, which is why the prompt treats small text as a website-owned overlay and requires visual QA. Sources: [OpenAI model prompting guidance](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-5.5) and [OpenAI image-generation guidance](https://developers.openai.com/api/docs/guides/image-generation).
+This prompt follows current official OpenAI guidance: define the outcome and success criteria, keep stable instructions before dynamic user input, ask for the smallest missing field, use an explicit retrieval budget, distinguish sourced facts from creative work, establish stopping conditions, and visually inspect rendered artifacts before finalizing. OpenAI also documents that image models can still struggle with precise text and structured composition, which is why the prompt requires visual QA of all generated lettering. Sources: [OpenAI model prompting guidance](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-5.5) and [OpenAI image-generation guidance](https://developers.openai.com/api/docs/guides/image-generation).
 
 The placeholder `TIN_TO_CELLAR_SPEC_URL` should be replaced with the canonical v1 specification URL when published. Until then, the prompt can be bundled with the schema document.
 
@@ -36,7 +36,7 @@ Do not call the work complete unless all of the following are true:
 - Each requested label has one correctly shaped, high-resolution artwork file with the specified trim, bleed, safe area, background, and output format.
 - Each artwork includes a blank, light, high-contrast date-writing surface that feels native to the design and remains fully inside the safe area.
 - The composition is visually inspected after rendering for shape fit, crop, clipping, legibility, spelling, border continuity, bleed coverage, safe-area compliance, date-surface usability, and fidelity to the observed package identity.
-- Metadata accurately describes the files actually delivered, including normalized overlay regions for maker, blend, and jarred-date fields when applicable.
+- Metadata accurately describes the files actually delivered, including the measured normalized geometry of the blank writing surface.
 - The package conforms to Tin to Cellar Pack v1 and has been validated when validation tools are available.
 - The final response clearly distinguishes a validated pack, a loose fallback bundle, and any missing or failed labels.
 
@@ -63,7 +63,7 @@ If the user mentions inspiration images but has not attached them, ask for the a
 Default, without asking:
 
 - Fidelity: faithful cellar-label adaptation of the best-supported current package.
-- Date field: blank light writing surface in the lower portion of the composition; website overlay label “JARRED.”
+- Date field: blank light writing surface in the lower portion of the composition; no words or writing line.
 - Background: opaque.
 - Color mode: RGB.
 - Raster format: PNG.
@@ -121,7 +121,7 @@ For every image-generation request, specify:
 
 The date-writing surface should look designed into the art—for example, a cream cartouche, pale parchment strip, enamel plaque, library-card field, or light medallion appropriate to the package style. It must be blank, large enough for a handwritten date, visually quiet, and high-contrast with dark ink.
 
-Do not depend on image generation for tiny typography. Prefer metadata-driven website overlays for maker, blend, “JARRED,” and the writing line. Large display lettering may be embedded only when it is integral to the package identity and renders with exact spelling and clean visual QA. Otherwise reserve a suitable region and declare its normalized coordinates plus typography guidance in metadata.
+Generate maker and blend lettering in the artwork with exact spelling and legible type. Inspect the result and retry lettering defects. Keep the date-writing surface blank, with no words or writing line. The website adds no text.
 
 Create one image per label rather than a contact sheet. A contact sheet may be added only as a preview.
 
@@ -184,7 +184,7 @@ For every label, metadata must reflect actual output and include:
 - source references and observed visual features;
 - creative-interpretation notes;
 - inspiration references and their roles;
-- normalized overlay/write-in regions;
+- normalized write-in regions;
 - background and color information;
 - generation and QA status;
 - any warnings or unresolved facts.
@@ -249,7 +249,7 @@ Additional art direction:
 | Image tool unavailable | Produce research brief, per-label prompts, and draft metadata | Blocks artwork/valid pack |
 | ZIP unavailable | Produce loose bundle | Blocks valid ZIP claim |
 | Validator unavailable | Archive may be produced as unvalidated draft | Blocks validated claim |
-| Generated title misspelled | Retry, or remove it and use website overlay metadata | Yes until resolved |
+| Generated title misspelled | Retry the artwork with corrected lettering | Yes until resolved |
 | Date surface dark, clipped, ornate, or too small | Regenerate/revise | Yes |
 | Three failed renders for one label | Stop that label, report failure, keep research/prompt | Yes for that label only |
 

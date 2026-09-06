@@ -9,7 +9,7 @@ function Studio(props: Omit<ComponentProps<typeof PrintStudio>, 'settings' | 'on
   const [settings, setSettings] = useState<PrintSettings>({ page: 0, firstSlot: 1, offset: { x: 0, y: 0 } })
   return <PrintStudio {...props} settings={settings} onSettingsChange={setSettings} />
 }
-const label: PrintLabel = { id: 'a', maker: 'Maker', blend: 'Blend', imageUrl: 'blob:a', imageFrame: { left: -5, top: -5, width: 110, height: 110 }, writeIn: { x: .3, y: .7, width: .4, height: .1, rotationDegrees: 15, textColor: '#222222' } }
+const label: PrintLabel = { id: 'a', maker: 'Maker', blend: 'Blend', imageUrl: 'blob:a', imageFrame: { left: -5, top: -5, width: 110, height: 110 } }
 afterEach(cleanup)
 describe('PrintStudio', () => {
   it('prepares label pages for browser printing and clears mode after printing or unmount', () => {

@@ -125,7 +125,7 @@
             "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
             "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
             "cornerRadius": { "type": "number", "minimum": 0, "maximum": 0.5 },
-            "rotationDegrees": { "type": "number", "minimum": -360, "maximum": 360 }
+            "rotationDegrees": { "const": 0 }
           },
           "additionalProperties": true
         },
@@ -141,14 +141,11 @@
         },
         "overlay": {
           "type": "object",
-          "required": ["label", "mode"],
+          "required": ["mode"],
           "properties": {
-            "label": { "type": "string", "minLength": 1, "maxLength": 40 },
-            "mode": { "enum": ["write-in-line", "blank", "typed-date"] },
-            "textColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
-            "preferredAlignment": { "enum": ["left", "center", "right"] }
+            "mode": { "const": "blank" }
           },
-          "additionalProperties": true
+          "additionalProperties": false
         }
       },
       "additionalProperties": true

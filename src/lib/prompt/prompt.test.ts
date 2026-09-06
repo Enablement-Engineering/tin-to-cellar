@@ -34,6 +34,11 @@ describe('self-contained generation protocol', () => {
     expect(prompt).toContain('Set overlay.mode to blank.')
     expect(prompt).toContain('prints the artwork as supplied without adding an overlay')
     expect(prompt).not.toContain('website adds only')
+    expect(prompt).not.toMatch(/legacy|write-in-line|typed-date/i)
+    expect(schemaIn(prompt).$defs.writeInArea.properties.overlay).toEqual({
+      type: 'object', required: ['mode'],
+      properties: { mode: { const: 'blank' } }, additionalProperties: false,
+    })
   })
   it('carries the exact canonical schema on every route without local URL dependencies', () => {
     const input = { tobaccos: 'Escudo', specUrl: 'http://localhost:5173/spec.json' }
@@ -65,7 +70,7 @@ describe('self-contained generation protocol', () => {
   })
   it('specifies actual image geometry, blank writing surface and honest packaging', () => {
     const prompt = buildTinToCellarPrompt({})
-    for (const requirement of ['blank, light, unobstructed writing surface', 'Leave that surface blank, with no words or writing line', 'legacy metadata only; the website does not render overlays', 'Declare actual dimensions', 'not the bleed canvas', 'SHA-256 from actual delivered bytes', '50 MiB compressed', '200 MiB uncompressed', 'No scripts, HTML, executables, or nested archives', 'import and print each separately', 'Say validated pack only if all passed', 'Do not imply loose files are importable']) {
+    for (const requirement of ['blank, light, unobstructed writing surface', 'Leave that surface blank, with no words or writing line', 'The overlay object contains only mode; the website does not render overlays', 'Declare actual dimensions', 'not the bleed canvas', 'SHA-256 from actual delivered bytes', '50 MiB compressed', '200 MiB uncompressed', 'No scripts, HTML, executables, or nested archives', 'import and print each separately', 'Say validated pack only if all passed', 'Do not imply loose files are importable']) {
       expect(prompt).toContain(requirement)
     }
   })

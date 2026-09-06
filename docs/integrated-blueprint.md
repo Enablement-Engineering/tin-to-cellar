@@ -86,7 +86,7 @@ Each image request specifies:
 
 Every artwork contains a blank, light, low-texture writing surface integrated into the design. It may resemble parchment, a brass-edged cream plaque, a library-card strip, an enamel field, or another treatment native to the package style.
 
-The bitmap should not be responsible for small `JARRED` typography or the date line. Those remain crisp website overlays. Large display lettering integral to the package identity may be rasterized only when spelling and rendering pass visual inspection.
+The artwork owns the entire blank writing surface, with no words or writing line. Maker and blend lettering belong in the artwork and must pass visual inspection for spelling and legibility. The website adds no text.
 
 ### 5. Visual QA
 
@@ -122,7 +122,7 @@ Default v1 artwork contract:
 - 600 PPI target and 300 PPI minimum;
 - 1/8-inch bleed;
 - physical dimensions declared independently of pixels;
-- normalized overlay coordinates relative to the finished trim box;
+- measured writing-surface coordinates relative to the finished trim box;
 - exactly one integrated jarred-date surface per generator-conformant label.
 
 ### 7. Sheet-profile registry
@@ -158,7 +158,7 @@ The imported pack remains immutable source material. A separate browser-local pr
 - label instances and order;
 - duplicates and blank slots;
 - instance-level crop and zoom;
-- chosen `JARRED`, `CELLARED`, line-only, or blank overlay;
+- blank writing surface with `overlay.mode` fixed to `blank`;
 - printer/stock calibration;
 - page composition and export preferences.
 
@@ -195,7 +195,7 @@ Production output:
 
 1. **One final artwork per label.** Variant galleries are deferred. A user resolves current versus historical packaging before final generation.
 2. **The writing surface is mandatory.** Every generated artwork includes it. The website may show `JARRED`, `CELLARED`, a line only, or leave it visually blank.
-3. **`JARRED` is the default overlay.** It is user-selectable without regenerating art.
+3. **The writing surface stays blank.** The website prints the supplied artwork without adding words, lines, or dates.
 4. **Artwork geometry and sheet geometry are independent.** A stock preset may suggest dimensions but never silently changes them.
 5. **Research provenance is required.** Third-party source images are not embedded by default.
 6. **The MVP is local-first and account-free.** Import, editing, validation, and printing do not upload pack contents.

@@ -84,6 +84,15 @@ export function validateWriteAreas(
         message: `Writing area ${area.id} crosses the trimmed label boundary.`,
         recovery: 'Move or resize the writing surface so all of it stays inside the trim shape.',
       })
+    } else if (!isWriteAreaInsideSafeArea(area.geometry, surface)) {
+      issues.push({
+        severity: 'error',
+        code: 'WRITE_AREA_OUTSIDE_SAFE_AREA',
+        labelId,
+        path: `labels.${labelId}.writeInAreas.${area.id}.geometry`,
+        message: `Writing area ${area.id} crosses the label's safe area.`,
+        recovery: 'Move or resize the writing surface inside the safe inset and measure its geometry from the finished trim box.',
+      })
     }
     if (!area.background.integratedInArtwork) {
       issues.push({
@@ -103,8 +112,35 @@ export function isWriteAreaInsideSurface(
   geometry: NormalizedWriteAreaGeometry,
   surface: LabelSurface,
 ): boolean {
+  if (geometry.rotationDegrees !== undefined && geometry.rotationDegrees !== 0) return false
   const points = sampleGeometryPerimeter(geometry)
   return points.every((point) => pointInsideSurface(point, surface))
+}
+
+export function isWriteAreaInsideSafeArea(
+  geometry: NormalizedWriteAreaGeometry,
+  surface: LabelSurface,
+): boolean {
+  if (geometry.rotationDegrees !== undefined && geometry.rotationDegrees !== 0) return false
+  const unitScale = surface.safeInset.unit === surface.finishedSize.unit
+    ? 1 : surface.safeInset.unit === 'mm' ? 1 / 25.4 : 25.4
+  const left = surface.safeInset.left * unitScale
+  const right = surface.safeInset.right * unitScale
+  const top = surface.safeInset.top * unitScale
+  const bottom = surface.safeInset.bottom * unitScale
+  const { width, height } = surface.finishedSize
+  const safeWidth = width - left - right
+  const safeHeight = height - top - bottom
+  if (safeWidth <= 0 || safeHeight <= 0) return false
+  const safeSurface: LabelSurface = {
+    ...surface,
+    finishedSize: { ...surface.finishedSize, width: safeWidth, height: safeHeight },
+    cornerRadius: Math.max(0, (surface.cornerRadius ?? 0) - Math.min(left, right, top, bottom)),
+  }
+  return sampleGeometryPerimeter(geometry).every((point) => pointInsideSurface({
+    x: (point.x * width - left) / safeWidth,
+    y: (point.y * height - top) / safeHeight,
+  }, safeSurface))
 }
 
 function pointInsideSurface(point: Point, surface: LabelSurface): boolean {
@@ -131,7 +167,6 @@ function pointInsideSurface(point: Point, surface: LabelSurface): boolean {
 
 function sampleGeometryPerimeter(geometry: NormalizedWriteAreaGeometry): Point[] {
   const center = { x: geometry.x + geometry.width / 2, y: geometry.y + geometry.height / 2 }
-  const rotation = ((geometry.rotationDegrees ?? 0) * Math.PI) / 180
   const points: Point[] = []
 
   if (geometry.shape === 'oval') {
@@ -173,13 +208,5 @@ function sampleGeometryPerimeter(geometry: NormalizedWriteAreaGeometry): Point[]
     )
   }
 
-  if (Math.abs(rotation) < EPSILON) return points
-  return points.map((point) => {
-    const dx = point.x - center.x
-    const dy = point.y - center.y
-    return {
-      x: center.x + dx * Math.cos(rotation) - dy * Math.sin(rotation),
-      y: center.y + dx * Math.sin(rotation) + dy * Math.cos(rotation),
-    }
-  })
+  return points
 }

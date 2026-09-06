@@ -101,7 +101,6 @@ function App() {
         }
         const url = URL.createObjectURL(new Blob([item.artwork.data], { type: item.artwork.mediaType }))
         nextUrls.push(url)
-        const area = item.label.writeInAreas[0]
         const surface = item.label.surface
         const bleedRatio = (value: number, dimension: number) => (value * (surface.bleed.unit === 'mm' ? 1 / 25.4 : 1)) / (dimension * (surface.finishedSize.unit === 'mm' ? 1 / 25.4 : 1))
         mappedLabels.push({
@@ -113,7 +112,6 @@ function App() {
             width: (1 + bleedRatio(surface.bleed.left + surface.bleed.right, surface.finishedSize.width)) * 100,
             height: (1 + bleedRatio(surface.bleed.top + surface.bleed.bottom, surface.finishedSize.height)) * 100,
           },
-          writeIn: { x: area.geometry.x, y: area.geometry.y, width: area.geometry.width, height: area.geometry.height, rotationDegrees: area.geometry.rotationDegrees ?? 0, textColor: area.overlay.textColor ?? '#241d16' },
         })
       }
       const hasFailures = quarantined.length > 0 || result.status !== 'ready' || issues.some((issue) => issue.severity === 'error')

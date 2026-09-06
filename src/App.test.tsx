@@ -9,7 +9,7 @@ const imported = (id: string, shape = 'circle') => ({
   id, artwork: { data: new Uint8Array([1, 2, 3]), mediaType: 'image/png' }, issues: [],
   label: { id, maker: 'Test Maker', blend: id,
     surface: { shape, finishedSize: { width: 2.5, height: 2.5, unit: 'in' }, bleed: { top: .125, right: .125, bottom: .125, left: .125, unit: 'in' } },
-    writeInAreas: [{ geometry: { x: .3, y: .7, width: .4, height: .1, rotationDegrees: 12 }, overlay: { textColor: '#222222' } }],
+    writeInAreas: [{ geometry: { x: .3, y: .7, width: .4, height: .1 }, overlay: { mode: 'blank' } }],
   },
 })
 const ready = (items = [imported('Blend A')]) => ({ status: 'ready', manifest: { title: 'Test pack' }, labels: items, issues: [], quarantinedLabels: [] })

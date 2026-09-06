@@ -6,7 +6,6 @@ export type PrintLabel = {
   blend: string
   imageUrl: string
   imageFrame: { left: number; top: number; width: number; height: number }
-  writeIn: { x: number; y: number; width: number; height: number; textColor: string; rotationDegrees?: number }
 }
 export type ImportSummary = {
   status: 'rejected' | 'partial' | 'ready'

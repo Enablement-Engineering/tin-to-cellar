@@ -23,7 +23,7 @@ Open the returned PNG: cyan is trim, dashed magenta is safe, shading is bleed. C
 # CellarPack protocol
 Use the complete schema below; no external fetch is required. Return root manifest.json and artwork/<label-id>.png. Reference assets by artworkAssetId. Compute SHA-256 from actual delivered bytes. Research must distinguish inspected observations from creative adaptation.
 
-Write-in x/y/width/height use the finished trim bounding box, not the bleed canvas. Measure the actual surface; keep it unrotated and inside the safe area. Set overlay.mode to blank. Required overlay.label may be JARRED as legacy metadata only; the website does not render overlays.
+Write-in x/y/width/height use the finished trim bounding box, not the bleed canvas. Measure the actual surface; keep it unrotated and inside the safe area. Set overlay.mode to blank. The overlay object contains only mode; the website does not render overlays.
 
 Include only manifest, PNG artwork, and optional preview image. No scripts, HTML, executables, or nested archives. Stay within 50 MiB compressed, 200 MiB uncompressed, and 500 entries. Split larger batches into separate packs; import and print each separately because importing replaces the current pack.
 

@@ -39,7 +39,7 @@ The format preserves design intent without binding an image to a specific printe
 | One label's identity and generated artwork | Sheet selection and page imposition |
 | Trimmed label shape and finished dimensions | Drag-to-reorder, duplicate, omit, and page breaks |
 | Artwork bleed and safe-area intent | Printer calibration, offsets, scaling, and browser print behavior |
-| Writable surface location and styling hints | Rendering crisp `JARRED` text/line/date over that surface |
+| Blank writing surface and measured geometry | Validating safe-area containment and printing the supplied artwork |
 | Packaging research, provenance, and visual analysis | Preset registry and display names |
 | Optional requested print intent | Resolving named stock to current sheet geometry |
 | Optional custom sheet-profile file | Validating whether labels actually fit a selected sheet |
@@ -143,10 +143,7 @@ There is no required standalone `sources.json`: provenance belongs beside each l
             "minimumContrastWithInk": "high"
           },
           "overlay": {
-            "label": "JARRED",
-            "mode": "blank",
-            "textColor": "#241D16",
-            "preferredAlignment": "center"
+            "mode": "blank"
           }
         }
       ],
@@ -221,18 +218,18 @@ Recommended units are inches (`in`); millimeters (`mm`) are allowed. Importers M
 
 ### Normalized coordinate system
 
-All overlay and region coordinates use normalized coordinates relative to the **finished trim bounding box**, not the bleed canvas:
+All writing-region coordinates use normalized coordinates relative to the **finished trim bounding box**, not the bleed canvas:
 
 - origin `(0,0)` is the trim box's upper-left;
 - `(1,1)` is its lower-right;
 - `x`, `y`, `width`, and `height` are numbers from 0 through 1;
-- rotation is clockwise degrees about the region center and defaults to 0;
+- `rotationDegrees` may be omitted or set to 0; writing regions MUST be unrotated;
 - `cornerRadius` is normalized to the trim-box width;
-- a region MUST remain inside the actual trimmed shape, not merely its bounding box.
+- a region MUST remain inside the safe area of the actual trimmed shape, not merely its bounding box.
 
-For circles and ovals, importers validate each region corner after applying corner radius/rotation against the ellipse. Emitters SHOULD retain at least 0.03 normalized clearance from the trim boundary in addition to the declared safe inset.
+For circles and ovals, importers validate each region corner after applying corner radius against the ellipse. Emitters SHOULD retain at least 0.03 normalized clearance from the trim boundary in addition to the declared safe inset.
 
-V1 does not support arbitrary polygons for write-in regions. A future minor extension may add them; importers fall back to the region's bounding rectangle.
+Writing regions support rectangles, rounded rectangles, and ovals.
 
 ## 7. Artwork asset requirements
 
@@ -247,7 +244,7 @@ V1 does not support arbitrary polygons for write-in regions. A future minor exte
 - `colorSpace` MUST be `sRGB` for v1. ICC profiles other than sRGB are nonconforming and produce a warning or rejection depending on whether deterministic conversion is available.
 - 8-bit RGB/RGBA is the baseline. CMYK, indexed-color, grayscale-only, 16-bit, animated, SVG, WebP, HEIC, PSD, and PDF artwork are rejected in v1.
 - Alpha is permitted. Pixels inside the finished shape SHOULD be fully opaque. Pixels outside the intended cut line MAY be opaque bleed; transparent corners are allowed for nonrectangular labels. The importer composites against white for print preview unless the user chooses otherwise.
-- Text critical to product recognition SHOULD be rasterized into the art at legible size. The small `JARRED` overlay remains website-rendered.
+- Text critical to product recognition SHOULD be rasterized into the art at legible size. The website prints that text as part of the artwork.
 
 ### Shape-adapted rendition requirement
 
@@ -267,8 +264,7 @@ Required write-in fields:
 - `purpose` (`jarred-date` in v1)
 - `geometry`
 - `background.integratedInArtwork` (MUST be `true` for generator conformance)
-- `overlay.label` (default/recommended `JARRED`)
-- `overlay.mode`: `write-in-line`, `blank`, or `typed-date` remain valid v1 metadata. Generate `blank`; the current website does not render overlays.
+- `overlay.mode` MUST be `blank`. The overlay object contains only `mode`; additional overlay fields are invalid.
 
 Recommended defaults:
 
@@ -276,10 +272,10 @@ Recommended defaults:
 - height at least 0.09 of trim height;
 - y-position around 0.70-0.78, adjusted to remain inside curved edges;
 - opaque warm white/cream background with minimal texture;
-- at least 4.5:1 practical contrast for dark handwriting or overlay ink;
+- at least 4.5:1 practical contrast for dark handwriting;
 - no baked-in word `JARRED` or baked-in date line.
 
-Importers MUST show a visible repair warning if the field is missing, intersects the trim boundary, or the artwork does not appear to contain an appropriate light surface. Geometry can be validated deterministically; visual suitability can only be advisory. The website MAY let the user reposition the overlay but MUST preserve the original metadata on re-export unless the user explicitly saves the adjustment into a derived pack.
+Importers MUST show a visible repair warning if the field is missing, intersects the trim boundary, or the artwork does not appear to contain an appropriate light surface. Geometry can be validated deterministically; visual suitability can only be advisory. Correct an unsuitable writing surface in the artwork and update its measured geometry before returning the pack.
 
 ## 9. Mandatory research and provenance
 
@@ -377,7 +373,7 @@ Three labels keep responsibilities honest:
 
 1. **Archive Conformant**: safe ZIP, valid root manifest, supported schema major, valid hashes and assets.
 2. **Generator Conformant**: Archive Conformant plus full research/provenance, shape-adapted art, required integrated jarred-date surface, 300+ PPI, sRGB, and contact sheet recommended.
-3. **Print Ready**: Generator Conformant plus all labels fit the selected sheet profile at 100% scale and pass the website's safe-zone/overlay checks. This status is profile- and calibration-dependent and therefore determined by the website, not asserted permanently by the pack.
+3. **Print Ready**: Generator Conformant plus all labels fit the selected sheet profile at 100% scale and pass the website's safe-area checks. This status is profile- and calibration-dependent and therefore determined by the website, not asserted permanently by the pack.
 
 ## 14. Deterministic validation and security
 
@@ -448,7 +444,7 @@ A paste-only ChatGPT workflow may be unable to produce a correctly hashed ZIP in
 3. Verify all referenced assets and quarantine invalid labels.
 4. Show provenance and research limitations.
 5. Resolve requested sheet profile or ask the user to choose one.
-6. Render label art clipped to trim shape with website-owned overlay text.
+6. Render label art clipped to trim shape. Add no words, lines, or dates.
 7. Let the user reorder, duplicate, crop/zoom only within declared bleed, and calibrate printing.
 8. Print at 100% physical scale unless the user explicitly chooses scaling.
 
@@ -468,11 +464,10 @@ A paste-only ChatGPT workflow may be unable to produce a correctly hashed ZIP in
 1. **Custom shape semantics.** Recommended v1 default: custom-sized rectangular bounding box only; defer arbitrary vector cut paths to v1.1 or v2 because SVG/path parsing expands security and print complexity.
 2. **JPEG acceptance.** Recommended: import JPEG with warnings but require PNG for Generator Conformance.
 3. **Exact full-sheet auto-layout rules.** Recommended: website-owned algorithm with user-controlled margins/gutters; keep it out of CellarPack v1.
-4. **Typed date persistence.** Recommended: keep personal dates in a browser-local print project, not the portable pack, unless the user explicitly exports a derived pack.
-5. **Loose-file ChatGPT fallback.** Recommended: support it as a guided website recovery flow, but visibly distinguish it from a generator-validated ZIP.
-6. **Source availability.** Recommended: permit `limited` status with an explicit limitation rather than blocking all artwork when a historical/discontinued tin lacks a reliable online image.
-7. **Trademark/copyright notice.** Recommended: a concise metadata/website notice stating that source links document research and generated labels are intended for personal cellar organization; do not make legal clearance a schema field.
-8. **Pack signing.** Recommended: defer cryptographic signatures. SHA-256 establishes integrity within a pack, not publisher identity.
+4. **Pack delivery.** Import requires a conforming `.cellarpack.zip`. Loose artwork must be packaged before import.
+5. **Source availability.** Recommended: permit `limited` status with an explicit limitation rather than blocking all artwork when a historical/discontinued tin lacks a reliable online image.
+6. **Trademark/copyright notice.** Recommended: a concise metadata/website notice stating that source links document research and generated labels are intended for personal cellar organization; do not make legal clearance a schema field.
+7. **Pack signing.** Recommended: defer cryptographic signatures. SHA-256 establishes integrity within a pack, not publisher identity.
 
 ## 18. Acceptance criteria for the specification implementation
 
@@ -480,7 +475,7 @@ A paste-only ChatGPT workflow may be unable to produce a correctly hashed ZIP in
 - The same label imports into Avery 94502 and full-sheet Letter layouts.
 - A custom profile can be included and selected without changing `labels[].surface`.
 - Every generator-conformant label records actual-package research and a source-backed visual analysis.
-- Every label's light writable surface can be inspected, moved, and overlaid without raster text regeneration.
+- Every label's blank writing surface is measured from the finished trim box, unrotated, and contained in the safe area. The website adds no words, lines, or dates.
 - Unsafe paths, duplicate normalized filenames, decompression bombs, MIME spoofing, dimension bombs, and hash mismatches are rejected deterministically.
 - An importer can ignore unknown optional fields from a newer 1.x pack.
 - No network request or third-party image redistribution is required to import, preview, arrange, or print a pack.

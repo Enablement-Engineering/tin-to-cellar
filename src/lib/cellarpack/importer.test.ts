@@ -85,6 +85,18 @@ describe('importCellarPack', () => {
     )
   })
 
+  it('quarantines a writing surface inside trim but outside the safe area', async () => {
+    const result = await importCellarPack(await makeCellarPack({
+      mutateManifest: (manifest) => {
+        manifest.labels[0].writeInAreas[0].geometry = {
+          shape: 'rectangle', x: 0.4, y: 0.03, width: 0.2, height: 0.08,
+        }
+      },
+    }))
+    expect(result.status).toBe('partial')
+    expect(result.quarantinedLabels[0].issues.map((issue) => issue.code)).toContain('WRITE_AREA_OUTSIDE_SAFE_AREA')
+  })
+
   it('rejects unsupported schema majors', async () => {
     const result = await importCellarPack(
       await makeCellarPack({

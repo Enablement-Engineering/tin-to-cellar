@@ -18,6 +18,24 @@ describe('validateManifest', () => {
     expect(result.manifest?.format).toBe('tin-to-cellar/cellarpack')
   })
 
+  it.each([
+    { mode: 'typed-date' },
+    { mode: 'write-in-line' },
+    { mode: 'blank', label: 'JARRED' },
+    { mode: 'blank', textColor: '#241D16' },
+    { mode: 'blank', preferredAlignment: 'center' },
+  ])('rejects unsupported overlay metadata: %j', async (overlay) => {
+    const manifest = await makeTestManifest()
+    Object.assign(manifest.labels[0].writeInAreas[0], { overlay })
+    expect(validateManifest(manifest).valid).toBe(false)
+  })
+
+  it('rejects a rotated writing surface', async () => {
+    const manifest = await makeTestManifest()
+    Object.assign(manifest.labels[0].writeInAreas[0].geometry, { rotationDegrees: 12 })
+    expect(validateManifest(manifest).valid).toBe(false)
+  })
+
   it('rejects a label with missing mandatory research', async () => {
     const manifest = await makeTestManifest()
     const unsafeLabel = manifest.labels[0] as unknown as Record<string, unknown>

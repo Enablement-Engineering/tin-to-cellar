@@ -41,7 +41,7 @@ export interface NormalizedWriteAreaGeometry {
   width: number
   height: number
   cornerRadius?: number
-  rotationDegrees?: number
+  rotationDegrees?: 0
 }
 
 export interface WriteInArea {
@@ -54,10 +54,7 @@ export interface WriteInArea {
     minimumContrastWithInk?: 'high' | 'medium' | 'low'
   }
   overlay: {
-    label: string
-    mode: 'write-in-line' | 'blank' | 'typed-date'
-    textColor?: string
-    preferredAlignment?: 'left' | 'center' | 'right'
+    mode: 'blank'
   }
 }
 
@@ -184,6 +181,7 @@ export type CellarPackIssueCode =
   | 'ARTWORK_ASPECT_RATIO_MISMATCH'
   | 'INVALID_SURFACE_GEOMETRY'
   | 'WRITE_AREA_OUTSIDE_TRIM'
+  | 'WRITE_AREA_OUTSIDE_SAFE_AREA'
   | 'MISSING_WRITE_AREA'
   | 'MISSING_REQUIRED_RESEARCH'
   | 'LIMITED_RESEARCH'
