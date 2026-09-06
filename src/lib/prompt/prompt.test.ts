@@ -52,9 +52,9 @@ describe('self-contained generation protocol', () => {
   })
   it('preserves research-before-generation and close reference fidelity', () => {
     const prompt = buildCompleteTinToCellarPrompt({ tobaccos: 'Escudo' })
-    expect(prompt).toContain('Before generating each label, open and visually inspect an actual image')
-    expect(prompt).toContain("Pass that actual image as the generator's reference input when supported")
-    expect(prompt).toContain('wait for the attachment before generating')
+    expect(prompt).toContain('Research the requested blends together before generation')
+    expect(prompt).toContain('pass each inspected original directly into the generator when supported')
+    expect(prompt).toContain('wait for the required reference attachments before generating')
     expect(prompt).toContain("Preserve the inspected package's defining illustration, logo, palette and name typography")
     expect(prompt).toContain('Do not substitute memory, search snippets, captions, or descriptions')
     expect(prompt).toContain('required reference attachment')
@@ -143,7 +143,7 @@ describe('reusable instructions and request', () => {
 describe('private diagnostic instructions', () => {
   it('carries a versioned closed feedback contract and failure delivery on every full route', () => {
     const prompt = buildTinToCellarInstructions()
-    for (const text of ['protocolRevision', '2.0.0', 'manifest.extensions["tin-to-cellar:feedback"]', 'separate download outside the ZIP', 'Do not send feedback directly from this chat', 'raw prompts', 'tool logs', 'chain-of-thought', '"additionalProperties":false']) expect(prompt).toContain(text)
+    for (const text of ['protocolRevision', '2.0.0', 'manifest.extensions["tin-to-cellar:feedback"]', 'If the run ends without a pack', 'as a separate download', 'Do not send feedback directly from this chat', 'raw prompts', 'tool logs', 'chain-of-thought', '"additionalProperties":false']) expect(prompt).toContain(text)
   })
 })
 
@@ -187,12 +187,14 @@ describe('hosted compact handoff', () => {
 
 
 describe('original package image handoff', () => {
-  it('requires an actual reference or a download and reattachment pause on both routes', () => {
+  it('prefers direct references and batches only required attachment handoffs on both routes', () => {
     const complete = buildTinToCellarInstructions()
     const compact = buildTinToCellarPrompt({ tobaccos: 'Autumn Evening' })
     for (const prompt of [complete, compact]) {
-      expect(prompt).toContain('downloadable file')
-      expect(prompt).toContain('upload it back into this chat')
+      expect(prompt).toContain('direct handoff is unavailable')
+      expect(prompt).toContain('one batch')
+      expect(prompt).toContain('direct handoff works')
+      expect(prompt).toContain('before generating')
       expect(prompt).toContain('artwork-only brief')
       expect(prompt).toContain('blend name')
       expect(prompt).not.toContain('Otherwise generate from a detailed brief')
@@ -201,5 +203,19 @@ describe('original package image handoff', () => {
     expect(complete).toContain('exclude the full task prompt, schemas, diagnostic feedback and proof instructions')
     expect(complete).toContain('Never substitute generated artwork')
     expect(complete).toContain('generation skipped with zero attempts')
+  })
+  it('requires completion through delivery without manufacturing tool capabilities or proof', () => {
+    const complete = buildTinToCellarInstructions()
+    const compact = buildTinToCellarPrompt({ tobaccos: 'Autumn Evening' })
+    for (const prompt of [complete, compact]) {
+      expect(prompt).toContain('whenever')
+      expect(prompt).toContain('one prominent downloadable .cellarpack.zip')
+      expect(prompt).toContain('printing link')
+      expect(prompt).toContain('if it stops')
+    }
+    expect(complete).toContain('Never claim a check passed unless you performed it')
+    expect(complete).toContain('a local file alone does not establish a working user download')
+    expect(complete).toContain('Keep diagnostic feedback inside the pack')
+    expect(complete).toContain('A tool ending an image-only turn is not by itself unclear instructions')
   })
 })

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import worker from './index'
@@ -5,6 +6,26 @@ import { PROTOCOL_REVISION, protocolInstructions, protocolReleases } from '../sr
 const env = { ASSETS: { fetch: vi.fn() }, PROOFS_ENABLED: 'false' }
 const get = (path: string, init?: RequestInit) => worker.fetch(new Request(`https://tintocellar.com${path}`, init), env)
 describe('hosted protocol', () => {
+  it('serves readable HTML with both complete schemas and escaped instruction text', async () => {
+    const response = await get('/api/protocol/v1/instructions.html')
+    expect(response.status).toBe(200)
+    expect(response.headers.get('Content-Type')).toContain('text/html')
+    expect(response.headers.get('Cache-Control')).toBe('no-cache')
+    const html = await response.text()
+    const page = new DOMParser().parseFromString(html, 'text/html')
+    const markdown = protocolInstructions()
+    const schemas = [...markdown.matchAll(/```json\n([\s\S]*?)\n```/g)].map(match => JSON.parse(match[1]))
+    expect([...page.querySelectorAll('pre code')].map(el => JSON.parse(el.textContent!))).toEqual(schemas)
+    expect(schemas).toHaveLength(2)
+    expect(page.body.textContent).toContain(`END TIN TO CELLAR PROTOCOL ${PROTOCOL_REVISION}`)
+    expect(page.body.textContent).toContain('artwork/<label-id>.png')
+    expect(page.querySelectorAll('script, label-id')).toHaveLength(0)
+    const pinned = await get(`/api/protocol/v1/releases/${PROTOCOL_REVISION}/instructions.html`)
+    expect(await pinned.text()).toBe(html)
+    expect(pinned.headers.get('Cache-Control')).toContain('immutable')
+    expect(response.headers.get('ETag')).not.toBe((await get('/api/protocol/v1')).headers.get('ETag'))
+    expect((await get('/api/protocol/v1/instructions.html', { method: 'POST' })).status).toBe(405)
+  })
   it('serves a complete current bundle without any proof services and pins exact immutable content', async () => {
     const current = await get('/api/protocol/v1')
     expect(current.status).toBe(200)

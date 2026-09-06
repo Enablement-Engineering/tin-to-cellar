@@ -1,10 +1,12 @@
 # Hosted protocol operation
 
-The default prompt asks the agent to read `https://tintocellar.com/api/protocol/v1` before researching or generating. This public GET returns a complete Markdown contract with both JSON schemas. It requires no proof allowance and accepts no uploads. The body identifies its revision and immutable URL and ends with `END TIN TO CELLAR PROTOCOL N`.
+The default Copy prompt embeds the complete current release. Hosted retrieval remains an experiment until fresh ChatGPT sessions can reliably read the complete contract. `https://tintocellar.com/api/protocol/v1` returns Markdown; `/api/protocol/v1/instructions.html` returns the same complete instructions and both schemas as readable HTML. Neither requires proof access or accepts uploads. The content identifies its revision and immutable URL and ends with `END TIN TO CELLAR PROTOCOL N`.
 
 ## Published resources
 
 - `/api/protocol/v1` selects the current release and requires cache revalidation.
+- `/api/protocol/v1/instructions.html` selects the current HTML release and requires cache revalidation.
+- `/api/protocol/v1/releases/5/instructions.html` is the first immutable HTML representation. It is generated and hashed at release creation from the exact Markdown contract, with escaped text, both schemas, no scripts, and a distinct ETag.
 - `/api/protocol/v1/releases/1/instructions.md` retains revision 1.
 - `/api/protocol/v1/releases/1/cellarpack.schema.json` exposes its manifest schema.
 - `/api/protocol/v1/releases/1/feedback.schema.json` exposes its feedback schema.
@@ -28,6 +30,6 @@ Manifest output remains CellarPack 1.0.0. Workflow revisions and feedback schema
 
 Pack attribution uses `extensions["tin-to-cellar:protocol"]` with `revision`, `cellarpackVersion`, and `feedbackVersion`. It is strictly checked locally. Attribution is agent-reported, not authenticated. Malformed or conflicting attribution does not prevent artwork import, but cannot silently select a repair contract or enter the current pack's comparison totals.
 
-The normal prompt uses current at the time the agent starts. Reading the Current hosted instructions link does not freeze that future selection. Copy complete prompt includes the bundled contract and project request, pinning its revision. Download complete instructions contains only reusable instructions and schemas, without project details or proof access; attach it beside the request when retrieval fails.
+Copy prompt includes the bundled contract and project request, pinning its revision. Download instructions contains only reusable instructions and schemas, without project details or proof access. Request-only delivery requires separately supplied or retrieved instructions. Before promoting hosted-only delivery, verify the revision, final marker and both schemas across fresh chats, then complete a hosted-only pack/import test. A successful small HTML control page does not establish complete protocol retrieval. Reported MIME errors without raw evidence are not a confirmed diagnosis.
 
-Repair prompts reuse the recorded release. For legacy packs they prefer original conversation instructions and only use a compatible baseline if those are absent. The importer never fetches revision or provenance URLs, and feedback is never submitted automatically.
+Repair prompts reuse the recorded release. For legacy packs they prefer original conversation instructions and only use a compatible baseline if those are absent. The importer never fetches revision or provenance URLs or uploads artwork. Import submits only validated bounded feedback and eligible catalog source observations automatically; this is separate from hosted instruction retrieval.
