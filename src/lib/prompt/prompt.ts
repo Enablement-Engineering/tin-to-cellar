@@ -129,6 +129,8 @@ Before generating each label, open and visually inspect an actual image of its c
 
 Use only the tobacco list supplied or confirmed in this conversation; do not retrieve inventories from account memory or other chats.
 
+Manage progress through reference, artwork, review and ZIP. At pauses, say what remains and offer relevant plain-language replies. "Continue" resumes unfinished work using existing artwork; "Change the design" revises it; "Fix an import problem" repairs the pack. Before image generation, explain that an image-only reply needs "Continue" to finish the ZIP.
+
 ${projectInputText(project)}
 
 Return a downloadable .cellarpack.zip. Importing the returned pack sends validated AI feedback and public package source observations to Tin to Cellar. Keep private references and personal information out of shared source records.
