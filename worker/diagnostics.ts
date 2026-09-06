@@ -10,7 +10,7 @@ export interface Statement {
 export interface DiagnosticsDatabase { prepare(sql: string): Statement; batch(statements: Statement[]): Promise<unknown[]> }
 const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
 const days = (date: Date, count: number) => new Date(date.getTime() + count * 86400000).toISOString()
-export function diagnosticInsert(db: DiagnosticsDatabase, contribution: Contribution, receipt = new Date(), legacy = false) {
+export function diagnosticInsert(db: DiagnosticsDatabase, contribution: Pick<Contribution, 'submissionId' | 'origin' | 'validation'> & { feedback: unknown }, receipt = new Date(), legacy = false) {
   const expiry = legacy ? days(receipt, 90) : (() => { const end = new Date(receipt); end.setUTCFullYear(end.getUTCFullYear() + 1); return end.toISOString() })()
   return db.prepare('INSERT OR IGNORE INTO diagnostic_reports (id, received_at, expires_at, origin, feedback, validation) VALUES (?, ?, ?, ?, ?, ?)')
     .bind(contribution.submissionId, receipt.toISOString(), expiry, legacy ? 'legacy' : contribution.origin ?? 'pack', contribution.feedback ? JSON.stringify(contribution.feedback) : null, contribution.validation ? JSON.stringify(contribution.validation) : null)

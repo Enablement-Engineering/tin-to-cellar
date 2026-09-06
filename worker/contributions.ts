@@ -1,4 +1,4 @@
-import { collectionFeedback, parseContribution, type Contribution, type SuggestedSource } from '../src/lib/contributions'
+import { storedFeedback, parseContribution, type Contribution, type SuggestedSource } from '../src/lib/contributions'
 import { TOBACCO_CATALOG } from '../src/lib/tobacco-catalog'
 import { diagnosticInsert, storeDiagnostics, type DiagnosticsDatabase, type Statement } from './diagnostics'
 export interface Storage {
@@ -42,9 +42,9 @@ export class CatalogContributions {
         // have changed since collection and must not block diagnostic migration.
         const stored = item.contribution
         if (!stored || typeof stored.submissionId !== 'string' || !/^[a-f0-9]{64}$/.test(stored.submissionId) || !Number.isFinite(date.getTime())) throw new Error('Invalid stored diagnostic identity')
-        const feedback = stored.feedback === null ? null : collectionFeedback(stored.feedback)
+        const feedback = stored.feedback === null ? null : storedFeedback(stored.feedback)
         if (stored.feedback !== null && !feedback) throw new Error('Invalid stored diagnostic feedback')
-        const contribution: Contribution = { version: 1, submissionId: stored.submissionId, feedback, sources: [] }
+        const contribution = { submissionId: stored.submissionId, feedback }
         batch.push(diagnosticInsert(this.database, contribution, date, true))
         if (batch.length === 50) { await this.database.batch(batch); batch = [] }
         copied++

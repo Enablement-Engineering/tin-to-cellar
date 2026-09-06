@@ -1,4 +1,5 @@
 import { TOBACCO_CATALOG } from '../tobacco-catalog'
+import historicalFeedbackSchema from '../feedback/historical-schema.json'
 import feedbackSchema from '../feedback/schema.json'
 import legacyFeedbackSchema from '../feedback/legacy-schema.json'
 import type { DiagnosticReport } from '../feedback'
@@ -36,6 +37,10 @@ function conforms(value: unknown, schema: Record<string, unknown>, root = schema
 }
 export function collectionFeedback(value: unknown): DiagnosticReport | null {
   return conforms(value, feedbackSchema) || conforms(value, legacyFeedbackSchema) ? JSON.parse(JSON.stringify(value)) as DiagnosticReport : null
+}
+// Read-only migration support for the previously published numeric protocol format.
+export function storedFeedback(value: unknown): unknown | null {
+  return collectionFeedback(value) ?? (conforms(value, historicalFeedbackSchema) ? JSON.parse(JSON.stringify(value)) : null)
 }
 export function publicSourceUrl(value: unknown): value is string {
   if (typeof value !== 'string' || value.length > 1500) return false
