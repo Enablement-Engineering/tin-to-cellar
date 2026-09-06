@@ -38,3 +38,16 @@ it('offers only validated report data for explicit download', () => {
   expect(create.mock.calls[0][0]).toBeInstanceOf(Blob)
   click.mockRestore()
 })
+
+it('keeps revisions in separate comparison groups and identifies conflicting pack attribution', async () => {
+  const current = { ...report, schemaVersion: '2.0.0', protocolRevision: 1, promptVersion: undefined }
+  const { rerender } = render(<DiagnosticFeedback candidate={JSON.parse(JSON.stringify(current))} protocolContext={{ status: 'known', revision: 1 }} />)
+  fireEvent.change(screen.getByLabelText('Open saved feedback reports'), { target: { files: [
+    { size: 500, text: async () => JSON.stringify(report) },
+  ] } })
+  await waitFor(() => expect(screen.getByText(/1 reports loaded. 0 rejected/)).toBeTruthy())
+  expect(screen.getAllByText('failed: 1')).toHaveLength(2)
+  rerender(<DiagnosticFeedback candidate={JSON.parse(JSON.stringify(current))} protocolContext={{ status: 'conflict' }} />)
+  expect(screen.getByText(/pack and feedback name different protocol revisions/)).toBeTruthy()
+  expect(screen.getAllByText('failed: 1')).toHaveLength(1)
+})

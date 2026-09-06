@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { buildTinToCellarPrompt, buildTinToCellarRequest, buildTinToCellarInstructions, buildCellarPackRepairPrompt } from './lib/prompt'
+import { buildTinToCellarPrompt, buildCompleteTinToCellarPrompt, buildTinToCellarRequest, buildTinToCellarInstructions, buildCellarPackRepairPrompt } from './lib/prompt'
 import { checkAvery94502Compatibility } from './lib/sheets'
 import { Configurator } from './components/Configurator'
 import { HowItWorks } from './components/HowItWorks'
@@ -7,6 +7,7 @@ import { Landing } from './components/Landing'
 import { Icon } from './components/Icons'
 import { Wordmark } from './components/Wordmark'
 import { DiagnosticFeedback } from './components/DiagnosticFeedback'
+import { resolveProtocolContext } from './lib/protocol'
 import { FEEDBACK_KEY } from './lib/feedback'
 import { PackImporter } from './components/PackImporter'
 import { PrintStudio } from './components/PrintStudio'
@@ -56,6 +57,7 @@ function App() {
       window.history.scrollRestoration = previousRestoration
     }
   }, [])
+  const [protocolContext, setProtocolContext] = useState<ReturnType<typeof resolveProtocolContext>>({ status: 'legacy' })
   const [feedback, setFeedback] = useState<unknown>(null)
   const [importing, setImporting] = useState(false)
   const [summary, setSummary] = useState<ImportSummary | null>(null)
@@ -76,6 +78,7 @@ function App() {
     artDirection: ['Use 0.125 inch bleed on every side and integrate a blank, light date-writing surface into the artwork, with no words or writing line.', config.artDirection].filter(Boolean).join(' '),
   }), [config])
   const prompt = useMemo(() => buildTinToCellarPrompt(promptInput), [promptInput])
+  const completePrompt = useMemo(() => buildCompleteTinToCellarPrompt(promptInput), [promptInput])
   const request = useMemo(() => buildTinToCellarRequest(promptInput), [promptInput])
   const instructions = useMemo(() => buildTinToCellarInstructions(window.location.href), [])
   useEffect(() => () => objectUrls.current.forEach((url) => URL.revokeObjectURL(url)), [])
@@ -85,12 +88,15 @@ function App() {
     importBusy.current = true
     setImporting(true)
     setFeedback(null)
+    setProtocolContext({ status: 'legacy' })
     setRepairStatus('')
     setShowRepair(false)
     setImportLoadError(false)
     try {
       const { importCellarPack } = await import('./lib/cellarpack')
       const result = await importCellarPack(await file.arrayBuffer())
+      const context = resolveProtocolContext(result.manifest?.extensions)
+      setProtocolContext(context)
       setFeedback(result.manifest?.extensions?.[FEEDBACK_KEY] ?? null)
       const issues = result.issues.filter((issue) => issue.code !== 'MISSING_PREVIEW')
       const quarantined = result.quarantinedLabels.map((item) => ({ id: item.id, reason: item.issues.map(issueText).join(' ') }))
@@ -122,7 +128,7 @@ function App() {
       const hasFailures = quarantined.length > 0 || result.status !== 'ready' || issues.some((issue) => issue.severity === 'error')
       setSummary({ status: mappedLabels.length ? (hasFailures ? 'partial' : 'ready') : 'rejected', title: result.manifest?.title ?? file.name, labels: mappedLabels, issues: issues.map(issueText), quarantined })
       const repairIssues = [...issues, ...result.quarantinedLabels.flatMap((label) => label.issues)]
-      setRepairPrompt(hasFailures ? buildCellarPackRepairPrompt(repairIssues) : '')
+      setRepairPrompt(hasFailures ? buildCellarPackRepairPrompt(repairIssues, context) : '')
       if (mappedLabels.length) {
         objectUrls.current.forEach((url) => URL.revokeObjectURL(url))
         objectUrls.current = nextUrls
@@ -149,7 +155,7 @@ function App() {
     catch { setShowRepair(true); setRepairStatus('Select and copy the repair request below, then paste it into the same chat.') }
   }
 
-  const intake = <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} /><DiagnosticFeedback candidate={feedback} />
+  const intake = <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} /><DiagnosticFeedback candidate={feedback} protocolContext={protocolContext} />
     {importLoadError && <div className="panel" role="alert"><h3>The label reader couldn’t load</h3><p>The app may have updated, or the connection was interrupted. Reload the page, then choose the same ZIP again. Reloading clears the current workspace.</p><button className="button secondary" type="button" onClick={() => window.location.reload()}>Reload app</button></div>}
     {repairPrompt && <div className="panel repair-panel" role="status"><h3>{labels.length ? 'Some labels need another pass' : 'The ZIP needs another pass'}</h3><p>{labels.length ? 'Your current printable labels are still available below. ' : ''}Send the repair request to the same ChatGPT chat and import the ZIP it returns.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}><Icon name="copy" size={17} />Copy repair request</button><p className="copy-status">{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={repairPrompt} rows={8} onFocus={(event) => event.currentTarget.select()} />}</div>}
   </div>
@@ -164,7 +170,7 @@ function App() {
     </header>
     <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
       {view === 'home' ? <Landing onNavigate={navigate} /> : view === 'create' ? <div className="screen-only create-workspace">
-        <div className="create-grid"><Configurator value={config} onChange={setConfig} /><PromptHandoff prompt={prompt} request={request} onPrint={() => navigate('print')} /></div>
+        <div className="create-grid"><Configurator value={config} onChange={setConfig} /><PromptHandoff completePrompt={completePrompt} prompt={prompt} request={request} onPrint={() => navigate('print')} /></div>
       </div> : view === 'help' ? <HowItWorks instructions={instructions} /> : <>
         <div className="page-heading screen-only"><h1>Print labels</h1><p className="spec-line">Avery 94502 · 2.5 in circles · US Letter</p></div>
         {labels.length > 0 ? <PrintStudio intake={intake} labels={labels} quantities={quantities} onQuantityChange={(id, value) => setQuantities((current) => ({ ...current, [id]: value }))} settings={printSettings} onSettingsChange={setPrintSettings} /> :

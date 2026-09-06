@@ -21,7 +21,9 @@ With supplied proof access, GET https://tintocellar.com/api/proof for its contra
 Open the returned PNG: cyan is trim, dashed magenta is safe, shading is bleed. Compare names, iconic artwork and the entire writing surface with these guides and the package reference. Refine specific defects, at most twice. Guides do not certify fidelity. Never use the proof as artwork, editing reference or ZIP content. Keep clean originals. For other dimensions/shapes or if unavailable, make equivalent guides locally and report that fallback.
 
 # CellarPack protocol
-Use the complete schema below; no external fetch is required. Return root manifest.json and artwork/<label-id>.png. Reference assets by artworkAssetId. Compute SHA-256 from actual delivered bytes. Research must distinguish inspected observations from creative adaptation.
+Use the complete schema below; no additional schema fetch is required. Return root manifest.json and artwork/<label-id>.png. Reference assets by artworkAssetId. Compute SHA-256 from actual delivered bytes. Research must distinguish inspected observations from creative adaptation.
+
+Record this release in manifest.extensions["tin-to-cellar:protocol"] as {"revision":1,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}. Keep this revision through repairs; do not switch to a newer release mid-run.
 
 Write-in x/y/width/height use the finished trim bounding box, not the bleed canvas. Measure the actual surface; keep it unrotated and inside the safe area. Set overlay.mode to blank. The overlay object contains only mode; the website does not render overlays.
 

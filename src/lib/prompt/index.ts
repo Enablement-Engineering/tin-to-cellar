@@ -6,7 +6,7 @@ export {
   DEFAULT_SPEC_PATH,
   PROMPT_DEFAULTS,
 } from './defaults'
-export { buildTinToCellarInstructions, buildTinToCellarRequest, buildCellarPackRepairPrompt, buildChatGPTLaunchPrompt, buildTinToCellarPrompt, createChatGPTUrl } from './prompt'
+export { buildCompleteTinToCellarPrompt, buildTinToCellarInstructions, buildTinToCellarRequest, buildCellarPackRepairPrompt, buildChatGPTLaunchPrompt, buildTinToCellarPrompt, createChatGPTUrl } from './prompt'
 export type {
   DimensionUnit,
   InspirationRole,

@@ -2,6 +2,7 @@ import { proofResponse } from './proof'
 import type { ProofImages } from './proof'
 import { reserveProof, type BudgetBinding } from './budget'
 import { bearer, issueAccess } from './access'
+import { protocolResponse } from './protocol'
 export { ProofBudget } from './budget'
 interface Env {
   PROOF_BUDGET?: BudgetBinding
@@ -16,6 +17,7 @@ interface Env {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const path = new URL(request.url).pathname
+    if (path === '/api/protocol' || path.startsWith('/api/protocol/')) return protocolResponse(request)
     const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
     if (path === '/api/proof-access') {
       if (request.method === 'GET') return Response.json({ siteKey: env.PROOFS_ENABLED === 'true' && env.TURNSTILE_SECRET_KEY && env.PROOF_BUDGET && env.ACCESS_RATE_LIMITER ? env.TURNSTILE_SITE_KEY ?? null : null }, { headers })

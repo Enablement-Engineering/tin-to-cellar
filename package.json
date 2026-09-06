@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "npm run prepare:ocr && vite",
-    "build": "npm run prepare:ocr && tsc -b && vite build",
+    "build": "npm run protocol:release && npm run prepare:ocr && tsc -b && vite build",
+    "protocol:release": "node scripts/protocol-release.mjs",
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
