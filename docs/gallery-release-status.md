@@ -11,7 +11,7 @@ Account: `97e5d454f1ad2daae1c6d42a5d4c09dd`.
 | Staging | `tin-to-cellar-gallery-staging` | `9c01083d-9cba-4263-bd4e-7f21a2b93fef` | `gallery-staging.tintocellar.com` | `admin-staging.tintocellar.com` |
 | Production | Worker `tin-to-cellar`; bucket/database `tin-to-cellar-gallery` | `37bebdd3-76f1-44cf-839a-c8a980113d87` | `tintocellar.com`, `www.tintocellar.com` | `admin.tintocellar.com` |
 
-Both D1 databases and R2 buckets have been created. Both buckets have `r2.dev` access disabled and no bucket custom domains. Separate managed gallery Turnstile widgets are created; private widget secrets are held only in protected ignored local setup files. Neither the existing diagnostics database nor Scribely Access applications were modified.
+Both D1 databases and R2 buckets have been created. Both buckets have `r2.dev` access disabled and no bucket custom domains. Separate managed gallery Turnstile widgets are created; private widget secrets are installed in the Workers and their temporary local response copies were removed. Neither the existing diagnostics database nor Scribely Access applications were modified.
 
 The CLI OAuth credential could not manage Access; setup proceeded through a temporary account-scoped credential. Human and machine Access applications are now configured with separate audiences, recorded in the ignored resources.json setup record. Service credentials are securely saved outside source and chat, and Worker secrets are installed in both environments. The temporary setup token was deleted through the UI; a follow-up API request returned 401 Invalid API Token, confirming revocation. Temporary setup-secret copies were removed; protected ongoing agent credential files remain. Never paste credentials into tasks or source.
 
@@ -35,7 +35,7 @@ The enabled staging deployment completed the hosted human/agent moderation proof
 
 ## Remaining release work
 
-The simplified staging redeploy and its submission/retired-route smoke checks passed. The production root configuration now contains the actual bindings and enabled Worker environment flags, but all three production D1 switches remain 0. There has been no production gallery feature deployment, commit or push; editing the configuration does not enable the live feature. Complete the scoped production release and equivalent hosted checks before claiming production availability.
+The simplified staging redeploy and its submission/retired-route smoke checks passed. The production root configuration now contains the actual bindings and enabled Worker environment flags, but all three production D1 switches remain 0. Implementation commit `0fff239` is pushed only to `codex/community-gallery`. Automatic approval review rejected a direct push to main and requires approval for that final repository change; a pull request is being prepared. Main and the production gallery remain unchanged. Complete the scoped production release and equivalent hosted checks before claiming production availability.
 
 Fresh human login and selected-agent staging proof are complete; there is no pending OTP step. Keep the tested publication unpublished. Physical printer alignment and artwork rights are not established by software tests. The original mixed checkout remains untouched; implementation is isolated in `/private/tmp/tin-to-cellar-gallery`.
 
