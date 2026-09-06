@@ -196,10 +196,6 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 .more-options[open] > summary::after, .prompt-preview[open] > summary::after, .alignment-options[open] > summary::after { content: '−'; }
 .more-options > p { margin-bottom: 12px; }
 .more-options > .button { margin-bottom: 16px; }
-.proof-access { margin: 16px 0; padding-top: 16px; border-top: 1px solid var(--line-hairline); }
-.proof-access > p { color: var(--text-muted); font: var(--type-hint); }
-.proof-access .field-hint { margin-block: 12px; }
-.proof-access > .button { margin-top: 8px; }
 .prompt-preview { min-width: 0; }
 .prompt-view-switch { display: flex; width: fit-content; gap: 4px; margin-bottom: 16px; padding: 4px; border-radius: var(--radius-control); background: var(--surface-sunken); }
 .prompt-view-switch button { min-height: 34px; padding: 0 12px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--text-muted); font: var(--type-ui); transition: var(--transition-control); }

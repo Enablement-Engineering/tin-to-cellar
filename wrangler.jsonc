@@ -5,20 +5,63 @@
   "compatibility_date": "2026-09-05",
   "workers_dev": false,
   "preview_urls": false,
-  "vars": { "PROOFS_ENABLED": "true", "TURNSTILE_SITE_KEY": "0x4AAAAAAEpv53Q_SspS9xS0" },
-  "durable_objects": { "bindings": [{ "name": "PROOF_BUDGET", "class_name": "ProofBudget" }, { "name": "CATALOG_CONTRIBUTIONS", "class_name": "CatalogContributions" }] },
-  "migrations": [{ "tag": "proof-budget-v1", "new_sqlite_classes": ["ProofBudget"] }, { "tag": "catalog-contributions-v1", "new_sqlite_classes": ["CatalogContributions"] }],
-  "images": { "binding": "IMAGES" },
-  "rules": [{ "type": "Data", "globs": ["**/avery-94502-proof-overlay.png"], "fallthrough": true }],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "CATALOG_CONTRIBUTIONS",
+        "class_name": "CatalogContributions"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "proof-budget-v1",
+      "new_sqlite_classes": [
+        "ProofBudget"
+      ]
+    },
+    {
+      "tag": "catalog-contributions-v1",
+      "new_sqlite_classes": [
+        "CatalogContributions"
+      ]
+    },
+    {
+      "tag": "proof-budget-retired-v1",
+      "deleted_classes": [
+        "ProofBudget"
+      ]
+    }
+  ],
   "ratelimits": [
-    { "name": "CONTRIBUTION_RATE_LIMITER", "namespace_id": "1004", "simple": { "limit": 3, "period": 60 } },
-    { "name": "PROOF_RATE_LIMITER", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } },
-    { "name": "ACCESS_RATE_LIMITER", "namespace_id": "1003", "simple": { "limit": 3, "period": 60 } }
+    {
+      "name": "CONTRIBUTION_RATE_LIMITER",
+      "namespace_id": "1004",
+      "simple": {
+        "limit": 3,
+        "period": 60
+      }
+    }
   ],
   "routes": [
-    { "pattern": "tintocellar.com", "custom_domain": true },
-    { "pattern": "www.tintocellar.com", "custom_domain": true }
+    {
+      "pattern": "tintocellar.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.tintocellar.com",
+      "custom_domain": true
+    }
   ],
-  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": ["/api/*"], "not_found_handling": "single-page-application" },
-  "observability": { "enabled": false }
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ],
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": false
+  }
 }

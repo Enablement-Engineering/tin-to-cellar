@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { useEffect } from 'react'
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -230,7 +229,6 @@ it('extracts feedback from a pack and clears it when a later import fails', asyn
   expect(screen.queryByText('AI run details')).not.toBeInTheDocument()
 })
 
-vi.mock('./components/ProofAccess', () => ({ ProofAccess: ({ onPendingChange }: { onPendingChange(pending: boolean): void }) => { useEffect(() => onPendingChange(false), [onPendingChange]); return null } }))
 
 it('opens the privacy page from the footer and directly by path', async () => {
   window.history.replaceState({}, '', '/labels')

@@ -22,7 +22,7 @@ The chat needs research/image inspection, image generation, and file/ZIP creatio
 
 Review the output against the inspected source. Circular reflow may rearrange rectangular packaging, but must preserve defining illustration style, character details, logo, palette, and lettering. Shared subjects or colors are insufficient. Use a saved browser capture as generator input when a direct image download fails and the provider supports it. If no actual package can be inspected, request a reference attachment.
 
-The [proof service](cloudflare-deployment.md#proof-api) returns a separate image with trim and safe guides. Access is prepared automatically in Make a prompt. It accepts only the generated PNG explicitly sent to it; importing an order or pack never calls this endpoint. If unreachable, the AI should produce equivalent guides locally and report that fallback. Keep annotated proofs out of the final ZIP. Geometry checks and model self-review do not establish packaging fidelity.
+The protocol includes a tested Python script for the AI to run locally in its chat, creating a separate image with trim, safe-area, and bleed guides. No upload or access token is required. The AI opens the proof and visually checks the artwork before packaging. Keep annotated proofs out of the final ZIP. Geometry checks and model self-review do not establish packaging fidelity.
 
 ## Print labels
 

@@ -4,7 +4,7 @@ export function Privacy() {
       <p className="eyebrow">Your files and data</p>
       <h1>Privacy</h1>
       <p className="editorial-lede">Your orders and label packs are read in your browser. Your AI chat makes the artwork. Importing a pack shares AI feedback and public package source observations to improve future labels.</p>
-      <p>Updated September 5, 2026</p>
+      <p>Updated September 6, 2026</p>
     </header>
     <div className="editorial-body">
       <section aria-labelledby="privacy-summary">
@@ -13,7 +13,7 @@ export function Privacy() {
           <li>Your imported orders, ZIPs, and artwork stay on your device.</li>
           <li>Importing a readable pack automatically shares validated AI feedback and public package source links with fixed observations. Those links can help other users make labels.</li>
           <li>Collected feedback and source observations expire after 90 days and are removed at the next daily cleanup.</li>
-          <li>Your AI can send label images to Cloudflare for print guides. Our app processes those images without storing them.</li>
+          <li>Print guides are created in your AI chat’s working environment. Tin to Cellar does not receive the artwork for guide generation.</li>
           <li>Your AI provider, Cloudflare, and the embedded YouTube video handle data under their own policies. We do not receive your AI chat.</li>
         </ul>
       </section>
@@ -24,12 +24,9 @@ export function Privacy() {
         <p>Label previews, quantities, and sheet layout are handled in your browser. Printing uses your browser and chosen printer or PDF destination. The app does not save your workspace to an account. Reloading clears the open workspace; files you downloaded and text on your clipboard remain until you remove them. Your browser may cache site assets and text-recognition resources.</p>
       </section>
       <section>
-        <h2>Print guides and Cloudflare verification</h2>
-        <p>When you open Make a prompt, the app automatically requests access to our print guide service. Cloudflare Turnstile checks for automated abuse and may ask you to complete a verification. The prompt receives a temporary access credential for up to 60 image checks over 24 hours, subject to shared capacity limits. Keep that credential private when sharing prompts.</p>
-        <p>Your AI can send a generated label PNG to our Cloudflare-hosted service. It returns a separate copy marked with the cut edge, safe area, and bleed. Our application does not store those images or change the printable original. Importing a label ZIP does not send its artwork to this service. The guides support visual review; they do not certify spelling or fidelity to the original package.</p>
-        <p>We store a hash of each access credential, its expiry and remaining allowance, and shared usage counters to limit processing. Credentials expire after 24 hours. Expired records are removed when new access is issued, rather than by a scheduled deletion. Usage counters are replaced as their time periods roll over during later requests.</p>
-        <p>Cloudflare processes network information to deliver and protect the site. Our access and image endpoints use the requesting IP address for rate limits, and verification sends your IP address to Cloudflare. Turnstile also processes browser and connection signals, including the user agent and TLS fingerprint, for bot detection and improving that detection. See <a href="https://www.cloudflare.com/turnstile-privacy-policy/">Cloudflare's Turnstile privacy notice</a> and <a href="https://www.cloudflare.com/privacypolicy/">privacy policy</a> for its handling of this information.</p>
-        <p>If access is unavailable or expires, your AI is instructed to make equivalent guides in its own working environment. That environment may be hosted by your AI provider; it does not necessarily run on your computer.</p>
+        <h2>Print guides</h2>
+        <p>Your AI creates separate guide copies in its own working environment to review the cut edge, safe area, bleed, and writing space. That environment may be hosted by your AI provider; it does not necessarily run on your computer. The guides support visual review; they do not certify spelling or fidelity to the original package. Tin to Cellar does not receive artwork for these checks.</p>
+        <p>Cloudflare processes ordinary network information to deliver and protect this site. See <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a> for its handling of that information.</p>
       </section>
       <section>
         <h2>Prompt feedback</h2>

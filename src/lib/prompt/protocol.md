@@ -45,14 +45,16 @@ For each label, add label.extensions["tin-to-cellar:sources"] as an array of up 
 Include attempted suggested links even when broken or mismatched, plus any eligible replacement source you found. This lets the catalog stop suggesting failed links. Keep required research.sources as usual, including original source attribution. The shared source extension contains no descriptions, personal data, or image files. Importing the pack automatically submits validated diagnostic feedback and these limited source observations for known catalog blends. Do not submit them directly from this chat. Public source suggestions are agent-reported and must be checked on each use.
 
 # Dimensioned review proof
-With supplied proof access, GET https://tintocellar.com/api/labels/proof for its contract, then POST raw generated PNG bytes with Content-Type: image/png and Authorization: Bearer as supplied. Keep the credential out of URLs, ZIPs and other hosts. Without access, or on 401/429/503, use local guides without retries. The service stores no images. Resize only a review copy; preserve the original.
+Use the supplied Python/Pillow renderer below locally; save it as local-proof.py and execute it unchanged rather than inventing guide code. No hosted proof service, credentials or code download is needed. Default circle: `uv run --with pillow local-proof.py artwork.png review-proof.png`, or run the same file with your environment's Python/Pillow runner. For rectangles, pass `--shape rectangle --width 3 --height 2 --bleed 0.125 --safe 0.125` with actual values. All dimensions use the same unit. Circle width and height must match; square labels use rectangle with equal dimensions. Other shapes are unsupported: disclose the missing proof rather than substituting geometry. If tooling is unavailable, record proof-unavailable and disclose the missing proof check, never claim validation passed.
 
-Open the returned PNG: cyan is trim, dashed magenta is safe, shading is bleed. Compare names, iconic artwork and the entire writing surface with these guides and the package reference. Refine specific defects, at most twice. Guides do not certify fidelity. Never use the proof as artwork, editing reference or ZIP content. Keep clean originals. For other dimensions/shapes or if unavailable, make equivalent guides locally and report that fallback.
+Open the generated PNG: cyan is trim, dashed magenta is safe, orange shading is bleed. Compare names, iconic artwork and the entire writing surface with these guides and the package reference. Refine artwork defects, at most twice, using clean artwork and original references; rerun the script with a new proof filename after each revision. Guides do not certify fidelity. Never use the proof as artwork, editing reference or ZIP content. The script preserves source bytes and creates a separate review copy; never replace clean originals with proofs.
+
+<!-- LOCAL_PROOF_SCRIPT -->
 
 # CellarPack protocol
 Use the complete schema below; no additional schema fetch is required. Return root manifest.json and artwork/<label-id>.png. Reference assets by artworkAssetId. Compute SHA-256 from actual delivered bytes. Research must distinguish inspected observations from creative adaptation.
 
-Record this release in manifest.extensions["tin-to-cellar:protocol"] as {"revision":6,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}. Keep this revision through repairs; do not switch to a newer release mid-run.
+Record this release in manifest.extensions["tin-to-cellar:protocol"] as {"revision":7,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}. Keep this revision through repairs; do not switch to a newer release mid-run.
 
 Write-in x/y/width/height use the finished trim bounding box, not the bleed canvas. Measure the actual surface; keep it unrotated and inside the safe area. Set overlay.mode to blank. The overlay object contains only mode; the website does not render overlays.
 

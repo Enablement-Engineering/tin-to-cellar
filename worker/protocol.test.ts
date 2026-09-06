@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import worker from './index'
 import { PROTOCOL_REVISION, protocolInstructions, protocolReleases } from '../src/lib/protocol'
-const env = { ASSETS: { fetch: vi.fn() }, PROOFS_ENABLED: 'false' }
+const env = { ASSETS: { fetch: vi.fn() } }
 const get = (path: string, init?: RequestInit) => worker.fetch(new Request(`https://tintocellar.com${path}`, init), env)
 describe('hosted protocol', () => {
   it('serves readable HTML with both complete schemas and escaped instruction text', async () => {
@@ -15,7 +15,8 @@ describe('hosted protocol', () => {
     const page = new DOMParser().parseFromString(html, 'text/html')
     const markdown = protocolInstructions()
     const schemas = [...markdown.matchAll(/```json\n([\s\S]*?)\n```/g)].map(match => JSON.parse(match[1]))
-    expect([...page.querySelectorAll('pre code')].map(el => JSON.parse(el.textContent!))).toEqual(schemas)
+    expect([...page.querySelectorAll('pre code.language-json')].map(el => JSON.parse(el.textContent!))).toEqual(schemas)
+    expect(page.querySelector('pre code.language-python')?.textContent).toBe(markdown.match(/```python\n([\s\S]*?)\n```/)![1])
     expect(schemas).toHaveLength(2)
     expect(page.body.textContent).toContain(`END TIN TO CELLAR PROTOCOL ${PROTOCOL_REVISION}`)
     expect(page.body.textContent).toContain('artwork/<label-id>.png')
@@ -34,7 +35,8 @@ describe('hosted protocol', () => {
     const body = await current.text()
     expect(body).toBe(protocolInstructions())
     expect(body).toContain(`https://tintocellar.com/api/labels/protocol/v1/releases/${PROTOCOL_REVISION}/instructions.md`)
-    expect(body).toContain('https://tintocellar.com/api/labels/proof')
+    expect(body).not.toContain('https://tintocellar.com/api/labels/proof')
+    expect(body).toContain('uv run --with pillow local-proof.py')
     expect(body).not.toMatch(/\/api\/(?:protocol|proof|sources|contributions)/)
     expect(body).toContain(`END TIN TO CELLAR PROTOCOL ${PROTOCOL_REVISION}`)
     expect(body).toContain(`Set protocolRevision to the numeric revision of these instructions (${PROTOCOL_REVISION}), matching the pack protocol extension.`)

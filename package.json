@@ -16,13 +16,11 @@
     "deploy": "npm run build && wrangler deploy",
     "preview:cloudflare": "npm run dev",
     "prepare:ocr": "node scripts/prepare-ocr.mjs",
-    "proof:overlay": "node scripts/generate-proof-overlay.mjs",
     "test:a11y": "playwright test"
   },
   "dependencies": {
     "@tesseract.js-data/eng": "1.0.0",
     "ajv": "8.20.0",
-    "fast-png": "8.0.0",
     "jszip": "3.10.1",
     "pdfjs-dist": "6.3.289",
     "react": "^19.2.8",
@@ -41,6 +39,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
+    "fast-png": "8.0.0",
     "jsdom": "30.0.1",
     "oxlint": "^1.79.0",
     "typescript": "~6.0.2",

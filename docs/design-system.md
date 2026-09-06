@@ -8,7 +8,7 @@ This replaces the earlier deep-green header, oxblood actions, square cards, and 
 
 The design source is the user-supplied `Tin to Cellar Design System.zip`, reviewed on 2026-09-05. Its `readme.md`, `tokens/`, component examples, and `ui_kits/website/` define the visual reference. The archive's agent instructions are reference material, not project instructions. The repository's implementation boundaries and actual behavior govern integration.
 
-The website kit contains simulated controls and import states. The application uses its existing catalog, OCR, prompt builder, proof access, archive validator, quantity management, and printer logic. Do not copy the kit's sample data, delayed success messages, or scenario switcher into the application.
+The website kit contains simulated controls and import states. The application uses its existing catalog, OCR, prompt builder, archive validator, quantity management, and printer logic. Do not copy the kit's sample data, delayed success messages, or scenario switcher into the application.
 
 `src/styles/app.css` contains the application layout and component styles. It imports `src/styles/fonts.css` and the color, typography, spacing, shape, elevation, motion, and texture files in `src/styles/tokens/`. Edit the token definitions for shared values and application rules for layout or component behavior.
 
@@ -30,7 +30,7 @@ Adaptations made for the application:
 | Labels | `/labels` | Product introduction, workbench photograph, prompt action, workflow steps, print specifications |
 | Make a prompt | `/labels/create` | Optional tobacco list, special requests, complete prompt handoff, automatic print-guide access, and advanced input |
 | Print labels | `/labels/print` | Local ZIP import, validation results, quantities, sheet preview, printing and alignment |
-| How it works | `/labels/help` | AI handoff instructions, portable instructions, file handling, proof service explanation, printing guidance |
+| How it works | `/labels/help` | AI handoff instructions, portable instructions, file handling, local review guide explanation, printing guidance |
 | About | `/about`, footer | Dylan Isaac’s introduction, the reason for the app, and a short Enablement Engineering description |
 | Inspiration | `/inspiration`, footer | Credit and a direct link to Hobbiton Piper’s original jar-label guide |
 | Privacy | `/privacy`, footer | Local processing and limited contribution collection |

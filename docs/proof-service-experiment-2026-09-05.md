@@ -1,5 +1,7 @@
 # Generated-artwork proof service
 
+Historical experiment: hosted proof was retired in protocol revision 7. The current protocol supplies a local Python proof program; the endpoints and commands below document the earlier experiment.
+
 ## What was tested
 
 ChatGPT GPT-5.6 Sol Medium (Work) used its network-capable execution environment to upload actual generated PNG bytes, receive a response, save it, and visually inspect an annotated proof. This demonstrates the capability in that environment, not in every ChatGPT model or tool configuration.

@@ -1,10 +1,8 @@
 // @vitest-environment jsdom
-import { useEffect } from 'react'
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PromptHandoff } from './PromptHandoff'
-import { proofAccessText } from '../lib/prompt/proof-access'
 import { protocolInstructions } from '../lib/protocol'
 afterEach(cleanup)
 describe('PromptHandoff', () => {
@@ -14,19 +12,19 @@ describe('PromptHandoff', () => {
     const { rerender } = render(<PromptHandoff prompt="Short readable preview" completePrompt="Full contract and schema" request="Just the request" />)
     expect(screen.getByText('Read prompt').closest('details')).not.toHaveAttribute('open')
     fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }))
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith('Short readable preview' + proofAccessText(null)))
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('Short readable preview'))
     expect(screen.queryByRole('link', { name: /open chatgpt/i })).not.toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Prompt copied'))
     fireEvent.click(screen.getByText('Read prompt'))
     expect(screen.getByRole('region', { name: 'Rendered prompt' })).toHaveTextContent('Short readable preview')
     expect(screen.getByRole('region', { name: 'Rendered prompt' })).not.toHaveTextContent('Full contract and schema')
     fireEvent.click(screen.getByRole('button', { name: 'Full copied text' }))
-    expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Short readable preview' + proofAccessText(null))
+    expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Short readable preview')
     fireEvent.click(screen.getByRole('button', { name: 'Copy complete prompt' }))
-    await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('Full contract and schema' + proofAccessText(null)))
-    expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Full contract and schema' + proofAccessText(null))
+    await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('Full contract and schema'))
+    expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Full contract and schema')
     fireEvent.click(screen.getByRole('button', { name: 'Copy request only' }))
-    await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('Just the request' + proofAccessText(null)))
+    await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('Just the request'))
     expect(screen.getByRole('status')).toHaveTextContent('already added the Tin to Cellar instructions')
     rerender(<PromptHandoff prompt="Changed contract" request="Changed request" />)
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
@@ -36,7 +34,7 @@ describe('PromptHandoff', () => {
     render(<PromptHandoff prompt="Complete fallback text" request="Request text" />)
     fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }))
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Automatic copying did not work'))
-    expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Complete fallback text' + proofAccessText(null))
+    expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Complete fallback text')
     expect(screen.getByText('Read prompt').closest('details')).toHaveAttribute('open')
   })
   it('shows the request payload rather than the full prompt when request-only copying fails', async () => {
@@ -44,7 +42,7 @@ describe('PromptHandoff', () => {
     render(<PromptHandoff prompt="Full instructions payload" request="Specific label request payload" />)
     fireEvent.click(screen.getByText('Read prompt'))
     fireEvent.click(screen.getByRole('button', { name: 'Copy request only' }))
-    await waitFor(() => expect(screen.getByLabelText('Request to copy')).toHaveValue('Specific label request payload' + proofAccessText(null)))
+    await waitFor(() => expect(screen.getByLabelText('Request to copy')).toHaveValue('Specific label request payload'))
     expect(screen.queryByLabelText('Prompt to copy')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Request to copy').closest('details')).toHaveAttribute('open')
   })
@@ -59,7 +57,7 @@ it('renders Markdown without fetching embedded images or executing HTML, and pre
   expect(screen.getByRole('region', { name: 'Rendered prompt' }).querySelector('img,script')).toBeNull()
   expect(screen.getByText('Unsafe')).not.toHaveAttribute('href', 'javascript:alert(1)')
   fireEvent.click(screen.getByRole('button', { name: 'Full copied text' }))
-  expect(screen.getByLabelText('Prompt to copy')).toHaveValue(prompt + proofAccessText(null))
+  expect(screen.getByLabelText('Prompt to copy')).toHaveValue(prompt)
 })
 
 it('copies and reveals the exact complete payload when its clipboard action fails', async () => {
@@ -68,8 +66,8 @@ it('copies and reveals the exact complete payload when its clipboard action fail
   render(<PromptHandoff prompt="Compact request" completePrompt="Frozen complete contract" request="Request only" />)
   fireEvent.click(screen.getByText('Read prompt'))
   fireEvent.click(screen.getByRole('button', { name: 'Copy complete prompt' }))
-  await waitFor(() => expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Frozen complete contract' + proofAccessText(null)))
-  expect(writeText).toHaveBeenCalledWith('Frozen complete contract' + proofAccessText(null))
+  await waitFor(() => expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Frozen complete contract'))
+  expect(writeText).toHaveBeenCalledWith('Frozen complete contract')
   expect(screen.getByRole('link', { name: 'current instructions' })).toHaveAttribute('href', 'https://tintocellar.com/api/labels/protocol/v1/instructions.html')
 })
 
@@ -84,8 +82,5 @@ it('offers reusable bundled instructions without the project request or proof ac
   expect(body).not.toContain('Private project request')
   expect(body).not.toContain('Private complete request')
   expect(body).not.toContain('Private request')
-  expect(body).not.toContain(proofAccessText(null))
   expect(link).toHaveAttribute('download', 'tin-to-cellar-instructions.md')
 })
-
-vi.mock('./ProofAccess', () => ({ ProofAccess: ({ onPendingChange }: { onPendingChange(pending: boolean): void }) => { useEffect(() => onPendingChange(false), [onPendingChange]); return null } }))

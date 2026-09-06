@@ -1,3 +1,5 @@
+> Historical plan: revision 7 replaces hosted proof and credential handling described below with a supplied local Python proof program. See [current protocol operations](hosted-protocol.md).
+
 # Hosted CellarPack protocol plan
 
 Status: proposed implementation plan, reviewed from contract, reliability, and experience perspectives. No application changes or deployment are included in this planning task.

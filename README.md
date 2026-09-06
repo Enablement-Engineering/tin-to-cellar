@@ -23,7 +23,7 @@ For a conversation that already has the reusable instructions, use More options 
 - Uses label quantities to arrange 2.5-inch circles automatically across Avery 94502 sheets.
 - Prints a calibration proof and physically sized US Letter sheets, with Save as PDF available through the browser print dialog.
 
-The website opens to a home page that introduces the workflow. Make a prompt, Print labels, and How it works remain available in the navigation and through direct hash links. The wordmark returns home. The tools use warm paper backgrounds, moss actions, and Newsreader headings; the [design system guide](docs/design-system.md) records tokens, components, assets, and adaptation decisions.
+The website opens to a home page that introduces the workflow. Make a prompt, Print labels, and How it works remain available in the navigation and through direct `/labels/` routes. The wordmark returns home. The tools use warm paper backgrounds, moss actions, and Newsreader headings; the [design system guide](docs/design-system.md) records tokens, components, assets, and adaptation decisions.
 
 How it works covers the AI handoff, hosting costs, local file handling, and printing instructions. Artwork uses 0.125-inch bleed by default, with an integrated light writing surface; the website prints the artwork without adding any label overlays. Artwork geometry remains separate from sheet geometry. Other profiles exist in the format modules, but the current print UI supports Avery 94502 only.
 
@@ -48,7 +48,7 @@ npm run lint
 npm run build
 ```
 
-The dev/build scripts prepare the OCR runtime automatically. `npm run dev` builds the frontend and serves it with the real Worker API locally through Wrangler. `npm run preview` serves an existing build with that backend; `npm run preview:cloudflare` is an alias for `npm run dev`. Rebuild after frontend edits. For frontend-only work with hot reload, use `npm run dev:frontend`; it does not run the API or hosted verification. See the [deployment guide](docs/cloudflare-deployment.md) before using `npm run deploy`, particularly with your own account or domain. A GitHub push does not deploy the live site.
+The dev/build scripts prepare the OCR runtime automatically. `npm run dev` builds the frontend and serves it with the real Worker API locally through Wrangler. `npm run preview` serves an existing build with that backend; `npm run preview:cloudflare` is an alias for `npm run dev`. Rebuild after frontend edits. For frontend-only work with hot reload, use `npm run dev:frontend`; it does not run the API. See the [deployment guide](docs/cloudflare-deployment.md) before using `npm run deploy`, particularly with your own account or domain. Pushes to `main` deploy through the configured [GitHub workflow](docs/ci-deployment.md) after checks pass.
 
 The prompt artifact is published at `public/agent/tin-to-cellar-prompt.md`. CellarPack's human-readable specification and JSON Schema live under `public/spec/`.
 
@@ -58,7 +58,7 @@ The browser does not upload CellarPack files or automatically fetch provenance l
 
 Order reading also runs locally. Screenshot OCR downloads its English reader from the site on first use. Review matches before adding them; purchase quantities do not become print quantities.
 
-A Cloudflare proof service accepts explicitly submitted generated PNGs and returns trim/safe-area guides. Opening the prompt builder automatically starts Turnstile verification, which adds a private allowance for up to 60 checks over 24 hours. Shared processing is capped at 1,000 attempts per UTC month to leave free-tier headroom. The service stores no uploads, only usage counters and credential hashes. Without access or available capacity, the AI makes guides locally. It must visually inspect the proof alongside the original package; guides and ZIP validation do not certify artwork fidelity. Cloud OCR and automatic reference-image caching are not implemented.
+The protocol supplies a tested Python/Pillow program that the AI runs inside its chat to create trim, bleed, and safe-area guides. No hosted proof upload or access credential is required. The AI must visually inspect the separate proof alongside the original package; guides and ZIP validation do not certify artwork fidelity. Cloud OCR and automatic reference-image caching are not implemented.
 
 The default circular export includes opaque artwork through a 0.125-inch bleed ring, then transparent corners outside the 2.75-inch outer circle. The preview shows the finished trim; printing includes the supplied bleed. The generated image owns the entire blank writing surface, without website-added words or lines.
 
@@ -67,7 +67,7 @@ The default circular export includes opaque artwork through a 0.125-inch bleed r
 - [Architecture and documentation index](docs/README.md)
 - [Current user workflow](docs/simplified-workflow.md)
 - [Design system and UI guidance](docs/design-system.md)
-- [Deployment and proof API](docs/cloudflare-deployment.md)
+- [Deployment and local review guides](docs/cloudflare-deployment.md)
 - [CellarPack specification](public/spec/cellarpack-v1.md) and [JSON Schema](public/spec/cellarpack-v1.schema.json)
 - [Reusable AI instructions](public/agent/tin-to-cellar-prompt.md)
 - [Catalog sources and deduplication](data/catalog/README.md)

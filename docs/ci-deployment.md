@@ -9,7 +9,7 @@ In the repository's Actions settings, configure:
 - Repository variable `CLOUDFLARE_ACCOUNT_ID`: the account containing the existing `tin-to-cellar` Worker.
 - Repository secret `CLOUDFLARE_API_TOKEN`: a dedicated Cloudflare deployment API token restricted to that account. Start with Cloudflare's Edit Cloudflare Workers template and restrict zone access to `tintocellar.com` for its custom domains. Keep the token out of source files and chat.
 
-Follow [Cloudflare's GitHub Actions setup](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/) for creating the deployment token. A developer's local Wrangler OAuth session is not a CI credential. Existing Worker runtime secrets, including Turnstile, remain configured in Cloudflare; do not copy them into GitHub.
+Follow [Cloudflare's GitHub Actions setup](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/) for creating the deployment token. A developer's local Wrangler OAuth session is not a CI credential. Worker runtime secrets remain configured in Cloudflare; do not copy them into GitHub.
 
 ## Releases
 

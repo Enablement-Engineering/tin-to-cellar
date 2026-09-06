@@ -4,7 +4,7 @@ Use [the live site](https://tintocellar.com/) to create a prompt or print a Cell
 
 ## How the application works
 
-The browser combines a reusable protocol, full JSON Schema, and optional tobacco request into a prompt. The user carries it into one AI conversation for research, image generation, review, and ZIP creation. The downloaded ZIP returns to the browser for validation, sheet layout, and printing. The optional proof service is called explicitly by the AI's tools, never by pack import.
+The browser combines a reusable protocol, full JSON Schema, and optional tobacco request into a prompt. The user carries it into one AI conversation for research, image generation, review, and ZIP creation. The downloaded ZIP returns to the browser for validation, sheet layout, and printing. The protocol's supplied Python script creates review guides inside the AI chat.
 
 | Component | Responsibility | Location |
 | --- | --- | --- |
@@ -15,15 +15,15 @@ The browser combines a reusable protocol, full JSON Schema, and optional tobacco
 | CellarPack reader | Archive, schema, asset, hash, image, and geometry validation | `src/lib/cellarpack/` |
 | Sheet profiles | Physical paper and label positions | `src/lib/sheets/` |
 | Print studio | Quantities, pagination, calibration, and browser printing | `src/components/PrintStudio.tsx` |
-| Proof service | Separate review guides for generated PNGs | `worker/`, `src/lib/proof/` |
+| Local proof script | Separate review guides for generated PNGs, executed in the AI chat | `src/lib/prompt/` |
 
-The app handles orders and packs locally, renders untrusted manifest text as text, and does not fetch provenance URLs during import. The AI provider handles the content supplied in its chat under that provider's settings. The optional proof endpoint receives only explicitly submitted generated images and does not store them.
+The app handles orders and packs locally, renders untrusted manifest text as text, and does not fetch provenance URLs during import. The AI provider handles the content supplied in its chat under that provider's settings. The site does not receive artwork for proof rendering.
 
 ## Current guides and contracts
 
 - [User workflow](simplified-workflow.md)
 - [Design system and UI guidance](design-system.md)
-- [Deployment and proof API](cloudflare-deployment.md)
+- [Deployment and local review guides](cloudflare-deployment.md)
 - [CellarPack specification](../public/spec/cellarpack-v1.md) and [schema](../public/spec/cellarpack-v1.schema.json)
 - [Portable AI instructions](../public/agent/tin-to-cellar-prompt.md)
 - [Catalog evidence and maintenance](../data/catalog/README.md)

@@ -1,4 +1,3 @@
-import type { ProofLease } from './lib/prompt/proof-access'
 import { ContributionStatus } from './components/ContributionStatus'
 import { contributionFromManifest, type Contribution } from './lib/contributions'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -42,7 +41,6 @@ function issueText(issue: { message?: string; recovery?: string }) {
 }
 
 function App() {
-  const [proofLease, setProofLease] = useState<ProofLease | null>(null)
   const [config, setConfig] = useState(initialConfig)
   const [view, setView] = useState<View | 'not-found'>(viewFromPath)
   const main = useRef<HTMLElement>(null)
@@ -219,7 +217,7 @@ function App() {
     </header>
     <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
       {view === 'home' ? <SiteHome onNavigate={() => navigate('labels')} /> : view === 'not-found' ? <div className="landing-page screen-only"><h1>Page not found</h1><p>This page doesn’t exist.</p><a href="/labels" onClick={routeClick('labels')}>Go to Labels</a></div> : view === 'labels' ? <Landing onNavigate={navigate} /> : view === 'create' ? <div className="screen-only create-workspace">
-        <div className="create-grid"><Configurator value={config} onChange={setConfig} /><PromptHandoff proofLease={proofLease} onProofLeaseChange={setProofLease} completePrompt={completePrompt} prompt={prompt} request={request} onPrint={() => navigate('print')} /></div>
+        <div className="create-grid"><Configurator value={config} onChange={setConfig} /><PromptHandoff completePrompt={completePrompt} prompt={prompt} request={request} onPrint={() => navigate('print')} /></div>
       </div> : view === 'help' ? <HowItWorks instructions={instructions} /> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
         <div className="page-heading screen-only"><h1>Print labels</h1><p className="spec-line">Avery 94502 · 2.5 in circles · US Letter</p></div>
         {labels.length > 0 ? <PrintStudio intake={intake} labels={labels} quantities={quantities} onQuantityChange={(id, value) => setQuantities((current) => ({ ...current, [id]: value }))} settings={printSettings} onSettingsChange={setPrintSettings} /> :

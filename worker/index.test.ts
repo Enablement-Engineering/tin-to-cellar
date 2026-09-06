@@ -22,22 +22,14 @@ it('exposes status and fails closed for OCR without reading or storing uploads',
   expect(await health.json()).toEqual({ status: 'ok', cloudOcrEnabled: false })
 })
 
-it('has a kill switch and fails closed on limiter outages', async () => {
-  const images = { input: vi.fn() }, limit = vi.fn().mockRejectedValue(new Error('offline'))
-  const request = () => new Request('https://example.com/api/labels/proof', { method: 'POST', body: 'unread' })
-  const env = { ASSETS: { fetch: vi.fn() }, IMAGES: images, PROOF_RATE_LIMITER: { limit } }
-  expect((await worker.fetch(request(), { ...env, PROOFS_ENABLED: 'false' })).status).toBe(503)
-  expect(limit).not.toHaveBeenCalled()
-  expect((await worker.fetch(request(), { ...env, PROOFS_ENABLED: 'true' })).status).toBe(503)
-  expect(images.input).not.toHaveBeenCalled()
-})
-
-it('requires a configured limiter and rejects excessive proof requests before processing bytes', async () => {
-  const request = () => new Request('https://example.com/api/labels/proof', { method: 'POST', headers: { 'Content-Type': 'image/png', 'CF-Connecting-IP': '192.0.2.1' }, body: 'not decoded' })
-  expect((await worker.fetch(request(), { ASSETS: { fetch: vi.fn() } })).status).toBe(503)
-  const limit = vi.fn().mockResolvedValue({ success: false })
-  const response = await worker.fetch(request(), { ASSETS: { fetch: vi.fn() }, PROOFS_ENABLED: 'true', PROOF_RATE_LIMITER: { limit } })
-  expect(response.status).toBe(429)
-  expect(response.headers.get('Retry-After')).toBe('60')
-  expect(limit).toHaveBeenCalledWith({ key: '192.0.2.1' })
+it('rejects retired proof operations before consuming image bytes or calling services', async () => {
+  const env = { ASSETS: { fetch: vi.fn() } }
+  for (const path of ['/api/labels/proof', '/api/labels/proof-access']) for (const method of ['GET', 'POST']) {
+    const request = new Request(`https://example.com${path}`, { method, ...(method === 'POST' ? { body: 'private artwork bytes' } : {}) })
+    const response = await worker.fetch(request, env)
+    expect(response.status).toBe(404)
+    expect(await response.json()).toEqual({ error: 'Not found' })
+    expect(request.bodyUsed).toBe(false)
+  }
+  expect(env.ASSETS.fetch).not.toHaveBeenCalled()
 })

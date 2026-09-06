@@ -18,6 +18,8 @@ dist-ssr
 tmp/
 output/
 coverage/
+__pycache__/
+*.pyc
 playwright-report/
 test-results/
 *.cellarpack.zip

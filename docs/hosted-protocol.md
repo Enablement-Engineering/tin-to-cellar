@@ -1,10 +1,10 @@
 # Hosted protocol operation
 
-Copy prompt supplies the request and directs the agent to retrieve `/api/labels/protocol/v1/instructions.html`, verify both schemas and the end marker, and pin the retrieved revision for the run. Copy complete prompt is the self-contained recovery if retrieval fails. `https://tintocellar.com/api/labels/protocol/v1` returns Markdown; the HTML URL returns the same complete instructions and both schemas as readable HTML. Neither requires proof access or accepts uploads. The content identifies its revision and immutable URL and ends with `END TIN TO CELLAR PROTOCOL N`.
+Copy prompt supplies the request and directs the agent to retrieve `/api/labels/protocol/v1/instructions.html`, verify both schemas and the end marker, and pin the retrieved revision for the run. Copy complete prompt is the self-contained recovery if retrieval fails. `https://tintocellar.com/api/labels/protocol/v1` returns Markdown; the HTML URL returns the same complete instructions and both schemas as readable HTML. Both are public read-only resources. The content identifies its revision and immutable URL and ends with `END TIN TO CELLAR PROTOCOL N`.
 
 ## Published resources
 
-Revision 6 moves label APIs under `/api/labels/`, including protocol, proof, proof-access, sources, contributions, and the disabled OCR stub. `/api/health` remains site-wide. Former unnamespaced routes return 404; reload already-open clients and create a fresh prompt after deployment. Revisions 1–5 remain byte-identical archival documents served under the new namespace, so their embedded historical URLs are evidence of the original release and are not active compatibility routes. Use revision 6 for new runs.
+Revision 6 moves label APIs under `/api/labels/`, including protocol, proof, proof-access, sources, contributions, and the disabled OCR stub. `/api/health` remains site-wide. Former unnamespaced routes return 404; reload already-open clients and create a fresh prompt after deployment. Revisions 1–5 remain byte-identical archival documents served under the new namespace, so their embedded historical URLs are evidence of the original release and are not active compatibility routes. Revision 7 retires hosted proof and access endpoints and embeds the local proof program. Use revision 7 for new runs.
 
 - `/api/labels/protocol/v1` selects the current release and requires cache revalidation.
 - `/api/labels/protocol/v1/instructions.html` selects the current HTML release and requires cache revalidation.
@@ -13,7 +13,7 @@ Revision 6 moves label APIs under `/api/labels/`, including protocol, proof, pro
 - `/api/labels/protocol/v1/releases/1/cellarpack.schema.json` exposes its manifest schema.
 - `/api/labels/protocol/v1/releases/1/feedback.schema.json` exposes its feedback schema.
 
-Immutable responses use a one-year cache lifetime. All support GET, HEAD, ETag, and conditional requests. Unknown routes return 404; unsupported methods on existing resources return 405. No protocol request depends on proof configuration. Private proof access remains separately appended to copied prompts and is never in downloadable instructions.
+Immutable responses use a one-year cache lifetime. All support GET, HEAD, ETag, and conditional requests. Unknown routes return 404; unsupported methods on existing resources return 405. No protocol request depends on private credentials. The current protocol includes the complete local proof program; copied prompts contain no proof access tokens.
 
 ## Publishing a revision
 
@@ -32,6 +32,6 @@ Manifest output remains CellarPack 1.0.0. Workflow revisions and feedback schema
 
 Pack attribution uses `extensions["tin-to-cellar:protocol"]` with `revision`, `cellarpackVersion`, and `feedbackVersion`. It is strictly checked locally. Attribution is agent-reported, not authenticated. Malformed or conflicting attribution does not prevent artwork import, but cannot silently select a repair contract or enter the current pack's comparison totals.
 
-Copy complete prompt includes the bundled contract and project request, pinning its revision. Download instructions contains only reusable instructions and schemas, without project details or proof access. Request-only delivery requires separately supplied instructions. Two fresh ChatGPT sessions successfully read the full revision-5 HTML, including both schemas and final marker; generation/pack/import must be evaluated separately. Reported MIME errors without raw evidence are not a confirmed diagnosis. The primary compact prompt must name the actual Copy complete prompt fallback and stop if the hosted contract is unavailable rather than inventing a format.
+Copy complete prompt includes the bundled contract and project request, pinning its revision. Download instructions contains only reusable instructions and schemas, without project details. Request-only delivery requires separately supplied instructions. Two fresh ChatGPT sessions successfully read the full revision-5 HTML, including both schemas and final marker; generation/pack/import must be evaluated separately. Reported MIME errors without raw evidence are not a confirmed diagnosis. The primary compact prompt must name the actual Copy complete prompt fallback and stop if the hosted contract is unavailable rather than inventing a format.
 
 Repair prompts reuse the recorded release. For legacy packs they prefer original conversation instructions and only use a compatible baseline if those are absent. The importer never fetches revision or provenance URLs or uploads artwork. Import submits only validated bounded feedback and eligible catalog source observations automatically; this is separate from hosted instruction retrieval.

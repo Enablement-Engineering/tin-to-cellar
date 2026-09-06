@@ -34,8 +34,8 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     </article>
     <article>
     <h2>Check the fit before printing</h2>
-    <p>Your AI makes guide copies to check where each label will be cut and whether its text fits. Print guide access is prepared automatically when you make a prompt. If the service is unavailable, your AI makes equivalent guides in its own working environment.</p>
-    <p>Hosted checks send artwork to this service, which returns guide copies without storing the images. Access covers up to 60 checks over 24 hours. If access expires or capacity runs out, your AI makes the guides itself. Only the artwork without guides goes into the ZIP.</p>
+    <p>Your AI makes separate guide copies in its own working environment to check the cut edge, safe area, bleed, and writing space. It reviews those guides before packaging the labels.</p>
+    <p>Only the artwork without guides goes into the ZIP. These checks help with fit, but you should still review the labels and print a test sheet before using label stock.</p>
     </article>
     <article>
     <h2>What stays in my browser?</h2>
