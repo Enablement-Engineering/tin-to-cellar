@@ -45,7 +45,7 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     </article>
     <article>
     <h2>Does the return link bring my labels?</h2>
-    <p>The link opens Print labels. Download the ZIP from your chat, then choose it here. A localhost link works only on the device running this app.</p>
+    <p>The link opens Print labels. Download the ZIP from your chat, then choose it here.</p>
     </article>
     </section>
   </div>
