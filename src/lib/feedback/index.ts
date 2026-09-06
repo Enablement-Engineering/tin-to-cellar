@@ -6,7 +6,7 @@ import { isKnownProtocolRevision } from '../protocol'
 export const FEEDBACK_KEY = 'tin-to-cellar:feedback'
 /** Kept exclusively for the original, immutable feedback contract. */
 export const PROMPT_VERSION = '2026-09-06.1'
-export const FEEDBACK_SCHEMA_VERSION = '2.0.0'
+export const FEEDBACK_SCHEMA_VERSION = '0.2.0'
 type LegacyStage = 'research' | 'generation' | 'visual-review' | 'proof' | 'packaging' | 'validation'
 type LegacyIssueCode = 'reference-unavailable' | 'variant-ambiguous' | 'image-handoff-unavailable' | 'generation-unavailable' | 'generation-failed' | 'artwork-fidelity' | 'text-legibility' | 'write-area' | 'geometry' | 'proof-unavailable' | 'schema' | 'archive' | 'instructions-unclear' | 'instructions-conflicting' | 'other'
 type ReportBody<Stage extends string, IssueCode extends string> = {
@@ -22,7 +22,7 @@ export type LegacyDiagnosticReport = ReportBody<LegacyStage, LegacyIssueCode> & 
 }
 export type ProtocolDiagnosticReport = ReportBody<LegacyStage | 'protocol-retrieval', LegacyIssueCode | 'protocol-unavailable' | 'protocol-incomplete'> & {
   schemaVersion: typeof FEEDBACK_SCHEMA_VERSION
-  protocolRevision: number
+  protocolRevision: string
 }
 export type DiagnosticReport = LegacyDiagnosticReport | ProtocolDiagnosticReport
 const ajv = new Ajv({ allErrors: false })
@@ -35,7 +35,7 @@ export function parseDiagnosticReport(value: unknown): DiagnosticReport | null {
 }
 export function reportRevisionLabel(report: DiagnosticReport): string {
   if (report.schemaVersion === '1.0.0') return `Legacy prompt ${report.promptVersion}`
-  return `Protocol revision ${report.protocolRevision}${isKnownProtocolRevision(report.protocolRevision) ? '' : ' (unrecognized)'}`
+  return `Protocol ${report.protocolRevision}${isKnownProtocolRevision(report.protocolRevision) ? '' : ' (unrecognized)'}`
 }
 function reportTotals(reports: DiagnosticReport[]) {
   return {

@@ -8,7 +8,7 @@ export const example: LegacyDiagnosticReport = {
   issues: [{ code: 'generation-failed', stage: 'generation', resolved: false }],
 }
 export const protocolExample: ProtocolDiagnosticReport = {
-  format: 'tin-to-cellar/feedback', schemaVersion: '2.0.0', protocolRevision: 1,
+  format: 'tin-to-cellar/feedback', schemaVersion: '0.2.0', protocolRevision: '0.0.14',
   request: example.request, outcome: 'failed',
   steps: [{ stage: 'protocol-retrieval', status: 'unavailable', attempts: 1 }],
   issues: [{ stage: 'protocol-retrieval', code: 'protocol-incomplete', resolved: false }],
@@ -40,14 +40,14 @@ describe('private feedback boundary', () => {
   })
   it('reads the new report and marks unknown revisions without authenticating attribution', () => {
     expect(parseDiagnosticReport(protocolExample)).toEqual(protocolExample)
-    expect(reportRevisionLabel(protocolExample)).toBe('Protocol revision 1')
-    const unknown = { ...protocolExample, protocolRevision: 1000000 }
+    expect(reportRevisionLabel(protocolExample)).toBe('Protocol 0.0.14')
+    const unknown = { ...protocolExample, protocolRevision: '99.0.0' }
     expect(parseDiagnosticReport(unknown)).toEqual(unknown)
-    expect(reportRevisionLabel(unknown)).toBe('Protocol revision 1000000 (unrecognized)')
+    expect(reportRevisionLabel(unknown)).toBe('Protocol 99.0.0 (unrecognized)')
   })
   it('keeps the historical contract closed and rejects private or invalid new fields', () => {
     for (const value of [
-      { ...example, protocolRevision: 1 },
+      { ...example, protocolRevision: '0.0.14' },
       { ...example, steps: protocolExample.steps },
       { ...protocolExample, promptVersion: PROMPT_VERSION },
       { ...protocolExample, email: 'private@example.com' },
@@ -58,12 +58,12 @@ describe('private feedback boundary', () => {
     ]) expect(parseDiagnosticReport(value)).toBeNull()
   })
   it('separates comparison results for every legacy or protocol revision', () => {
-    const summary = summarizeReports([example, protocolExample, { ...protocolExample, protocolRevision: 999 }])
+    const summary = summarizeReports([example, protocolExample, { ...protocolExample, protocolRevision: '9.9.9' }])
     expect(summary.reports).toBe(3)
     expect(summary.byRevision.map(({ revisionLabel, reports }) => ({ revisionLabel, reports }))).toEqual([
       { revisionLabel: `Legacy prompt ${PROMPT_VERSION}`, reports: 1 },
-      { revisionLabel: 'Protocol revision 1', reports: 1 },
-      { revisionLabel: 'Protocol revision 999 (unrecognized)', reports: 1 },
+      { revisionLabel: 'Protocol 0.0.14', reports: 1 },
+      { revisionLabel: 'Protocol 9.9.9 (unrecognized)', reports: 1 },
     ])
     expect(summary.byRevision[0].issues).toEqual({ 'generation-failed': 1 })
     expect(summary.byRevision[1].issues).toEqual({ 'protocol-incomplete': 1 })

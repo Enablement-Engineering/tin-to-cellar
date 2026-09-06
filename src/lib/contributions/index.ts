@@ -30,7 +30,7 @@ function conforms(value: unknown, schema: Record<string, unknown>, root = schema
   if (schema.type === 'array') return Array.isArray(value) && value.length <= Number(schema.maxItems ?? Infinity) && value.every(v => conforms(v, schema.items as Record<string, unknown>, root))
   if (schema.type === 'integer') return typeof value === 'number' && Number.isInteger(value) && value >= Number(schema.minimum ?? -Infinity) && value <= Number(schema.maximum ?? Infinity)
   if (schema.type === 'boolean') return typeof value === 'boolean'
-  if (schema.type === 'string') return typeof value === 'string'
+  if (schema.type === 'string') return typeof value === 'string' && value.length <= Number(schema.maxLength ?? Infinity) && (typeof schema.pattern !== 'string' || new RegExp(schema.pattern).test(value))
   return true
 }
 export function collectionFeedback(value: unknown): DiagnosticReport | null {
@@ -65,7 +65,7 @@ export function parseContribution(value: unknown): Contribution | null {
 export async function contributionFromManifest(manifest: CellarPackManifest): Promise<Contribution | null> {
   const feedback = collectionFeedback(manifest.extensions?.['tin-to-cellar:feedback'])
   const protocol = manifest.extensions?.['tin-to-cellar:protocol']
-  const consistent = feedback?.schemaVersion !== '2.0.0' || record(protocol) && protocol.revision === feedback.protocolRevision
+  const consistent = feedback?.schemaVersion !== '0.2.0' || record(protocol) && protocol.revision === feedback.protocolRevision
   const sources: SourceObservation[] = []
   for (const label of manifest.labels ?? []) {
     const entry = catalogMatch(label.maker, label.blend)

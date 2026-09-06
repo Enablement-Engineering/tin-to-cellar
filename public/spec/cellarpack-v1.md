@@ -1,4 +1,6 @@
-# Tin to Cellar CellarPack v1
+# Tin to Cellar CellarPack 0.1
+
+This pre-release contract is version 0.1.0. The historical filename is retained for existing links; new packs declare schemaVersion 0.1.0.
 
 Status: developer-ready planning specification
 Proposed media type: `application/vnd.tintocellar.cellarpack+zip`
@@ -76,7 +78,7 @@ There is no required standalone `sources.json`: provenance belongs beside each l
 | Field | Type | Rule |
 |---|---|---|
 | `format` | string | Exactly `tin-to-cellar/cellarpack` |
-| `schemaVersion` | string | Semantic version; v1 emitters use `1.0.0` |
+| `schemaVersion` | string | Semantic version; current emitters use `0.1.0` |
 | `packId` | string | UUID URN, e.g. `urn:uuid:...` |
 | `createdAt` | string | RFC 3339 UTC timestamp |
 | `generator` | object | `name` and `version` required; model/workflow optional |
@@ -97,7 +99,7 @@ There is no required standalone `sources.json`: provenance belongs beside each l
 ```json
 {
   "format": "tin-to-cellar/cellarpack",
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "0.1.0",
   "packId": "urn:uuid:43649b43-8094-4a32-b5ee-8be75208fb63",
   "createdAt": "2026-08-31T18:10:00Z",
   "title": "Example English Cellar",
@@ -342,7 +344,7 @@ A custom profile MAY be included under `sheet-profiles/` and referenced from `cu
 ```json
 {
   "format": "tin-to-cellar/sheet-profile",
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "0.1.0",
   "id": "custom:example-2.5-circle-sheet@1",
   "page": { "width": 8.5, "height": 11, "unit": "in" },
   "slots": [
@@ -463,7 +465,7 @@ A paste-only ChatGPT workflow may be unable to produce a correctly hashed ZIP in
 
 1. **Custom shape semantics.** Recommended v1 default: custom-sized rectangular bounding box only; defer arbitrary vector cut paths to v1.1 or v2 because SVG/path parsing expands security and print complexity.
 2. **JPEG acceptance.** Recommended: import JPEG with warnings but require PNG for Generator Conformance.
-3. **Exact full-sheet auto-layout rules.** Recommended: website-owned algorithm with user-controlled margins/gutters; keep it out of CellarPack v1.
+3. **Exact full-sheet auto-layout rules.** Recommended: website-owned algorithm with user-controlled margins/gutters; keep it out of CellarPack 0.1.
 4. **Pack delivery.** Import requires a conforming `.cellarpack.zip`. Loose artwork must be packaged before import.
 5. **Source availability.** Recommended: permit `limited` status with an explicit limitation rather than blocking all artwork when a historical/discontinued tin lacks a reliable online image.
 6. **Trademark/copyright notice.** Recommended: a concise metadata/website notice stating that source links document research and generated labels are intended for personal cellar organization; do not make legal clearance a schema field.

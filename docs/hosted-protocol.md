@@ -1,14 +1,20 @@
 # Bundled protocol operation
 
-Revision 13 makes Copy prompt self-contained. It includes the project request, complete instructions, both schemas and unchanged canonical proof program. Read prompt shows a request preview; Full copied text reveals exactly what is copied. There is no separate retrieval step or Copy complete prompt action.
+Protocol 0.0.14 uses semantic versions and keeps Copy prompt self-contained. It includes the project request, complete instructions, both schemas and unchanged canonical proof program. Read prompt shows a request preview; Full copied text reveals exactly what is copied. There is no separate retrieval step or Copy complete prompt action.
 
 The protocol API under `/api/labels/protocol/` is retired and returns 404. Versioned instruction snapshots and hashes remain in the local registry for provenance and same-chat repairs. Known repairs embed the recorded bundle; unknown revisions require the original instructions rather than guessing. Optional instruction downloads remain in How it works. Site deployment updates the protocol used for new prompts; existing chats keep their pinned revision.
+
+## Pre-release versions
+
+Current new-run versions are protocol `0.0.14`, CellarPack `0.1.0`, and feedback `0.2.0`. Protocol version strings are stored in the existing `revision` and `protocolRevision` fields. Numeric entries in the release registry are historical snapshots, not the current version scheme. New releases use `major.minor.patch` strings and remain immutable. Bump protocol patch for instruction edits; use a new minor version for incompatible pre-release schema changes. Existing CellarPack 1.x imports remain readable, but new prompts emit 0.1.0.
+
+The protocol includes example opening, repair, resume, missing-reference, successful-delivery and incomplete-delivery messages. Routine chat omits versions, hashes and proof coordinates; required checks still run, and unresolved problems remain visible. Technical details are available on request.
 
 ## Publishing a revision
 
 Canonical authoring files are `src/lib/prompt/protocol.md`, `src/lib/prompt/feedback.md`, `src/lib/prompt/local-proof.py`, `src/lib/cellarpack/cellarpack-v1.schema.json`, and `src/lib/feedback/schema.json`. `src/lib/protocol/releases.json` preserves immutable release snapshots and SHA-256 hashes and selects the current revision. The release builder embeds the exact local proof source and its SHA-256; changes to that program require a new protocol revision. These snapshots are versioned protocol documents, not website build output.
 
-1. Review voluntarily shared feedback, separated by revision. Edit the canonical instructions to address a concrete issue. Update the revision recorded in the authoring instructions and advance `current` in the release registry to a new bounded integer.
+1. Review voluntarily shared feedback, separated by revision. Edit the canonical instructions to address a concrete issue. Update the revision recorded in the authoring instructions and advance `current` in the release registry to a new semantic-version string.
 2. Run `npm run protocol:release -- --create`. This refuses to overwrite an existing revision. It creates the complete snapshot and updates the public portable instruction file.
 3. Run tests, build, and lint. The build runs `npm run protocol:release` in check mode and fails when sources or portable instructions disagree with the selected immutable release.
 4. Deploy with `npm run deploy` when authorized. Worker routing and release data are bundled in that deployment. Verify the actual copied prompt and a fresh agent trial.

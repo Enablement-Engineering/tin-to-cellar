@@ -54,7 +54,7 @@ describe('self-contained generation protocol', () => {
     expect(code).toBe(read('./local-proof.py').trim())
     expect(prompt).toContain(`Canonical local-proof.py SHA-256: ${createHash('sha256').update(code + '\n').digest('hex')}`)
     expect(code.length).toBeLessThan(10000)
-    expect(prompt.length - code.length).toBeLessThan(31000)
+    expect(prompt.length - code.length).toBeLessThan(35000)
   })
   it('preserves research-before-generation and close reference fidelity', () => {
     const prompt = buildCompleteTinToCellarPrompt({ tobaccos: 'Escudo' })
@@ -125,7 +125,7 @@ describe('reusable instructions and request', () => {
     const request = buildTinToCellarRequest({ tobaccos: 'Pirate Kake' })
     expect(request).not.toContain('"$defs"')
     expect(request).toContain('Pirate Kake')
-    expect(request).toContain('schemaVersion 1.0.0')
+    expect(request).toContain('schemaVersion 0.1.0')
     expect(request).toContain('ask me to paste or attach them before generating')
     expect(buildCompleteTinToCellarPrompt({ tobaccos: 'Pirate Kake' })).toBe(`${buildTinToCellarInstructions()}\n\n${request}`)
   })
@@ -160,7 +160,7 @@ describe('reusable instructions and request', () => {
 describe('private diagnostic instructions', () => {
   it('carries a versioned closed feedback contract and failure delivery on every full route', () => {
     const prompt = buildTinToCellarInstructions()
-    for (const text of ['protocolRevision', '2.0.0', 'manifest.extensions["tin-to-cellar:feedback"]', 'If the run ends without a pack', 'as a separate download', 'Do not send feedback directly from this chat', 'raw prompts', 'tool logs', 'chain-of-thought', '"additionalProperties":false']) expect(prompt).toContain(text)
+    for (const text of ['protocolRevision', '0.2.0', 'manifest.extensions["tin-to-cellar:feedback"]', 'If the run ends without a pack', 'as a separate download', 'Do not send feedback directly from this chat', 'raw prompts', 'tool logs', 'chain-of-thought', '"additionalProperties":false']) expect(prompt).toContain(text)
   })
 })
 
@@ -170,7 +170,7 @@ describe('embedded protocol handoff', () => {
     const prompt = buildTinToCellarPrompt({ tobaccos: ['Westminster', 'Orlik Golden Sliced', 'Autumn Evening'], websiteUrl: 'http://localhost:5173/' })
     expect(schemaIn(prompt)).toEqual(schema)
     expect([...prompt.matchAll(/```json\n([\s\S]*?)\n```/g)]).toHaveLength(2)
-    for (const text of ['Westminster', 'Orlik Golden Sliced', 'Autumn Evening', 'Canonical local-proof.py SHA-256', `Protocol revision: ${PROTOCOL_REVISION}`, `END TIN TO CELLAR PROTOCOL ${PROTOCOL_REVISION}`, 'http://localhost:5173/labels/print']) expect(prompt).toContain(text)
+    for (const text of ['Westminster', 'Orlik Golden Sliced', 'Autumn Evening', 'Canonical local-proof.py SHA-256', `Protocol version: ${PROTOCOL_REVISION}`, `END TIN TO CELLAR PROTOCOL ${PROTOCOL_REVISION}`, 'http://localhost:5173/labels/print']) expect(prompt).toContain(text)
     expect(prompt).not.toContain('/api/labels/protocol')
     expect(prompt).not.toContain('Copy complete prompt')
   })
@@ -261,4 +261,20 @@ describe('original package image handoff', () => {
     expect(complete).toContain('Keep diagnostic feedback inside the pack')
     expect(complete).toContain('A tool ending an image-only turn is not by itself unclear instructions')
   })
+})
+
+it('keeps all emitted version declarations consistent with the selected pre-release', () => {
+  const prompt = buildTinToCellarPrompt({ tobaccos: 'Westminster' })
+  expect(prompt).toContain(`Protocol version: ${PROTOCOL_REVISION}`)
+  expect(prompt).toContain(`"revision":"${PROTOCOL_REVISION}","cellarpackVersion":"0.1.0","feedbackVersion":"0.2.0"`)
+  expect(prompt).toContain(`Set protocolRevision to the semantic version string "${PROTOCOL_REVISION}"`)
+  expect(prompt).toContain('schemaVersion 0.1.0')
+  const schemas = [...prompt.matchAll(/```json\n([\s\S]*?)\n```/g)].map(match => JSON.parse(match[1]))
+  expect(schemas[1].properties.schemaVersion.const).toBe('0.2.0')
+  expect(schemas[1].properties.protocolRevision.type).toBe('string')
+})
+
+it('provides user-facing examples without waiving checks or inventing completed work', () => {
+  const prompt = buildTinToCellarInstructions()
+  for (const text of ['# Talking with the user', 'Example: starting a requested batch', 'Example: repairing a detected defect', 'Example: an image tool may end the turn', 'Example: a reference is genuinely unavailable', 'Example: successful delivery', 'Example: a label still fails after the allowed repairs', 'Perform every required research, reference, proof and ZIP check', 'Never invent a successful result or a link', 'Do not claim the website has accepted the ZIP before an observed import']) expect(prompt).toContain(text)
 })

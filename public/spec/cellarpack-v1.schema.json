@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "/spec/cellarpack-v1.schema.json",
-  "title": "Tin to Cellar CellarPack v1 manifest",
+  "title": "Tin to Cellar CellarPack 0.1 manifest",
   "type": "object",
   "required": ["format", "schemaVersion", "packId", "createdAt", "generator", "labels", "assets"],
   "properties": {
     "format": { "const": "tin-to-cellar/cellarpack" },
-    "schemaVersion": { "type": "string", "pattern": "^1\\.[0-9]+\\.[0-9]+$" },
+    "schemaVersion": {"type": "string", "pattern": "^(?:0\\.1|1\\.[0-9]+)\\.[0-9]+$"},
     "packId": {
       "type": "string",
       "pattern": "^urn:uuid:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"

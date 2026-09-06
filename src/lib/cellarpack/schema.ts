@@ -65,7 +65,7 @@ export function validateManifestPreflight(input: unknown): ValidationIssue[] {
       code: 'INVALID_MANIFEST_SCHEMA',
       path: 'schemaVersion',
       message: 'The manifest must declare a semantic schemaVersion.',
-      recovery: 'Set schemaVersion to 1.0.0.',
+      recovery: 'Set schemaVersion to 0.1.0.',
     })
   } else {
     const version = /^(\d+)\.(\d+)\.(\d+)$/.exec(input.schemaVersion)
@@ -75,9 +75,9 @@ export function validateManifestPreflight(input: unknown): ValidationIssue[] {
         code: 'INVALID_MANIFEST_SCHEMA',
         path: 'schemaVersion',
         message: 'schemaVersion is not a valid semantic version.',
-        recovery: 'Set schemaVersion to 1.0.0.',
+        recovery: 'Set schemaVersion to 0.1.0.',
       })
-    } else if (version[1] !== '1') {
+    } else if (version[1] !== '1' && !(version[1] === '0' && version[2] === '1')) {
       issues.push({
         severity: 'fatal',
         code: 'UNSUPPORTED_SCHEMA_MAJOR',
@@ -104,7 +104,7 @@ export function ajvErrorsToIssues(errors: ErrorObject[], input: unknown): Valida
       message: `Manifest ${error.instancePath || 'root'} ${error.message ?? 'is invalid'}.`,
       recovery: labelId
         ? 'Regenerate or correct this label entry.'
-        : 'Regenerate the manifest using the published CellarPack v1 schema.',
+        : 'Regenerate the manifest using the bundled CellarPack 0.1 schema.',
     }
   })
 }

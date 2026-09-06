@@ -17,7 +17,7 @@ const issueLabels: Record<string, string> = {
 }
 function readable(value: string) { return value.charAt(0).toUpperCase() + value.slice(1).replaceAll('-', ' ') }
 
-export function DiagnosticFeedback({ candidate, protocolContext }: { candidate: unknown; protocolContext?: { status: string; revision?: number } }) {
+export function DiagnosticFeedback({ candidate, protocolContext }: { candidate: unknown; protocolContext?: { status: string; revision?: number | string } }) {
   const report = useMemo(() => parseDiagnosticReport(candidate), [candidate])
   const [saved, setSaved] = useState<DiagnosticReport[]>([])
   const [message, setMessage] = useState('')

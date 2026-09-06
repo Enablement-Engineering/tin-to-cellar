@@ -5,8 +5,8 @@
   "required": ["format", "schemaVersion", "protocolRevision", "request", "outcome", "steps", "issues"],
   "properties": {
     "format": { "const": "tin-to-cellar/feedback" },
-    "schemaVersion": { "const": "2.0.0" },
-    "protocolRevision": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+    "schemaVersion": { "const": "0.2.0" },
+    "protocolRevision": {"type": "string", "pattern": "^(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})$", "maxLength": 20},
     "request": {
       "type": "object", "additionalProperties": false, "required": ["labelCount", "shape"],
       "properties": {

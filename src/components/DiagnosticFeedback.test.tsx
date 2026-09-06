@@ -40,8 +40,8 @@ it('offers only validated report data for explicit download', () => {
 })
 
 it('keeps revisions in separate comparison groups and identifies conflicting pack attribution', async () => {
-  const current = { ...report, schemaVersion: '2.0.0', protocolRevision: 1, promptVersion: undefined }
-  const { rerender } = render(<DiagnosticFeedback candidate={JSON.parse(JSON.stringify(current))} protocolContext={{ status: 'known', revision: 1 }} />)
+  const current = { ...report, schemaVersion: '0.2.0', protocolRevision: '0.0.14', promptVersion: undefined }
+  const { rerender } = render(<DiagnosticFeedback candidate={JSON.parse(JSON.stringify(current))} protocolContext={{ status: 'known', revision: '0.0.14' }} />)
   fireEvent.change(screen.getByLabelText('Open saved feedback reports'), { target: { files: [
     { size: 500, text: async () => JSON.stringify(report) },
   ] } })

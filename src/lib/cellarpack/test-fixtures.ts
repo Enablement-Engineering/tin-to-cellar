@@ -14,7 +14,7 @@ export async function makeTestManifest(): Promise<CellarPackManifest> {
   const sha256 = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
   return {
     format: 'tin-to-cellar/cellarpack',
-    schemaVersion: '1.0.0',
+    schemaVersion: '0.1.0',
     packId: 'urn:uuid:43649b43-8094-4a32-b5ee-8be75208fb63',
     createdAt: '2026-08-31T18:10:00Z',
     generator: { name: 'Tin to Cellar test fixture', version: '1.0.0' },
