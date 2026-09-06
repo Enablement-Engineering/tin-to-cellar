@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 from PIL import Image
 
 spec = importlib.util.spec_from_file_location("local_proof", Path(__file__).with_name("local-proof.py"))
@@ -26,6 +27,8 @@ class ProofTests(unittest.TestCase):
                 self.assertNotEqual(proof.getpixel((550, 20)), (255, 255, 255, 255))
                 self.assertEqual(proof.getpixel((999, 550)), (230, 0, 180, 255))
             self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), original)
+            self.assertEqual(result["source_sha256"], original)
+            self.assertEqual(result["proof_sha256"], hashlib.sha256(output.read_bytes()).hexdigest())
 
     def test_rectangle_geometry_and_alpha(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -55,6 +58,19 @@ class ProofTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 module.render(source, output)
             self.assertEqual(output.read_bytes(), b"keep")
+
+    def test_failed_encoding_leaves_no_published_or_temporary_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source, output = Path(tmp) / "art.png", Path(tmp) / "proof.png"
+            Image.new("RGB", (100, 100), "white").save(source)
+            def broken_save(image, target, **kwargs):
+                target.write(b"incomplete")
+                raise OSError("Simulated interrupted encode")
+            with patch.object(Image.Image, "save", broken_save):
+                with self.assertRaises(OSError):
+                    module.render(source, output)
+            self.assertFalse(output.exists())
+            self.assertEqual(list(Path(tmp).iterdir()), [source])
 
 
 if __name__ == "__main__":

@@ -1,13 +1,13 @@
 # Tin to Cellar technical instructions
 
-Protocol revision: 7
+Protocol revision: 8
 CellarPack version: 1.0.0
 Feedback version: 2.0.0
-Canonical immutable instructions: https://tintocellar.com/api/labels/protocol/v1/releases/7/instructions.md
-Manifest JSON schema: https://tintocellar.com/api/labels/protocol/v1/releases/7/cellarpack.schema.json
-Feedback JSON schema: https://tintocellar.com/api/labels/protocol/v1/releases/7/feedback.schema.json
+Canonical immutable instructions: https://tintocellar.com/api/labels/protocol/v1/releases/8/instructions.md
+Manifest JSON schema: https://tintocellar.com/api/labels/protocol/v1/releases/8/cellarpack.schema.json
+Feedback JSON schema: https://tintocellar.com/api/labels/protocol/v1/releases/8/feedback.schema.json
 
-Use this complete release throughout this run and repairs. Do not fetch current again midrun. The schemas below are complete; no additional schema fetch is required. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":7,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}.
+Use this complete release throughout this run and repairs. Do not fetch current again midrun. The schemas below are complete; no additional schema fetch is required. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":8,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}.
 
 # Task
 Create one researched pipe-tobacco cellar label per requested blend and return a .cellarpack.zip for Tin to Cellar. Keep research, generation, revisions and ZIP repairs in this chat.
@@ -40,7 +40,8 @@ A reply never waives required references or checks. Explain unavailable capabili
 - Reject changes to the reference’s illustration style, pose/expression, clothing, object relationships or lettering. Shared subject matter/colors are insufficient: a realistic fox replacing a cartoon fails. Fix fidelity before layout; never package a rejected redesign.
 - Default: Avery 94502, 2.5-inch circle, 0.125-inch bleed and safe inset. Keep essential content inside the circular safe area. Integrate exactly one blank, light, unobstructed writing surface. Leave that surface blank, with no words or writing line. The website prints the artwork as supplied without adding an overlay.
 - Keep the entire writing panel, including its corners, inside the circular safe inset. Checking only its center is insufficient. Measure the actual rendered surface for the manifest.
-- Set asset colorSpace to the exact value "sRGB" after verifying or converting its profile. Export one sRGB 8-bit RGB/RGBA PNG per label, opaque inside the finished shape. Default bleed canvas: 2.75 inches square; target 600 PPI, minimum 300 PPI (825px), maximum 8192px. Native 1024px suffices. Declare actual dimensions; never upscale to imply detail.
+- Default-circle artwork brief: target the blank panel center at 50% across and 70% down the full bleed canvas, about 44% canvas width and 12% height. This leaves generous corner clearance inside the safe circle; still measure the actual rendered panel. Generate the panel as artwork, never overlay or reposition it with code.
+- Generate one separate full-canvas image per label. Never generate a contact sheet or crop labels out of a multi-label composite. For circles, request each image as a square. Set asset colorSpace to the exact value "sRGB" after verifying or converting its profile. Export one sRGB 8-bit RGB/RGBA PNG per label, opaque inside the finished shape. Default bleed canvas: 2.75 inches square; target 600 PPI, minimum 300 PPI (825px), maximum 8192px. Native 1024px suffices. Decode each actual PNG and check dimensions and resolution before proof: default images must be at least 825px on both sides. Regenerate undersized images individually; never upscale to pass. Declare actual dimensions; never upscale to imply detail.
 - Circular PNGs: keep artwork opaque through the bleed ring. Mask only outside the outer 2.75-inch bleed circle to transparent (square corners), never at trim. Do not move/repaint artwork or include visible proof guides.
 - Inspect each render for package fidelity, names, legibility, crop, borders, bleed, and writable surface. Revise defects, up to three attempts per label; report unresolved failures. Generate when available rather than returning only research.
 
@@ -58,12 +59,17 @@ Include attempted suggested links even when broken or mismatched, plus any eligi
 # Dimensioned review proof
 Use the supplied Python/Pillow renderer below locally; save it as local-proof.py and execute it unchanged rather than inventing guide code. No hosted proof service, credentials or code download is needed. Default circle: `uv run --with pillow local-proof.py artwork.png review-proof.png`, or run the same file with your environment's Python/Pillow runner. For rectangles, pass `--shape rectangle --width 3 --height 2 --bleed 0.125 --safe 0.125` with actual values. All dimensions use the same unit. Circle width and height must match; square labels use rectangle with equal dimensions. Other shapes are unsupported: disclose the missing proof rather than substituting geometry. If tooling is unavailable, record proof-unavailable and disclose the missing proof check, never claim validation passed.
 
-Open the generated PNG: cyan is trim, dashed magenta is safe, orange shading is bleed. Compare names, iconic artwork and the entire writing surface with these guides and the package reference. Refine artwork defects, at most twice, using clean artwork and original references; rerun the script with a new proof filename after each revision. Guides do not certify fidelity. Never use the proof as artwork, editing reference or ZIP content. The script preserves source bytes and creates a separate review copy; never replace clean originals with proofs.
+Save the fenced script verbatim as UTF-8 with LF newlines and one final newline. Verify SHA-256 of saved bytes against the canonical hash below before executing; do not minify, rewrite, omit branches or replace it. If hashes differ, correct the copy first. Open the generated PNG: cyan is trim, dashed magenta is safe, orange shading is bleed. Require successful execution, a nonempty decoded proof of matching dimensions, and visual inspection for every final artwork before reporting proof passed. A zero-byte, missing or stale proof is failure. Compare names, iconic artwork and the entire writing surface with guides and the reference. Refine defects at most twice using clean artwork and references; rerun with a new filename for each revision. Guides do not certify fidelity. Never use the proof as artwork, editing reference or ZIP content. Preserve clean originals.
+
+Canonical local-proof.py SHA-256: f7b0f9ed9b6507c7d55265ef45c2153b7fb23af9a33fe9d58563d03ecfdb62da
 
 ```python
 """Review-only guides. Requires Pillow. Never changes the source artwork."""
 import argparse
+import hashlib
 import math
+import os
+import tempfile
 from pathlib import Path
 from PIL import Image, ImageDraw
 
@@ -121,10 +127,21 @@ def render(source, output, shape="circle", width=2.5, height=2.5,
         for y in range(round(y0), round(y1) + 1, dash * 2):
             for x in (x0, x1):
                 pen.line((x, y, x, min(y + dash, y1)), fill=magenta, width=stroke)
-    # Exclusive creation also guards a file created after the initial check.
-    with output.open("xb") as target:
-        proof.save(target, format="PNG")
-    return {"trim": trim, "safe": inner, "pixels": (w, h)}
+    # Publish only a completely encoded, decoded proof; never replace a file.
+    fd, temporary = tempfile.mkstemp(dir=output.parent, prefix=".proof-", suffix=".png")
+    try:
+        with os.fdopen(fd, "wb") as target:
+            proof.save(target, format="PNG")
+        with Image.open(temporary) as checked:
+            checked.load()
+            if checked.format != "PNG" or checked.size != im.size:
+                raise ValueError("Invalid proof output")
+        os.link(temporary, output)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+    return {"trim": trim, "safe": inner, "pixels": (w, h),
+            "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+            "proof_sha256": hashlib.sha256(output.read_bytes()).hexdigest()}
 
 
 if __name__ == "__main__":
@@ -141,7 +158,7 @@ if __name__ == "__main__":
 # CellarPack protocol
 Use the complete schema below; no additional schema fetch is required. Return root manifest.json and artwork/<label-id>.png. Reference assets by artworkAssetId. Compute SHA-256 from actual delivered bytes. Research must distinguish inspected observations from creative adaptation.
 
-Record this release in manifest.extensions["tin-to-cellar:protocol"] as {"revision":7,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}. Keep this revision through repairs; do not switch to a newer release mid-run.
+Record this release in manifest.extensions["tin-to-cellar:protocol"] as {"revision":8,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}. Keep this revision through repairs; do not switch to a newer release mid-run.
 
 Write-in x/y/width/height use the finished trim bounding box, not the bleed canvas. Measure the actual surface; keep it unrotated and inside the safe area. Set overlay.mode to blank. The overlay object contains only mode; the website does not render overlays.
 
@@ -158,7 +175,7 @@ Return one prominent downloadable .cellarpack.zip and the supplied printing link
 ```
 
 # Diagnostic feedback
-Feedback schema version: 2.0.0. Set protocolRevision to the numeric revision of these instructions (7), matching the pack protocol extension. Maintain a diagnostic report using the feedback schema below. Put it in manifest.extensions["tin-to-cellar:feedback"] when returning a pack. If the run ends without a pack, provide tin-to-cellar-feedback.json as a separate download, or a JSON code block if file creation is unavailable. A report is optional for importing old packs. Do not send feedback directly from this chat. Importing the returned pack in Tin to Cellar submits its validated feedback automatically.
+Feedback schema version: 2.0.0. Set protocolRevision to the numeric revision of these instructions (8), matching the pack protocol extension. Maintain a diagnostic report using the feedback schema below. Put it in manifest.extensions["tin-to-cellar:feedback"] when returning a pack. If the run ends without a pack, provide tin-to-cellar-feedback.json as a separate download, or a JSON code block if file creation is unavailable. A report is optional for importing old packs. Do not send feedback directly from this chat. Importing the returned pack in Tin to Cellar submits its validated feedback automatically.
 
 Report only the requested label count and shape, overall outcome, observable workflow stages, attempt counts, and categorized issues, including unclear or conflicting instructions. Use one entry per attempted or skipped stage. Sum actual tool attempts for that stage across labels; use zero for unattempted stages. Mark passed only for checks actually performed. Report failures and unavailable tools honestly. Use other for an issue without a matching code, without adding an explanation field. Update the report after repairs. Do not include hidden reasoning or chain-of-thought.
 
@@ -168,7 +185,7 @@ Feedback describes this run and is agent-reported, not independent proof of corr
 
 When waiting for the user to reattach original package images because direct handoff is unavailable, maintain a report with outcome partial, generation skipped with zero attempts if none ran, and unresolved image-handoff-unavailable. Keep this intermediate report for inclusion in the final pack rather than adding a diagnostic download to the attachment request. If the run ends without a pack, provide the separate report described above. Keep the images and source URLs outside feedback. A passed visual-review stage means the review was performed, not that the artwork passed; record rejected artwork as an unresolved artwork-fidelity issue.
 
-Maintain cumulative feedback for the whole request across turns and repairs. Keep earlier failures in issues and mark them resolved when fixed; do not erase them after a successful fallback. Include protocol retrieval failures even when an attached instruction file resolves them. Count actual tool attempts, not messages or planned actions. A tool ending an image-only turn is not by itself unclear instructions: record other at packaging for that interruption, resolved after packaging resumes. Use instructions-unclear only when the instructions were actually unclear or conflicting. Use the supplied local renderer for proof; record proof-unavailable only if its tooling was unavailable or execution failed. Mark proof passed only after rendering and visually inspecting the proof. Keep progress checkpoints and user reply text outside the diagnostic report.
+Maintain cumulative feedback for the whole request across turns and repairs. Keep earlier failures in issues and mark them resolved when fixed; do not erase them after a successful fallback. Include protocol retrieval failures even when an attached instruction file resolves them. Count actual tool attempts, not messages or planned actions. A tool ending an image-only turn is not by itself unclear instructions: record other at packaging for that interruption, resolved after packaging resumes. Use instructions-unclear only when the instructions were actually unclear or conflicting. Use the supplied local renderer for proof; record proof-unavailable only if its tooling was unavailable or execution failed. Mark proof passed only after successful execution and decoding a nonempty proof for every final artwork, matching its source hash and visually inspecting it. Missing, stale or zero-byte proofs are failures. Keep progress checkpoints and user reply text outside the diagnostic report.
 
 # Complete feedback JSON Schema
 
@@ -176,4 +193,4 @@ Maintain cumulative feedback for the whole request across turns and repairs. Kee
 {"$schema":"http://json-schema.org/draft-07/schema#","type":"object","additionalProperties":false,"required":["format","schemaVersion","protocolRevision","request","outcome","steps","issues"],"properties":{"format":{"const":"tin-to-cellar/feedback"},"schemaVersion":{"const":"2.0.0"},"protocolRevision":{"type":"integer","minimum":1,"maximum":1000000},"request":{"type":"object","additionalProperties":false,"required":["labelCount","shape"],"properties":{"labelCount":{"type":"integer","minimum":0,"maximum":500},"shape":{"enum":["circle","oval","square","rectangle","rounded-rectangle","custom","unknown"]}}},"outcome":{"enum":["complete","partial","failed","research-only"]},"steps":{"type":"array","maxItems":7,"items":{"type":"object","additionalProperties":false,"required":["stage","status","attempts"],"properties":{"stage":{"$ref":"#/$defs/stage"},"status":{"enum":["passed","failed","skipped","unavailable"]},"attempts":{"type":"integer","minimum":0,"maximum":1500}}}},"issues":{"type":"array","maxItems":50,"items":{"type":"object","additionalProperties":false,"required":["code","stage","resolved"],"properties":{"code":{"enum":["reference-unavailable","variant-ambiguous","image-handoff-unavailable","generation-unavailable","generation-failed","artwork-fidelity","text-legibility","write-area","geometry","proof-unavailable","schema","archive","instructions-unclear","instructions-conflicting","other","protocol-unavailable","protocol-incomplete"]},"stage":{"$ref":"#/$defs/stage"},"resolved":{"type":"boolean"}}}}},"$defs":{"stage":{"enum":["research","generation","visual-review","proof","packaging","validation","protocol-retrieval"]}}}
 ```
 
-END TIN TO CELLAR PROTOCOL 7
+END TIN TO CELLAR PROTOCOL 8

@@ -1,6 +1,9 @@
 """Review-only guides. Requires Pillow. Never changes the source artwork."""
 import argparse
+import hashlib
 import math
+import os
+import tempfile
 from pathlib import Path
 from PIL import Image, ImageDraw
 
@@ -58,10 +61,21 @@ def render(source, output, shape="circle", width=2.5, height=2.5,
         for y in range(round(y0), round(y1) + 1, dash * 2):
             for x in (x0, x1):
                 pen.line((x, y, x, min(y + dash, y1)), fill=magenta, width=stroke)
-    # Exclusive creation also guards a file created after the initial check.
-    with output.open("xb") as target:
-        proof.save(target, format="PNG")
-    return {"trim": trim, "safe": inner, "pixels": (w, h)}
+    # Publish only a completely encoded, decoded proof; never replace a file.
+    fd, temporary = tempfile.mkstemp(dir=output.parent, prefix=".proof-", suffix=".png")
+    try:
+        with os.fdopen(fd, "wb") as target:
+            proof.save(target, format="PNG")
+        with Image.open(temporary) as checked:
+            checked.load()
+            if checked.format != "PNG" or checked.size != im.size:
+                raise ValueError("Invalid proof output")
+        os.link(temporary, output)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+    return {"trim": trim, "safe": inner, "pixels": (w, h),
+            "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+            "proof_sha256": hashlib.sha256(output.read_bytes()).hexdigest()}
 
 
 if __name__ == "__main__":

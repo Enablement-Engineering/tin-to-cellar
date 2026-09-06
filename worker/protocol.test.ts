@@ -17,6 +17,8 @@ describe('hosted protocol', () => {
     const schemas = [...markdown.matchAll(/```json\n([\s\S]*?)\n```/g)].map(match => JSON.parse(match[1]))
     expect([...page.querySelectorAll('pre code.language-json')].map(el => JSON.parse(el.textContent!))).toEqual(schemas)
     expect(page.querySelector('pre code.language-python')?.textContent).toBe(markdown.match(/```python\n([\s\S]*?)\n```/)![1])
+    const savedScriptBytes = page.querySelector('pre code.language-python')!.textContent + '\n'
+    expect(page.body.textContent).toContain(`Canonical local-proof.py SHA-256: ${createHash('sha256').update(savedScriptBytes).digest('hex')}`)
     expect(schemas).toHaveLength(2)
     expect(page.body.textContent).toContain(`END TIN TO CELLAR PROTOCOL ${PROTOCOL_REVISION}`)
     expect(page.body.textContent).toContain('artwork/<label-id>.png')

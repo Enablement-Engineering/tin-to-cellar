@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { buildCompleteTinToCellarPrompt, buildTinToCellarInstructions, buildTinToCellarRequest, assessPromptInput, buildCellarPackRepairPrompt, buildChatGPTLaunchPrompt, buildTinToCellarPrompt, createChatGPTUrl } from './index'
 
@@ -50,8 +51,9 @@ describe('self-contained generation protocol', () => {
     // Keep prose/schema bounded separately from the exact executable proof recipe.
     const code = prompt.match(/```python\n([\s\S]*?)\n```/)![1]
     expect(code).toBe(read('./local-proof.py').trim())
+    expect(prompt).toContain(`Canonical local-proof.py SHA-256: ${createHash('sha256').update(code + '\n').digest('hex')}`)
     expect(code.length).toBeLessThan(5000)
-    expect(prompt.length - code.length).toBeLessThan(27500)
+    expect(prompt.length - code.length).toBeLessThan(29000)
   })
   it('preserves research-before-generation and close reference fidelity', () => {
     const prompt = buildCompleteTinToCellarPrompt({ tobaccos: 'Escudo' })
@@ -71,6 +73,10 @@ describe('self-contained generation protocol', () => {
     expect(prompt).toContain('Open the generated PNG')
     expect(prompt).toContain('Never use the proof as artwork, editing reference or ZIP content')
     expect(prompt).toContain('record proof-unavailable')
+    expect(prompt).toContain('Never generate a contact sheet')
+    expect(prompt).toContain('at least 825px on both sides')
+    expect(prompt).toContain('Verify SHA-256 of saved bytes')
+    expect(prompt).toContain('A zero-byte, missing or stale proof is failure')
   })
   it('specifies actual image geometry, blank writing surface and honest packaging', () => {
     const prompt = buildCompleteTinToCellarPrompt({})
@@ -80,7 +86,8 @@ describe('self-contained generation protocol', () => {
   })
   it('publishes exactly the same task protocol and canonical schema', () => {
     const published = read('../../../public/agent/tin-to-cellar-prompt.md')
-    const expanded = read('./protocol.md').replace('<!-- LOCAL_PROOF_SCRIPT -->', `\`\`\`python\n${read('./local-proof.py').trim()}\n\`\`\``)
+    const localProof = read('./local-proof.py')
+    const expanded = read('./protocol.md').replace('<!-- LOCAL_PROOF_SCRIPT -->', `Canonical local-proof.py SHA-256: ${createHash('sha256').update(localProof).digest('hex')}\n\n\`\`\`python\n${localProof.trim()}\n\`\`\``)
     expect(published).toContain(expanded.trim())
     expect(schemaIn(published)).toEqual(schema)
     expect(published.trim()).toBe(buildTinToCellarInstructions().trim())

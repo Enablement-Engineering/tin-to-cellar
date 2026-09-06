@@ -3,6 +3,9 @@
 `local-proof.py` is the source embedded verbatim in protocol releases by
 `npm run protocol:release`. Changing it requires a new protocol revision.
 The renderer creates a separate review PNG; the artwork is never overwritten.
+The published script hash covers UTF-8, LF line endings and exactly one final
+newline. Execution returns source and proof hashes for matching the review to
+the final artwork. Output is decoded before atomic, non-overwriting publication.
 
 Run the pixel, geometry, preservation and invalid-input tests:
 
@@ -21,6 +24,7 @@ npm test -- src/lib/prompt src/lib/protocol worker/protocol.test.ts
 
 The tests cover circles and rectangles, measured trim/safe bounds, guide pixels,
 bleed shading, unchanged interior pixels and source bytes, aspect-ratio rejection,
-invalid dimensions and output overwrite rejection. They do not certify artwork
+invalid dimensions and output overwrite rejection. An interrupted encode must
+leave neither a final proof nor a temporary file. Tests do not certify artwork
 fidelity or a human-readable writing surface; the generating agent must inspect
 the rendered proof against the original package.
