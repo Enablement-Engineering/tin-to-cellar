@@ -87,7 +87,7 @@ export class CatalogContributions {
   }
 }
 export async function contributionsResponse(request: Request, binding?: ContributionBinding, limiter?: { limit(options: { key: string }): Promise<{ success: boolean }> }, adminToken?: string, db?: DiagnosticsDatabase): Promise<Response> {
-  if (!binding) return Response.json({ error: 'Collection is unavailable' }, { status: 503, headers })
+  if (!binding) return Response.json({ error: 'Collection is unavailable', code: 'collection_unconfigured' }, { status: 503, headers })
   const url = new URL(request.url)
   const target = binding.getByName('catalog-contributions-v1')
   try {

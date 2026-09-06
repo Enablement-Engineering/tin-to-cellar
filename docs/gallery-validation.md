@@ -64,3 +64,7 @@ The simplified staging redeployment completed as Worker version `f15e9fdc-6004-4
 The sharing agreement now says: “I created or generated these labels and agree to share them through Tin to Cellar for personal cellaring.” New submissions use notice version `2026-09-06-v2`; existing v1 consent remains unchanged and reviewable. Retention details are collapsed, and completion appears in a compact result card. Expired upload reservations cannot produce a false success; a deliberate new submission is required. The full 262-test suite, lint and build pass.
 
 The final consent/status build is deployed on staging as `818fd726-ae7a-4018-b849-093bbae20292`. A fresh synthetic 1024px browser submission passed v2 consent and Turnstile, displayed the compact confirmation with no private links, and remained private. The rendered confirmation was visually inspected. All three final local integration workflows passed.
+
+## Staging collection availability
+
+Staging intentionally has no diagnostics/source-collection bindings. It now returns a distinct `collection_unconfigured` code, and the UI explains that automatic collection is unavailable without offering an ineffective retry or claiming the diagnostics were shared. Gallery submissions are separate and remain available. This clarification is deployed in staging version `68808dea-3967-4640-b39c-050ca6b70475`; a fresh browser import confirmed the new message and absence of the retry button. Current full suite: 266 tests in 42 files pass; lint and build pass.

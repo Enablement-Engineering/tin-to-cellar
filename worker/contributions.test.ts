@@ -98,3 +98,9 @@ it('migrates retained legacy records before new collection and only marks comple
   expect(rows.get(contribution.submissionId)?.slice(1,4)).toEqual(['2026-08-01T00:00:00.000Z', '2026-10-30T00:00:00.000Z', 'legacy'])
   expect(await (await migrate()).json()).toEqual({ status: 'already-migrated' })
 })
+
+it('identifies an unconfigured collection service separately from transient failure', async () => {
+  const response = await contributionsResponse(new Request('https://site.com/api/labels/contributions', { method: 'POST' }))
+  expect(response.status).toBe(503)
+  expect(await response.json()).toEqual({ error: 'Collection is unavailable', code: 'collection_unconfigured' })
+})
