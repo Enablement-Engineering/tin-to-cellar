@@ -53,8 +53,8 @@ describe('self-contained generation protocol', () => {
     const code = prompt.match(/```python\n([\s\S]*?)\n```/)![1]
     expect(code).toBe(read('./local-proof.py').trim())
     expect(prompt).toContain(`Canonical local-proof.py SHA-256: ${createHash('sha256').update(code + '\n').digest('hex')}`)
-    expect(code.length).toBeLessThan(5000)
-    expect(prompt.length - code.length).toBeLessThan(29000)
+    expect(code.length).toBeLessThan(10000)
+    expect(prompt.length - code.length).toBeLessThan(31000)
   })
   it('preserves research-before-generation and close reference fidelity', () => {
     const prompt = buildCompleteTinToCellarPrompt({ tobaccos: 'Escudo' })
@@ -78,6 +78,10 @@ describe('self-contained generation protocol', () => {
     expect(prompt).toContain('at least 825px on both sides')
     expect(prompt).toContain('Verify SHA-256 of saved bytes')
     expect(prompt).toContain('A zero-byte, missing or stale proof is failure')
+    expect(prompt).toContain('inventory all visible lettering (including small side copy)')
+    expect(prompt).toContain('never omit failed regions or shrink their boxes to pass')
+    expect(prompt).toContain('This is not OCR or independent text certification')
+    expect(prompt).toContain('harmless spacing differences from catalog formatting are not defects')
   })
   it('specifies actual image geometry, blank writing surface and honest packaging', () => {
     const prompt = buildCompleteTinToCellarPrompt({})

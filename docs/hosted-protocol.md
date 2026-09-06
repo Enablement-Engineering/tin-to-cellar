@@ -38,11 +38,13 @@ Repair prompts reuse the recorded release. For legacy packs they prefer original
 
 ## Current trial status — 2026-09-06
 
-Revision 10 passed local checks and was deployed through the production workflow. Production response checks passed; the full three-label workflow has not yet passed end to end.
+Revision 11 was deployed and completed a fresh three-label ChatGPT Work run through ZIP download, production import and the on-site sheet preview. This is a delivery/import pass, not a full visual-quality pass.
 
-- Ordinary Chat retrieved revision 10 but produced composites and no accepted pack.
-- A diagnostic probe using narrowly scoped user messages improved image isolation, but its final Orlik proof still showed lettering outside the safe boundary and artwork fidelity defects. This was a modified workflow, not an unchanged-prompt pass.
-- ChatGPT Work could not retrieve the hosted protocol through its web tool and used the site's unchanged Copy complete prompt fallback. An HTTP attempt also returned 403 in that runtime; the response origin and cause are unconfirmed. This is not a hosted-retrieval pass or proof of a server-side block.
-- Work acquired all three source images itself and completed seven isolated image calls, canonical proofs, and draft ZIP delivery without extra user cues. Independent PNG hash/decode checks and rendered proofs supported Orlik and Autumn Evening. The actual delivered ZIP failed website import because its manifest was inside an enclosing folder. A local archive-layout-only diagnostic then accepted those two labels and rejected Westminster for writing-panel overflow. A bounded additional Westminster repair is still running. This is not a full pass or a revision 11 trial.
+- Ordinary Chat trials produced composites. Work kept each generation and repair isolated; these are different tested surfaces.
+- Work could not retrieve the hosted protocol and used the site's unchanged Copy complete prompt fallback. Hosted retrieval remains unreliable in this tested path; the errors do not establish their origin or a server-side block.
+- Work acquired all three references and completed seven image calls automatically: Orlik two, Westminster three, Autumn Evening two. No Continue messages, long repair cues or reference reattachments were supplied. One Westminster call addressed spacing that need not differ from catalog typography.
+- The exact delivered ZIP hash matched the report. Independent checks verified the root manifest, PNG dimensions and hashes, and alpha through the bleed region. Production accepted all three labels with zero structural issues; all three appeared in the correct preview slots.
+- Independent canonical proofs and a second reviewer found remaining text clearance defects: Westminster's maker G and Orlik's small side lettering cross the safe boundary. All writing panels fit. The agent's all-clear claim was therefore too broad.
+- Revision 12 adds checks of declared text/panel boxes with review crops and permits harmless source-accurate spacing differences. Measurements remain agent-supplied; this is not OCR or independent text certification. Fresh revision 12 end-to-end verification is still required.
 
-The local evidence is recorded in `output/protocol-r10-e2e/run.md`, `scoped-turns.md`, and `work-run.md`. These ignored experiment records distinguish model claims, independently inspected artifacts, and observed website outcomes. Update this status after the trial concludes; do not infer completion from generated images or a successful deployment.
+Earlier revision 10 also failed ZIP root layout and Westminster panel geometry; a bounded fourth diagnostic repair still failed. Historical evidence is preserved separately. Local ignored experiment records in `output/protocol-r10-e2e/` and `output/protocol-r11-e2e/` distinguish model claims, independently inspected artifacts, and observed website outcomes.

@@ -1,6 +1,9 @@
 import hashlib
 import importlib.util
+import json
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -12,6 +15,57 @@ spec.loader.exec_module(module)
 
 
 class ProofTests(unittest.TestCase):
+    def test_observed_text_failures_and_inside_panel(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source, output = Path(tmp) / "art.png", Path(tmp) / "proof.png"
+            Image.new("RGBA", (1254, 1254), "white").save(source)
+            original = source.read_bytes()
+            regions = [
+                {"name": "Westminster maker", "kind": "text", "box": [307, 175, 934, 280]},
+                {"name": "Orlik left lettering", "kind": "text", "box": [138, 459, 370, 482]},
+                {"name": "Orlik right lettering", "kind": "text", "box": [892, 456, 1117, 480]},
+                {"name": "Writing panel", "kind": "panel", "box": [399, 980, 855, 1077]},
+            ]
+            result = module.render(source, output, regions=regions)
+            self.assertFalse(result["declared_regions_inside_safe"])
+            self.assertEqual([r["inside_safe"] for r in result["regions"]], [False, False, False, True])
+            for path in [output, Path(tmp) / result["region_review"],
+                         *[Path(tmp) / r["crop"] for r in result["regions"]]]:
+                self.assertGreater(path.stat().st_size, 0)
+                with Image.open(path) as im:
+                    im.load()
+                    self.assertEqual(im.format, "PNG")
+            self.assertEqual(source.read_bytes(), original)
+
+    def test_region_measurement_validation(self):
+        base = [{"name": "name", "kind": "text", "box": [30, 30, 60, 40]},
+                {"name": "panel", "kind": "panel", "box": [30, 50, 60, 60]}]
+        for bounds in ([0, 0, float("nan"), 3], [0, 0, 101, 3], [10, 0, 5, 3],
+                       [0, 0, True, 3], [1, 1, 1, 3], [1, 2, 3]):
+            with self.assertRaises(ValueError):
+                module.check_regions([{**base[0], "box": bounds}, base[1]], (100, 100), (10, 10, 89, 89), "circle")
+        for regions in ([], base[:1], [base[0], base[0]], [{**base[0], "extra": 1}, base[1]]):
+            with self.assertRaises(ValueError):
+                module.check_regions(regions, (100, 100), (10, 10, 89, 89), "circle")
+        checked = module.check_regions(base, (100, 100), (10, 10, 89, 89), "rectangle")
+        self.assertTrue(all(r["inside_safe"] for r in checked))
+
+    def test_cli_returns_failure_with_inspectable_region_results(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source, output, regions = [Path(tmp) / n for n in ("art.png", "proof.png", "regions.json")]
+            Image.new("RGB", (1254, 1254), "white").save(source)
+            regions.write_text(json.dumps([
+                {"name": "maker", "kind": "text", "box": [307, 175, 934, 280]},
+                {"name": "panel", "kind": "panel", "box": [399, 980, 855, 1077]},
+            ]))
+            result = subprocess.run([sys.executable, str(Path(__file__).with_name("local-proof.py")),
+                                     str(source), str(output), "--regions", str(regions)],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1, result.stderr)
+            report = json.loads(result.stdout)
+            self.assertFalse(report["declared_regions_inside_safe"])
+            self.assertTrue(output.exists())
+
     def test_circle_geometry_pixels_and_source_preservation(self):
         with tempfile.TemporaryDirectory() as tmp:
             source, output = Path(tmp) / "art.png", Path(tmp) / "proof.png"
