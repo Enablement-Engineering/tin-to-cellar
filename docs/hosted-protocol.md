@@ -45,6 +45,16 @@ Revision 11 was deployed and completed a fresh three-label ChatGPT Work run thro
 - Work acquired all three references and completed seven image calls automatically: Orlik two, Westminster three, Autumn Evening two. No Continue messages, long repair cues or reference reattachments were supplied. One Westminster call addressed spacing that need not differ from catalog typography.
 - The exact delivered ZIP hash matched the report. Independent checks verified the root manifest, PNG dimensions and hashes, and alpha through the bleed region. Production accepted all three labels with zero structural issues; all three appeared in the correct preview slots.
 - Independent canonical proofs and a second reviewer found remaining text clearance defects: Westminster's maker G and Orlik's small side lettering cross the safe boundary. All writing panels fit. The agent's all-clear claim was therefore too broad.
-- Revision 12 adds checks of declared text/panel boxes with review crops and permits harmless source-accurate spacing differences. Measurements remain agent-supplied; this is not OCR or independent text certification. Fresh revision 12 end-to-end verification is still required.
+- Revision 12 adds checks of declared text/panel boxes with review crops and permits harmless source-accurate spacing differences. Measurements remain agent-supplied; this is not OCR or independent text certification. Fresh revision 12 verification is recorded below.
 
 Earlier revision 10 also failed ZIP root layout and Westminster panel geometry; a bounded fourth diagnostic repair still failed. Historical evidence is preserved separately. Local ignored experiment records in `output/protocol-r10-e2e/` and `output/protocol-r11-e2e/` distinguish model claims, independently inspected artifacts, and observed website outcomes.
+
+### Revision 12 verified run
+
+Deployed commit `e586533d3a56b35751a26462ca30a2821bf5d8fe` completed a fresh ChatGPT Work / GPT-5.6 Sol Medium run on 2026-09-06. The exact site prompt required the complete-copy fallback after hosted retrieval failed. Following that fallback, Work acquired the references and completed seven isolated image calls automatically, with no additional continuation prompts or reference uploads. Orlik and Autumn Evening each used two calls; Westminster used three.
+
+The untouched ZIP, SHA-256 `6cc57412d02402e8357dd56b5624ff3d010416edbcc501392814f264a2f959df`, contains a root manifest and three 1254-pixel PNGs whose hashes match the manifest. Production import accepted all three with zero issues, and the on-site Avery 94502 preview displayed the correct three labels. Physical printing was not tested.
+
+The downloaded original proof bundle matches its reported hash. Its canonical script matches the repository byte for byte. All three original proof images match independently reproduced proof pixels exactly, despite differing PNG encoding hashes. All nine declared text/panel regions pass local checks. Two visual reviews found the text and whole writing surfaces inside the safe guides, with recognizable source motifs and no composite images. Exact facial detail in the Autumn Evening adaptation remains an editorial judgment; the checks do not certify pixel-identical package reproduction.
+
+This verifies the tested Work workflow with complete-copy fallback. It does not establish reliable hosted retrieval or fix the ordinary Chat image-tool behavior. Evidence and the preserved audit are in local ignored `output/protocol-r12-e2e/`.
