@@ -222,10 +222,11 @@ it('extracts feedback from a pack and clears it when a later import fails', asyn
   importer.mockResolvedValueOnce({ ...ready(), manifest: { title: 'Test pack', extensions: { 'tin-to-cellar:feedback': feedback } } })
   render(<App />)
   upload()
-  expect(await screen.findByText('AI reported: Completed')).toBeInTheDocument()
+  expect(await screen.findByRole('button', { name: 'View shared diagnostics' })).toBeInTheDocument()
+  expect(screen.queryByText('AI reported: Completed')).not.toBeInTheDocument()
   importer.mockRejectedValueOnce(new Error('Invalid ZIP'))
   upload()
-  await waitFor(() => expect(screen.queryByText('AI reported: Completed')).not.toBeInTheDocument())
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'View shared diagnostics' })).not.toBeInTheDocument())
   expect(screen.queryByText('AI run details')).not.toBeInTheDocument()
 })
 

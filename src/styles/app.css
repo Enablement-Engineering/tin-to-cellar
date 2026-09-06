@@ -474,3 +474,10 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
   .feedback-run { padding: 16px; }
   .feedback-issues li { flex-wrap: wrap; gap: 6px 12px; }
 }
+
+.diagnostics-summary { margin-block: .75rem; }
+.diagnostics-dialog { width: min(42rem, calc(100vw - 2rem)); max-height: 85vh; overflow: auto; padding: 1.5rem; border: 1px solid var(--border, #d9d0c1); border-radius: 1rem; background: var(--paper, #faf8f4); color: inherit; }
+.diagnostics-dialog::backdrop { background: rgb(0 0 0 / .35); }
+.diagnostics-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8rem; max-height: 22rem; overflow: auto; }
+.diagnostics-dialog form { margin-top: 1rem; }
+.standalone-preview { max-height: 18rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8rem; }

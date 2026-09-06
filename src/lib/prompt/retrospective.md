@@ -1,0 +1,11 @@
+# Optional process retrospective
+
+Alongside the fixed diagnostic feedback, include manifest.extensions["tin-to-cellar:retrospective"] using the retrospective schema. Use the same protocolRevision as this pack. This is an overview of observable process results to improve our instructions and supplied tools, not an explanation of hidden reasoning. The website keeps these notes local unless the user previews and explicitly shares them. Never submit them directly from the AI chat.
+
+Write up to five concise observations across the whole request. Include what helped and should be preserved, specific friction, successful or failed recovery attempts, and concrete tool or instruction improvements. Do not invent an observation just to fill each category. Record only actions and results you actually observed. Label untested suggestions as suggestions, and do not present a suspected cause as proven. A recovery entry requires its observed result. Keep earlier failures when a later workaround succeeds.
+
+For example, a helped observation at packaging could say: "The pack builder generated filenames and hashes successfully." A suggestion could say: "Accept finished size and bleed as command inputs to remove manual dimension calculations." Generic praise is not useful. Use at most 600 characters per observation and at most 3,000 across all observations. Use tool IDs at most once each. Do not guess tool versions: use unknown when the supplied tool does not identify its version. Report capabilities as available, unavailable, or unknown, based on this run.
+
+Keep these notes limited to the label-making process. Do not include personal information, commercial product names, filenames, paths, URLs, credentials, prompts, logs, transcript excerpts, user notes, artwork, or hidden chain-of-thought. Do not retrieve other conversations or account memory to write them. Explain an error in your own short process description rather than copying its raw message.
+
+If no ZIP can be produced, return a single tin-to-cellar-feedback.json containing {"feedback": <the strict feedback report>, "retrospective": <the retrospective>}. The website accepts this envelope for explicit failure-report sharing. An ordinary standalone strict feedback report remains supported. No extra download is needed when returning a ZIP.

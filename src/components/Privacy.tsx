@@ -11,8 +11,8 @@ export function Privacy() {
         <h2 id="privacy-summary">TL;DR</h2>
         <ul>
           <li>Your imported orders, ZIPs, and artwork stay on your device.</li>
-          <li>Importing a readable pack automatically shares validated AI feedback and public package source links with fixed observations. Those links can help other users make labels.</li>
-          <li>Collected feedback and source observations expire after 90 days and are removed at the next daily cleanup.</li>
+          <li>Importing a readable pack automatically shares structured AI feedback, website ZIP-check results, and public package source observations. Those links can help other users make labels.</li>
+          <li>New structured diagnostics are kept for 12 months. Optional process notes and source observations expire after 90 days. Process notes require a separate sharing action.</li>
           <li>Print guides are created in your AI chat’s working environment. Tin to Cellar does not receive the artwork for guide generation.</li>
           <li>Your AI provider, Cloudflare, and the embedded YouTube video handle data under their own policies. We do not receive your AI chat.</li>
         </ul>
@@ -31,8 +31,9 @@ export function Privacy() {
       <section>
         <h2>Prompt feedback</h2>
         <p>The prompt asks your AI to include a diagnostic report in the label pack, or return a separate report if it cannot finish the pack. The report records which instructions the AI used, requested label count and shape, overall outcome, steps attempted, attempt counts, and categorized problems and whether they were resolved.</p>
-        <p>Importing a label pack with a readable manifest automatically sends its valid AI feedback to Tin to Cellar. We use these reports to understand recurring failures and improve the instructions. The app shows whether collection was confirmed; a collection failure does not block printing. You can still inspect and download reports. Opening separate feedback JSON files for comparison does not submit them.</p>
+        <p>Importing a label pack with a readable manifest automatically sends its valid AI feedback to Tin to Cellar, along with recognized website validation codes and counts. We use these reports to improve instructions and supplied tools. View shared diagnostics shows the exact fields and whether receipt was confirmed. A collection failure does not block printing. Opening a standalone failure JSON stays local until you choose Share failure report.</p>
         <p>The app accepts only fixed categories and bounded counts in these reports. It rejects extra fields and malformed reports. The feedback format excludes free text, names, tobacco names, email addresses, source URLs, artwork, credentials, filenames, raw prompts, and chat logs. This restriction applies to validated feedback exports. It does not remove personal information from the rest of a pack or from your AI chat.</p>
+        <p>A separate optional process retrospective can describe what helped, what caused friction, and possible improvements, in up to five short AI-written observations. It can also report tool versions and available capabilities. These notes stay local until you preview them and choose Share process notes. Read them for personal information before sharing; validation limits their structure and length but cannot certify that free text contains no personal information. The AI is instructed not to include personal details, URLs, filenames, prompts, logs, or chat excerpts.</p>
         <p>Open reports stay in browser memory and clear when you reload. Downloaded reports remain on your device. Collected reports are available to the maintainer through a protected export, not the public source lookup. Repeated imports of the same pack are stored once, so counts do not represent unique people or runs. Reports describe what the AI says it did; they are not independent quality checks or counts of unique users. If you send a report by email or another service, that service also handles your message and sender information.</p>
       </section>
       <section>
@@ -44,7 +45,8 @@ export function Privacy() {
       </section>
       <section>
         <h2>Collection storage and retention</h2>
-        <p>We store contributions in Cloudflare storage, with a server receipt date and a one-way fingerprint of the pack manifest to detect repeat imports. The fingerprint does not contain the original manifest text. Collected feedback and source observations expire after 90 days and are deleted at the next daily cleanup. Public suggestions exclude older records immediately. A source can remain available if a later contribution reports it again. Capacity limits may temporarily stop collection.</p>
+        <p>We store contributions in Cloudflare storage with a receipt date and a one-way fingerprint of the pack manifest to detect repeat imports. Standalone failure submissions use a random submission identifier. New structured diagnostics and website checks expire after 12 months; reports collected under the previous policy keep their original 90-day expiry. Optional process notes expire after 90 days. Daily cleanup deletes expired records, and exports exclude them immediately. Monthly aggregate counts and sanitized improvement findings may be kept longer without raw process notes.</p>
+        <p>Package source observations keep their separate 90-day freshness window. Public suggestions exclude older records immediately. A source can remain available if a later contribution reports it again. Capacity limits may temporarily stop source collection.</p>
         <p>The shared source catalog contains product identifiers and eligible source links, not user profiles. We do not collect the ZIP, generated artwork, order file, chat, or free-text special requests through this endpoint. Network IP addresses are used for rate limits but are not included in contribution records. The source record is separate from the diagnostic feedback, whose schema does not allow URLs or tobacco names.</p>
       </section>
       <section>

@@ -1,9 +1,9 @@
 # Tin to Cellar technical instructions
 
-Protocol version: 0.0.18
+Protocol version: 0.0.19
 CellarPack version: 0.1.0
 Feedback version: 0.2.0
-The complete protocol, both JSON schemas and canonical proof program are included below. Use this revision throughout this run and repairs. Do not fetch protocol instructions or schemas. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":"0.0.18","cellarpackVersion":"0.1.0","feedbackVersion":"0.2.0"}.
+The complete protocol, all JSON schemas and canonical proof program are included below. Use this revision throughout this run and repairs. Do not fetch protocol instructions or schemas. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":"0.0.19","cellarpackVersion":"0.1.0","feedbackVersion":"0.2.0"}.
 
 # Task
 Create one researched pipe-tobacco cellar label per requested blend and return a .cellarpack.zip for Tin to Cellar. Keep research, generation, revisions and ZIP repairs in this chat.
@@ -350,7 +350,7 @@ Return one prominent downloadable .cellarpack.zip and the supplied printing link
 ```
 
 # Diagnostic feedback
-Feedback schema version: 0.2.0. Set protocolRevision to the semantic version string "0.0.18", matching the pack protocol extension. Maintain a diagnostic report using the feedback schema below. Put it in manifest.extensions["tin-to-cellar:feedback"] when returning a pack. If the run ends without a pack, provide tin-to-cellar-feedback.json as a separate download, or a JSON code block if file creation is unavailable. A report is optional for importing old packs. Do not send feedback directly from this chat. Importing the returned pack in Tin to Cellar submits its validated feedback automatically.
+Feedback schema version: 0.2.0. Set protocolRevision to the semantic version string "0.0.19", matching the pack protocol extension. Maintain a diagnostic report using the feedback schema below. Put it in manifest.extensions["tin-to-cellar:feedback"] when returning a pack. If the run ends without a pack, provide tin-to-cellar-feedback.json as a separate download, or a JSON code block if file creation is unavailable. A report is optional for importing old packs. Do not send feedback directly from this chat. Importing the returned pack in Tin to Cellar submits its validated feedback automatically.
 
 Report only the requested label count and shape, overall outcome, observable workflow stages, attempt counts, and categorized issues, including unclear or conflicting instructions. Use one entry per attempted or skipped stage. Sum actual tool attempts for that stage across labels; use zero for unattempted stages. Mark passed only for checks actually performed. Report failures and unavailable tools honestly. Use other for an issue without a matching code, without adding an explanation field. Update the report after repairs. Do not include hidden reasoning or chain-of-thought.
 
@@ -368,4 +368,22 @@ Maintain cumulative feedback for the whole request across turns and repairs. Kee
 {"$schema":"http://json-schema.org/draft-07/schema#","type":"object","additionalProperties":false,"required":["format","schemaVersion","protocolRevision","request","outcome","steps","issues"],"properties":{"format":{"const":"tin-to-cellar/feedback"},"schemaVersion":{"const":"0.2.0"},"protocolRevision":{"type":"string","pattern":"^(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})$","maxLength":20},"request":{"type":"object","additionalProperties":false,"required":["labelCount","shape"],"properties":{"labelCount":{"type":"integer","minimum":0,"maximum":500},"shape":{"enum":["circle","oval","square","rectangle","rounded-rectangle","custom","unknown"]}}},"outcome":{"enum":["complete","partial","failed","research-only"]},"steps":{"type":"array","maxItems":7,"items":{"type":"object","additionalProperties":false,"required":["stage","status","attempts"],"properties":{"stage":{"$ref":"#/$defs/stage"},"status":{"enum":["passed","failed","skipped","unavailable"]},"attempts":{"type":"integer","minimum":0,"maximum":1500}}}},"issues":{"type":"array","maxItems":50,"items":{"type":"object","additionalProperties":false,"required":["code","stage","resolved"],"properties":{"code":{"enum":["reference-unavailable","variant-ambiguous","image-handoff-unavailable","generation-unavailable","generation-failed","artwork-fidelity","text-legibility","write-area","geometry","proof-unavailable","schema","archive","instructions-unclear","instructions-conflicting","other","protocol-unavailable","protocol-incomplete"]},"stage":{"$ref":"#/$defs/stage"},"resolved":{"type":"boolean"}}}}},"$defs":{"stage":{"enum":["research","generation","visual-review","proof","packaging","validation","protocol-retrieval"]}}}
 ```
 
-END TIN TO CELLAR PROTOCOL 0.0.18
+# Optional process retrospective
+
+Alongside the fixed diagnostic feedback, include manifest.extensions["tin-to-cellar:retrospective"] using the retrospective schema. Use the same protocolRevision as this pack. This is an overview of observable process results to improve our instructions and supplied tools, not an explanation of hidden reasoning. The website keeps these notes local unless the user previews and explicitly shares them. Never submit them directly from the AI chat.
+
+Write up to five concise observations across the whole request. Include what helped and should be preserved, specific friction, successful or failed recovery attempts, and concrete tool or instruction improvements. Do not invent an observation just to fill each category. Record only actions and results you actually observed. Label untested suggestions as suggestions, and do not present a suspected cause as proven. A recovery entry requires its observed result. Keep earlier failures when a later workaround succeeds.
+
+For example, a helped observation at packaging could say: "The pack builder generated filenames and hashes successfully." A suggestion could say: "Accept finished size and bleed as command inputs to remove manual dimension calculations." Generic praise is not useful. Use at most 600 characters per observation and at most 3,000 across all observations. Use tool IDs at most once each. Do not guess tool versions: use unknown when the supplied tool does not identify its version. Report capabilities as available, unavailable, or unknown, based on this run.
+
+Keep these notes limited to the label-making process. Do not include personal information, commercial product names, filenames, paths, URLs, credentials, prompts, logs, transcript excerpts, user notes, artwork, or hidden chain-of-thought. Do not retrieve other conversations or account memory to write them. Explain an error in your own short process description rather than copying its raw message.
+
+If no ZIP can be produced, return a single tin-to-cellar-feedback.json containing {"feedback": <the strict feedback report>, "retrospective": <the retrospective>}. The website accepts this envelope for explicit failure-report sharing. An ordinary standalone strict feedback report remains supported. No extra download is needed when returning a ZIP.
+
+# Complete retrospective JSON Schema
+
+```json
+{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","additionalProperties":false,"required":["format","schemaVersion","protocolRevision","capabilities","tools","observations"],"properties":{"format":{"const":"tin-to-cellar/retrospective"},"schemaVersion":{"const":"0.1.0"},"protocolRevision":{"type":"string","pattern":"^(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})$"},"capabilities":{"type":"object","additionalProperties":false,"properties":{"browsing":{"$ref":"#/$defs/capability"},"image-generation":{"$ref":"#/$defs/capability"},"file-creation":{"$ref":"#/$defs/capability"},"local-execution":{"$ref":"#/$defs/capability"}}},"tools":{"type":"array","maxItems":2,"items":{"type":"object","additionalProperties":false,"required":["id","version"],"properties":{"id":{"enum":["local-proof","pack-builder"]},"version":{"type":"string","pattern":"^(unknown|(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5}))$"}}}},"observations":{"type":"array","minItems":1,"maxItems":5,"items":{"type":"object","additionalProperties":false,"required":["stage","kind","explanation"],"properties":{"stage":{"enum":["research","generation","visual-review","proof","packaging","validation","protocol-retrieval"]},"kind":{"enum":["helped","friction","recovery","suggestion"]},"explanation":{"type":"string","minLength":1,"maxLength":600,"pattern":"\\S"},"result":{"enum":["worked","partly-worked","failed","not-tested"]}},"if":{"properties":{"kind":{"const":"recovery"}}},"then":{"required":["result"]},"else":{"not":{"required":["result"]}}}}},"$defs":{"capability":{"enum":["available","unavailable","unknown"]}}}
+```
+
+END TIN TO CELLAR PROTOCOL 0.0.19

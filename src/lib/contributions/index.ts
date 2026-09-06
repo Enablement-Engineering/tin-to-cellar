@@ -3,11 +3,12 @@ import feedbackSchema from '../feedback/schema.json'
 import legacyFeedbackSchema from '../feedback/legacy-schema.json'
 import type { DiagnosticReport } from '../feedback'
 import type { CellarPackManifest } from '../cellarpack/types'
+import { parseWebsiteValidation, type WebsiteValidation } from './validation'
 
 export const SOURCE_KEY = 'tin-to-cellar:sources'
 export const SOURCE_STATUSES = ['valid', 'unavailable', 'wrong-package', 'unverified'] as const
 export type SourceObservation = { catalogId: string; url: string; status: typeof SOURCE_STATUSES[number]; package: 'tin' | 'pouch' | 'box' | 'other' | 'unknown'; variant: 'current' | 'historical' | 'unknown' }
-export type Contribution = { version: 1; submissionId: string; feedback: DiagnosticReport | null; sources: SourceObservation[] }
+export type Contribution = { version: 1 | 2; submissionId: string; feedback: DiagnosticReport | null; sources: SourceObservation[]; origin?: 'pack' | 'standalone'; validation?: WebsiteValidation | null }
 export type SuggestedSource = SourceObservation & { checkedAt: string }
 const catalogIds = new Set(TOBACCO_CATALOG.map(item => item.id))
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
@@ -50,19 +51,22 @@ export function parseSource(value: unknown): SourceObservation | null {
   if (!record(value) || !exact(value, ['catalogId', 'url', 'status', 'package', 'variant'])) return null
   if (typeof value.catalogId !== 'string' || !catalogIds.has(value.catalogId) || !publicSourceUrl(value.url) ||
     !SOURCE_STATUSES.includes(value.status as SourceObservation['status']) ||
-    !['tin', 'pouch', 'box', 'other', 'unknown'].includes(String(value.package)) ||
-    !['current', 'historical', 'unknown'].includes(String(value.variant))) return null
+    typeof value.package !== 'string' || !['tin', 'pouch', 'box', 'other', 'unknown'].includes(value.package) ||
+    typeof value.variant !== 'string' || !['current', 'historical', 'unknown'].includes(value.variant)) return null
   return { catalogId: value.catalogId, url: value.url, status: value.status, package: value.package, variant: value.variant } as SourceObservation
 }
 export function parseContribution(value: unknown): Contribution | null {
-  if (!record(value) || !exact(value, ['version', 'submissionId', 'feedback', 'sources']) || value.version !== 1 || typeof value.submissionId !== 'string' || !/^[a-f0-9]{64}$/.test(value.submissionId) || !Array.isArray(value.sources) || value.sources.length > 100) return null
+  if (!record(value) || ![1, 2].includes(Number(value.version)) || !exact(value, value.version === 1 ? ['version', 'submissionId', 'feedback', 'sources'] : ['version', 'submissionId', 'feedback', 'sources', 'origin', 'validation']) || typeof value.submissionId !== 'string' || !/^[a-f0-9]{64}$/.test(value.submissionId) || !Array.isArray(value.sources) || value.sources.length > 100) return null
+  if (value.version !== 1 && value.version !== 2) return null
   const feedback = value.feedback === null ? null : collectionFeedback(value.feedback)
   if (value.feedback !== null && !feedback) return null
   const sources = value.sources.map(parseSource)
-  if (sources.some(v => !v) || (!feedback && !sources.length)) return null
-  return { version: 1, submissionId: value.submissionId, feedback, sources: sources as SourceObservation[] }
+  const validation = value.version === 2 && value.validation !== null ? parseWebsiteValidation(value.validation) : null
+  if (value.version === 2 && (typeof value.origin !== 'string' || !['pack', 'standalone'].includes(value.origin) || (value.validation !== null && !validation) || (value.origin === 'standalone' && (validation || sources.length)))) return null
+  if (sources.some(v => !v) || (!feedback && !sources.length && !validation)) return null
+  return { version: value.version, submissionId: value.submissionId, feedback, sources: sources as SourceObservation[], ...(value.version === 2 ? { origin: value.origin as 'pack' | 'standalone', validation } : {}) }
 }
-export async function contributionFromManifest(manifest: CellarPackManifest): Promise<Contribution | null> {
+export async function contributionFromManifest(manifest: CellarPackManifest, validation?: WebsiteValidation): Promise<Contribution | null> {
   const feedback = collectionFeedback(manifest.extensions?.['tin-to-cellar:feedback'])
   const protocol = manifest.extensions?.['tin-to-cellar:protocol']
   const consistent = feedback?.schemaVersion !== '0.2.0' || record(protocol) && protocol.revision === feedback.protocolRevision
@@ -82,6 +86,6 @@ export async function contributionFromManifest(manifest: CellarPackManifest): Pr
   }
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(manifest)))
   const submissionId = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
-  const result = { version: 1 as const, submissionId, feedback: consistent ? feedback : null, sources: sources.slice(0, 100) }
-  return result.feedback || result.sources.length ? result : null
+  const result: Contribution = { version: validation ? 2 : 1, submissionId, feedback: consistent ? feedback : null, sources: sources.slice(0, 100), ...(validation ? { origin: 'pack' as const, validation } : {}) }
+  return result.feedback || result.sources.length || validation ? result : null
 }

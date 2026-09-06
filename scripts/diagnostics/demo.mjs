@@ -1,0 +1,10 @@
+import { mkdir, writeFile } from 'node:fs/promises'
+import { analyze, markdown } from './analyze.mjs'
+const now = new Date()
+const feedback = { format: 'tin-to-cellar/feedback', schemaVersion: '0.2.0', protocolRevision: '0.0.17', request: { labelCount: 1, shape: 'circle' }, outcome: 'complete', steps: [{ stage: 'proof', status: 'passed', attempts: 3 }], issues: [{ code: 'geometry', stage: 'proof', resolved: true }] }
+const reports = [0,1,2].map(n => ({ id: n.toString(16).padStart(64,'0'), receivedAt: new Date(now.getTime() - n * 86400000).toISOString(), expiresAt: new Date(now.getTime() + 365 * 86400000).toISOString(), origin: 'pack', feedback: n < 2 ? feedback : { ...feedback, steps: [{ stage: 'proof', status: 'passed', attempts: 1 }], issues: [] }, validation: { version: '0.1.0', outcome: 'ready', issues: [] }, notesExpiresAt: new Date(now.getTime() + 90 * 86400000).toISOString(), retrospective: { format: 'tin-to-cellar/retrospective', schemaVersion: '0.1.0', protocolRevision: '0.0.17', capabilities: { 'local-execution': 'available' }, tools: [{ id: 'local-proof', version: 'unknown' }], observations: [{ stage: 'proof', kind: n < 2 ? 'friction' : 'helped', explanation: n < 2 ? 'Manual dimension calculations required two corrections before proof passed.' : 'The supplied proof program showed the final layout clearly.' }] } }))
+const snapshot = { version: 1, until: now.toISOString(), reports }
+const summary = analyze(snapshot, now)
+await mkdir('output/diagnostics-demo', { recursive: true, mode: 0o700 })
+for (const [name, content] of Object.entries({ 'snapshot.json': JSON.stringify(snapshot, null, 2), 'summary.json': JSON.stringify(summary, null, 2), 'review.md': markdown(summary) })) await writeFile(`output/diagnostics-demo/${name}`, content + '\n', { mode: 0o600 })
+console.log('Synthetic demonstration only: output/diagnostics-demo. Expected finding: 2 of 3 reports describe resolved geometry friction; successful proof tooling should be preserved. No live reports were read.')

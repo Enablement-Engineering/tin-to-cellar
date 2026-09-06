@@ -14,7 +14,10 @@ if (localProof !== localProof.trim() + '\n') throw new Error('Proof source must 
 const protocol = (await read('src/lib/prompt/protocol.md')).replace('<!-- LOCAL_PROOF_SCRIPT -->', `Canonical local-proof.py SHA-256: ${hash(localProof)}\n\n\`\`\`python\n${localProof.trim()}\n\`\`\``)
 const feedbackInstructions = await read('src/lib/prompt/feedback.md')
 const instructions = `# Tin to Cellar technical instructions\n\nProtocol version: ${revision}\nCellarPack version: 0.1.0\nFeedback version: 0.2.0\nThe complete protocol, both JSON schemas and canonical proof program are included below. Use this revision throughout this run and repairs. Do not fetch protocol instructions or schemas. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":"${revision}","cellarpackVersion":"0.1.0","feedbackVersion":"0.2.0"}.\n\n${protocol.trim()}\n\n# Complete CellarPack 0.1 JSON Schema\n\n\`\`\`json\n${JSON.stringify(JSON.parse(manifest))}\n\`\`\`\n\n${feedbackInstructions.trim()}\n\n# Complete feedback JSON Schema\n\n\`\`\`json\n${JSON.stringify(JSON.parse(feedback))}\n\`\`\`\n\nEND TIN TO CELLAR PROTOCOL ${revision}\n`
-const files = { 'instructions.md': instructions, 'instructions.html': protocolHtml(instructions, revision), 'cellarpack.schema.json': manifest, 'feedback.schema.json': feedback }
+const retrospective = await read('src/lib/feedback/retrospective.schema.json')
+const retrospectiveInstructions = await read('src/lib/prompt/retrospective.md')
+const completeInstructions = instructions.replace('both JSON schemas', 'all JSON schemas').replace(`END TIN TO CELLAR PROTOCOL ${revision}`, `${retrospectiveInstructions.trim()}\n\n# Complete retrospective JSON Schema\n\n\`\`\`json\n${JSON.stringify(JSON.parse(retrospective))}\n\`\`\`\n\nEND TIN TO CELLAR PROTOCOL ${revision}`)
+const files = { 'instructions.md': completeInstructions, 'instructions.html': protocolHtml(completeInstructions, revision), 'cellarpack.schema.json': manifest, 'feedback.schema.json': feedback, 'retrospective.schema.json': retrospective }
 for (const release of Object.values(registry.releases)) {
   for (const [name, content] of Object.entries(release.files)) {
     if (hash(content) !== release.hashes[name]) throw new Error(`Historical release ${release.revision}/${name} hash mismatch`)
@@ -24,12 +27,12 @@ if (process.argv.includes('--create')) {
   if (registry.releases[revision]) throw new Error('Revision already exists; advance current before creating another immutable release')
   registry.releases[revision] = { revision, cellarpackVersion: '0.1.0', feedbackVersion: '0.2.0', files, hashes: Object.fromEntries(Object.entries(files).map(([name, content]) => [name, hash(content)])) }
   await write('src/lib/protocol/releases.json', JSON.stringify(registry, null, 2) + '\n')
-  await write('public/agent/tin-to-cellar-prompt.md', instructions)
+  await write('public/agent/tin-to-cellar-prompt.md', completeInstructions)
 } else {
   if (!registry.releases[revision]) throw new Error('Create the release first with npm run protocol:release -- --create')
   for (const [name, content] of Object.entries(files)) {
     if (registry.releases[revision].files[name] !== content) throw new Error(`Canonical source differs from immutable release ${revision}/${name}; create a new revision`)
   }
-  if (await read('public/agent/tin-to-cellar-prompt.md') !== instructions) throw new Error('Portable public instructions differ from selected release')
+  if (await read('public/agent/tin-to-cellar-prompt.md') !== completeInstructions) throw new Error('Portable public instructions differ from selected release')
 }
 console.log(`Protocol release ${revision} verified`)

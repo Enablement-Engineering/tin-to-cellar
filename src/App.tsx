@@ -13,7 +13,10 @@ import { Inspiration } from './components/Inspiration'
 import { SiteFooter } from './components/SiteFooter'
 import { Icon } from './components/Icons'
 import { Wordmark } from './components/Wordmark'
-import { DiagnosticFeedback } from './components/DiagnosticFeedback'
+import { ProtocolWarning } from './components/ProtocolWarning'
+import { StandaloneFeedback } from './components/StandaloneFeedback'
+import { parseRetrospective, RETROSPECTIVE_KEY, type Retrospective } from './lib/feedback/retrospective'
+import { websiteValidation } from './lib/contributions/validation'
 import { resolveProtocolContext } from './lib/protocol'
 import { FEEDBACK_KEY } from './lib/feedback'
 import { ExamplePack } from './components/ExamplePack'
@@ -75,6 +78,7 @@ function App() {
   const [protocolContext, setProtocolContext] = useState<ReturnType<typeof resolveProtocolContext>>({ status: 'legacy' })
   const [contribution, setContribution] = useState<Contribution | null>(null)
   const [feedback, setFeedback] = useState<unknown>(null)
+  const [retrospective, setRetrospective] = useState<Retrospective | null>(null)
   const [importing, setImporting] = useState(false)
   const [summary, setSummary] = useState<ImportSummary | null>(null)
   const [labels, setLabels] = useState<PrintLabel[]>([])
@@ -112,6 +116,7 @@ function App() {
     setImporting(true)
     setFeedback(null)
     setContribution(null)
+    setRetrospective(null)
     setProtocolContext({ status: 'legacy' })
     setRepairStatus('')
     setShowRepair(false)
@@ -119,7 +124,6 @@ function App() {
     try {
       const { importCellarPack } = await import('./lib/cellarpack')
       const result = await importCellarPack(await file.arrayBuffer())
-      if (result.manifest) setContribution(await contributionFromManifest(result.manifest))
       const context = resolveProtocolContext(result.manifest?.extensions)
       setProtocolContext(context)
       setFeedback(result.manifest?.extensions?.[FEEDBACK_KEY] ?? null)
@@ -153,6 +157,14 @@ function App() {
       const hasFailures = quarantined.length > 0 || result.status !== 'ready' || issues.some((issue) => issue.severity === 'error')
       setSummary({ status: mappedLabels.length ? (hasFailures ? 'partial' : 'ready') : 'rejected', title: result.manifest?.title ?? file.name, labels: mappedLabels, issues: issues.map(issueText), quarantined })
       const repairIssues = [...issues, ...result.quarantinedLabels.flatMap((label) => label.issues)]
+      if (result.manifest) {
+        const prepared = await contributionFromManifest(result.manifest, websiteValidation(mappedLabels.length ? hasFailures ? 'partial' : 'ready' : 'rejected', repairIssues))
+        if (prepared) {
+          setContribution(prepared)
+          const notes = parseRetrospective(result.manifest.extensions?.[RETROSPECTIVE_KEY])
+          if (notes && prepared.feedback && 'protocolRevision' in prepared.feedback && notes.protocolRevision === prepared.feedback.protocolRevision) setRetrospective(notes)
+        }
+      }
       setRepairPrompt(hasFailures ? buildCellarPackRepairPrompt(repairIssues, context) : '')
       if (mappedLabels.length) {
         objectUrls.current.forEach((url) => URL.revokeObjectURL(url))
@@ -180,7 +192,9 @@ function App() {
     catch { setShowRepair(true); setRepairStatus('Select and copy the repair request below, then paste it into the same chat.') }
   }
 
-  const intake = <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} /><ContributionStatus key={JSON.stringify(contribution)} contribution={contribution} />
+  const intake = <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} />
+    <ProtocolWarning context={protocolContext} feedback={feedback} />
+    {summary?.status === 'rejected' && <StandaloneFeedback />}
     {importLoadError && <div className="panel" role="alert"><h3>The label reader couldn’t load</h3><p>The app may have updated, or the connection was interrupted. Reload the page, then choose the same ZIP again. Reloading clears the current workspace.</p><button className="button secondary" type="button" onClick={() => window.location.reload()}>Reload app</button></div>}
     {repairPrompt && <div className="panel repair-panel"><h3>{labels.length ? 'Some labels need fixing' : 'The ZIP needs fixing'}</h3><p>{labels.length ? 'You can still print the usable labels below. ' : ''}Send the repair request to the same AI chat and import the ZIP it returns.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}><Icon name="copy" size={17} />Copy repair request</button><p className="copy-status" role="status">{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={repairPrompt} rows={8} onFocus={(event) => event.currentTarget.select()} />}</div>}
   </div>
@@ -217,12 +231,12 @@ function App() {
     <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
       {view === 'home' ? <SiteHome onNavigate={() => navigate('labels')} /> : view === 'not-found' ? <div className="landing-page screen-only"><h1>Page not found</h1><p>This page doesn’t exist.</p><a href="/labels" onClick={routeClick('labels')}>Go to Labels</a></div> : view === 'labels' ? <Landing onNavigate={navigate} busy={importing} onFile={handlePack} /> : view === 'create' ? <div className="screen-only create-workspace">
         <div className="create-grid"><Configurator value={config} onChange={setConfig} /><PromptHandoff prompt={prompt} request={request} onPrint={() => navigate('print')} /></div>
-      </div> : view === 'help' ? <HowItWorks instructions={instructions} /> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
+      </div> : view === 'help' ? <><HowItWorks instructions={instructions} /><StandaloneFeedback /></> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
         <div className="page-heading screen-only"><h1>Print labels</h1><p className="spec-line">Avery 94502 · 2.5 in circles · US Letter</p></div>
         {labels.length > 0 ? <PrintStudio intake={intake} labels={labels} quantities={quantities} onQuantityChange={(id, value) => setQuantities((current) => ({ ...current, [id]: value }))} settings={printSettings} onSettingsChange={setPrintSettings} /> :
           <div className="print-intake screen-only">{intake}<ExamplePack busy={importing} onFile={handlePack} /></div>}
-        {(feedback != null || ['conflict', 'invalid', 'unknown'].includes(protocolContext.status)) && <DiagnosticFeedback candidate={feedback} protocolContext={protocolContext} />}
       </>}
+      <ContributionStatus key={contribution?.submissionId ?? 'empty'} contribution={contribution} retrospective={retrospective} hidden={view !== 'print'} />
     </main>
     <SiteFooter currentView={view} onNavigate={navigate} />
   </div>
