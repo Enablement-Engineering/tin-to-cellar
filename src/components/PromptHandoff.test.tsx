@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PromptHandoff } from './PromptHandoff'
 import { proofAccessText } from '../lib/prompt/proof-access'
+import { protocolInstructions } from '../lib/protocol'
 afterEach(cleanup)
 describe('PromptHandoff', () => {
   it('copies the starting prompt by default and exposes request only as a secondary action', async () => {
@@ -15,7 +16,7 @@ describe('PromptHandoff', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }))
     await waitFor(() => expect(writeText).toHaveBeenCalledWith('Full contract and schema' + proofAccessText(null)))
     expect(screen.queryByRole('link', { name: /open chatgpt/i })).not.toBeInTheDocument()
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Paste it into your AI chat and send it.'))
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Attach the downloaded instructions'))
     fireEvent.click(screen.getByText('More options'))
     fireEvent.click(screen.getByRole('button', { name: 'Copy request only' }))
     await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('Just the request' + proofAccessText(null)))
@@ -58,17 +59,19 @@ it('copies and reveals the exact complete payload when its clipboard action fail
   const writeText = vi.fn().mockRejectedValue(new Error('denied'))
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
   render(<PromptHandoff prompt="Compact request" completePrompt="Frozen complete contract" request="Request only" />)
-  fireEvent.click(screen.getByText('More options'))
   fireEvent.click(screen.getByRole('button', { name: 'Copy complete prompt' }))
   await waitFor(() => expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Frozen complete contract' + proofAccessText(null)))
   expect(writeText).toHaveBeenCalledWith('Frozen complete contract' + proofAccessText(null))
-  expect(screen.getByRole('link', { name: 'current instructions' })).toHaveAttribute('href', 'https://tintocellar.com/api/protocol/v1')
+  expect(screen.getByRole('link', { name: 'read the current instructions' })).toHaveAttribute('href', 'https://tintocellar.com/api/protocol/v1')
 })
 
 it('offers reusable bundled instructions without the project request or proof access', () => {
   render(<PromptHandoff prompt="Private project request" completePrompt="Private complete request" request="Private request" />)
   const link = screen.getByRole('link', { name: 'Download instructions' })
   const body = decodeURIComponent(link.getAttribute('href')!.split(',').slice(1).join(','))
+  expect(body).toBe(protocolInstructions())
+  expect(link.closest('details')).toBeNull()
+  expect(screen.getByRole('button', { name: 'Copy complete prompt' }).closest('details')).toBeNull()
   expect(body).not.toContain('Private project request')
   expect(body).not.toContain('Private complete request')
   expect(body).not.toContain('Private request')

@@ -149,11 +149,16 @@ describe('private diagnostic instructions', () => {
 
 
 describe('hosted compact handoff', () => {
-  it('keeps the request and artistic promises visible while fetching technical details once', () => {
+  it('uses supplied instructions before hosted retrieval while keeping the request visible', () => {
     const prompt = buildTinToCellarPrompt({ tobaccos: ['Westminster', 'Orlik Golden Sliced', 'Autumn Evening'], websiteUrl: 'http://localhost:5173/' })
     for (const requirement of ['Use only the tobacco list supplied or confirmed in this conversation', 'do not retrieve inventories from account memory or other chats', 'Westminster', 'Orlik Golden Sliced', 'Autumn Evening', 'https://tintocellar.com/api/protocol/v1', 'end marker', 'for this run and its repairs', 'unavailable or incomplete', 'wait before generating', 'exact maker and blend names', 'exactly one blank', 'no words or writing line', '.cellarpack.zip', 'Importing the returned pack sends validated AI feedback', 'http://localhost:5173/#print']) expect(prompt).toContain(requirement)
     for (const technical of ['"$defs"', 'SHA-256', 'overlay.mode', '50 MiB', 'protocolRevision', '/api/proof']) expect(prompt).not.toContain(technical)
     expect(prompt.length).toBeLessThan(3500)
+    expect(prompt).toContain('attached to this message or already supplied in this conversation')
+    expect(prompt).toContain('do not replace it with a newer hosted release')
+    expect(prompt).toContain('Only if no instructions were supplied, try https://tintocellar.com/api/protocol/v1')
+    expect(prompt).toContain('Copy complete prompt')
+    expect(prompt).not.toContain('under More options')
   })
   it('preserves long user direction without truncating it', () => {
     const artDirection = 'A specific user detail. '.repeat(1500)
