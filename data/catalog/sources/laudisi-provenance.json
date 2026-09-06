@@ -1,0 +1,78 @@
+{
+  "indexUrl": "https://www.laudisi.com/tobaccos.cfm",
+  "reviewedAt": "2026-09-05",
+  "rows": 30,
+  "categories": [
+    {
+      "categoryUrl": "https://www.laudisi.com/briarworks-international.cfm",
+      "maker": "Briarworks",
+      "productRows": 9
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/captain-earles-pipe-tobaccos.cfm",
+      "maker": "Captain Earle's",
+      "productRows": 16
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/charatan-tobacco.cfm",
+      "maker": "Charatan",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/cornell-and-diehl-pipe-tobaccos.cfm",
+      "error": "HTTP 503: https://www.laudisi.com/cornell-and-diehl-pipe-tobaccos.cfm"
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/gawith-hoggarth-and-co.cfm",
+      "error": "HTTP 503: https://www.laudisi.com/gawith-hoggarth-and-co.cfm"
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/gl-pease-pipe-tobaccos.cfm",
+      "error": "HTTP 503: https://www.laudisi.com/gl-pease-pipe-tobaccos.cfm"
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/hu-tobacco.cfm",
+      "error": "HTTP 503: https://www.laudisi.com/hu-tobacco.cfm"
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/kopp-pipe-tobaccos.cfm",
+      "error": "HTTP 503: https://www.laudisi.com/kopp-pipe-tobaccos.cfm"
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/per-jensen-tobacco.cfm",
+      "error": "HTTP 503: https://www.laudisi.com/per-jensen-tobacco.cfm"
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/rivertown-tobacco-works.cfm",
+      "error": "HTTP 503: https://www.laudisi.com/rivertown-tobacco-works.cfm"
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/samuel-gawith.cfm",
+      "error": "HTTP 503: https://www.laudisi.com/samuel-gawith.cfm"
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/savinelli-tobacco.cfm",
+      "error": "HTTP 503: https://www.laudisi.com/savinelli-tobacco.cfm"
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/seattle-pipe-club.cfm",
+      "error": "HTTP 503: https://www.laudisi.com/seattle-pipe-club.cfm"
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/sillems-tobacco.cfm",
+      "error": "HTTP 503: https://www.laudisi.com/sillems-tobacco.cfm"
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/toscano-tobacco.cfm",
+      "error": "HTTP 503: https://www.laudisi.com/toscano-tobacco.cfm"
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/two-friends-pipe-tobaccos.cfm",
+      "error": "HTTP 503: https://www.laudisi.com/two-friends-pipe-tobaccos.cfm"
+    },
+    {
+      "categoryUrl": "https://www.laudisi.com/warped-tobacco.cfm",
+      "error": "HTTP 503: https://www.laudisi.com/warped-tobacco.cfm"
+    }
+  ]
+}

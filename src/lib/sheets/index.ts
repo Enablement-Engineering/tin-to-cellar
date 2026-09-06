@@ -5,7 +5,7 @@ export {
   FULL_SHEET_LETTER_PROFILE,
   getSheetProfile,
 } from './profiles'
-export { checkLabelSheetCompatibility } from './compatibility'
+export { checkLabelSheetCompatibility, checkAvery94502Compatibility } from './compatibility'
 export { isSheetProfile } from './validation'
 export type {
   FixedSlotSheetProfile,

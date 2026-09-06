@@ -4,18 +4,28 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "npm run prepare:ocr && vite",
+    "build": "npm run prepare:ocr && tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler deploy",
+    "preview:cloudflare": "npm run build && wrangler dev",
+    "prepare:ocr": "node scripts/prepare-ocr.mjs",
+    "proof:overlay": "node scripts/generate-proof-overlay.mjs"
   },
   "dependencies": {
+    "@tesseract.js-data/eng": "1.0.0",
     "ajv": "8.20.0",
+    "fast-png": "8.0.0",
     "jszip": "3.10.1",
+    "pdfjs-dist": "6.3.289",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1",
+    "tesseract.js": "7.0.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "7.0.1",
@@ -29,6 +39,7 @@
     "oxlint": "^1.79.0",
     "typescript": "~6.0.2",
     "vite": "^8.2.2",
-    "vitest": "4.1.11"
+    "vitest": "4.1.11",
+    "wrangler": "4.127.1"
   }
 }

@@ -1,0 +1,41 @@
+{
+  "reviewedAt": "2026-09-05",
+  "sources": [
+    {
+      "file": "mac-baren-official.json",
+      "count": 74,
+      "scope": "Names from ten publicly accessible Mac Baren manufacturer pipe-tobacco category pages. Not a statement of current availability or complete market coverage. Brand prefix moved from title to maker where explicit; unprefixed titles retain manufacturer Mac Baren.",
+      "sourceIndex": "https://mac-baren.com/pipe-tobacco/",
+      "license": "No dataset license identified; names-only factual extraction. Source website states all rights reserved. No images or descriptions stored."
+    },
+    {
+      "file": "fda-sutliff-marketing-orders.json",
+      "count": 65,
+      "scope": "Sutliff manufacturer rows categorized Pipe Tobacco Products in public FDA marketing-order table; packaging weights removed and repeated sizes deduplicated. Order dates do not prove present availability.",
+      "sourceIndex": "https://www.fda.gov/tobacco-products/substantial-equivalence/marketing-orders-se",
+      "license": "Public US federal agency factual product-name table; no separate dataset license identified."
+    },
+    {
+      "file": "fda-other-pipe-tobacco.json",
+      "count": 41,
+      "sourceIndex": "https://www.fda.gov/tobacco-products/substantial-equivalence/marketing-orders-se",
+      "scope": "All remaining rows explicitly categorized Pipe Tobacco Products, including economy products. Package weights and bag/pouch sizes removed. Explicit product-brand prefixes used as maker for matching; original applicant names retained below. FDA order status does not establish current stock or availability.",
+      "normalization": "Au Naturall’e source spelling normalized to Au Naturalle across package sizes; case-insensitive deduplication. No changes to flavor/color names.",
+      "regulatoryApplicants": [
+        "Alliance One Specialty Products LLC",
+        "Alliance One Specialty Products, LLC",
+        "Inter-Continental Trading USA, Inc.",
+        "Top Tobacco",
+        "Top Tobacco, LP",
+        "US Flue-Cured Tobacco Growers, Inc."
+      ],
+      "license": "Public US federal agency factual product-name table; no separate dataset license identified."
+    }
+  ],
+  "coverageLimitations": [
+    "No broad licensed GitHub tobacco-blend dataset found in public repository search.",
+    "tobaccoreviews.org is a separate Persian review site and was not harvested.",
+    "pipetobaccohub.com could not be opened.",
+    "No authentication, anti-bot challenge, or access restriction was bypassed."
+  ]
+}

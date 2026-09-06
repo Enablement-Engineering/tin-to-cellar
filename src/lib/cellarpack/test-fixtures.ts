@@ -2,9 +2,9 @@ import JSZip from 'jszip'
 import type { CellarPackManifest } from './types'
 
 const ONE_PIXEL_RGBA_PNG_BASE64 =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADElEQVR42mP8z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC'
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGP4DwQACfsD/fteaysAAAAASUVORK5CYII='
 
-export function testPng(): Uint8Array {
+export function testPng(): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(atob(ONE_PIXEL_RGBA_PNG_BASE64), (character) => character.charCodeAt(0))
 }
 

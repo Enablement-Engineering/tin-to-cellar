@@ -5,14 +5,16 @@ import schemaText from './cellarpack-v1.schema.json?raw'
 import { getSheetProfile, isSheetProfile } from '../sheets'
 import type { SheetProfile } from '../sheets'
 import {
+  ARCHIVE_LIMITS,
   inspectZipCentralDirectory,
   looksLikeActiveContent,
   looksLikeNestedArchive,
   normalizeZipPath,
 } from './archive'
 import { validateSurfaceGeometry, validateWriteAreas } from './geometry'
-import { parseImageMetadata, sha256Hex, validateImageEncoding } from './image'
-import { validateManifestPreflight } from './schema'
+import { parseImageMetadata, sha256Hex, validateImageEncoding, validateImageDecoding } from './image'
+import { ajvErrorsToIssues, validateManifestPreflight, validateManifestWithAjv } from './schema'
+import { extractBounded, ExtractionLimitError } from './extraction'
 import type {
   ArtworkAsset,
   CellarLabel,
@@ -29,6 +31,8 @@ const ajv = new Ajv2020({ allErrors: true, strict: false })
 const validateRoot = ajv.compile<CellarPackManifest>(cellarPackSchema)
 const labelSchema = (cellarPackSchema.$defs as Record<string, unknown>).label
 const assetSchema = (cellarPackSchema.$defs as Record<string, unknown>).artworkAsset
+const assetMapSchema = (cellarPackSchema.properties as Record<string, Record<string, unknown>>).assets
+const validateAssetMap = ajv.compile({ ...assetMapSchema, $defs: cellarPackSchema.$defs, additionalProperties: true })
 const validateLabelSchema = ajv.compile<CellarLabel>({
   $schema: String(cellarPackSchema.$schema),
   $defs: cellarPackSchema.$defs,
@@ -71,16 +75,17 @@ export async function importCellarPack(data: ArrayBuffer): Promise<CellarPackImp
     if (entry) entryMap.set(inspectedEntry.normalizedName, entry)
   }
 
-  const contentIssues = await inspectEntryContents(inspection.entries, entryMap)
+  const contents = new Map<string, Uint8Array>()
+  const contentIssues = await inspectEntryContents(inspection.entries, entryMap, contents)
   const initialIssues = [...inspection.issues, ...contentIssues]
   if (hasFatal(initialIssues)) return rejected(initialIssues)
 
-  const manifestEntry = entryMap.get('manifest.json')
+  const manifestEntry = contents.get('manifest.json')
   if (!manifestEntry) return rejected(initialIssues)
 
   let manifestValue: unknown
   try {
-    const manifestBytes = await manifestEntry.async('uint8array')
+    const manifestBytes = manifestEntry
     const manifestText = new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes)
     manifestValue = JSON.parse(manifestText)
     if (jsonDepth(manifestValue) > 32) throw new TypeError('JSON depth exceeds limit')
@@ -98,11 +103,17 @@ export async function importCellarPack(data: ArrayBuffer): Promise<CellarPackImp
   }
 
   const preflightIssues = validateManifestPreflight(manifestValue)
-  if (hasFatal(preflightIssues)) return rejected([...initialIssues, ...preflightIssues])
+  if (hasFatal(preflightIssues)) {
+    const schemaResult = validateManifestWithAjv(manifestValue)
+    return rejected([...initialIssues, ...preflightIssues, ...ajvErrorsToIssues(schemaResult.errors, manifestValue)])
+  }
   if (!isRecord(manifestValue)) return rejected([...initialIssues, ...preflightIssues])
 
   const rootShapeIssues = validateRootShape(manifestValue)
-  if (hasFatal(rootShapeIssues)) return rejected([...initialIssues, ...preflightIssues, ...rootShapeIssues])
+  if (hasFatal(rootShapeIssues)) {
+    const schemaResult = validateManifestWithAjv(manifestValue)
+    return rejected([...initialIssues, ...preflightIssues, ...rootShapeIssues, ...ajvErrorsToIssues(schemaResult.errors, manifestValue)])
+  }
 
   const rawLabels = manifestValue.labels as unknown[]
   const rawAssets = manifestValue.assets as Record<string, unknown>
@@ -189,7 +200,7 @@ export async function importCellarPack(data: ArrayBuffer): Promise<CellarPackImp
     }
 
     currentIssues.push(...validateLabelSemantics(label))
-    const artwork = await importArtwork(label, manifest.assets, entryMap, currentIssues)
+    const artwork = await importArtwork(label, manifest.assets, contents, currentIssues, MAX_PIXELS_PER_PACK - totalPixels)
     if (artwork) totalPixels += artwork.pixelWidth * artwork.pixelHeight
     issues.push(...currentIssues)
 
@@ -210,7 +221,7 @@ export async function importCellarPack(data: ArrayBuffer): Promise<CellarPackImp
     return rejected(issues)
   }
 
-  const customSheetProfiles = await importCustomSheetProfiles(manifest, entryMap, issues)
+  const customSheetProfiles = await importCustomSheetProfiles(manifest, contents, issues)
   if (manifest.defaultPrintIntent && !getSheetProfile(manifest.defaultPrintIntent.sheetProfileId)) {
     const custom = customSheetProfiles.some(
       (profile) => profile.id === manifest.defaultPrintIntent?.sheetProfileId,
@@ -268,6 +279,15 @@ function validateRootShape(input: Record<string, unknown>): ValidationIssue[] {
       message: 'The manifest must contain an artwork asset map.',
       recovery: 'Declare the artwork files referenced by the labels.',
     }]
+  }
+  if (!validateAssetMap(input.assets)) {
+    return (validateAssetMap.errors ?? []).map((error) => ({
+      severity: 'fatal',
+      code: 'INVALID_MANIFEST_SCHEMA',
+      path: 'assets',
+      message: `Artwork asset map ${error.message ?? 'is invalid'}.`,
+      recovery: 'Use canonical asset IDs and no more than 300 assets.',
+    }))
   }
   const candidate = { ...input, labels: [], assets: {} }
   const valid = validateRoot(candidate)
@@ -350,8 +370,9 @@ function validateLabelSemantics(label: CellarLabel): ValidationIssue[] {
 async function importArtwork(
   label: CellarLabel,
   assets: Record<string, ArtworkAsset>,
-  entries: Map<string, JSZip.JSZipObject>,
+  entries: Map<string, Uint8Array>,
   issues: ValidationIssue[],
+  remainingPixels: number,
 ) {
   const asset = assets[label.artworkAssetId]
   if (!asset) {
@@ -371,7 +392,7 @@ async function importArtwork(
 
   let data: ArrayBuffer
   try {
-    data = await entry.async('arraybuffer')
+    data = Uint8Array.from(entry).buffer
   } catch {
     issues.push(blocking('MISSING_ARTWORK', label.id, `Artwork file ${normalized.path} could not be decoded.`))
     return null
@@ -395,6 +416,16 @@ async function importArtwork(
   const pixelCount = metadata.width * metadata.height
   if (pixelCount > MAX_PIXELS_PER_IMAGE || metadata.width > 8192 || metadata.height > 8192) {
     issues.push(blocking('IMAGE_LIMIT_EXCEEDED', label.id, 'Artwork exceeds the 64-megapixel or 8192-pixel dimension limit.'))
+  }
+  if (pixelCount > remainingPixels) {
+    issues.push(blocking('IMAGE_LIMIT_EXCEEDED', label.id, 'Artwork exceeds the remaining 250-megapixel pack budget.'))
+  }
+  if (!issues.some(isBlocking)) {
+    try {
+      await validateImageDecoding(data, metadata)
+    } catch {
+      issues.push(blocking('UNSUPPORTED_IMAGE_TYPE', label.id, 'Artwork cannot be decoded as a complete supported image.'))
+    }
   }
   const actualHash = await sha256Hex(data)
   if (actualHash !== asset.sha256) {
@@ -466,14 +497,18 @@ function validateArtworkGeometry(
 async function inspectEntryContents(
   inspectedEntries: ReturnType<typeof inspectZipCentralDirectory>['entries'],
   entries: Map<string, JSZip.JSZipObject>,
+  contents: Map<string, Uint8Array>,
 ): Promise<ValidationIssue[]> {
   const issues: ValidationIssue[] = []
+  let remaining = ARCHIVE_LIMITS.maxTotalUncompressedBytes as number
   for (const inspected of inspectedEntries) {
     if (inspected.directory) continue
     const entry = entries.get(inspected.normalizedName)
     if (!entry) continue
     try {
-      const bytes = await entry.async('uint8array')
+      const bytes = await extractBounded(entry, Math.min(inspected.uncompressedSize, remaining))
+      remaining -= bytes.byteLength
+      contents.set(inspected.normalizedName, bytes)
       if (looksLikeNestedArchive(bytes)) {
         issues.push({
           severity: 'fatal',
@@ -491,21 +526,22 @@ async function inspectEntryContents(
           recovery: 'Remove scripts, executable files, SVG, HTML, PDF, or other active documents.',
         })
       }
-    } catch {
+    } catch (error) {
       issues.push({
         severity: 'fatal',
-        code: 'INVALID_ZIP',
+        code: error instanceof ExtractionLimitError ? 'ZIP_LIMIT_EXCEEDED' : 'INVALID_ZIP',
         path: inspected.normalizedName,
         message: 'A ZIP entry could not be decompressed safely.',
       })
     }
+    if (hasFatal(issues)) return issues
   }
   return issues
 }
 
 async function importCustomSheetProfiles(
   manifest: CellarPackManifest,
-  entries: Map<string, JSZip.JSZipObject>,
+  entries: Map<string, Uint8Array>,
   issues: ValidationIssue[],
 ): Promise<SheetProfile[]> {
   const profiles: SheetProfile[] = []
@@ -521,7 +557,7 @@ async function importCustomSheetProfiles(
       continue
     }
     try {
-      const bytes = await entry.async('uint8array')
+      const bytes = entry
       const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
       const value: unknown = JSON.parse(text)
       if (!isSheetProfile(value) || value.id !== reference.id) throw new TypeError('Invalid profile')

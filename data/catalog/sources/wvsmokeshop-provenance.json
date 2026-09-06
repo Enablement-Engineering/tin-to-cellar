@@ -1,0 +1,702 @@
+{
+  "indexUrl": "https://wvsmokeshop.com/pipetobacco.aspx",
+  "reviewedAt": "2026-09-05",
+  "rows": 588,
+  "categories": [
+    {
+      "categoryUrl": "https://wvsmokeshop.com/ArangoBalkanSupremePipeTobacco.aspx",
+      "maker": "Arango",
+      "productRows": 3
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/ashtonpipetobacco.aspx",
+      "maker": "Ashton",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/balkansasienitins.aspx",
+      "maker": "Balkan Sasieni",
+      "productRows": 1
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/blendingtobaccos.aspx",
+      "maker": "Blending",
+      "productRows": 3
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/borkumriffpipetobacco.aspx",
+      "maker": "Borkum Riff",
+      "productRows": 14
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/caopipetobacco.aspx",
+      "maker": "CAO",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/capstanpipetobacco.aspx",
+      "maker": "Capstan",
+      "productRows": 1
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/captainblackpipetobacco.aspx",
+      "maker": "Captain Black",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/captainearlespipetobaccos.aspx",
+      "maker": "Captain Earle's",
+      "productRows": 7
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/carterhallpipetobacco.aspx",
+      "maker": "Carter Hall",
+      "productRows": 2
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/caseyjones.aspx",
+      "maker": "Casey Jones",
+      "productRows": 3
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cherokeepipetobacco.aspx",
+      "maker": "Cherokee",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cobblestonepipetobacco.aspx",
+      "maker": "Cobblestone",
+      "productRows": 3
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlpipetobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cultpipetobacco.aspx",
+      "maker": "CULT",
+      "productRows": 1
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/daughtersandryanpipetobaccos.aspx",
+      "maker": "Daughters & Ryan",
+      "productRows": 2
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/davidoff.aspx",
+      "maker": "Davidoff",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/erikstokkebye4thgeneration.aspx",
+      "maker": "Erik Stokkebye 4th Generation",
+      "productRows": 9
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/erinmorepipetobacco.aspx",
+      "maker": "Erinmore",
+      "productRows": 2
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/escudonavydeluxe.aspx",
+      "maker": "Escudo Navy Deluxe",
+      "productRows": 1
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/esotericatobacco.aspx",
+      "maker": "Esoterica",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/fivebrotherspipetobacco.aspx",
+      "maker": "Five Brothers",
+      "productRows": 2
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/glpease.aspx",
+      "maker": "G.L. Pease",
+      "productRows": 14
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/germainstobacco.aspx",
+      "maker": "Germain's",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/goodstuffpipetobacco.aspx",
+      "maker": "Good Stuff",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/grangertin.aspx",
+      "maker": "Granger",
+      "productRows": 2
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/halfandhalfpipetobacco.aspx",
+      "maker": "Half and Half",
+      "productRows": 3
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/kentuckyselectpipetobacco.aspx",
+      "maker": "Kentucky Select",
+      "productRows": 3
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/LaneLimitedPipeTobaccoinBulk.aspx",
+      "maker": "Lane Limited",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/macbarenpipetobacco.aspx",
+      "maker": "Mac Baren",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/nrdingpipetobaccos.aspx",
+      "maker": "Nørding",
+      "productRows": 3
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/orlikpipetobacco.aspx",
+      "maker": "Orlik",
+      "productRows": 2
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/paladinblackcherry.aspx",
+      "maker": "Paladin Black Cherry",
+      "productRows": 3
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/perjensenpipetobacco.aspx",
+      "maker": "Per Jensen",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/peterstokkebye.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/petersonpipetobacco.aspx",
+      "maker": "Peterson",
+      "productRows": 20
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/princealbert.aspx",
+      "maker": "Prince Albert",
+      "productRows": 2
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/rivertowntobaccoworksbulkpipetobaccos.aspx",
+      "maker": "Rivertown Tobacco Works",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/royalcomfort.aspx",
+      "maker": "Royal Comfort",
+      "productRows": 3
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/sailpipetobacco.aspx",
+      "maker": "Sail",
+      "productRows": 1
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/samuelgawithpipetobacco.aspx",
+      "maker": "Samuel Gawith",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/seattlepipeclubpipetobacco.aspx",
+      "maker": "Seattle Pipe Club",
+      "productRows": 1
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/sirwalterraleigh.aspx",
+      "maker": "Sir Walter Raleigh",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/smokerspride.aspx",
+      "maker": "Smokers Pride",
+      "productRows": 12
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stbrunopipetobacco.aspx",
+      "maker": "St. Bruno",
+      "productRows": 2
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/sutliffbulktobaccos.aspx",
+      "maker": "Sutliff Premium",
+      "productRows": 1
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/sutliffprivatestockpipetobacco.aspx",
+      "maker": "Sutliff Private Stock",
+      "productRows": 1
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/threenuns.aspx",
+      "maker": "Three Nuns",
+      "productRows": 1
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/velvetpipetobacco.aspx",
+      "maker": "Velvet",
+      "productRows": 3
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/villigerpipetobacco.aspx",
+      "maker": "Villiger",
+      "productRows": 3
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/virginiagold.aspx",
+      "maker": "Virginia Gold",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/wolarsenpipetobacco.aspx",
+      "maker": "W.O. Larsen",
+      "productRows": 3
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/captainblackpipetobacco.aspx",
+      "maker": "Captain Black",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlpipetobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/esotericatobacco.aspx",
+      "maker": "Esoterica",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/germainstobacco.aspx",
+      "maker": "Germain's",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/LaneLimitedPipeTobaccoinBulk.aspx",
+      "maker": "Lane Limited",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/peterstokkebye.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/rivertowntobaccoworksbulkpipetobaccos.aspx",
+      "maker": "Rivertown Tobacco Works",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/captainblackpipetobacco-bulkbytheounce.aspx",
+      "maker": "Captain Black",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/captainblackpipetobaccotinsandpouches.aspx",
+      "maker": "Captain Black",
+      "productRows": 15
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlbulkpipetobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehltinnedpipetobaccos.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 30
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/lane101bca.aspx",
+      "maker": "Lane Limited",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/lane1021q.aspx",
+      "maker": "Lane Limited",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/lane103rlp-6.aspx",
+      "maker": "Lane Limited",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/lane105hs-3.aspx",
+      "maker": "Lane Limited",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/lane114verycherry.aspx",
+      "maker": "Lane Limited",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/lane182blwb.aspx",
+      "maker": "Lane Limited",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/lane184mv-1000.aspx",
+      "maker": "Lane Limited",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/laneblackraspberry.aspx",
+      "maker": "Lane Limited",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/lanebutteredrum.aspx",
+      "maker": "Lane Limited",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/lanelimitedhazelnut.aspx",
+      "maker": "Lane Limited",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/lanehg-2000.aspx",
+      "maker": "Lane Limited",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/lanehgl.aspx",
+      "maker": "Lane Limited",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/lanelimitedll-7.aspx",
+      "maker": "Lane Limited",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/lanetk-6.aspx",
+      "maker": "Lane Limited",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyebullseyeflake.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyeluxurynavyflake.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyeluxurytwistflake.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebye1natural.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebye17luxuryenglish.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebye2whiskey.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyeps-201blackcavendish.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyeps-23bandb.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebye24nougat.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyeps-27pistachio.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebye3cherry.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/peterstokkebye301naturaldutchcavendishpipetobacco.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyeps-303peachesandcreme.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebye306englishorientalsupreme.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyeps-31optimum.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyeps-35champagne.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyeps-38highlandwhiskey.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebye41cubecut.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyeps-52properenglish.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebye6sweetvanilla.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/StokkebyePS-701Virginia.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyeps-702burley.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 3
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyeps-80norwegianblend.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyeps-81danishblend.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebyeps-9vanillacreme.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/stokkebye9ffrenchvanilla.aspx",
+      "maker": "Peter Stokkebye",
+      "productRows": 5
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/rivertowntobaccoworkscrimsonshadowpipetobacco.aspx",
+      "maker": "Rivertown Tobacco Works",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/rivertowntobaccoworkscustardconspiracy.aspx",
+      "maker": "Rivertown Tobacco Works",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/rivertowntobaccoworksdark70.aspx",
+      "maker": "Rivertown Tobacco Works",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/rivertowntobaccoworkshazelnuthollow.aspx",
+      "maker": "Rivertown Tobacco Works",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/rivertowntobaccoworksmaplecask.aspx",
+      "maker": "Rivertown Tobacco Works",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/rivertowntobaccoworksmysticmoor.aspx",
+      "maker": "Rivertown Tobacco Works",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/rivertowntobaccoworksoakandember.aspx",
+      "maker": "Rivertown Tobacco Works",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/rivertowntobaccoworkssirvanderberry.aspx",
+      "maker": "Rivertown Tobacco Works",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/rivertowntobaccoworkssunriseselect.aspx",
+      "maker": "Rivertown Tobacco Works",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/rivertowntobaccoworkssunsetvelvet.aspx",
+      "maker": "Rivertown Tobacco Works",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/captainblackcherrybulktobaccobytheounce.aspx",
+      "maker": "Captain Black",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/captainblackcopperbulktobaccobytheounce.aspx",
+      "maker": "Captain Black",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/captainblackdarkbulktobaccobytheounce.aspx",
+      "maker": "Captain Black",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/captainblackgoldbulktobaccobytheounce.aspx",
+      "maker": "Captain Black",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/captainblackregularbulktobaccobytheounce.aspx",
+      "maker": "Captain Black",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/captainblackroundtastebulktobaccobytheounce.aspx",
+      "maker": "Captain Black",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/captainblackroyalbulktobaccobytheounce.aspx",
+      "maker": "Captain Black",
+      "productRows": 6
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlapricotsandcreambulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlautumneveningbulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlapplesandcreambulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 0
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlcapsblendbulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlchocolatecavendishbulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehldarkcherrycavendishbulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehldarkchocolatebulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlengine99bulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlespressobulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlepiphanybulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlfoundingfathersbulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlhauntedbookshopbulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehljohnmarrbulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehllatakia.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 3
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehloldjoekrantzbulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlpegasusbulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlnuttyirishmanbulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlsweetenglishbulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    },
+    {
+      "categoryUrl": "https://wvsmokeshop.com/cornellanddiehlvanillacavendishbulktobacco.aspx",
+      "maker": "Cornell & Diehl",
+      "productRows": 4
+    }
+  ]
+}

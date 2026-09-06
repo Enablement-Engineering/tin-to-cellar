@@ -1,0 +1,583 @@
+[
+  {
+    "maker": "Lane Limited",
+    "blend": "Lane #101 BCA",
+    "toMaker": "Lane Limited",
+    "toBlend": "Bca",
+    "reason": "WV product name repeats Lane and retailer item number; same exact blend name/code is separately listed by 4noggins."
+  },
+  {
+    "maker": "Lane Limited",
+    "blend": "Lane #102 1Q",
+    "toMaker": "Lane Limited",
+    "toBlend": "1-Q",
+    "reason": "WV product name repeats Lane and retailer item number; same exact blend name/code is separately listed by 4noggins."
+  },
+  {
+    "maker": "Lane Limited",
+    "blend": "Lane #103 RLP-6",
+    "toMaker": "Lane Limited",
+    "toBlend": "Rlp-6",
+    "reason": "WV product name repeats Lane and retailer item number; same exact blend name/code is separately listed by 4noggins."
+  },
+  {
+    "maker": "Lane Limited",
+    "blend": "Lane #105 HS-3",
+    "toMaker": "Lane Limited",
+    "toBlend": "Hs-3",
+    "reason": "WV product name repeats Lane and retailer item number; same exact blend name/code is separately listed by 4noggins."
+  },
+  {
+    "maker": "Lane Limited",
+    "blend": "Lane #114 Very Cherry",
+    "toMaker": "Lane Limited",
+    "toBlend": "Very Cherry",
+    "reason": "WV product name repeats Lane and retailer item number; same exact blend name/code is separately listed by 4noggins."
+  },
+  {
+    "maker": "Lane Limited",
+    "blend": "Lane #182 BL/WB",
+    "toMaker": "Lane Limited",
+    "toBlend": "Bl-Wb",
+    "reason": "WV product name repeats Lane and retailer item number; same exact blend name/code is separately listed by 4noggins."
+  },
+  {
+    "maker": "Lane Limited",
+    "blend": "Lane #184 MV-1000",
+    "toMaker": "Lane Limited",
+    "toBlend": "Mv-1000",
+    "reason": "WV product name repeats Lane and retailer item number; same exact blend name/code is separately listed by 4noggins."
+  },
+  {
+    "maker": "Lane Limited",
+    "blend": "Lane Black Raspberry",
+    "toMaker": "Lane Limited",
+    "toBlend": "Black Raspberry",
+    "reason": "WV product name repeats Lane and retailer item number; same exact blend name/code is separately listed by 4noggins."
+  },
+  {
+    "maker": "Lane Limited",
+    "blend": "Lane Hazelnut",
+    "toMaker": "Lane Limited",
+    "toBlend": "Hazelnut",
+    "reason": "WV product name repeats Lane and retailer item number; same exact blend name/code is separately listed by 4noggins."
+  },
+  {
+    "maker": "Lane Limited",
+    "blend": "Lane HG-2000",
+    "toMaker": "Lane Limited",
+    "toBlend": "Hg-2000",
+    "reason": "WV product name repeats Lane and retailer item number; same exact blend name/code is separately listed by 4noggins."
+  },
+  {
+    "maker": "Lane Limited",
+    "blend": "Lane HGL",
+    "toMaker": "Lane Limited",
+    "toBlend": "Hgl",
+    "reason": "WV product name repeats Lane and retailer item number; same exact blend name/code is separately listed by 4noggins."
+  },
+  {
+    "maker": "Lane Limited",
+    "blend": "Lane LL-7",
+    "toMaker": "Lane Limited",
+    "toBlend": "Ll-7",
+    "reason": "WV product name repeats Lane and retailer item number; same exact blend name/code is separately listed by 4noggins."
+  },
+  {
+    "maker": "Lane Limited",
+    "blend": "Lane TK-6",
+    "toMaker": "Lane Limited",
+    "toBlend": "Tk-6",
+    "reason": "WV product name repeats Lane and retailer item number; same exact blend name/code is separately listed by 4noggins."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye #PS-17 English Luxury",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "English Luxury Ps 17",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye #PS-17 Luxury English",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "English Luxury Ps 17",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye #PS-24 Nougat",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Nougat",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye #PS-3 Cherry",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Ps-3 Cherry",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye #PS-301 Natural Dutch Cavendish",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Natural Dutch Cavendish",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye #PS-31 Optimum",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Optimum",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye #PS-38 Highland Whiskey",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Highland Whiskey",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye 9F French Vanilla",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "French Vanilla",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye Luxury Navy Flake",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Luxury Navy Flake",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye Luxury Twist Flake",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Luxury Twist Flake",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye PS-27 Pistachio",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Pistachio",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye PS-41 Cube Cut",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Cube Cut",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye PS-52 Proper English",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Proper English",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye PS-702 Burley",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Burley",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye Sweet Vanilla",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Sweet Vanilla",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye #2 Whiskey",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Whiskey",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "Stokkebye #PS-9 Vanilla Creme",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Vanilla Creme",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "PS-23 B&B",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "B & B",
+    "reason": "Same named blend under same maker; WV repeats maker and numeric product code. PS-17 word-order variants share the explicit PS-17 code."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "(Dunhill) EARLY MORNING PIPE",
+    "toMaker": "Peterson",
+    "toBlend": "Early Morning Pipe",
+    "reason": "Retailer marks current Peterson product with former Dunhill attribution; keep maker Peterson. Does not merge historical Dunhill tins."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "(Dunhill) ELIZABETHAN MIXTURE",
+    "toMaker": "Peterson",
+    "toBlend": "Elizabethan Mixture",
+    "reason": "Retailer marks current Peterson product with former Dunhill attribution; keep maker Peterson. Does not merge historical Dunhill tins."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "(Dunhill) FLAKE",
+    "toMaker": "Peterson",
+    "toBlend": "Flake",
+    "reason": "Retailer marks current Peterson product with former Dunhill attribution; keep maker Peterson. Does not merge historical Dunhill tins."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "(Dunhill) MY MIXTURE 965",
+    "toMaker": "Peterson",
+    "toBlend": "My Mixture 965",
+    "reason": "Retailer marks current Peterson product with former Dunhill attribution; keep maker Peterson. Does not merge historical Dunhill tins."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "(Dunhill) NAVY ROLLS",
+    "toMaker": "Peterson",
+    "toBlend": "De Luxe Navy Rolls",
+    "reason": "Retailer marks current Peterson product with former Dunhill attribution; keep maker Peterson. Does not merge historical Dunhill tins."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "(Dunhill) NIGHTCAP",
+    "toMaker": "Peterson",
+    "toBlend": "Nightcap",
+    "reason": "Retailer marks current Peterson product with former Dunhill attribution; keep maker Peterson. Does not merge historical Dunhill tins."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "(Dunhill) ROYAL YACHT",
+    "toMaker": "Peterson",
+    "toBlend": "Royal Yacht",
+    "reason": "Retailer marks current Peterson product with former Dunhill attribution; keep maker Peterson. Does not merge historical Dunhill tins."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "(Dunhill) STANDARD MIXTURE",
+    "toMaker": "Peterson",
+    "toBlend": "Standard Mixture",
+    "reason": "Retailer marks current Peterson product with former Dunhill attribution; keep maker Peterson. Does not merge historical Dunhill tins."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "Early Morning",
+    "toMaker": "Peterson",
+    "toBlend": "Early Morning Pipe",
+    "reason": "Same Peterson listing identity; retailer abbreviation or parenthetical legacy-name note. Full names verified in WV product text."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "Elizabethan",
+    "toMaker": "Peterson",
+    "toBlend": "Elizabethan Mixture",
+    "reason": "Same Peterson listing identity; retailer abbreviation or parenthetical legacy-name note. Full names verified in WV product text."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "DeLuxe Mixture",
+    "toMaker": "Peterson",
+    "toBlend": "De Luxe Mixture",
+    "reason": "Same Peterson listing identity; retailer abbreviation or parenthetical legacy-name note. Full names verified in WV product text."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "3P's PERFECT PLUG",
+    "toMaker": "Peterson",
+    "toBlend": "3 P's Perfect Plug",
+    "reason": "Same Peterson listing identity; retailer abbreviation or parenthetical legacy-name note. Full names verified in WV product text."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "Irish Cask (Formerly Oak) Blend",
+    "toMaker": "Peterson",
+    "toBlend": "Irish Cask",
+    "reason": "Same Peterson listing identity; retailer abbreviation or parenthetical legacy-name note. Full names verified in WV product text."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "Irish Cask (oak)",
+    "toMaker": "Peterson",
+    "toBlend": "Irish Cask",
+    "reason": "Same Peterson listing identity; retailer abbreviation or parenthetical legacy-name note. Full names verified in WV product text."
+  },
+  {
+    "maker": "A&C Petersen",
+    "blend": "Navy Deluxe",
+    "toMaker": "A&C Petersen",
+    "toBlend": "Escudo Navy Deluxe",
+    "reason": "4noggins source URL is a-c-petersen-escudo-50g; Escudo was lost by maker-prefix parsing."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation 1855 Erik Peter's",
+    "toMaker": "4th Generation",
+    "toBlend": "1855 Erik Peter's",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th GENERATION 1882",
+    "toMaker": "4th Generation",
+    "toBlend": "1882",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation 1882 Founder's Blend",
+    "toMaker": "4th Generation",
+    "toBlend": "1882 Founder's Blend",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation 1897 Erik Paul's Blend",
+    "toMaker": "4th Generation",
+    "toBlend": "1897 Erik Paul's Blend",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation 1931 Erik Peter's Flake",
+    "toMaker": "4th Generation",
+    "toBlend": "1931 Erik Peter's Flake",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th GENERATION 1957",
+    "toMaker": "4th Generation",
+    "toBlend": "1957",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation 1957 Erik Michaels Blend",
+    "toMaker": "4th Generation",
+    "toBlend": "1957 Erik Michaels Blend",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation 1982",
+    "toMaker": "4th Generation",
+    "toBlend": "1982",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation 1982 Centennial",
+    "toMaker": "4th Generation",
+    "toBlend": "1982 Centennial",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th GENERATION 1989",
+    "toMaker": "4th Generation",
+    "toBlend": "1989",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation Jubilaeums Blend",
+    "toMaker": "4th Generation",
+    "toBlend": "Jubilaeums Blend",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation: 1855",
+    "toMaker": "4th Generation",
+    "toBlend": "1855",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation: 1897",
+    "toMaker": "4th Generation",
+    "toBlend": "1897",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation: 1931",
+    "toMaker": "4th Generation",
+    "toBlend": "1931",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation: 2012 Anniversary Blend",
+    "toMaker": "4th Generation",
+    "toBlend": "2012 Anniversary Blend",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation: Autumn Mixture - 4 Seasons",
+    "toMaker": "4th Generation",
+    "toBlend": "4 Seasons Autumn Mixture",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation: Heritage Collection Limited Edition 2025",
+    "toMaker": "4th Generation",
+    "toBlend": "Heritage Collection Limited Edition 2025",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation: Spring Mixture - 4 Seasons",
+    "toMaker": "4th Generation",
+    "toBlend": "4 Seasons Spring Mixture",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation: Summer Mixture - 4 Seasons",
+    "toMaker": "4th Generation",
+    "toBlend": "4 Seasons Summer Mixture",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Erik Stokkebye",
+    "blend": "4th Generation: Winter Mixture - 4 Seasons",
+    "toMaker": "4th Generation",
+    "toBlend": "4 Seasons Winter Mixture",
+    "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+  },
+  {
+    "maker": "Hermit Tobacco",
+    "blend": "Captain Earle's: DIAMOND HEAD",
+    "toMaker": "Captain Earle's",
+    "toBlend": "Diamond Head",
+    "reason": "Explicit Captain Earle's branded product nested under Hermit vendor; same named products appear in Laudisi Captain Earle's catalog. Unrelated Hermit products stay separate."
+  },
+  {
+    "maker": "Hermit Tobacco",
+    "blend": "Captain Earle's: HONOR BLEND",
+    "toMaker": "Captain Earle's",
+    "toBlend": "Honor Blend",
+    "reason": "Explicit Captain Earle's branded product nested under Hermit vendor; same named products appear in Laudisi Captain Earle's catalog. Unrelated Hermit products stay separate."
+  },
+  {
+    "maker": "Hermit Tobacco",
+    "blend": "Captain Earle's: MYSTIC BLEND",
+    "toMaker": "Captain Earle's",
+    "toBlend": "Mystic Blend",
+    "reason": "Explicit Captain Earle's branded product nested under Hermit vendor; same named products appear in Laudisi Captain Earle's catalog. Unrelated Hermit products stay separate."
+  },
+  {
+    "maker": "Hermit Tobacco",
+    "blend": "Captain Earle's: NIGHTWATCH",
+    "toMaker": "Captain Earle's",
+    "toBlend": "Nightwatch",
+    "reason": "Explicit Captain Earle's branded product nested under Hermit vendor; same named products appear in Laudisi Captain Earle's catalog. Unrelated Hermit products stay separate."
+  },
+  {
+    "maker": "Hermit Tobacco",
+    "blend": "Captain Earle's: PRIVATE STOCK",
+    "toMaker": "Captain Earle's",
+    "toBlend": "Private Stock",
+    "reason": "Explicit Captain Earle's branded product nested under Hermit vendor; same named products appear in Laudisi Captain Earle's catalog. Unrelated Hermit products stay separate."
+  },
+  {
+    "maker": "Hermit Tobacco",
+    "blend": "Captain Earle's: REFLECTIONS",
+    "toMaker": "Captain Earle's",
+    "toBlend": "Reflections",
+    "reason": "Explicit Captain Earle's branded product nested under Hermit vendor; same named products appear in Laudisi Captain Earle's catalog. Unrelated Hermit products stay separate."
+  },
+  {
+    "maker": "Hermit Tobacco",
+    "blend": "Captain Earle's: STIMULUS PACKAGE",
+    "toMaker": "Captain Earle's",
+    "toBlend": "Stimulus Package",
+    "reason": "Explicit Captain Earle's branded product nested under Hermit vendor; same named products appear in Laudisi Captain Earle's catalog. Unrelated Hermit products stay separate."
+  },
+  {
+    "maker": "Hermit Tobacco",
+    "blend": "Captain Earle's: TEN RUSSIANS",
+    "toMaker": "Captain Earle's",
+    "toBlend": "Ten Russians",
+    "reason": "Explicit Captain Earle's branded product nested under Hermit vendor; same named products appear in Laudisi Captain Earle's catalog. Unrelated Hermit products stay separate."
+  },
+  {
+    "maker": "Nording",
+    "blend": "Erik's Reserve",
+    "toMaker": "Nørding",
+    "toBlend": "Erik's Reserve",
+    "reason": "ASCII Nording and Nørding are maker spelling variants; Hunter Blend is the series prefix. Matching Fox Hound, Labrador and Pointer entries appear in WV Nørding catalog."
+  },
+  {
+    "maker": "Nording",
+    "blend": "Hunter Blend: BEAGLE",
+    "toMaker": "Nørding",
+    "toBlend": "Beagle",
+    "reason": "ASCII Nording and Nørding are maker spelling variants; Hunter Blend is the series prefix. Matching Fox Hound, Labrador and Pointer entries appear in WV Nørding catalog."
+  },
+  {
+    "maker": "Nording",
+    "blend": "Hunter Blend: FOX HOUND",
+    "toMaker": "Nørding",
+    "toBlend": "Fox Hound",
+    "reason": "ASCII Nording and Nørding are maker spelling variants; Hunter Blend is the series prefix. Matching Fox Hound, Labrador and Pointer entries appear in WV Nørding catalog."
+  },
+  {
+    "maker": "Nording",
+    "blend": "Hunter Blend: LABRADOR",
+    "toMaker": "Nørding",
+    "toBlend": "Labrador",
+    "reason": "ASCII Nording and Nørding are maker spelling variants; Hunter Blend is the series prefix. Matching Fox Hound, Labrador and Pointer entries appear in WV Nørding catalog."
+  },
+  {
+    "maker": "Nording",
+    "blend": "Hunter Blend: POINTER",
+    "toMaker": "Nørding",
+    "toBlend": "Pointer",
+    "reason": "ASCII Nording and Nørding are maker spelling variants; Hunter Blend is the series prefix. Matching Fox Hound, Labrador and Pointer entries appear in WV Nørding catalog."
+  },
+  {
+    "maker": "Nording",
+    "blend": "Seaweed",
+    "toMaker": "Nørding",
+    "toBlend": "Seaweed",
+    "reason": "ASCII Nording and Nørding are maker spelling variants; Hunter Blend is the series prefix. Matching Fox Hound, Labrador and Pointer entries appear in WV Nørding catalog."
+  },
+  {
+    "maker": "Nording",
+    "blend": "Tumbleweed",
+    "toMaker": "Nørding",
+    "toBlend": "Tumbleweed",
+    "reason": "ASCII Nording and Nørding are maker spelling variants; Hunter Blend is the series prefix. Matching Fox Hound, Labrador and Pointer entries appear in WV Nørding catalog."
+  },
+  {
+    "maker": "4noggins",
+    "blend": "G.L. Pease Fellowship II 20z 2007",
+    "toMaker": "G. L. Pease",
+    "toBlend": "Fellowship II 2007",
+    "reason": "The source title explicitly names G.L. Pease; storefront vendor is the retailer. Remove the malformed package-size token but preserve the ambiguous year."
+  },
+  {
+    "maker": "4noggins",
+    "blend": "Gawith & Hoggarth Seasonal Reserve",
+    "toMaker": "Gawith Hoggarth & Co.",
+    "toBlend": "Seasonal Reserve",
+    "reason": "The source title explicitly names Gawith & Hoggarth; storefront vendor is the retailer."
+  }
+]

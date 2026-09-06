@@ -1,25 +1,51 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PromptHandoff } from './PromptHandoff'
-
 afterEach(cleanup)
-
 describe('PromptHandoff', () => {
-  it('shows the exact handoff and discloses that local files must be reattached', () => {
-    render(
-      <PromptHandoff
-        prompt="Research Escudo before generating."
-        codexPrompt="Research and validate Escudo."
-        chatGptUrl="https://chatgpt.com/?prompt=Research%20Escudo"
-        hasPlannedFiles
-      />,
-    )
-
-    expect(screen.getByText(/attachments stay behind/i)).toBeInTheDocument()
-    expect(screen.getByText('Research Escudo before generating.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /create in chatgpt/i })).toHaveAttribute('href', expect.stringContaining('chatgpt.com'))
-    expect(screen.getByRole('button', { name: /copy for codex/i })).toBeInTheDocument()
+  it('copies the complete prompt by default and exposes request only as a secondary action', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    const { rerender } = render(<PromptHandoff prompt="Full contract and schema" request="Just the request" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('Full contract and schema'))
+    expect(screen.queryByRole('link', { name: /open chatgpt/i })).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('press Send'))
+    fireEvent.click(screen.getByText('More options'))
+    fireEvent.click(screen.getByRole('button', { name: 'Copy request only' }))
+    await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('Just the request'))
+    expect(screen.getByRole('status')).toHaveTextContent('already has the Tin to Cellar instructions')
+    rerender(<PromptHandoff prompt="Changed contract" request="Changed request" />)
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
   })
+  it('provides selectable full text when copying the full prompt fails', async () => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) } })
+    render(<PromptHandoff prompt="Complete fallback text" request="Request text" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }))
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Copy was unavailable'))
+    expect(screen.getByLabelText('Full prompt')).toHaveValue('Complete fallback text')
+    expect(screen.getByText('Read full prompt').closest('details')).toHaveAttribute('open')
+  })
+  it('shows the request payload rather than the full prompt when request-only copying fails', async () => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) } })
+    render(<PromptHandoff prompt="Full instructions payload" request="Specific label request payload" />)
+    fireEvent.click(screen.getByText('More options'))
+    fireEvent.click(screen.getByRole('button', { name: 'Copy request only' }))
+    await waitFor(() => expect(screen.getByLabelText('Request to copy')).toHaveValue('Specific label request payload'))
+    expect(screen.queryByLabelText('Full prompt')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Request to copy').closest('details')).toHaveAttribute('open')
+  })
+})
+
+it('renders Markdown without fetching embedded images or executing HTML, and preserves exact source', () => {
+  const prompt = '# Task\n\n- Research **the label**\n\n```json\n{"labels": []}\n```\n\n![Reference](https://example.com/tracker.png)\n\n<script>alert(1)</script>\n\n[Unsafe](javascript:alert(1))'
+  render(<PromptHandoff prompt={prompt} request="Request" />)
+  expect(screen.getByRole('heading', { name: 'Task' })).toBeInTheDocument()
+  expect(screen.getByText('the label').tagName).toBe('STRONG')
+  expect(screen.getByRole('region', { name: 'Rendered prompt' }).querySelector('img,script')).toBeNull()
+  expect(screen.getByText('Unsafe')).not.toHaveAttribute('href', 'javascript:alert(1)')
+  fireEvent.click(screen.getByRole('button', { name: 'Markdown source' }))
+  expect(screen.getByLabelText('Full prompt')).toHaveValue(prompt)
 })

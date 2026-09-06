@@ -14,6 +14,7 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
 
   const acceptFile = async (file?: File) => {
     if (!file) return
+    if (busy) return
     await onFile(file)
   }
 
@@ -27,10 +28,8 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
     <section className="panel importer" aria-labelledby="import-title">
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">Local import</p>
-          <h2 id="import-title">Bring back a CellarPack</h2>
+          <h1 id="import-title">Print labels</h1>
         </div>
-        <span className="local-chip"><Icon name="lock" size={14} /> Stays here</span>
       </div>
 
       <div
@@ -43,34 +42,24 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
         <input
           ref={inputRef}
           type="file"
+          aria-label="Label ZIP"
+          disabled={busy}
           accept=".zip,.cellarpack.zip,application/zip"
-          onChange={(event) => void acceptFile(event.target.files?.[0])}
+          onChange={(event) => { void acceptFile(event.target.files?.[0]); event.target.value = '' }}
         />
         <span className="drop-icon"><Icon name="upload" size={28} /></span>
-        <strong>{busy ? 'Inspecting the pack…' : 'Drop a .cellarpack.zip here'}</strong>
+        <strong>{busy ? 'Checking your labels…' : 'Drop your label ZIP here'}</strong>
         <span>or choose it from this device</span>
         <button className="button secondary" type="button" disabled={busy} onClick={() => inputRef.current?.click()}>
-          Choose CellarPack
+          Choose ZIP
         </button>
-        <small>No upload. No source links are opened automatically.</small>
       </div>
-
-      {!summary && (
-        <div className="return-checklist">
-          <p>What comes back from your agent</p>
-          <ul>
-            <li>Generated PNG artwork</li>
-            <li>Physical label geometry</li>
-            <li>Research sources and adaptation notes</li>
-          </ul>
-        </div>
-      )}
 
       {summary && (
         <div className={`import-report status-${summary.status}`} aria-live="polite">
           <div className="report-topline">
             <div>
-              <p>{summary.status === 'ready' ? 'Ready for the bench' : summary.status === 'partial' ? 'Usable with repairs' : 'Pack rejected'}</p>
+              <p>{summary.status === 'ready' ? 'Labels ready to print' : summary.status === 'partial' ? 'Some labels need repair' : 'ZIP needs repair'}</p>
               <h3>{summary.title}</h3>
             </div>
             <span>{summary.labels.length} usable</span>

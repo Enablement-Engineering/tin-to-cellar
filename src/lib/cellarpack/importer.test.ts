@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import * as imageModule from './image'
 import { importCellarPack } from './importer'
-import { makeCellarPack } from './test-fixtures'
+import { makeCellarPack, makeTestManifest, testPng } from './test-fixtures'
+import JSZip from 'jszip'
+import { sha256Hex } from './image'
 import type { CellarPackManifest } from './types'
 
 describe('importCellarPack', () => {
@@ -176,4 +179,78 @@ describe('importCellarPack', () => {
     expect(result.conformance.generator).toBe('nonconformant')
     expect(result.issues.map((issue) => issue.code)).toContain('LIMITED_RESEARCH')
   })
+})
+
+
+describe('untrusted artifact regression cases', () => {
+  it('quarantines a matching-hash PNG header with no pixel data', async () => {
+    const manifest = await makeTestManifest()
+    const bytes = testPng().slice(0, 29)
+    manifest.assets['asset-fixture'].sha256 = await sha256Hex(bytes.buffer)
+    const zip = new JSZip()
+    zip.file('manifest.json', JSON.stringify(manifest))
+    zip.file('artwork/fixture-blend.png', bytes)
+    const result = await importCellarPack(await zip.generateAsync({ type: 'arraybuffer' }))
+    expect(result.status).toBe('partial')
+    expect(result.labels).toHaveLength(0)
+    expect(result.quarantinedLabels[0].issues.map((issue) => issue.code)).toContain('UNSUPPORTED_IMAGE_TYPE')
+  })
+
+  it('rejects invalid asset-map keys and excessive asset counts', async () => {
+    const invalidKey = await importCellarPack(await makeCellarPack({ mutateManifest: (manifest) => {
+      manifest.assets['NOT canonical!'] = manifest.assets['asset-fixture']
+    } }))
+    expect(invalidKey.status).toBe('rejected')
+    const excessive = await importCellarPack(await makeCellarPack({ mutateManifest: (manifest) => {
+      for (let index = 0; index < 300; index++) manifest.assets[`asset-${index}`] = manifest.assets['asset-fixture']
+    } }))
+    expect(excessive.status).toBe('rejected')
+    expect(excessive.issues.some((issue) => issue.message.includes('300'))).toBe(true)
+  })
+
+  it('reports missing contract fields together with preflight failures', async () => {
+    const result = await importCellarPack(await makeCellarPack({ manifestText: JSON.stringify({ schemaVersion: 1, labels: [{}] }) }))
+    expect(result.status).toBe('rejected')
+    expect(result.issues.some((issue) => issue.message.includes('artworkAssetId'))).toBe(true)
+    expect(result.issues.some((issue) => issue.message.includes('generator'))).toBe(true)
+    expect(result.issues.some((issue) => issue.path === 'schemaVersion')).toBe(true)
+  })
+
+  it('stops a forged-size compressed stream at the declared byte limit', async () => {
+    const zip = await JSZip.loadAsync(await makeCellarPack())
+    zip.file('notes.txt', new Uint8Array(1024 * 1024))
+    const bytes = await zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE' })
+    const view = new DataView(bytes)
+    for (let offset = 0; offset + 46 < bytes.byteLength; offset++) {
+      if (view.getUint32(offset, true) !== 0x02014b50) continue
+      const name = new TextDecoder().decode(new Uint8Array(bytes, offset + 46, view.getUint16(offset + 28, true)))
+      if (name === 'notes.txt') view.setUint32(offset + 24, 1, true)
+    }
+    const result = await importCellarPack(bytes)
+    expect(result.status).toBe('rejected')
+    expect(result.issues.some((issue) => issue.code === 'ZIP_LIMIT_EXCEEDED')).toBe(true)
+  })
+})
+
+
+it('enforces the pack pixel budget before decoding the next image', async () => {
+  // Header dimensions deliberately simulate large artwork without allocating it.
+  const decoder = vi.spyOn(imageModule, 'validateImageDecoding').mockResolvedValue(undefined)
+  try {
+    const manifest = await makeTestManifest()
+    const bytes = testPng()
+    new DataView(bytes.buffer).setUint32(16, 8000)
+    new DataView(bytes.buffer).setUint32(20, 8000)
+    manifest.assets['asset-fixture'].pixelWidth = 8000
+    manifest.assets['asset-fixture'].pixelHeight = 8000
+    manifest.assets['asset-fixture'].sha256 = await sha256Hex(bytes.buffer)
+    manifest.labels = Array.from({ length: 4 }, (_, index) => ({ ...structuredClone(manifest.labels[0]), id: `label-${index}` }))
+    const zip = new JSZip()
+    zip.file('manifest.json', JSON.stringify(manifest))
+    zip.file('artwork/fixture-blend.png', bytes)
+    const result = await importCellarPack(await zip.generateAsync({ type: 'arraybuffer' }))
+    expect(result.status).toBe('rejected')
+    expect(result.issues.some((issue) => issue.code === 'IMAGE_LIMIT_EXCEEDED')).toBe(true)
+    expect(decoder).toHaveBeenCalledTimes(3)
+  } finally { decoder.mockRestore() }
 })

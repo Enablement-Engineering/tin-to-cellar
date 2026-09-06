@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update Tobacco Catalog"
+  short_description: "Research new blends and refresh the names catalog"
+  default_prompt: "Use $update-tobacco-catalog to research new pipe-tobacco releases, save verified names, deduplicate them, and rebuild the catalog."

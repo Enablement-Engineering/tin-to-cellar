@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tin-to-cellar",
+  "account_id": "97e5d454f1ad2daae1c6d42a5d4c09dd",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-05",
+  "workers_dev": true,
+  "images": { "binding": "IMAGES" },
+  "rules": [{ "type": "Data", "globs": ["**/avery-94502-proof-overlay.png"], "fallthrough": true }],
+  "ratelimits": [{ "name": "PROOF_RATE_LIMITER", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }],
+  "routes": [
+    { "pattern": "tintocellar.com", "custom_domain": true },
+    { "pattern": "www.tintocellar.com", "custom_domain": true }
+  ],
+  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
+  "observability": { "enabled": false }
+}

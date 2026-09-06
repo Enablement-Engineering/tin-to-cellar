@@ -4,7 +4,7 @@
 - Keep the application local-first. Importing a pack must not upload files or automatically fetch provenance URLs.
 - Render untrusted manifest text as text, never as HTML.
 - Preserve the separation between label artwork geometry and printer sheet geometry.
-- Generated artwork owns the light date-writing surface; the website owns crisp `JARRED`/`CELLARED` microcopy and the line.
+- Generated artwork owns the entire blank date-writing surface. The website must not add words, lines, or date overlays.
 - Do not commit generated build output or dependency directories.
 - Run the most relevant tests, typecheck/build, and lint for changed areas.
 

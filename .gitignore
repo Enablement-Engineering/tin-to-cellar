@@ -10,6 +10,17 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.env
+.env.*
+!.env.example
+.wrangler/
+.dev.vars*
+tmp/
+output/
+coverage/
+playwright-report/
+test-results/
+*.cellarpack.zip
 *.local
 
 # Editor directories and files
@@ -22,3 +33,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+/public/ocr/
+
+# Session-specific validation notes can contain personal inventory details.
+/docs/cellar-e2e-*.md

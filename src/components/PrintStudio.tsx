@@ -1,116 +1,96 @@
-import { useMemo } from 'react'
-import { Icon } from './Icons'
+import { useEffect, type CSSProperties } from 'react'
 import { LabelArtwork } from './LabelArtwork'
-import type { Calibration, LabelInstance, WorkbenchLabel, WriteInMode } from './ui-model'
+import type { PrintLabel, PrintSettings } from './ui-model'
 import { AVERY_94502_PROFILE } from '../lib/sheets'
 
 type PrintStudioProps = {
-  labels: WorkbenchLabel[]
-  instances: LabelInstance[]
-  mode: WriteInMode
-  calibration: Calibration
-  onCalibrationChange: (value: Calibration) => void
-  onBack: () => void
+  labels: PrintLabel[]
+  quantities: Record<string, number>
+  onQuantityChange: (id: string, value: number) => void
+  settings: PrintSettings
+  onSettingsChange: (settings: PrintSettings) => void
 }
 
-export function PrintStudio({ labels, instances, mode, calibration, onCalibrationChange, onBack }: PrintStudioProps) {
-  const labelById = useMemo(() => new Map(labels.map((label) => [label.id, label])), [labels])
-  const pages = Math.max(1, Math.ceil(instances.length / 9))
-
-  const printCalibration = () => {
-    document.body.dataset.printMode = 'calibration'
+export function PrintStudio({ labels, quantities, onQuantityChange, settings, onSettingsChange }: PrintStudioProps) {
+  const { page, firstSlot, offset } = settings
+  const setPage = (page: number) => onSettingsChange({ ...settings, page })
+  const setFirstSlot = (firstSlot: number) => onSettingsChange({ ...settings, firstSlot })
+  const setOffset = (offset: PrintSettings['offset']) => onSettingsChange({ ...settings, offset })
+  const copies = labels.flatMap((label) => Array.from({ length: quantities[label.id] ?? 1 }, () => label))
+  const maxFor = (id: string) => Math.min(99, Math.max(0, 450 - copies.length + (quantities[id] ?? 1)))
+  const instances: Array<PrintLabel | null> = [...Array.from({ length: firstSlot - 1 }, () => null), ...copies]
+  const pageCount = Math.max(1, Math.ceil(instances.length / 9))
+  const currentPage = Math.min(page, pageCount - 1)
+  const offsetStyle = { '--offset-x': `${offset.x}in`, '--offset-y': `${offset.y}in` } as CSSProperties
+  useEffect(() => {
+    const prepare = () => {
+      if (!document.body.dataset.printMode && copies.length > 0) document.body.dataset.printMode = 'labels'
+    }
+    const reset = () => { delete document.body.dataset.printMode }
+    window.addEventListener('beforeprint', prepare)
+    window.addEventListener('afterprint', reset)
+    return () => {
+      window.removeEventListener('beforeprint', prepare)
+      window.removeEventListener('afterprint', reset)
+      reset()
+    }
+  }, [copies.length])
+  const print = (mode: 'labels' | 'calibration') => {
+    document.body.dataset.printMode = mode
     window.print()
-    delete document.body.dataset.printMode
   }
-
-  const printLabels = () => {
-    document.body.dataset.printMode = 'labels'
-    window.print()
-    delete document.body.dataset.printMode
-  }
-
+  const position = (slot: typeof AVERY_94502_PROFILE.slots[number], preview = false): CSSProperties => ({
+    left: preview ? `${(slot.x + offset.x) / 8.5 * 100}%` : `${slot.x}in`,
+    top: preview ? `${(slot.y + offset.y) / 11 * 100}%` : `${slot.y}in`,
+    width: preview ? `${slot.width / 8.5 * 100}%` : `${slot.width}in`,
+    height: preview ? `${slot.height / 11 * 100}%` : `${slot.height}in`,
+  })
   return (
-    <section className="print-studio" aria-labelledby="print-title">
-      <div className="section-heading wide-heading screen-only">
-        <div>
-          <button className="back-link" type="button" onClick={onBack}>← Back to the bench</button>
-          <p className="eyebrow">Output check</p>
-          <h2 id="print-title">Measure once. Then print.</h2>
-          <p>Print the calibration page on plain paper before using sticker stock.</p>
+    <section className="simple-print" aria-label="Print labels">
+      <div className="print-job screen-only">
+        <div className="panel quantity-panel">
+          <h2>Your labels</h2><p>Choose how many of each to print. Set a quantity to zero to leave it out.</p>
+          {labels.map((label) => <div className="quantity-row" key={label.id}>
+            <div className="label-thumbnail"><LabelArtwork label={label} /></div>
+            <div><strong>{label.blend}</strong><small>{label.maker}</small></div>
+            <div className="quantity-control">
+              <button type="button" aria-label={`Fewer ${label.blend}`} disabled={(quantities[label.id] ?? 1) === 0} onClick={() => onQuantityChange(label.id, (quantities[label.id] ?? 1) - 1)}>−</button>
+              <input aria-label={`Quantity for ${label.blend}`} type="number" min="0" max={maxFor(label.id)} value={quantities[label.id] ?? 1} onChange={(event) => onQuantityChange(label.id, Math.max(0, Math.min(maxFor(label.id), Math.floor(Number(event.target.value) || 0))))} />
+              <button type="button" aria-label={`More ${label.blend}`} disabled={(quantities[label.id] ?? 1) >= maxFor(label.id)} onClick={() => onQuantityChange(label.id, (quantities[label.id] ?? 1) + 1)}>+</button>
+            </div>
+          </div>)}
+          {copies.length >= 450 && <p className="field-hint">This print job has reached 450 labels. Print this batch before adding more.</p>}
+          <details className="alignment-options"><summary>Paper and alignment</summary>
+            <p>Avery 94502 · US Letter · 2.5-inch circles</p>
+            <label>Start at slot <select aria-label="Start at slot" value={firstSlot} onChange={(event) => setFirstSlot(Number(event.target.value))}>{Array.from({ length: 9 }, (_, index) => <option key={index} value={index + 1}>{index + 1}</option>)}</select></label>
+            <p className="field-hint">Slots run left to right, then down. Use this for a partly used first sheet.</p>
+            <div className="offset-grid">{(['x', 'y'] as const).map((axis) => <label key={axis}>{axis.toUpperCase()} offset (in)<input aria-label={`${axis.toUpperCase()} offset`} type="number" min="-0.25" max="0.25" step="0.01" value={offset[axis]} onChange={(event) => setOffset({ ...offset, [axis]: Math.max(-0.25, Math.min(0.25, Number(event.target.value) || 0)) })} /></label>)}</div>
+            <button className="button secondary" type="button" onClick={() => print('calibration')}>Print alignment sheet</button>
+            <p className="field-hint">Print on plain paper at Actual Size. The ruler should measure two inches. Hold it behind your label stock to check the nine circles.</p>
+          </details>
+          <div className="print-action"><button className="button primary" disabled={!copies.length} type="button" onClick={() => print('labels')}>Print {copies.length} {copies.length === 1 ? 'label' : 'labels'}</button><p>US Letter · Actual Size / 100% · Headers and footers off. For a PDF, choose Save as PDF.</p></div>
         </div>
-      </div>
-
-      <div className="print-layout screen-only">
-        <section className="calibration-card" aria-labelledby="calibration-title">
-          <div className="calibration-mark" aria-hidden="true">
-            <span className="crosshair horizontal" />
-            <span className="crosshair vertical" />
-            <span className="calibration-ruler"><b>0</b><i /><b>2 in</b></span>
-          </div>
-          <div>
-            <p className="eyebrow">Plain-paper proof</p>
-            <h3 id="calibration-title">Calibration sheet</h3>
-            <p>Print at <strong>100% / Actual Size</strong>. Measure the two-inch ruler and hold the paper behind an empty label sheet to check alignment.</p>
-            <button className="button secondary" type="button" onClick={printCalibration}><Icon name="print" /> Print calibration</button>
-          </div>
-        </section>
-
-        <section className="offset-card" aria-labelledby="offset-title">
-          <p className="eyebrow">Printer correction</p>
-          <h3 id="offset-title">Alignment offsets</h3>
-          <div className="offset-grid">
-            <label>X offset <div className="measurement"><input type="number" step="0.01" value={calibration.x} onChange={(event) => onCalibrationChange({ ...calibration, x: Number(event.target.value) })} /><span>in</span></div></label>
-            <label>Y offset <div className="measurement"><input type="number" step="0.01" value={calibration.y} onChange={(event) => onCalibrationChange({ ...calibration, y: Number(event.target.value) })} /><span>in</span></div></label>
-            <label>Scale <div className="measurement"><input type="number" min="0.95" max="1.05" step="0.001" value={calibration.scale} onChange={(event) => onCalibrationChange({ ...calibration, scale: Number(event.target.value) })} /><span>×</span></div></label>
-          </div>
-          <p className="field-hint">Correct printer-driver scaling first. Use scale correction only after measuring the calibration ruler.</p>
-        </section>
-
-        <section className="final-output-card" aria-labelledby="final-output-title">
-          <p className="eyebrow">Production output</p>
-          <h3 id="final-output-title">Avery 94502 · {pages} {pages === 1 ? 'page' : 'pages'}</h3>
-          <ol className="print-checklist">
-            <li>US Letter paper selected</li>
-            <li>Portrait orientation</li>
-            <li>Scale set to 100% or Actual Size</li>
-            <li>Headers and footers turned off</li>
-            <li>Background graphics enabled</li>
-          </ol>
-          <button className="button primary" type="button" onClick={printLabels}><Icon name="print" /> Print label sheet</button>
-          <p className="save-pdf-note"><Icon name="download" size={16} /> To make a PDF, choose <strong>Save as PDF</strong> in the print dialog. The physical page dimensions are preserved.</p>
-        </section>
-      </div>
-
-      <div className="calibration-print" aria-hidden="true">
-        <h1>Tin to Cellar calibration · Avery 94502</h1>
-        <p>Print at 100% / Actual Size. Disable Fit, Shrink, or Scale to fit.</p>
-        <div className="calibration-print-ruler"><span>0</span><i /><span>2 inches</span></div>
-        <div className="calibration-outline"><span>Align this page behind an empty label sheet</span></div>
-      </div>
-
-      <div className="production-pages" style={{ '--offset-x': `${calibration.x}in`, '--offset-y': `${calibration.y}in`, '--print-scale': calibration.scale } as React.CSSProperties}>
-        {Array.from({ length: pages }, (_, pageIndex) => (
-          <div className="production-page" key={`page-${pageIndex}`}>
-            {AVERY_94502_PROFILE.slots.map((slot, slotIndex) => {
-              const instance = instances[pageIndex * 9 + slotIndex]
-              const label = instance?.labelId ? labelById.get(instance.labelId) : undefined
-              return (
-                <div
-                  className="production-slot"
-                  key={instance?.instanceId ?? `blank-${slotIndex}`}
-                  style={{
-                    left: `${slot.x}${AVERY_94502_PROFILE.page.unit}`,
-                    top: `${slot.y}${AVERY_94502_PROFILE.page.unit}`,
-                    width: `${slot.width}${AVERY_94502_PROFILE.page.unit}`,
-                    height: `${slot.height}${AVERY_94502_PROFILE.page.unit}`,
-                  }}
-                >
-                  {label && instance && <LabelArtwork label={label} zoom={instance.zoom} x={instance.x} y={instance.y} mode={mode} />}
-                </div>
-              )
+        <div className="sheet-stage">
+          <div className="sheet-meta"><span>{copies.length} labels · {copies.length ? pageCount : 0} {pageCount === 1 ? 'sheet' : 'sheets'}</span><span>Avery 94502</span></div>
+          {pageCount > 1 && <div className="page-controls"><button type="button" onClick={() => setPage(currentPage - 1)} disabled={currentPage === 0}>Previous sheet</button><span>Sheet {currentPage + 1} of {pageCount}</span><button type="button" onClick={() => setPage(currentPage + 1)} disabled={currentPage === pageCount - 1}>Next sheet</button></div>}
+          <div className="avery-sheet simple-sheet" aria-label={`Preview sheet ${currentPage + 1}`}>
+            {AVERY_94502_PROFILE.slots.map((slot, index) => {
+              const label = instances[currentPage * 9 + index]
+              return <div className="preview-slot" key={index} style={position(slot, true)}>{label ? <LabelArtwork label={label} /> : <span className="empty-preview">{index + 1}</span>}</div>
             })}
           </div>
-        ))}
+        </div>
+      </div>
+      <div className="calibration-print" style={offsetStyle} aria-hidden="true">
+        <p className="proof-title">Tin to Cellar · Avery 94502 · Actual Size / 100%</p>
+        <div className="calibration-print-ruler"><span>0</span><span>2 inches</span></div>
+        <div className="print-coordinate-layer">{AVERY_94502_PROFILE.slots.map((slot, index) => <div className="proof-slot" key={index} style={position(slot)}><span>{index + 1}</span></div>)}</div>
+      </div>
+      <div className="production-pages" style={offsetStyle}>
+        {copies.length > 0 && Array.from({ length: pageCount }, (_, pageIndex) => <div className="production-page" key={pageIndex}><div className="print-coordinate-layer">{AVERY_94502_PROFILE.slots.map((slot, index) => {
+          const label = instances[pageIndex * 9 + index]
+          return <div className="production-slot" key={index} style={position(slot)}>{label && <LabelArtwork label={label} />}</div>
+        })}</div></div>)}
       </div>
     </section>
   )

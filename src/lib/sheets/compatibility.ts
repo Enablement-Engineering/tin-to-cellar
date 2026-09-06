@@ -1,3 +1,4 @@
+import { AVERY_94502_PROFILE } from './profiles'
 import type { LabelShape, PhysicalUnit } from '../cellarpack/types'
 import type {
   SheetCompatibilityResult,
@@ -90,4 +91,9 @@ export function checkLabelSheetCompatibility(
           },
         ],
       }
+}
+
+/** The supported print path: exact-size circular artwork for the Avery die cut. */
+export function checkAvery94502Compatibility(surface: SheetCompatibleSurface): SheetCompatibilityResult {
+  return checkLabelSheetCompatibility(surface, AVERY_94502_PROFILE)
 }

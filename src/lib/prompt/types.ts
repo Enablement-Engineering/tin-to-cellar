@@ -32,6 +32,7 @@ export interface PromptInspiration {
 }
 
 export interface PromptProjectInput {
+  websiteUrl?: string
   tobaccos?: string | readonly (string | PromptTobacco)[]
   makerNotes?: string
   geometry?: string | PromptLabelGeometry

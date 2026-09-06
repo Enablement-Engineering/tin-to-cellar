@@ -144,7 +144,7 @@ There is no required standalone `sources.json`: provenance belongs beside each l
           },
           "overlay": {
             "label": "JARRED",
-            "mode": "write-in-line",
+            "mode": "blank",
             "textColor": "#241D16",
             "preferredAlignment": "center"
           }
@@ -259,7 +259,7 @@ The generator SHOULD avoid placing critical names, motifs, or fine borders in th
 
 Every v1 generator-conformant label MUST contain exactly one `writeInAreas` entry with `purpose: "jarred-date"`.
 
-The **artwork** includes a light, low-detail, visually integrated blank surface large enough for handwriting. The **website** overlays the word `JARRED` and a line or, at the user's option, a typed date. This hybrid keeps the field stylistically integrated while preventing small generated text, clipping, or bleed failures.
+The **artwork** includes a light, low-detail, visually integrated blank surface large enough for handwriting. The **website** prints the supplied artwork without adding words, lines, or dates. The writing surface belongs entirely to the artwork.
 
 Required write-in fields:
 
@@ -268,7 +268,7 @@ Required write-in fields:
 - `geometry`
 - `background.integratedInArtwork` (MUST be `true` for generator conformance)
 - `overlay.label` (default/recommended `JARRED`)
-- `overlay.mode`: `write-in-line`, `blank`, or `typed-date`
+- `overlay.mode`: `write-in-line`, `blank`, or `typed-date` remain valid v1 metadata. Generate `blank`; the current website does not render overlays.
 
 Recommended defaults:
 
@@ -394,6 +394,7 @@ The browser importer validates before decoding or displaying assets.
 
 ### File validation
 
+- Enforce actual decompressed byte limits while streaming entries; central-directory size declarations alone are not sufficient. Stop inflation as soon as an entry or cumulative budget is exceeded.
 - Do not trust extensions or manifest media types. Verify PNG/JPEG magic bytes and decode bounds before full allocation.
 - Reject polyglot or malformed images when the browser decoder or independent header parser disagrees with declared dimensions.
 - Recompute SHA-256 and compare with manifest before use.
@@ -455,7 +456,7 @@ A paste-only ChatGPT workflow may be unable to produce a correctly hashed ZIP in
 
 - PNG, 600 PPI target, 300 PPI minimum, sRGB, 1/8-inch bleed.
 - Safe inset: 0.15 inch for a 2.5-inch label, proportional for other sizes with a minimum of 5% of the shorter dimension.
-- Required integrated jarred-date surface; website overlays `JARRED` and write-in line.
+- Required integrated blank date-writing surface; the website adds no overlay.
 - Normalized coordinates relative to finished trim box.
 - Avery 94502 as the initial named cut-sheet profile; US Letter and A4 full-sheet modes next.
 - Browser-local import, processing, and persistence by default; no telemetry or uploads without opt-in.

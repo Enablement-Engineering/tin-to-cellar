@@ -1,235 +1,151 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { buildTinToCellarPrompt, createChatGPTUrl, type PromptInspiration, type PromptProjectInput } from './lib/prompt'
+import { buildTinToCellarPrompt, buildTinToCellarRequest, buildTinToCellarInstructions, buildCellarPackRepairPrompt } from './lib/prompt'
+import { checkAvery94502Compatibility } from './lib/sheets'
 import { Configurator } from './components/Configurator'
-import { Icon } from './components/Icons'
+import { HowItWorks } from './components/HowItWorks'
 import { PackImporter } from './components/PackImporter'
 import { PrintStudio } from './components/PrintStudio'
 import { PromptHandoff } from './components/PromptHandoff'
-import { Workbench } from './components/Workbench'
-import type {
-  Calibration,
-  ConfiguratorState,
-  ImportSummary,
-  LabelInstance,
-  LabelShape,
-  WorkbenchLabel,
-  WriteInMode,
-} from './components/ui-model'
+import type { ConfiguratorState, ImportSummary, PrintLabel, PrintSettings } from './components/ui-model'
 import './styles/app.css'
 
 const initialConfig: ConfiguratorState = {
-  tobaccos: '',
-  shape: 'circle',
-  width: 2.5,
-  height: 2.5,
-  bleed: 0.125,
-  stock: 'tin-to-cellar:avery-94502@1',
-  inspirationUrls: '',
-  plannedFiles: '',
-  writeInMode: 'JARRED',
-  artDirection: '',
+  tobaccos: '', artDirection: '',
 }
-
-function buildPromptInput(config: ConfiguratorState): PromptProjectInput {
-  const inspiration: PromptInspiration[] = [
-    ...config.inspirationUrls.split('\n').map((value) => value.trim()).filter(Boolean).map((value) => ({ kind: 'url' as const, value, role: 'supplement' as const })),
-    ...config.plannedFiles.split(',').map((value) => value.trim()).filter(Boolean).map((value) => ({ kind: 'attachment' as const, value, role: 'supplement' as const })),
-  ]
-  const overlayDirection = config.writeInMode === 'BLANK'
-    ? 'Integrate the required light date-writing surface, but the website will leave it visually blank.'
-    : config.writeInMode === 'LINE'
-      ? 'Integrate the required light date-writing surface; the website will add only a crisp writing line.'
-      : `Integrate the required light date-writing surface; the website will add the crisp overlay wording “${config.writeInMode}” and a writing line.`
-
-  return {
-    tobaccos: config.tobaccos,
-    geometry: {
-      shape: config.shape,
-      width: config.width,
-      height: config.height,
-      ...(config.shape === 'circle' ? { diameter: config.width } : {}),
-      unit: 'in',
-    },
-    printPreference: config.stock,
-    inspiration,
-    artDirection: [
-      `Use ${config.bleed} inch bleed on every side.`,
-      overlayDirection,
-      config.artDirection,
-    ].filter(Boolean).join(' '),
-    specUrl: `${window.location.origin}/spec/cellarpack-v1.schema.json`,
-    humanSpecUrl: `${window.location.origin}/spec/cellarpack-v1.md`,
-  }
+type View = 'create' | 'print' | 'help'
+function viewFromHash(): View | null {
+  const hash = window.location.hash.slice(1)
+  if (!hash) return 'create'
+  return hash === 'create' || hash === 'print' || hash === 'help' ? hash : null
 }
-
-function issueText(issue: { code?: string; message?: string; recovery?: string }) {
-  return [issue.code ? `[${issue.code}]` : '', issue.message ?? 'Unknown validation issue', issue.recovery ? `— ${issue.recovery}` : ''].filter(Boolean).join(' ')
-}
-
-function mapShape(shape: string): LabelShape {
-  if (shape === 'circle' || shape === 'oval' || shape === 'square' || shape === 'rectangle' || shape === 'rounded-rectangle') return shape
-  return 'rectangle'
+function issueText(issue: { message?: string; recovery?: string }) {
+  return [issue.message ?? 'The label needs repair.', issue.recovery].filter(Boolean).join(' ')
 }
 
 function App() {
   const [config, setConfig] = useState(initialConfig)
+  const [view, setView] = useState<View>(() => viewFromHash() ?? 'create')
+  const navigate = (next: View) => {
+    setView(next)
+    if (window.location.hash !== `#${next}`) window.location.hash = next
+  }
+  useEffect(() => {
+    const onHashChange = () => {
+      const next = viewFromHash()
+      if (next) setView(next)
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
   const [importing, setImporting] = useState(false)
   const [summary, setSummary] = useState<ImportSummary | null>(null)
-  const [labels, setLabels] = useState<WorkbenchLabel[]>([])
-  const [instances, setInstances] = useState<LabelInstance[]>([])
-  const [view, setView] = useState<'create' | 'workbench' | 'print'>('create')
-  const [overlayMode, setOverlayMode] = useState<WriteInMode>('JARRED')
-  const [calibration, setCalibration] = useState<Calibration>({ x: 0, y: 0, scale: 1 })
+  const [labels, setLabels] = useState<PrintLabel[]>([])
+  const [quantities, setQuantities] = useState<Record<string, number>>({})
+  const [printSettings, setPrintSettings] = useState<PrintSettings>({ page: 0, firstSlot: 1, offset: { x: 0, y: 0 } })
+  const [repairPrompt, setRepairPrompt] = useState('')
+  const [repairStatus, setRepairStatus] = useState('')
+  const [importLoadError, setImportLoadError] = useState(false)
+  const [showRepair, setShowRepair] = useState(false)
   const objectUrls = useRef<string[]>([])
-
-  const promptInput = useMemo(() => buildPromptInput(config), [config])
+  const importBusy = useRef(false)
+  const promptInput = useMemo(() => ({
+    tobaccos: config.tobaccos,
+    geometry: { shape: 'circle' as const, width: 2.5, height: 2.5, diameter: 2.5, unit: 'in' as const },
+    websiteUrl: window.location.href,
+    printPreference: 'tin-to-cellar:avery-94502@1',
+    artDirection: ['Use 0.125 inch bleed on every side and integrate a blank, light date-writing surface into the artwork, with no words or writing line.', config.artDirection].filter(Boolean).join(' '),
+  }), [config])
   const prompt = useMemo(() => buildTinToCellarPrompt(promptInput), [promptInput])
-  const chatGptUrl = useMemo(() => createChatGPTUrl(prompt), [prompt])
-  const codexPrompt = useMemo(() => `${prompt}\n\nCodex packaging note: use the Tin to Cellar v1 schema and deterministic validator. Only name the result .cellarpack.zip after validation passes; otherwise return a clearly named draft or loose bundle.`, [prompt])
-
+  const request = useMemo(() => buildTinToCellarRequest(promptInput), [promptInput])
+  const instructions = useMemo(() => buildTinToCellarInstructions(window.location.href), [])
   useEffect(() => () => objectUrls.current.forEach((url) => URL.revokeObjectURL(url)), [])
 
   const handlePack = async (file: File) => {
+    if (importBusy.current) return
+    importBusy.current = true
     setImporting(true)
-    setSummary(null)
+    setRepairStatus('')
+    setShowRepair(false)
+    setImportLoadError(false)
     try {
       const { importCellarPack } = await import('./lib/cellarpack')
       const result = await importCellarPack(await file.arrayBuffer())
-      objectUrls.current.forEach((url) => URL.revokeObjectURL(url))
-      objectUrls.current = []
-
-      const mappedLabels: WorkbenchLabel[] = result.labels.map((item) => {
+      const issues = result.issues.filter((issue) => issue.code !== 'MISSING_PREVIEW')
+      const quarantined = result.quarantinedLabels.map((item) => ({ id: item.id, reason: item.issues.map(issueText).join(' ') }))
+      const nextUrls: string[] = []
+      const mappedLabels: PrintLabel[] = []
+      for (const item of result.labels) {
+        const compatibility = checkAvery94502Compatibility(item.label.surface)
+        if (!compatibility.compatible) {
+          const failures = compatibility.issues.map((issue) => ({ ...issue, labelId: item.id, severity: 'error' as const, recovery: 'Return this label as a 2.5-inch circle for Avery 94502. Do not stretch the artwork.' }))
+          issues.push(...failures)
+          quarantined.push({ id: item.id, reason: failures.map(issueText).join(' ') })
+          continue
+        }
         const url = URL.createObjectURL(new Blob([item.artwork.data], { type: item.artwork.mediaType }))
-        objectUrls.current.push(url)
-        const writeArea = item.label.writeInAreas.find((area) => area.purpose === 'jarred-date')
-        const sources = item.label.research.sources.map((source) => source.type === 'web'
-          ? { id: source.id, title: source.title, url: source.url, role: source.role, publisher: source.publisher }
-          : { id: source.id, title: source.description, role: source.role })
-
-        return {
-          id: item.id,
-          maker: item.label.maker,
-          blend: item.label.displayName ?? item.label.blend,
+        nextUrls.push(url)
+        const area = item.label.writeInAreas[0]
+        const surface = item.label.surface
+        const bleedRatio = (value: number, dimension: number) => (value * (surface.bleed.unit === 'mm' ? 1 / 25.4 : 1)) / (dimension * (surface.finishedSize.unit === 'mm' ? 1 / 25.4 : 1))
+        mappedLabels.push({
+          id: item.id, maker: item.label.maker, blend: item.label.displayName ?? item.label.blend,
           imageUrl: url,
           imageFrame: {
-            left: -(item.label.surface.bleed.left / item.label.surface.finishedSize.width) * 100,
-            top: -(item.label.surface.bleed.top / item.label.surface.finishedSize.height) * 100,
-            width: ((item.label.surface.finishedSize.width + item.label.surface.bleed.left + item.label.surface.bleed.right) / item.label.surface.finishedSize.width) * 100,
-            height: ((item.label.surface.finishedSize.height + item.label.surface.bleed.top + item.label.surface.bleed.bottom) / item.label.surface.finishedSize.height) * 100,
+            left: -bleedRatio(surface.bleed.left, surface.finishedSize.width) * 100,
+            top: -bleedRatio(surface.bleed.top, surface.finishedSize.height) * 100,
+            width: (1 + bleedRatio(surface.bleed.left + surface.bleed.right, surface.finishedSize.width)) * 100,
+            height: (1 + bleedRatio(surface.bleed.top + surface.bleed.bottom, surface.finishedSize.height)) * 100,
           },
-          shape: mapShape(item.label.surface.shape),
-          width: item.label.surface.finishedSize.width,
-          height: item.label.surface.finishedSize.height,
-          writeIn: writeArea ? {
-            x: writeArea.geometry.x,
-            y: writeArea.geometry.y,
-            width: writeArea.geometry.width,
-            height: writeArea.geometry.height,
-            textColor: writeArea.overlay.textColor ?? '#241d16',
-          } : { x: 0.3, y: 0.72, width: 0.4, height: 0.11, textColor: '#241d16' },
-          researchStatus: item.label.research.status,
-          variant: item.label.research.observedPackage.variant,
-          adaptationSummary: item.label.research.adaptationSummary,
-          sources,
-          warnings: item.issues.map(issueText),
-        }
-      })
-
-      const nextSummary: ImportSummary = {
-        status: result.status,
-        title: result.manifest?.title ?? file.name.replace(/\.cellarpack\.zip$|\.zip$/i, ''),
-        labels: mappedLabels,
-        issues: result.issues.map(issueText),
-        quarantined: result.quarantinedLabels.map((item) => ({
-          id: item.id,
-          reason: item.issues.map(issueText).join(' ') || 'The label did not pass validation.',
-        })),
+          writeIn: { x: area.geometry.x, y: area.geometry.y, width: area.geometry.width, height: area.geometry.height, rotationDegrees: area.geometry.rotationDegrees ?? 0, textColor: area.overlay.textColor ?? '#241d16' },
+        })
       }
-
-      setSummary(nextSummary)
-      setLabels(mappedLabels)
-      setInstances(mappedLabels.map((label) => ({ instanceId: crypto.randomUUID(), labelId: label.id, zoom: 1, x: 0, y: 0 })))
-      if (mappedLabels.length && result.status !== 'rejected') setView('workbench')
+      const hasFailures = quarantined.length > 0 || result.status !== 'ready' || issues.some((issue) => issue.severity === 'error')
+      setSummary({ status: mappedLabels.length ? (hasFailures ? 'partial' : 'ready') : 'rejected', title: result.manifest?.title ?? file.name, labels: mappedLabels, issues: issues.map(issueText), quarantined })
+      const repairIssues = [...issues, ...result.quarantinedLabels.flatMap((label) => label.issues)]
+      setRepairPrompt(hasFailures ? buildCellarPackRepairPrompt(repairIssues) : '')
+      if (mappedLabels.length) {
+        objectUrls.current.forEach((url) => URL.revokeObjectURL(url))
+        objectUrls.current = nextUrls
+        setLabels(mappedLabels)
+        setQuantities(Object.fromEntries(mappedLabels.map((label) => [label.id, 1])))
+      }
     } catch (error) {
-      setSummary({
-        status: 'rejected',
-        title: file.name,
-        labels: [],
-        quarantined: [],
-        issues: [error instanceof Error ? error.message : 'The selected file could not be read as a CellarPack.'],
-      })
-      setLabels([])
-      setInstances([])
+      const message = error instanceof Error ? error.message : 'The selected ZIP could not be read.'
+      if (/Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(message)) {
+        setImportLoadError(true)
+        setSummary(null)
+        setRepairPrompt('')
+        return
+      }
+      setSummary({ status: 'rejected', title: file.name, labels: [], quarantined: [], issues: [message] })
+      setRepairPrompt(buildCellarPackRepairPrompt([{ message }]))
     } finally {
+      importBusy.current = false
       setImporting(false)
     }
   }
+  const copyRepair = async () => {
+    try { await navigator.clipboard.writeText(repairPrompt); setRepairStatus('Copied. Paste this into the same ChatGPT chat, then import its repaired ZIP.') }
+    catch { setShowRepair(true); setRepairStatus('Select and copy the repair request below, then paste it into the same chat.') }
+  }
 
-  return (
-    <div className="app-shell">
-      <a className="skip-link" href="#main-content">Skip to main content</a>
-      <header className="site-header screen-only">
-        <button className="wordmark" type="button" onClick={() => setView('create')} aria-label="Tin to Cellar home">
-          <span className="wordmark-mark" aria-hidden="true">T<span>C</span></span>
-          <span><strong>Tin to Cellar</strong><small>Private label print studio</small></span>
-        </button>
-        <nav aria-label="Workflow">
-          <button type="button" className={view === 'create' ? 'is-current' : ''} onClick={() => setView('create')}><span>1</span> Create</button>
-          <button type="button" className={view === 'workbench' ? 'is-current' : ''} disabled={!labels.length} onClick={() => setView('workbench')}><span>2</span> Compose</button>
-          <button type="button" className={view === 'print' ? 'is-current' : ''} disabled={!labels.length} onClick={() => setView('print')}><span>3</span> Print</button>
-        </nav>
-        <span className="privacy-mark"><Icon name="lock" size={15} /> Local-first</span>
-      </header>
-
-      <main id="main-content">
-        {view === 'create' && (
-          <>
-            <section className="welcome screen-only" aria-labelledby="welcome-title">
-              <img src="/assets/tin-to-cellar-workbench.png" alt="A nine-label sheet, dividers, ruler, and fountain pen arranged on a dark green print bench" />
-              <div className="welcome-scrim" />
-              <div className="welcome-copy">
-                <p className="eyebrow brass">From package research to physical labels</p>
-                <h1 id="welcome-title">Give good tobacco<br /><em>a proper cellar mark.</em></h1>
-                <p>Build a research-grounded brief for ChatGPT or Codex. Bring the resulting CellarPack back here to arrange, measure, and print—without uploading it.</p>
-                <a className="text-link light" href="#create-project">Start at the bench <span aria-hidden="true">↓</span></a>
-              </div>
-              <div className="welcome-proof" aria-hidden="true">
-                <span>9-up</span><strong>Avery 94502</strong><small>signature sheet</small>
-              </div>
-            </section>
-
-            <section className="process-strip screen-only" aria-label="Tin to Cellar workflow">
-              <div><span>Research</span><p>Agent inspects the real tin</p></div><i aria-hidden="true" />
-              <div><span>Generate</span><p>Original shape-adapted artwork</p></div><i aria-hidden="true" />
-              <div><span>Compose</span><p>Local, exact sheet geometry</p></div><i aria-hidden="true" />
-              <div><span>Print</span><p>Calibrated at actual size</p></div>
-            </section>
-
-            <section id="create-project" className="create-grid screen-only">
-              <Configurator value={config} onChange={setConfig} />
-              <div className="create-side">
-                <PromptHandoff prompt={prompt} codexPrompt={codexPrompt} chatGptUrl={chatGptUrl} hasPlannedFiles={Boolean(config.plannedFiles.trim())} />
-                <PackImporter busy={importing} summary={summary} onFile={handlePack} />
-              </div>
-            </section>
-          </>
-        )}
-
-        {view === 'workbench' && (
-          <Workbench labels={labels} instances={instances} mode={overlayMode} onModeChange={setOverlayMode} onInstancesChange={setInstances} onProceed={() => { setView('print'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
-        )}
-
-        {view === 'print' && (
-          <PrintStudio labels={labels} instances={instances} mode={overlayMode} calibration={calibration} onCalibrationChange={setCalibration} onBack={() => setView('workbench')} />
-        )}
-      </main>
-
-      <footer className="site-footer screen-only">
-        <div><strong>Tin to Cellar</strong><span>Open packs. Private preparation. Physical truth.</span></div>
-        <p>Artwork is generated elsewhere. The print studio never auto-fetches research sources or uploads your pack.</p>
-      </footer>
-    </div>
-  )
+  return <div className="app-shell">
+    <a className="skip-link" href="#main-content">Skip to main content</a>
+    <header className="site-header screen-only">
+      <button className="wordmark" type="button" onClick={() => navigate('create')} aria-label="Tin to Cellar home"><img className="brand-mark" src="/brand/monogram-180.png" width="38" height="38" alt="" /><strong>Tin to Cellar</strong></button>
+      <nav aria-label="Workflow"><button className={view === 'create' ? 'is-current' : ''} aria-current={view === 'create' ? 'page' : undefined} type="button" onClick={() => navigate('create')}>Make a prompt</button><button className={view === 'print' ? 'is-current' : ''} aria-current={view === 'print' ? 'page' : undefined} type="button" onClick={() => navigate('print')}>Print labels</button><button className={view === 'help' ? 'is-current' : ''} aria-current={view === 'help' ? 'page' : undefined} type="button" onClick={() => navigate('help')}>How it works</button></nav>
+    </header>
+    <main id="main-content">
+      {view === 'create' ? <div className="screen-only create-workspace">
+        <section className="create-grid"><Configurator value={config} onChange={setConfig} /><PromptHandoff prompt={prompt} request={request} /></section>
+      </div> : view === 'help' ? <HowItWorks instructions={instructions} /> : <>
+        <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} />
+          {importLoadError && <div className="panel" role="alert"><h3>The label reader couldn’t load</h3><p>The app may have updated, or the connection was interrupted. Reload the page, then choose the same ZIP again. Reloading clears the current workspace.</p><button className="button secondary" type="button" onClick={() => window.location.reload()}>Reload app</button></div>}
+          {repairPrompt && <div className="panel repair-panel" role="status"><h3>{labels.length ? 'Some labels need another pass' : 'The ZIP needs another pass'}</h3><p>{labels.length ? 'Your current printable labels are still available below. ' : ''}Send the repair request to the same ChatGPT chat and import the ZIP it returns.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}>Copy repair request</button><p>{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={repairPrompt} rows={8} onFocus={(event) => event.currentTarget.select()} />}</div>}
+        </div>
+        {labels.length > 0 && <PrintStudio labels={labels} quantities={quantities} onQuantityChange={(id, value) => setQuantities((current) => ({ ...current, [id]: value }))} settings={printSettings} onSettingsChange={setPrintSettings} />}
+      </>}
+    </main>
+  </div>
 }
-
 export default App

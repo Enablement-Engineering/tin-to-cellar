@@ -104,3 +104,72 @@ function imageIssue(
     recovery: 'Regenerate the artwork as an 8-bit sRGB PNG.',
   }
 }
+
+/** Validate full image data, then compare a real browser decode with the header. */
+export async function validateImageDecoding(data: ArrayBuffer, metadata: ParsedImageMetadata): Promise<void> {
+  if (metadata.mediaType === 'image/png') await validatePngPayload(new Uint8Array(data), metadata)
+  if (typeof createImageBitmap === 'function') {
+    const bitmap = await createImageBitmap(new Blob([data], { type: metadata.mediaType }))
+    try {
+      if (bitmap.width !== metadata.width || bitmap.height !== metadata.height) throw new Error('Decoded dimensions disagree')
+    } finally { bitmap.close() }
+  } else if (typeof Image !== 'undefined' && typeof Image.prototype.decode === 'function') {
+    const url = URL.createObjectURL(new Blob([data], { type: metadata.mediaType }))
+    try {
+      const image = new Image()
+      image.src = url
+      await image.decode()
+      if (image.naturalWidth !== metadata.width || image.naturalHeight !== metadata.height) throw new Error('Decoded dimensions disagree')
+    } finally { URL.revokeObjectURL(url) }
+  } else if (metadata.mediaType === 'image/jpeg') {
+    throw new Error('No JPEG decoder available')
+  }
+}
+
+async function validatePngPayload(bytes: Uint8Array, metadata: ParsedImageMetadata): Promise<void> {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const payload: Uint8Array[] = []
+  let offset = 8
+  let ended = false
+  while (offset + 12 <= bytes.length) {
+    const length = view.getUint32(offset)
+    if (offset + 12 + length > bytes.length) throw new Error('Truncated PNG chunk')
+    const type = view.getUint32(offset + 4)
+    if (crc32(bytes.subarray(offset + 4, offset + 8 + length)) !== view.getUint32(offset + 8 + length)) throw new Error('Invalid PNG checksum')
+    if (type === 0x49444154) payload.push(bytes.slice(offset + 8, offset + 8 + length))
+    offset += 12 + length
+    if (type === 0x49454e44) { ended = length === 0; break }
+  }
+  if (!ended || offset !== bytes.length || payload.length === 0) throw new Error('Incomplete PNG')
+  // Full decoding of interlaced PNG is delegated to the browser decoder.
+  if (bytes[28] !== 0) {
+    if (bytes[28] !== 1 || (typeof createImageBitmap !== 'function' && !(typeof Image !== 'undefined' && typeof Image.prototype.decode === 'function'))) throw new Error('Unsupported interlace')
+    return
+  }
+  if (bytes[26] !== 0 || bytes[27] !== 0) throw new Error('Unsupported PNG encoding')
+  const rowBytes = metadata.width * (metadata.colorType === 6 ? 4 : 3) + 1
+  const expected = rowBytes * metadata.height
+  const reader = new Blob(payload.map((part) => Uint8Array.from(part).buffer)).stream().pipeThrough(new DecompressionStream('deflate')).getReader()
+  let size = 0
+  try {
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      for (let index = 0; index < value.length; index++) {
+        if ((size + index) % rowBytes === 0 && value[index] > 4) throw new Error('Invalid PNG filter')
+      }
+      size += value.length
+      if (size > expected) throw new Error('Oversized PNG payload')
+    }
+    if (size !== expected) throw new Error('Truncated PNG pixel data')
+  } finally { await reader.cancel() }
+}
+
+function crc32(bytes: Uint8Array): number {
+  let crc = 0xffffffff
+  for (const byte of bytes) {
+    crc ^= byte
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0)
+  }
+  return (crc ^ 0xffffffff) >>> 0
+}

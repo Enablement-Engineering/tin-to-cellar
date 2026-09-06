@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkLabelSheetCompatibility } from './compatibility'
+import { checkLabelSheetCompatibility, checkAvery94502Compatibility } from './compatibility'
 import { AVERY_94502_PROFILE, FULL_SHEET_A4_PROFILE } from './profiles'
 
 describe('sheet profiles', () => {
@@ -38,4 +38,11 @@ describe('sheet profiles', () => {
       ).compatible,
     ).toBe(true)
   })
+})
+
+
+it('gates the supported Avery print path by both physical size and shape', () => {
+  expect(checkAvery94502Compatibility({ shape: 'circle', finishedSize: { width: 63.5, height: 63.5, unit: 'mm' } }).compatible).toBe(true)
+  expect(checkAvery94502Compatibility({ shape: 'circle', finishedSize: { width: 2, height: 2, unit: 'in' } }).compatible).toBe(false)
+  expect(checkAvery94502Compatibility({ shape: 'square', finishedSize: { width: 2.5, height: 2.5, unit: 'in' } }).compatible).toBe(false)
 })

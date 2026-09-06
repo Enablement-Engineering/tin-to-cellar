@@ -1,6 +1,6 @@
 # Tin to Cellar — Website Product Plan
 
-Status: planning artifact
+Status: historical broader plan. The current UI scope is defined in [the simplified workflow](simplified-workflow.md).
 Scope: website experience only; no implementation design
 Product principle: the agent creates a portable artwork pack; Tin to Cellar validates, arranges, and prints it accurately.
 

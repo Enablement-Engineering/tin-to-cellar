@@ -1,81 +1,47 @@
 import { useState } from 'react'
+import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Icon } from './Icons'
 
-type PromptHandoffProps = {
-  prompt: string
-  codexPrompt: string
-  chatGptUrl: string
-  hasPlannedFiles: boolean
-}
+type PromptHandoffProps = { prompt: string; request: string }
+type CopyResult = { payload: string; kind: 'prompt' | 'request'; failed: boolean }
 
-async function copyText(value: string) {
-  await navigator.clipboard.writeText(value)
-}
-
-export function PromptHandoff({ prompt, codexPrompt, chatGptUrl, hasPlannedFiles }: PromptHandoffProps) {
-  const [copied, setCopied] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState(false)
-  const longUrl = chatGptUrl.length > 7000
-
-  const copy = async (label: string, value: string) => {
+export function PromptHandoff({ prompt, request }: PromptHandoffProps) {
+  const [result, setResult] = useState<CopyResult | null>(null)
+  const [expanded, setExpanded] = useState(true)
+  const [source, setSource] = useState(false)
+  const currentResult = result && result.payload === (result.kind === 'prompt' ? prompt : request) ? result : null
+  const copy = async (kind: CopyResult['kind']) => {
+    const payload = kind === 'prompt' ? prompt : request
     try {
-      await copyText(value)
-      setCopied(label)
-      window.setTimeout(() => setCopied(null), 1800)
+      await navigator.clipboard.writeText(payload)
+      setResult({ payload, kind, failed: false })
     } catch {
-      setCopied('Copy failed — select the prompt below')
+      setResult({ payload, kind, failed: true })
+      setExpanded(true)
+      setSource(true)
     }
   }
-
+  const previewIsRequest = currentResult?.failed && currentResult.kind === 'request'
+  const preview = previewIsRequest ? currentResult.payload : prompt
   return (
     <section className="panel handoff" aria-labelledby="handoff-title">
-      <div className="panel-heading">
-        <div>
-          <p className="eyebrow">Agent handoff</p>
-          <h2 id="handoff-title">Take the brief to your agent</h2>
+      <div className="panel-heading"><h2 id="handoff-title">Create the artwork</h2></div>
+      <p className="panel-intro">Paste this into your AI chat, then bring the label ZIP back here.</p>
+      <div className="handoff-actions"><button className="button primary" type="button" onClick={() => void copy('prompt')}><Icon name="copy" />Copy prompt</button></div>
+      <p className="copy-status" role="status">{currentResult ? currentResult.failed ? 'Copy was unavailable. Select and copy the text below.' : currentResult.kind === 'prompt' ? 'Prompt copied with all instructions. Paste it into your AI chat and press Send.' : 'Request copied. Use it in a chat that already has the Tin to Cellar instructions.' : ''}</p>
+      <details className="more-options"><summary>More options</summary><p className="field-hint">Already added the reusable instructions to your chat? Copy only this label request. If the instructions are missing, the AI will ask for them before generating.</p><button className="button secondary" type="button" onClick={() => void copy('request')}>Copy request only</button></details>
+      <details className="prompt-preview" open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>
+        <summary>{previewIsRequest ? 'Request to copy' : 'Read full prompt'}</summary>
+        <div className="prompt-view-switch" role="group" aria-label="Prompt view">
+          <button type="button" aria-pressed={!source} onClick={() => setSource(false)}>Preview</button>
+          <button type="button" aria-pressed={source} onClick={() => setSource(true)}>Markdown source</button>
         </div>
-        <span className="local-chip"><Icon name="lock" size={14} /> Prompt only</span>
-      </div>
-
-      <p className="panel-intro">
-        The agent will inspect real package art before generating, integrate a light writing surface, and return a CellarPack for this studio.
-      </p>
-
-      {hasPlannedFiles && (
-        <div className="handoff-warning" role="note">
-          <strong>Attachments stay behind.</strong> The prompt will ask you to add your named files after ChatGPT opens.
-        </div>
-      )}
-
-      {longUrl && (
-        <div className="handoff-warning" role="alert">
-          This brief makes an unusually long link. Copy the prompt instead to avoid browser truncation.
-        </div>
-      )}
-
-      <div className="handoff-actions">
-        <a className="button primary" href={chatGptUrl} target="_blank" rel="noreferrer">
-          <Icon name="spark" /> Create in ChatGPT
-        </a>
-        <button className="button secondary" type="button" onClick={() => copy('Prompt copied', prompt)}>
-          <Icon name="copy" /> Copy prompt
-        </button>
-        <button className="button quiet" type="button" onClick={() => copy('Codex prompt copied', codexPrompt)}>
-          Copy for Codex
-        </button>
-      </div>
-
-      <div aria-live="polite" className="copy-status">{copied ?? '\u00A0'}</div>
-
-      <div className="prompt-preview">
-        <div className="prompt-preview-heading">
-          <span>Exact prompt</span>
-          <button type="button" onClick={() => setExpanded((current) => !current)} aria-expanded={expanded}>
-            {expanded ? 'Collapse' : 'Read full prompt'}
-          </button>
-        </div>
-        <pre className={expanded ? 'is-expanded' : ''} tabIndex={0}>{prompt}</pre>
-      </div>
+        {source ? <textarea aria-label={previewIsRequest ? 'Request to copy' : 'Full prompt'} readOnly value={preview} rows={18} onFocus={(event) => event.currentTarget.select()} /> :
+          <div className="prompt-document" role="region" aria-label="Rendered prompt" tabIndex={0}>
+            <Markdown remarkPlugins={[remarkGfm]} skipHtml components={{ img: ({ alt }) => <span>{alt ?? 'Image reference'}</span>, a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> }}>{preview}</Markdown>
+          </div>}
+      </details>
     </section>
   )
 }

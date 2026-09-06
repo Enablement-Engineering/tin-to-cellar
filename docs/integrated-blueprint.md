@@ -1,6 +1,6 @@
 # Tin to Cellar — Integrated Product Blueprint
 
-Status: planning baseline for an MVP
+Status: historical planning baseline. The current UI scope is defined in [the simplified workflow](simplified-workflow.md).
 
 ## Product promise
 
