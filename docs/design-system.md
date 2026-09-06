@@ -16,7 +16,7 @@ Adaptations made for the application:
 
 - Add a home page while keeping direct links to every existing tool.
 - Keep multiline tobacco paste in the picker and PDF or screenshot order reading behind a disclosure.
-- Keep optional hosted image checks and a complete-prompt fallback. Collapse the prompt preview until requested.
+- Request print-guide access automatically in Make a prompt and keep a complete-prompt fallback. Collapse the prompt preview until requested.
 - Host the three font families with the site instead of loading Google Fonts at runtime.
 - Use readable text colors for small metadata and hints. The source's faint ink swatch remains a palette value, not permission to use low-contrast body text.
 - Use the existing photograph, brand files, and inline icons. No new generated imagery is needed.
@@ -27,7 +27,7 @@ Adaptations made for the application:
 | Destination | Entry | Content |
 | --- | --- | --- |
 | Home | No hash or `#home` | Product introduction, workbench photograph, prompt action, workflow steps, print specifications |
-| Make a prompt | `#create` | Optional tobacco list, special requests, prompt handoff, complete-prompt fallback, advanced input and proof options |
+| Make a prompt | `#create` | Optional tobacco list, special requests, prompt handoff, automatic print-guide access, complete-prompt fallback, and advanced input |
 | Print labels | `#print` | Local ZIP import, validation results, quantities, sheet preview, printing and alignment |
 | How it works | `#help` | AI handoff instructions, portable instructions, file handling, proof service explanation, printing guidance |
 | About | `#about`, footer | Dylan Isaac’s introduction, the reason for the app, and a short Enablement Engineering description |
@@ -142,7 +142,7 @@ Use the first elevation for chips and secondary buttons, the second for cards, a
 | Quantity controls | Labeled controls with zero as the exclusion state; preserve automatic pagination |
 | Sheet preview | Paper sheet on a neutral background, actual artwork from the imported pack, measurements in mono |
 
-`Import order` reveals local PDF, screenshot, or pasted-text reading. `Read prompt` starts collapsed. `More options` contains Copy complete prompt, downloadable instructions, Copy request only, and Enable hosted image checks. `Paper and alignment` contains printer adjustments. These are optional paths; the primary copy and print actions remain visible without expanding them.
+`Import order` reveals local PDF, screenshot, or pasted-text reading. `Read prompt` starts collapsed. `More options` contains Copy complete prompt, downloadable instructions, and Copy request only. Print-guide access starts automatically in Make a prompt, with its status and any Cloudflare check beside the primary copy action. Copying waits for that check to finish or for the user to choose Continue without waiting. `Paper and alignment` contains printer adjustments. The primary copy and print actions remain visible without expanding a disclosure.
 
 Standard controls are at least 44px tall. The source permits 34px dense controls, but compact appearance must not prevent touch or keyboard use. Hover changes color or border only. A primary action moves from moss 600 to 700 on hover and 800 when pressed. Do not move, scale, spring, or ripple controls.
 
@@ -160,7 +160,7 @@ The source provides paper grain at 5.5% opacity, a brass hatch for import target
 
 ## Accessibility and content
 
-Use sentence case, direct verbs, and short explanations. Say "Choose ZIP" or "Drop your ZIP", since importing a pack does not send it to a server. Do not make a blanket "nothing is ever uploaded" claim when explaining the optional proof service. That service accepts generated images only after explicit access is enabled and the AI submits them.
+Use sentence case, direct verbs, and short explanations. Say "Choose ZIP" or "Drop your ZIP", since importing a pack does not send it to a server. Do not make a blanket "nothing is ever uploaded" claim. Print guide access is prepared automatically and the AI can submit generated images. Importing a pack separately sends validated AI feedback and public package source observations; the ZIP and artwork remain local.
 
 Maintain readable contrast for normal text, hints, metadata, field boundaries, and focus indicators. Source ink 400 on paper 100 measures 3.27:1, below the 4.5:1 normal-text target. The application maps `--text-faint` to ink 500, which measures 5.15:1 on that background. Source amber 600 on amber 100 measures 3.84:1; caution text uses amber 700 at 5.37:1. Source brass 500 against paper 100 measures 2.91:1; focus outlines use darker brass 600 at 3.91:1. Field boundaries use ink 400 against the field fill at 3.65:1. Verify actual foreground/background combinations after integration rather than treating source swatches as an accessibility certificate.
 

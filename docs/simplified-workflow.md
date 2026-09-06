@@ -22,7 +22,7 @@ The chat needs research/image inspection, image generation, and file/ZIP creatio
 
 Review the output against the inspected source. Circular reflow may rearrange rectangular packaging, but must preserve defining illustration style, character details, logo, palette, and lettering. Shared subjects or colors are insufficient. Use a saved browser capture as generator input when a direct image download fails and the provider supports it. If no actual package can be inspected, request a reference attachment.
 
-The optional [proof service](cloudflare-deployment.md#proof-api) returns a separate image with trim and safe guides. It accepts only the generated PNG explicitly sent to it; importing an order or pack never calls this endpoint. If unreachable, the AI should produce equivalent guides locally and report that fallback. Keep annotated proofs out of the final ZIP. Geometry checks and model self-review do not establish packaging fidelity.
+The [proof service](cloudflare-deployment.md#proof-api) returns a separate image with trim and safe guides. Access is prepared automatically in Make a prompt. It accepts only the generated PNG explicitly sent to it; importing an order or pack never calls this endpoint. If unreachable, the AI should produce equivalent guides locally and report that fallback. Keep annotated proofs out of the final ZIP. Geometry checks and model self-review do not establish packaging fidelity.
 
 ## Print labels
 
@@ -43,3 +43,7 @@ Custom paper, editable label geometry, crop and zoom controls, manual slot arran
 Cloud OCR, automatic ZIP transfer, and a shared package-image cache are not implemented.
 
 The optional tobacco autocomplete searches a static catalog of 1,482 entries across 146 maker/brand names, with local alias and typo matching. Users explicitly select a result, enter arbitrary names, or paste a list. Typed text is included in the prompt even before selection. The [selector plan](tobacco-selector-plan.md) records scope and future catalog expansion; live web search and automatic file handoff remain future options.
+
+## Shared sources and feedback
+
+ZIP import with a readable manifests submit a limited contribution separately from local printing. Validated feedback and eligible public source observations for known catalog blends improve subsequent prompts. The raw ZIP, artwork, and order files remain local. Source links are never fetched during import. See [collection details](contributions.md) and the website Privacy page.

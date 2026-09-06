@@ -14,7 +14,7 @@ The About page connects that purpose to Dylan and this small project. Avoid inve
 - Introduce CellarPack as the ZIP containing the labels. Technical terms belong where they explain a file requirement or help repair a problem.
 - “Copy prompt” starts with a request that tells the AI to read the site's instructions. “Copy complete prompt” includes the instructions. “Copy request only” is for a chat that already has them.
 - Keep instruction version information in the advanced choices and feedback reports, in plain language. Do not hide differences that affect which instructions a chat uses.
-- Imported files are read in the browser. Optional hosted image checks are a separate operation. Guide images made by an AI chat are not necessarily made on the user's device.
+- Imported ZIPs and artwork are read in the browser. Import separately shares validated feedback and public source links with fixed observations. Print-guide access starts automatically in Make a prompt; the AI can use that service or make guide images in its own environment. That environment is not necessarily the user's device.
 - Tell people what failed and what they can do next. Keep precise file errors available for the AI repair request.
 - Explain print settings using the names people will recognize in a print dialog. Horizontal and vertical adjustments include directions and inch units.
 - Avoid guarantees about tobacco preservation, exact physical print results, or an AI service's success. Encourage a plain-paper alignment check where it is useful.
@@ -31,3 +31,7 @@ The changes affect presentation and explanatory text. AI instruction contracts, 
 ## Verification
 
 All 156 tests across 27 files passed after the copy changes, along with lint and typecheck/build. Browser review covered all six views, the advanced prompt choices and copy status, feedback guidance, and print instructions with ten labels across two sheets. The maker credit is centered at 320px and 1440px; reviewed pages fit without horizontal scrolling. The older label fixture contained obsolete overlay settings, so a separate local review copy retained only its blank overlay mode. Original artwork and the source ZIP were unchanged. No physical printing or deployment was performed for this pass.
+
+## Automatic guides and shared source collection
+
+Print guide access now starts automatically in Make a prompt. ZIP import separately submits validated AI feedback and public source links with fixed observations; the ZIP and artwork remain on the device. Do not describe all import data or feedback as browser-only. Separate JSON report imports are still local. Privacy is linked from the footer and import notice.

@@ -64,7 +64,7 @@ export async function reserveProof(binding?: BudgetBinding, token?: string): Pro
   const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
   try {
     if (!binding) throw new Error('missing budget')
-    if (!token) return Response.json({ error: 'Enable hosted image checks on the website and copy a new prompt, or use local guides.' }, { status: 401, headers })
+    if (!token) return Response.json({ error: 'Open Make a prompt on the website and copy a new prompt, or use local guides.' }, { status: 401, headers })
     const response = await binding.getByName('proof-budget-v1').fetch(new Request('https://budget/reserve', { method: 'POST', headers: { 'X-Token-Hash': await tokenHash(token) } }))
     if (response.status === 401) return Response.json({ error: 'Proof access expired or exhausted. Use local guides or get fresh access from the website.' }, { status: 401, headers })
     if (response.status === 204) return null

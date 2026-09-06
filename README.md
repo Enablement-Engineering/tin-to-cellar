@@ -58,7 +58,7 @@ The browser does not upload CellarPack files or automatically fetch provenance l
 
 Order reading also runs locally. Screenshot OCR downloads its English reader from the site on first use. Review matches before adding them; purchase quantities do not become print quantities.
 
-An optional Cloudflare proof service accepts explicitly submitted generated PNGs and returns trim/safe-area guides. Choose **Enable hosted image checks** before copying a prompt: Turnstile verification adds a private allowance for up to 60 checks over 24 hours. Shared processing is capped at 1,000 attempts per UTC month to leave free-tier headroom. The service stores no uploads, only usage counters and credential hashes. Without access or available capacity, the AI makes guides locally. It must visually inspect the proof alongside the original package; guides and ZIP validation do not certify artwork fidelity. Cloud OCR and automatic reference-image caching are not implemented.
+A Cloudflare proof service accepts explicitly submitted generated PNGs and returns trim/safe-area guides. Opening the prompt builder automatically starts Turnstile verification, which adds a private allowance for up to 60 checks over 24 hours. Shared processing is capped at 1,000 attempts per UTC month to leave free-tier headroom. The service stores no uploads, only usage counters and credential hashes. Without access or available capacity, the AI makes guides locally. It must visually inspect the proof alongside the original package; guides and ZIP validation do not certify artwork fidelity. Cloud OCR and automatic reference-image caching are not implemented.
 
 The default circular export includes opaque artwork through a 0.125-inch bleed ring, then transparent corners outside the 2.75-inch outer circle. The preview shows the finished trim; printing includes the supplied bleed. The generated image owns the entire blank writing surface, without website-added words or lines.
 
@@ -76,3 +76,7 @@ The default circular export includes opaque artwork through a 0.125-inch bleed r
 Generated packs/PDFs, experiment output, dependencies, builds, OCR bundles, local credentials, and personal inventory reports are ignored by Git. The catalog distributes names and source links, not package artwork.
 
 The current product scope is described in [the simplified workflow](docs/simplified-workflow.md). Earlier planning documents describe broader options that are outside this UI.
+
+## Shared feedback and source links
+
+Pack imports with readable manifests automatically contribute validated AI feedback and public package-source observations for known catalog blends. ZIPs and artwork remain local. Subsequent prompts look up saved sources before searching and ask the AI to report link validity. The website Privacy page covers collection, Cloudflare, AI providers, retention, and source reuse. See [contribution operations](docs/contributions.md) for storage bindings and the protected maintainer export.

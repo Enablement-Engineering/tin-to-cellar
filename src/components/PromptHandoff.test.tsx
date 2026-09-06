@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
+import { useEffect } from 'react'
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PromptHandoff } from './PromptHandoff'
+import { PROTOCOL_REVISION } from '../lib/protocol'
 import { proofAccessText } from '../lib/prompt/proof-access'
 afterEach(cleanup)
 describe('PromptHandoff', () => {
@@ -72,5 +74,7 @@ it('offers reusable bundled instructions without the project request or proof ac
   expect(body).not.toContain('Private complete request')
   expect(body).not.toContain('Private request')
   expect(body).not.toContain(proofAccessText(null))
-  expect(link).toHaveAttribute('download', 'tin-to-cellar-instructions-r2.md')
+  expect(link).toHaveAttribute('download', `tin-to-cellar-instructions-r${PROTOCOL_REVISION}.md`)
 })
+
+vi.mock('./ProofAccess', () => ({ ProofAccess: ({ onPendingChange }: { onPendingChange(pending: boolean): void }) => { useEffect(() => onPendingChange(false), [onPendingChange]); return null } }))

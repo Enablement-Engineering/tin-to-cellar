@@ -18,19 +18,21 @@ function loadTurnstile() {
   return loading
 }
 
-export function ProofAccess({ lease, onChange }: { lease: ProofLease | null; onChange(lease: ProofLease | null): void }) {
-  const [attempt, setAttempt] = useState(0)
+export function ProofAccess({ lease, onChange, onPendingChange }: { lease: ProofLease | null; onChange(lease: ProofLease | null): void; onPendingChange(pending: boolean): void }) {
+  const [attempt, setAttempt] = useState(() => lease && lease.expiresAt > Date.now() ? 0 : 1)
   const [message, setMessage] = useState('')
+  useEffect(() => { onPendingChange(attempt > 0 && !lease) }, [attempt, lease, onPendingChange])
   const container = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!lease) return
-    const timer = setTimeout(() => { onChange(null); setMessage('Hosted check access expired. Enable it again if you want to use it, then copy a new prompt.') }, Math.max(0, lease.expiresAt - Date.now()))
+    const timer = setTimeout(() => { onChange(null); setMessage('Refreshing print guide access…'); setAttempt(value => value + 1) }, Math.max(0, lease.expiresAt - Date.now()))
     return () => clearTimeout(timer)
   }, [lease, onChange])
   useEffect(() => {
     if (!attempt) return
     let disposed = false, widget: string | undefined, verifying = false
     const controller = new AbortController()
+    const verificationTimer = setTimeout(() => { if (!disposed) { setMessage('Print guides are unavailable. Your AI will make its own guides.'); setAttempt(0) } }, 30000)
     const timer = setTimeout(() => controller.abort(), 15000)
     void (async () => {
       const response = await fetch('/api/proof-access', { signal: controller.signal })
@@ -40,7 +42,7 @@ export function ProofAccess({ lease, onChange }: { lease: ProofLease | null; onC
       await loadTurnstile()
       if (disposed || !container.current) return
       widget = window.turnstile!.render(container.current, {
-        sitekey: config.siteKey, action: 'proof-access', theme: 'light', size: 'flexible',
+        appearance: 'interaction-only', sitekey: config.siteKey, action: 'proof-access', theme: 'light', size: 'flexible',
         callback: async (token: string) => {
           if (disposed || verifying) return
           verifying = true; setMessage('Enabling hosted checks…')
@@ -51,19 +53,16 @@ export function ProofAccess({ lease, onChange }: { lease: ProofLease | null; onC
             if (!disposed) { onChange(data); setMessage(''); setAttempt(0) }
           } catch (error) { if (!disposed) { setMessage(error instanceof Error ? error.message : 'Verification failed.'); setAttempt(0) } }
         },
-        'error-callback': () => { if (!disposed) { setMessage('Verification failed. Try again or continue without hosted checks.'); setAttempt(0) } },
-        'expired-callback': () => { if (!disposed) { setMessage('Verification expired. Please retry.'); setAttempt(0) } },
+        'error-callback': () => { if (!disposed) { setMessage('Verification failed. Your AI will make its own guides.'); setAttempt(0) } },
+        'expired-callback': () => { if (!disposed) { setMessage('Verification expired. Your AI will make its own guides.'); setAttempt(0) } },
       })
     })().catch(error => { if (!disposed) { setMessage(error instanceof Error ? error.message : 'Verification unavailable.'); setAttempt(0) } }).finally(() => clearTimeout(timer))
-    return () => { disposed = true; clearTimeout(timer); controller.abort(); if (widget) window.turnstile?.remove(widget) }
+    return () => { disposed = true; clearTimeout(timer); clearTimeout(verificationTimer); controller.abort(); if (widget) window.turnstile?.remove(widget) }
   }, [attempt, onChange])
   return <div className="proof-access">
-    {lease ? <><p>Hosted image checks enabled. You have up to 60 checks over the next 24 hours. Copy your prompt to include access.</p><button className="button secondary" onClick={() => onChange(null)} type="button">Turn off hosted checks</button></> : <>
-      <button className="button secondary" type="button" disabled={attempt > 0} onClick={() => { setMessage(''); setAttempt(value => value + 1) }}>Enable hosted image checks</button>
-      <p className="field-hint">Optional. Complete Cloudflare's verification to let your AI chat use this site's image checks. Without it, your AI chat makes its own guide images.</p>
-    </>}
+    <p className="field-hint">{lease ? 'Print guide access is included in your prompt.' : attempt > 0 ? 'Preparing print guides. Complete the Cloudflare check if it appears.' : 'Your AI will make its own print guides.'} <a href="#privacy">Privacy</a></p>
     <div ref={container} />
-    {attempt > 0 && <button className="button secondary" type="button" onClick={() => { setAttempt(0); setMessage('Hosted checks are off. You can still copy your prompt.') }}>Cancel verification</button>}
-    {message && <p role="status">{message}</p>}
+    {attempt > 0 && <button className="button quiet" type="button" onClick={() => { setAttempt(0); setMessage('Your AI will make its own guides for this request.') }}>Continue without waiting</button>}
+    {message && <p className="field-hint">{message}</p>}
   </div>
 }

@@ -55,7 +55,8 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
         </button>
       </div>
 
-      <p className="import-privacy"><Icon name="lock" size={15} />Your ZIP stays on this device. Keep the file so you can print again.</p>
+      <p className="import-privacy"><Icon name="lock" size={15} />Importing sends AI feedback and public package source observations to improve future labels. Your ZIP and artwork stay on this device. <a href="#privacy">Privacy details</a></p>
+
 
       {summary && (
         <div className={`import-report status-${summary.status}`} aria-live="polite">

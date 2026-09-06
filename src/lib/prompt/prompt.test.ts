@@ -48,7 +48,7 @@ describe('self-contained generation protocol', () => {
     expect(prompt).not.toContain('http://localhost:5173/spec.json')
     expect(prompt).not.toContain('Personality')
     // Includes the private feedback schema and optional proof-service contract as well as the complete pack schema.
-    expect(prompt.length).toBeLessThan(22000)
+    expect(prompt.length).toBeLessThan(26000)
   })
   it('preserves research-before-generation and close reference fidelity', () => {
     const prompt = buildCompleteTinToCellarPrompt({ tobaccos: 'Escudo' })
@@ -143,7 +143,7 @@ describe('reusable instructions and request', () => {
 describe('private diagnostic instructions', () => {
   it('carries a versioned closed feedback contract and failure delivery on every full route', () => {
     const prompt = buildTinToCellarInstructions()
-    for (const text of ['protocolRevision', '2.0.0', 'manifest.extensions["tin-to-cellar:feedback"]', 'separate download outside the ZIP', 'Never send feedback to a server', 'raw prompts', 'tool logs', 'chain-of-thought', '"additionalProperties":false']) expect(prompt).toContain(text)
+    for (const text of ['protocolRevision', '2.0.0', 'manifest.extensions["tin-to-cellar:feedback"]', 'separate download outside the ZIP', 'Do not send feedback directly from this chat', 'raw prompts', 'tool logs', 'chain-of-thought', '"additionalProperties":false']) expect(prompt).toContain(text)
   })
 })
 
@@ -151,7 +151,7 @@ describe('private diagnostic instructions', () => {
 describe('hosted compact handoff', () => {
   it('keeps the request and artistic promises visible while fetching technical details once', () => {
     const prompt = buildTinToCellarPrompt({ tobaccos: ['Westminster', 'Orlik Golden Sliced', 'Autumn Evening'], websiteUrl: 'http://localhost:5173/' })
-    for (const requirement of ['Use only the tobacco list supplied or confirmed in this conversation', 'do not retrieve inventories from account memory or other chats', 'Westminster', 'Orlik Golden Sliced', 'Autumn Evening', 'https://tintocellar.com/api/protocol/v1', 'end marker', 'for this run and its repairs', 'unavailable or incomplete', 'wait before generating', 'exact maker and blend names', 'exactly one blank', 'no words or writing line', '.cellarpack.zip', 'Feedback stays local', 'http://localhost:5173/#print']) expect(prompt).toContain(requirement)
+    for (const requirement of ['Use only the tobacco list supplied or confirmed in this conversation', 'do not retrieve inventories from account memory or other chats', 'Westminster', 'Orlik Golden Sliced', 'Autumn Evening', 'https://tintocellar.com/api/protocol/v1', 'end marker', 'for this run and its repairs', 'unavailable or incomplete', 'wait before generating', 'exact maker and blend names', 'exactly one blank', 'no words or writing line', '.cellarpack.zip', 'Importing the returned pack sends validated AI feedback', 'http://localhost:5173/#print']) expect(prompt).toContain(requirement)
     for (const technical of ['"$defs"', 'SHA-256', 'overlay.mode', '50 MiB', 'protocolRevision', '/api/proof']) expect(prompt).not.toContain(technical)
     expect(prompt.length).toBeLessThan(3500)
   })

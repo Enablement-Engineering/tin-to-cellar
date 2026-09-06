@@ -2,7 +2,7 @@
 
 Each new generation prompt requests a diagnostic report at `manifest.extensions["tin-to-cellar:feedback"]`. A failed run can return `tin-to-cellar-feedback.json` separately. Older packs work without feedback, and invalid feedback does not block artwork import.
 
-In Print labels, expand Prompt feedback to review and download a valid report. Open individual saved JSON reports there to compare outcomes and issue frequencies, then download a summary containing the validated reports and totals. Selecting a new group replaces the previous group. Reloading clears the reports. No server receives them automatically; collection consists of people deliberately sharing downloaded reports with the maintainer.
+In Print labels, expand Prompt feedback to review and download a valid report. Open individual saved JSON reports there to compare outcomes and issue frequencies, then download a summary containing the validated reports and totals. Selecting a new group replaces the previous group. Reloading clears the reports. ZIP import with a readable manifests automatically submit strictly validated feedback and eligible package source observations to `/api/contributions`. Opening standalone JSON files does not submit them. Collection failure never blocks printing. Raw ZIPs and artwork remain local.
 
 The schema in `src/lib/feedback/schema.json` allows only fixed categories and bounded integer counts. It rejects unknown properties at every level. No free-text fields, raw prompts, logs, source URLs, timestamps, pack IDs, generator names, product names or user identifiers enter the export. A malformed report is excluded entirely, never partially displayed or exported. Files are limited to 32 KiB each and 100 per selection. Treat any original agent file as untrusted; use the app's validated export for sharing.
 
@@ -16,4 +16,6 @@ Hosted protocol releases use feedback schema `2.0.0`. Its `protocolRevision` is 
 
 Comparisons group outcomes and issue frequencies by protocol revision, with original prompt reports in a separate legacy group. The new contract includes a `protocol-retrieval` stage and `protocol-unavailable` and `protocol-incomplete` categories without permitting raw errors or URLs. Invalid feedback still does not prevent artwork import. Already-open older clients may need a reload to read the new feedback shape.
 
-Review voluntarily shared reports before changing the protocol. Select a recurring failure, update the canonical instructions, run regression checks and a fresh-agent trial, and publish a new immutable revision. Preserve historical releases. This process does not upload reports or rewrite instructions automatically.
+Review collected reports before changing the protocol. Select a recurring failure, update the canonical instructions, run regression checks and a fresh-agent trial, and publish a new immutable revision. Preserve historical releases. This process does not upload reports or rewrite instructions automatically.
+
+Protocol revision 3 adds a separate per-label `tin-to-cellar:sources` extension. It does not add URLs or product identities to diagnostic feedback. See `docs/contributions.md` for the collection contract and retention.

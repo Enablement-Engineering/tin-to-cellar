@@ -39,7 +39,7 @@ export function DiagnosticFeedback({ candidate, protocolContext }: { candidate: 
   return <section className="panel screen-only" aria-labelledby="feedback-title">
     <details>
       <summary id="feedback-title">Prompt feedback</summary>
-      <p>See what your AI reported about the request, the steps it took, and any problems. Reports use fixed categories and counts. They stay in this browser unless you download and share them.</p>
+      <p>See what your AI reported about the request, the steps it took, and any problems. Reports use fixed categories and counts. Importing a label pack sends its valid feedback to help improve the instructions. Reports you open separately are kept in this browser.</p>
       {protocolContext?.status === 'conflict' && <p role="status">The pack and its feedback list different instruction versions. Check the original chat to find which version was used before asking for repairs or comparing reports. You can still print labels that passed the ZIP checks.</p>}
       {protocolContext?.status === 'invalid' && <p role="status">The app couldn’t read the pack’s instruction version. Use the instructions from the original chat when asking for repairs. You can still print labels that passed the ZIP checks.</p>}
       {protocolContext?.status === 'unknown' && <p role="status">The app doesn’t recognize the pack’s instruction version. Keep the original chat’s instructions for repairs. You can still print labels that passed the ZIP checks.</p>}

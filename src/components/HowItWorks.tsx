@@ -34,13 +34,13 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     </article>
     <article>
     <h2>Check the fit before printing</h2>
-    <p>Your AI makes guide copies to check where each label will be cut and whether its text fits. To have this service make those guides, open More options and choose Enable hosted image checks before copying your prompt.</p>
+    <p>Your AI makes guide copies to check where each label will be cut and whether its text fits. Print guide access is prepared automatically when you make a prompt. If the service is unavailable, your AI makes equivalent guides in its own working environment.</p>
     <p>Hosted checks send artwork to this service, which returns guide copies without storing the images. Access covers up to 60 checks over 24 hours. If access expires or capacity runs out, your AI makes the guides itself. Only the artwork without guides goes into the ZIP.</p>
     </article>
     <article>
     <h2>What stays in my browser?</h2>
     <p>This app checks your ZIP and places each label at its physical size. Imported files stay in your browser, and research links are never opened automatically.</p>
-    <p>If your ZIP includes a feedback report, you can review and download it under Prompt feedback. Reports use fixed categories and counts to describe what worked and what went wrong. You can open saved reports to compare results in your browser. Nothing is submitted automatically.</p>
+    <p>If your ZIP includes a feedback report, you can review and download it under Prompt feedback. Reports use fixed categories and counts to describe what worked and what went wrong. You can open saved reports to compare results in your browser. Importing a pack sends valid AI feedback and public package source observations to help improve future labels. The ZIP and artwork stay on your device. See the Privacy page for details.</p>
     <p>Switching views keeps your work; reloading or closing the page clears the print job. Keep the ZIP so you can import it again.</p>
     </article>
     <article>

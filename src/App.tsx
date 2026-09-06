@@ -1,9 +1,13 @@
+import type { ProofLease } from './lib/prompt/proof-access'
+import { ContributionStatus } from './components/ContributionStatus'
+import { contributionFromManifest, type Contribution } from './lib/contributions'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { buildTinToCellarPrompt, buildCompleteTinToCellarPrompt, buildTinToCellarRequest, buildTinToCellarInstructions, buildCellarPackRepairPrompt } from './lib/prompt'
 import { checkAvery94502Compatibility } from './lib/sheets'
 import { Configurator } from './components/Configurator'
 import { HowItWorks } from './components/HowItWorks'
 import { Landing } from './components/Landing'
+import { Privacy } from './components/Privacy'
 import { About } from './components/About'
 import { Inspiration } from './components/Inspiration'
 import { SiteFooter } from './components/SiteFooter'
@@ -21,17 +25,18 @@ import './styles/app.css'
 const initialConfig: ConfiguratorState = {
   tobaccos: '', artDirection: '',
 }
-type View = 'home' | 'create' | 'print' | 'help' | 'about' | 'inspiration'
+type View = 'home' | 'create' | 'print' | 'help' | 'about' | 'inspiration' | 'privacy'
 function viewFromHash(): View | null {
   const hash = window.location.hash.slice(1)
   if (!hash) return 'home'
-  return hash === 'home' || hash === 'create' || hash === 'print' || hash === 'help' || hash === 'about' || hash === 'inspiration' ? hash : null
+  return hash === 'home' || hash === 'create' || hash === 'print' || hash === 'help' || hash === 'about' || hash === 'inspiration' || hash === 'privacy' ? hash : null
 }
 function issueText(issue: { message?: string; recovery?: string }) {
   return [issue.message ?? 'The label needs repair.', issue.recovery].filter(Boolean).join(' ')
 }
 
 function App() {
+  const [proofLease, setProofLease] = useState<ProofLease | null>(null)
   const [config, setConfig] = useState(initialConfig)
   const [view, setView] = useState<View>(() => viewFromHash() ?? 'home')
   const main = useRef<HTMLElement>(null)
@@ -61,6 +66,7 @@ function App() {
     }
   }, [])
   const [protocolContext, setProtocolContext] = useState<ReturnType<typeof resolveProtocolContext>>({ status: 'legacy' })
+  const [contribution, setContribution] = useState<Contribution | null>(null)
   const [feedback, setFeedback] = useState<unknown>(null)
   const [importing, setImporting] = useState(false)
   const [summary, setSummary] = useState<ImportSummary | null>(null)
@@ -91,6 +97,7 @@ function App() {
     importBusy.current = true
     setImporting(true)
     setFeedback(null)
+    setContribution(null)
     setProtocolContext({ status: 'legacy' })
     setRepairStatus('')
     setShowRepair(false)
@@ -98,6 +105,7 @@ function App() {
     try {
       const { importCellarPack } = await import('./lib/cellarpack')
       const result = await importCellarPack(await file.arrayBuffer())
+      if (result.manifest) setContribution(await contributionFromManifest(result.manifest))
       const context = resolveProtocolContext(result.manifest?.extensions)
       setProtocolContext(context)
       setFeedback(result.manifest?.extensions?.[FEEDBACK_KEY] ?? null)
@@ -158,7 +166,7 @@ function App() {
     catch { setShowRepair(true); setRepairStatus('Select and copy the repair request below, then paste it into the same chat.') }
   }
 
-  const intake = <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} /><DiagnosticFeedback candidate={feedback} protocolContext={protocolContext} />
+  const intake = <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} /><ContributionStatus key={JSON.stringify(contribution)} contribution={contribution} /><DiagnosticFeedback candidate={feedback} protocolContext={protocolContext} />
     {importLoadError && <div className="panel" role="alert"><h3>The label reader couldn’t load</h3><p>The app may have updated, or the connection was interrupted. Reload the page, then choose the same ZIP again. Reloading clears the current workspace.</p><button className="button secondary" type="button" onClick={() => window.location.reload()}>Reload app</button></div>}
     {repairPrompt && <div className="panel repair-panel" role="status"><h3>{labels.length ? 'Some labels need fixing' : 'The ZIP needs fixing'}</h3><p>{labels.length ? 'You can still print the usable labels below. ' : ''}Send the repair request to the same AI chat and import the ZIP it returns.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}><Icon name="copy" size={17} />Copy repair request</button><p className="copy-status">{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={repairPrompt} rows={8} onFocus={(event) => event.currentTarget.select()} />}</div>}
   </div>
@@ -173,8 +181,8 @@ function App() {
     </header>
     <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
       {view === 'home' ? <Landing onNavigate={navigate} /> : view === 'create' ? <div className="screen-only create-workspace">
-        <div className="create-grid"><Configurator value={config} onChange={setConfig} /><PromptHandoff completePrompt={completePrompt} prompt={prompt} request={request} onPrint={() => navigate('print')} /></div>
-      </div> : view === 'help' ? <HowItWorks instructions={instructions} /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
+        <div className="create-grid"><Configurator value={config} onChange={setConfig} /><PromptHandoff proofLease={proofLease} onProofLeaseChange={setProofLease} completePrompt={completePrompt} prompt={prompt} request={request} onPrint={() => navigate('print')} /></div>
+      </div> : view === 'help' ? <HowItWorks instructions={instructions} /> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
         <div className="page-heading screen-only"><h1>Print labels</h1><p className="spec-line">Avery 94502 · 2.5 in circles · US Letter</p></div>
         {labels.length > 0 ? <PrintStudio intake={intake} labels={labels} quantities={quantities} onQuantityChange={(id, value) => setQuantities((current) => ({ ...current, [id]: value }))} settings={printSettings} onSettingsChange={setPrintSettings} /> :
           <div className="print-intake screen-only">{intake}<section className="print-empty panel" aria-labelledby="print-empty-title"><span className="print-empty-icon"><Icon name="print" size={28} /></span><h2 id="print-empty-title">Ready to print?</h2><p>Choose the CellarPack ZIP from your AI chat. You can then set the quantities and preview your sheets.</p><p className="field-hint">If you still need labels, start by making a prompt.</p><button className="button secondary" type="button" onClick={() => navigate('create')}>Start with a prompt</button></section></div>}

@@ -24,7 +24,7 @@ After deployment, verify the app and both HTTPS domains, then the health and pro
 
 ## Proof API
 
-`GET /api/proof` returns the [live input contract](https://tintocellar.com/api/proof). `POST /api/proof` requires the private allowance from **Enable hosted image checks**, accepts raw PNG bytes, and returns a separate review PNG. Supply the allowance through an authorization header, never a URL. The following assumes `PROOF_ACCESS_TOKEN` is already set privately:
+`GET /api/proof` returns the [live input contract](https://tintocellar.com/api/proof). `POST /api/proof` requires the private allowance automatically prepared in **Make a prompt**, accepts raw PNG bytes, and returns a separate review PNG. Supply the allowance through an authorization header, never a URL. The following assumes `PROOF_ACCESS_TOKEN` is already set privately:
 
 ```sh
 curl --fail-with-body \

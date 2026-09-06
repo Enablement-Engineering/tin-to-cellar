@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { useEffect } from 'react'
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -226,4 +227,33 @@ it('extracts feedback from a pack and clears it when a later import fails', asyn
   upload()
   await waitFor(() => expect(screen.queryByText(/The AI reported: complete/)).not.toBeInTheDocument())
   expect(screen.getByText(/No readable feedback report/)).toBeInTheDocument()
+})
+
+vi.mock('./components/ProofAccess', () => ({ ProofAccess: ({ onPendingChange }: { onPendingChange(pending: boolean): void }) => { useEffect(() => onPendingChange(false), [onPendingChange]); return null } }))
+
+it('opens the privacy page from the footer and directly by hash', async () => {
+  window.history.replaceState({}, '', '/#home')
+  const { unmount } = render(<App />)
+  fireEvent.click(screen.getByRole('link', { name: 'Privacy' }))
+  expect(screen.getByRole('heading', { name: 'Privacy', level: 1 })).toBeInTheDocument()
+  expect(screen.getByText(/automatically sends its valid AI feedback/)).toBeInTheDocument()
+  unmount()
+  window.history.replaceState({}, '', '/#privacy')
+  render(<App />)
+  expect(screen.getByRole('heading', { name: 'Privacy', level: 1 })).toBeInTheDocument()
+})
+
+it('collects valid diagnostics from a readable manifest even when its artwork is rejected', async () => {
+  window.history.replaceState({}, '', '/#print')
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ status: 'collected' }))
+  const feedback = { format: 'tin-to-cellar/feedback', schemaVersion: '1.0.0', promptVersion: '2026-09-06.1', request: { labelCount: 1, shape: 'circle' }, outcome: 'failed', steps: [], issues: [] }
+  importer.mockResolvedValueOnce({ ...ready([]), status: 'rejected', manifest: { labels: [], extensions: { 'tin-to-cellar:feedback': feedback } } })
+  render(<App />)
+  upload()
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/contributions', expect.objectContaining({ method: 'POST' })))
+  const payload = JSON.parse(fetchMock.mock.calls[0][1]!.body as string)
+  expect(payload.feedback.outcome).toBe('failed')
+  expect(payload.submissionId).toMatch(/^[a-f0-9]{64}$/)
+  expect(payload).not.toHaveProperty('manifest')
+  fetchMock.mockRestore()
 })

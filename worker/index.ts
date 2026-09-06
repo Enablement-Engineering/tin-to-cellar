@@ -1,3 +1,5 @@
+import { contributionsResponse, type ContributionBinding } from './contributions'
+export { CatalogContributions } from './contributions'
 import { proofResponse } from './proof'
 import type { ProofImages } from './proof'
 import { reserveProof, type BudgetBinding } from './budget'
@@ -5,6 +7,9 @@ import { bearer, issueAccess } from './access'
 import { protocolResponse } from './protocol'
 export { ProofBudget } from './budget'
 interface Env {
+  CATALOG_CONTRIBUTIONS?: ContributionBinding
+  CONTRIBUTION_ADMIN_TOKEN?: string
+  CONTRIBUTION_RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> }
   PROOF_BUDGET?: BudgetBinding
   PROOFS_ENABLED?: string
   TURNSTILE_SITE_KEY?: string
@@ -17,6 +22,7 @@ interface Env {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const path = new URL(request.url).pathname
+    if (path === '/api/contributions' || path === '/api/sources') return contributionsResponse(request, env.CATALOG_CONTRIBUTIONS, env.CONTRIBUTION_RATE_LIMITER, env.CONTRIBUTION_ADMIN_TOKEN)
     if (path === '/api/protocol' || path.startsWith('/api/protocol/')) return protocolResponse(request)
     const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
     if (path === '/api/proof-access') {
