@@ -6,11 +6,11 @@ import { ContributionStatus } from './ContributionStatus'
 import type { Contribution } from '../lib/contributions'
 const contribution: Contribution = { version: 1, submissionId: 'a'.repeat(64), feedback: { format: 'tin-to-cellar/feedback', schemaVersion: '2.0.0', protocolRevision: 3, request: { labelCount: 1, shape: 'circle' }, outcome: 'complete', steps: [], issues: [] }, sources: [] }
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
-it('sends only the projected contribution and reports confirmed receipt', async () => {
+it('sends only the projected contribution and hides the notice after confirmed receipt', async () => {
   const mock = vi.fn().mockResolvedValue(Response.json({ status: 'collected' }))
   vi.stubGlobal('fetch', mock)
   render(<ContributionStatus contribution={contribution} />)
-  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('received'))
+  await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
   expect(mock).toHaveBeenCalledWith('/api/contributions', expect.objectContaining({ method: 'POST', body: JSON.stringify(contribution) }))
 })
 it('leaves printing available on collection failure and supports a deliberate retry', async () => {
@@ -19,7 +19,7 @@ it('leaves printing available on collection failure and supports a deliberate re
   expect(await screen.findByRole('button', { name: 'Retry contribution' })).toBeEnabled()
   expect(screen.getByRole('status')).toHaveTextContent('You can still print')
   fireEvent.click(screen.getByRole('button', { name: 'Retry contribution' }))
-  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('received'))
+  await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
 })
 it('does not claim success for an unrelated successful response or submit absent data', async () => {
   const mock = vi.fn().mockResolvedValue(Response.json({ ok: true }))

@@ -17,9 +17,9 @@ export function ContributionStatus({ contribution }: { contribution: Contributio
     }).catch(() => { if (!controller.signal.aborted) setStatus('failed') })
     return () => controller.abort()
   }, [contribution, attempt])
-  if (!contribution) return null
+  if (!contribution || status === 'collected') return null
   return <div className="field-hint" role="status">
-    {status === 'sending' ? 'Sending AI feedback and package source observations…' : status === 'collected' ? 'AI feedback and package source observations received. Your ZIP and artwork stayed on this device.' : 'Feedback and source collection could not be confirmed. You can still print your labels.'}
+    {status === 'sending' ? 'Sending AI feedback and package source observations…' : 'Feedback and source collection could not be confirmed. You can still print your labels.'}
     {status === 'failed' && <button className="button quiet" type="button" onClick={() => { setStatus('sending'); setAttempt(value => value + 1) }}>Retry contribution</button>}
   </div>
 }
