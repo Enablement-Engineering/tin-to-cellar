@@ -1,8 +1,46 @@
-# Cloudflare deployment and order import
+# Cloudflare deployment, proof service, and order import
+
+Production: [tintocellar.com](https://tintocellar.com/) and [www.tintocellar.com](https://www.tintocellar.com/). Source: [Enablement-Engineering/tin-to-cellar](https://github.com/Enablement-Engineering/tin-to-cellar).
 
 The app is deployed as Worker static assets. Only `/api/*` routes invoke the Worker; files from `dist/` are served as static assets. Deploy with `npm run deploy`; run the production configuration locally with `npm run preview:cloudflare`.
 
-The account and Worker name are in `wrangler.jsonc`. Wrangler authenticates through the developer's existing login; no credentials are stored in the repository. `npm run deploy` publishes the current working tree after building. It does not commit or push it. Only `dist/` is uploaded, not the source catalog evidence, local PDFs, ZIPs, or temporary files.
+The account and Worker name are in `wrangler.jsonc`. Wrangler authenticates through the developer's existing login; no credentials are stored in the repository. `npm run deploy` publishes the current working tree after building. It does not commit or push it. Deployment uploads `dist/` as website assets and bundles the Worker and proof overlay. Source catalog evidence, local PDFs, ZIPs, and temporary files are not uploaded. A GitHub push does not deploy the site, so the live release can lag behind repository changes.
+
+## Setup and release
+
+```sh
+npm ci
+npm exec -- wrangler login
+npm test
+npm run lint
+npm run deploy
+```
+
+This deploys to the configured production account. For your own installation, first change the account ID, Worker name, and domain routes in `wrangler.jsonc`. Keep its `ASSETS`, `IMAGES`, and `PROOF_RATE_LIMITER` bindings configured. Credentials belong in Wrangler's login store or environment secrets, never Git. `.env*`, `.dev.vars*`, and `.wrangler/` are ignored.
+
+`npm run dev` serves the frontend through Vite. `npm run build` followed by `npm run preview` serves the production frontend build. Use `npm run preview:cloudflare` for Worker routes; verify native Images rendering on Cloudflare as well. Local unit tests alone do not establish hosted proof behavior.
+
+After deployment, verify the app and both HTTPS domains, then the health and proof endpoints. Submit a generated test PNG to check actual proof rendering and visually inspect the guides. Test browser import and printing when those flows change. Record the Wrangler deployment version separately from the Git commit.
+
+## Proof API
+
+`GET /api/proof` returns the [live input contract](https://tintocellar.com/api/proof). `POST /api/proof` accepts raw PNG bytes and uses Cloudflare Images to return a separate review PNG:
+
+```sh
+curl --fail-with-body \
+  -H 'Content-Type: image/png' \
+  --data-binary @label.png \
+  'https://tintocellar.com/api/proof?diameter=2.5&bleed=0.125&safe=0.125' \
+  --output label-review-proof.png
+```
+
+Only Avery 94502 geometry is supported: 2.5-inch diameter with 0.125-inch bleed and safe inset. Input must be a square, non-interlaced, 8-bit RGB/RGBA PNG, 128–2048 pixels and at most 8 MiB. Send `image/png`, not JSON or multipart. The configured limiter allows ten requests per minute per client IP; it is not a global spending cap.
+
+Cyan marks trim, dashed magenta marks safe, and shading marks bleed. The service stores no uploads and does not change the original file. It does not judge names, packaging resemblance, or writing-space usefulness. Open the proof beside the source reference; never use it as printable artwork or include it in a CellarPack.
+
+Invalid PNG/geometry returns 400, unsupported content type 415, oversized input 413, rate limiting 429 with `Retry-After: 60`, and missing required bindings 503. Use local guides for unsupported geometry or an unavailable endpoint.
+
+Some AI execution environments cannot reach the service even when another client can. Record the exact failing request and distinguish a client block from an HTTP error. A successful health check or GET contract does not prove an image POST works. Use the local-guide fallback and report it when necessary.
 
 `GET /api/health` reports availability and whether cloud OCR is enabled. `/api/ocr` currently returns 503 without parsing the request body. No AI binding is configured, so this deployment cannot invoke paid OCR. No uploaded document storage or request-body logging is implemented.
 
@@ -25,8 +63,4 @@ The provided Smokingpipes order was tested locally with the actual PDF and with 
 
 ## Custom domain
 
-Target hostnames: `tintocellar.com` and `www.tintocellar.com`, declared as Worker Custom Domains in `wrangler.jsonc`. Registration remains at Hover. DNS was moved to the Cloudflare free zone on 2026-09-05 using `lamar.ns.cloudflare.com` and `stevie.ns.cloudflare.com`.
-
-The Hover mail record is retained: MX at the apex, priority 10, `mx.hover.com.cust.hostedemail.com`. The pre-migration parking destination was `216.40.34.41` for the apex and wildcard; Cloudflare also discovered an explicit `www` parking record. The apex and www parking records must be replaced by Worker-managed records before custom-domain deployment can finish. Verify both HTTPS hosts and the mail record after activation.
-
-Custom-domain activation completed on 2026-09-05. The two apex/www parking records were removed with user approval and replaced with Worker Custom Domains. Both `https://tintocellar.com/api/health` and `https://www.tintocellar.com/api/health` returned HTTP 200 with valid HTTPS and `status: ok`; the apex app was also verified in the browser. Deployment version: `0e1e4cca-83c5-45b6-a075-ae4a5863a143`. The Hover MX and wildcard parking record remain unchanged. Subsequent `npm run deploy` commands retain both custom domains through the repository configuration (currently uncommitted).
+`tintocellar.com` and `www.tintocellar.com` are declared as Worker Custom Domains in `wrangler.jsonc`. Registration remains at Hover and DNS is managed in Cloudflare. The configuration retains these routes on subsequent deployments. Preserve unrelated DNS records, including mail, when changing the application domains. Domain-migration steps and old deployment IDs are historical evidence, not instructions to repeat for each release.
