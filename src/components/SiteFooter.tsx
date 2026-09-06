@@ -27,5 +27,6 @@ export function SiteFooter({ currentView, onNavigate }: SiteFooterProps) {
       >{label}</a>)}
     </nav>
     <p className="footer-credit">Made with ❤️ by <a href="https://www.enablement.engineering/">Enablement Engineering</a></p>
+    <p className="footer-notice">For adults 21+. Personal-use labels only. No resale or commercial packaging. No tobacco sold.</p>
   </footer>
 }

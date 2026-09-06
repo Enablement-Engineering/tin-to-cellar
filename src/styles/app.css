@@ -63,6 +63,7 @@ a:hover { color: var(--text-link-hover); }
 .footer-nav { display: flex; justify-self: end; align-items: center; flex-wrap: wrap; gap: 8px 24px; }
 .footer-nav a { display: inline-flex; align-items: center; min-height: 44px; color: var(--text-muted); font: var(--type-ui); text-decoration: none; }
 .footer-nav a:hover, .footer-nav a[aria-current='page'] { color: var(--text-accent); text-decoration: underline; }
+.site-footer .footer-notice { grid-column: 1 / -1; max-width: 80ch; margin: -8px auto 0; font-size: var(--size-12); line-height: var(--leading-normal); text-align: center; }
 .site-footer .footer-credit { grid-column: 1 / -1; font-size: var(--size-12); line-height: var(--leading-normal); text-align: center; }
 .footer-credit a { white-space: nowrap; }
 .eyebrow, .landing-eyebrow { color: var(--text-faint); font: var(--type-eyebrow); letter-spacing: var(--tracking-caps); text-transform: uppercase; }
