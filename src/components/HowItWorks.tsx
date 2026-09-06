@@ -19,8 +19,8 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     </section>
     <section className="help-reuse panel" aria-labelledby="reuse-title">
     <h2 id="reuse-title">Reuse the instructions</h2>
-    <p>The standard prompt asks your AI to read the current instructions from this site. If it cannot open them, use More options and Copy complete prompt, or download the instructions and attach them to your chat.</p>
-    <p className="field-hint">For another batch in a chat that already has the instructions, use More options and Copy request only.</p>
+    <p>The standard prompt asks your AI to read the current instructions from this site. If it cannot open them, open Read prompt and choose Copy complete prompt, or download the instructions and attach them to your chat.</p>
+    <p className="field-hint">For another batch in a chat that already has the instructions, open Read prompt and choose Copy request only.</p>
     <div className="help-actions"><a className="button secondary" ref={downloadLink} download="tin-to-cellar-instructions.md"><Icon name="download" size={17} />Download instructions</a><a className="button quiet" href="https://chatgpt.com/" target="_blank" rel="noreferrer">Open ChatGPT ↗</a></div>
     </section>
     <section className="help-answers" aria-label="Common questions">

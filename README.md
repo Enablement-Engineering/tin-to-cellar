@@ -7,7 +7,7 @@ Tin to Cellar helps people make tobacco jar labels using their existing AI subsc
 ## Use it
 
 1. Choose tobaccos with autocomplete, type custom names, paste a list, or import an order PDF or screenshot. You can also leave the list blank and supply it in your AI chat.
-2. Copy the full prompt into a chat with web research, image generation, and ZIP creation tools. It includes the instructions, complete CellarPack schema, and your request. ChatGPT has been used in the documented experiments; other providers are not yet verified end to end.
+2. Copy the prompt into a chat with web research, image generation, and ZIP creation tools. It includes your request and a link to the complete hosted instructions and schemas. If the chat cannot retrieve them, use Copy complete prompt to paste everything in one message. ChatGPT has been used in the documented experiments; other providers are not yet verified end to end.
 3. Review the generated labels against the original packaging in that same conversation. Ask for corrections before the AI packages the final images.
 4. Download the `.cellarpack.zip`, import it into Print labels, and choose quantities. Copy any import repair request back into the original chat.
 5. Print at Actual Size / 100% on US Letter, with browser headers and footers off, or choose Save as PDF. Avery 94502 holds nine circles per sheet; extra labels continue onto additional sheets. Test alignment on plain paper first.
@@ -16,7 +16,7 @@ For a conversation that already has the reusable instructions, use More options 
 
 ## What the app handles
 
-- Offers optional tobacco autocomplete over a local names-only catalog, custom names, bulk paste, and special requests, then hands off a complete generation prompt.
+- Offers optional tobacco autocomplete over a local names-only catalog, custom names, bulk paste, and special requests, then hands off a hosted-protocol prompt with a complete-copy fallback.
 - Reads text PDFs and PNG/JPEG/WebP screenshots locally, cleans up order metadata, and offers catalog matches for review. Scanned PDFs are not supported yet.
 - Defines and validates the open CellarPack v1 ZIP format with provenance, geometry, artwork, and write-in metadata.
 - Imports packs entirely in the browser, quarantining bad labels without uploading user files.

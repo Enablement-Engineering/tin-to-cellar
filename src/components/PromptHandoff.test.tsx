@@ -8,19 +8,22 @@ import { proofAccessText } from '../lib/prompt/proof-access'
 import { protocolInstructions } from '../lib/protocol'
 afterEach(cleanup)
 describe('PromptHandoff', () => {
-  it('copies all instructions by default while keeping the initial preview short', async () => {
+  it('copies the hosted prompt by default and reveals the latest exact payload', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
     const { rerender } = render(<PromptHandoff prompt="Short readable preview" completePrompt="Full contract and schema" request="Just the request" />)
     expect(screen.getByText('Read prompt').closest('details')).not.toHaveAttribute('open')
     fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }))
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith('Full contract and schema' + proofAccessText(null)))
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('Short readable preview' + proofAccessText(null)))
     expect(screen.queryByRole('link', { name: /open chatgpt/i })).not.toBeInTheDocument()
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Prompt and all instructions copied'))
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Prompt copied'))
     fireEvent.click(screen.getByText('Read prompt'))
     expect(screen.getByRole('region', { name: 'Rendered prompt' })).toHaveTextContent('Short readable preview')
     expect(screen.getByRole('region', { name: 'Rendered prompt' })).not.toHaveTextContent('Full contract and schema')
     fireEvent.click(screen.getByRole('button', { name: 'Full copied text' }))
+    expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Short readable preview' + proofAccessText(null))
+    fireEvent.click(screen.getByRole('button', { name: 'Copy complete prompt' }))
+    await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('Full contract and schema' + proofAccessText(null)))
     expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Full contract and schema' + proofAccessText(null))
     fireEvent.click(screen.getByRole('button', { name: 'Copy request only' }))
     await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('Just the request' + proofAccessText(null)))
@@ -63,10 +66,11 @@ it('copies and reveals the exact complete payload when its clipboard action fail
   const writeText = vi.fn().mockRejectedValue(new Error('denied'))
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
   render(<PromptHandoff prompt="Compact request" completePrompt="Frozen complete contract" request="Request only" />)
-  fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }))
+  fireEvent.click(screen.getByText('Read prompt'))
+  fireEvent.click(screen.getByRole('button', { name: 'Copy complete prompt' }))
   await waitFor(() => expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Frozen complete contract' + proofAccessText(null)))
   expect(writeText).toHaveBeenCalledWith('Frozen complete contract' + proofAccessText(null))
-  expect(screen.getByRole('link', { name: 'full instructions' })).toHaveAttribute('href', 'https://tintocellar.com/api/protocol/v1')
+  expect(screen.getByRole('link', { name: 'current instructions' })).toHaveAttribute('href', 'https://tintocellar.com/api/protocol/v1/instructions.html')
 })
 
 it('offers reusable bundled instructions without the project request or proof access', () => {
@@ -76,7 +80,7 @@ it('offers reusable bundled instructions without the project request or proof ac
   const body = decodeURIComponent(link.getAttribute('href')!.split(',').slice(1).join(','))
   expect(body).toBe(protocolInstructions())
   expect(link.closest('details')).not.toBeNull()
-  expect(screen.queryByRole('button', { name: 'Copy complete prompt' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Copy complete prompt' })).toBeInTheDocument()
   expect(body).not.toContain('Private project request')
   expect(body).not.toContain('Private complete request')
   expect(body).not.toContain('Private request')

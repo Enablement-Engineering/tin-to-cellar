@@ -23,7 +23,7 @@ it('automatically verifies and includes access in every copy route', async () =>
   fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }))
   await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('Authorization: Bearer ' + token)))
   fireEvent.click(screen.getByText('Read prompt'))
-  for (const [name, prefix] of [['Copy request only', 'Request'], ['Copy prompt', 'Complete']]) {
+  for (const [name, prefix] of [['Copy request only', 'Request'], ['Copy prompt', 'Instructions'], ['Copy complete prompt', 'Complete']]) {
     fireEvent.click(screen.getByRole('button', { name }))
     await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining(prefix + '\n\n# Hosted proof access')))
   }

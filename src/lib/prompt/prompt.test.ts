@@ -149,15 +149,14 @@ describe('private diagnostic instructions', () => {
 
 
 describe('hosted compact handoff', () => {
-  it('uses supplied instructions before hosted retrieval while keeping the request visible', () => {
+  it('retrieves the complete HTML release and offers a self-contained recovery without embedding schemas', () => {
     const prompt = buildTinToCellarPrompt({ tobaccos: ['Westminster', 'Orlik Golden Sliced', 'Autumn Evening'], websiteUrl: 'http://localhost:5173/' })
-    for (const requirement of ['Use only the tobacco list supplied or confirmed in this conversation', 'do not retrieve inventories from account memory or other chats', 'Westminster', 'Orlik Golden Sliced', 'Autumn Evening', 'https://tintocellar.com/api/protocol/v1', 'end marker', 'for this run and its repairs', 'unavailable or incomplete', 'wait before generating', 'exact maker and blend names', 'exactly one blank', 'no words or writing line', '.cellarpack.zip', 'Importing the returned pack sends validated AI feedback', 'http://localhost:5173/labels/print']) expect(prompt).toContain(requirement)
+    for (const requirement of ['Use only the tobacco list supplied or confirmed in this conversation', 'do not retrieve inventories from account memory or other chats', 'Westminster', 'Orlik Golden Sliced', 'Autumn Evening', 'https://tintocellar.com/api/protocol/v1/instructions.html', 'both JSON schemas', 'end marker', 'throughout this request and its repairs', 'retrieval fails or the content is incomplete', 'then wait', '.cellarpack.zip', 'Importing the returned pack sends validated AI feedback', 'http://localhost:5173/labels/print']) expect(prompt).toContain(requirement)
     for (const technical of ['"$defs"', 'SHA-256', 'overlay.mode', '50 MiB', 'protocolRevision', '/api/proof']) expect(prompt).not.toContain(technical)
-    expect(prompt.length).toBeLessThan(3500)
-    expect(prompt).toContain('attached to this message or already supplied in this conversation')
-    expect(prompt).toContain('do not replace it with a newer hosted release')
-    expect(prompt).toContain('Only if no instructions were supplied, try https://tintocellar.com/api/protocol/v1')
-    expect(prompt).toContain('Copy prompt')
+    expect(prompt.length).toBeLessThan(2500)
+    expect(prompt).toContain('already has a pinned release in this conversation, reuse it instead')
+    expect(prompt).toContain('do not switch revisions mid-run')
+    expect(prompt).toContain('Copy complete prompt')
     expect(prompt).not.toContain('under More options')
   })
   it('preserves long user direction without truncating it', () => {
@@ -187,10 +186,11 @@ describe('hosted compact handoff', () => {
 
 
 describe('original package image handoff', () => {
-  it('prefers direct references and batches only required attachment handoffs on both routes', () => {
+  it('keeps reference requirements in the complete protocol fetched by the compact prompt', () => {
     const complete = buildTinToCellarInstructions()
     const compact = buildTinToCellarPrompt({ tobaccos: 'Autumn Evening' })
-    for (const prompt of [complete, compact]) {
+    expect(compact).toContain('instructions.html')
+    for (const prompt of [complete]) {
       expect(prompt).toContain('direct handoff is unavailable')
       expect(prompt).toContain('one batch')
       expect(prompt).toContain('direct handoff works')
