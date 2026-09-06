@@ -47,8 +47,8 @@ describe('self-contained generation protocol', () => {
     expect(schemaIn(prompt)).toEqual(schema)
     expect(prompt).not.toContain('http://localhost:5173/spec.json')
     expect(prompt).not.toContain('Personality')
-    // Includes the optional proof-service contract as well as the complete pack schema.
-    expect(prompt.length).toBeLessThan(15000)
+    // Includes the private feedback schema and optional proof-service contract as well as the complete pack schema.
+    expect(prompt.length).toBeLessThan(20000)
   })
   it('preserves research-before-generation and close reference fidelity', () => {
     const prompt = buildTinToCellarPrompt({ tobaccos: 'Escudo' })
@@ -134,5 +134,13 @@ describe('reusable instructions and request', () => {
       expect(instructions).not.toContain(websiteUrl)
       expect(instructions).toContain('open the Tin to Cellar website')
     }
+  })
+})
+
+
+describe('private diagnostic instructions', () => {
+  it('carries a versioned closed feedback contract and failure delivery on every full route', () => {
+    const prompt = buildTinToCellarInstructions()
+    for (const text of ['2026-09-06.1', 'manifest.extensions["tin-to-cellar:feedback"]', 'separate download outside the ZIP', 'Never send feedback to a server', 'raw prompts', 'tool logs', 'chain-of-thought', '"additionalProperties":false']) expect(prompt).toContain(text)
   })
 })

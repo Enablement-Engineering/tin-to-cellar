@@ -6,6 +6,8 @@ import { HowItWorks } from './components/HowItWorks'
 import { Landing } from './components/Landing'
 import { Icon } from './components/Icons'
 import { Wordmark } from './components/Wordmark'
+import { DiagnosticFeedback } from './components/DiagnosticFeedback'
+import { FEEDBACK_KEY } from './lib/feedback'
 import { PackImporter } from './components/PackImporter'
 import { PrintStudio } from './components/PrintStudio'
 import { PromptHandoff } from './components/PromptHandoff'
@@ -54,6 +56,7 @@ function App() {
       window.history.scrollRestoration = previousRestoration
     }
   }, [])
+  const [feedback, setFeedback] = useState<unknown>(null)
   const [importing, setImporting] = useState(false)
   const [summary, setSummary] = useState<ImportSummary | null>(null)
   const [labels, setLabels] = useState<PrintLabel[]>([])
@@ -81,12 +84,14 @@ function App() {
     if (importBusy.current) return
     importBusy.current = true
     setImporting(true)
+    setFeedback(null)
     setRepairStatus('')
     setShowRepair(false)
     setImportLoadError(false)
     try {
       const { importCellarPack } = await import('./lib/cellarpack')
       const result = await importCellarPack(await file.arrayBuffer())
+      setFeedback(result.manifest?.extensions?.[FEEDBACK_KEY] ?? null)
       const issues = result.issues.filter((issue) => issue.code !== 'MISSING_PREVIEW')
       const quarantined = result.quarantinedLabels.map((item) => ({ id: item.id, reason: item.issues.map(issueText).join(' ') }))
       const nextUrls: string[] = []
@@ -144,7 +149,7 @@ function App() {
     catch { setShowRepair(true); setRepairStatus('Select and copy the repair request below, then paste it into the same chat.') }
   }
 
-  const intake = <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} />
+  const intake = <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} /><DiagnosticFeedback candidate={feedback} />
     {importLoadError && <div className="panel" role="alert"><h3>The label reader couldn’t load</h3><p>The app may have updated, or the connection was interrupted. Reload the page, then choose the same ZIP again. Reloading clears the current workspace.</p><button className="button secondary" type="button" onClick={() => window.location.reload()}>Reload app</button></div>}
     {repairPrompt && <div className="panel repair-panel" role="status"><h3>{labels.length ? 'Some labels need another pass' : 'The ZIP needs another pass'}</h3><p>{labels.length ? 'Your current printable labels are still available below. ' : ''}Send the repair request to the same ChatGPT chat and import the ZIP it returns.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}><Icon name="copy" size={17} />Copy repair request</button><p className="copy-status">{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={repairPrompt} rows={8} onFocus={(event) => event.currentTarget.select()} />}</div>}
   </div>

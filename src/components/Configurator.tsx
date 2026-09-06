@@ -11,6 +11,7 @@ export function Configurator({ value, onChange }: ConfiguratorProps) {
       <TobaccoPicker value={value.tobaccos} onChange={(tobaccos) => onChange({ ...value, tobaccos })} />
       <OrderImporter onAdd={(names) => onChange({ ...value, tobaccos: [...new Set([...value.tobaccos.split('\n'), ...names].map((name) => name.trim()).filter(Boolean))].join('\n') })} />
       <label className="field field-wide"><span>Special requests <em>optional</em></span><textarea aria-label="Special requests" rows={3} value={value.artDirection} onChange={(event) => onChange({ ...value, artDirection: event.target.value })} placeholder="A particular tin edition, a reference link, or a detail to keep" /></label>
+      <p className="field-hint">Include only blend names and label directions. Leave out personal names, contact details, order numbers and account information.</p>
       <p className="field-hint spec-line">Avery 94502 · 2.5-inch circles · US Letter</p>
     </section>
   )

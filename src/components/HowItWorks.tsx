@@ -40,6 +40,7 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     <article>
     <h2>What happens on this device?</h2>
     <p>This app checks your ZIP and places each label at its physical size. Imported files stay in your browser, and research links are never opened automatically.</p>
+    <p>Under Print labels, Prompt feedback lets you review the agent’s diagnostic report and download it for sharing. Only fixed categories and counts are accepted. You can open saved reports to compare results locally. Nothing is submitted automatically.</p>
     <p>Switching views keeps your work; reloading or closing the page clears the print job. Keep the ZIP so you can import it again.</p>
     </article>
     <article>

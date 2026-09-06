@@ -211,3 +211,19 @@ describe('home, prompt, print, and help navigation', () => {
     expect(screen.getAllByText(/does not match this sheet/).length).toBeGreaterThan(0)
   })
 })
+
+it('extracts feedback from a pack and clears it when a later import fails', async () => {
+  window.history.replaceState({}, '', '/#print')
+  const feedback = {
+    format: 'tin-to-cellar/feedback', schemaVersion: '1.0.0', promptVersion: '2026-09-06.1',
+    request: { labelCount: 1, shape: 'circle' }, outcome: 'complete', steps: [], issues: [],
+  }
+  importer.mockResolvedValueOnce({ ...ready(), manifest: { title: 'Test pack', extensions: { 'tin-to-cellar:feedback': feedback } } })
+  render(<App />)
+  upload()
+  expect(await screen.findByText(/Agent-reported outcome: complete/)).toBeInTheDocument()
+  importer.mockRejectedValueOnce(new Error('Invalid ZIP'))
+  upload()
+  await waitFor(() => expect(screen.queryByText(/Agent-reported outcome: complete/)).not.toBeInTheDocument())
+  expect(screen.getByText(/No valid feedback report/)).toBeInTheDocument()
+})
