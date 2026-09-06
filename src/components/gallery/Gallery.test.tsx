@@ -14,7 +14,7 @@ function fixture(id = 'one'): ImportedCellarLabel {
 }
 beforeEach(() => { vi.stubGlobal('crypto', webcrypto); URL.createObjectURL = vi.fn(() => 'blob:local'); URL.revokeObjectURL = vi.fn() })
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); history.replaceState({}, '', '/') })
-const config = { intake: true, serving: true, turnstileSiteKey: 'test', noticeVersion: '2026-09-06-v1' }
+const config = { intake: true, serving: true, turnstileSiteKey: 'test', noticeVersion: '2026-09-06-v2' }
 it('previews locally, then uploads only explicitly selected artwork and allowlisted metadata', async () => {
   const calls: { url: string; init?: RequestInit }[] = []
   const fetcher = vi.fn(async (url: string, init?: RequestInit) => { calls.push({ url, init }); if (url.endsWith('/config')) return { ok: true, json: async () => config }; if (url.endsWith('/submissions')) { const d = JSON.parse(init?.body as string); return { ok: true, json: async () => ({ id: d.submissionId, state: 'reserved' }) } }; return { ok: true, json: async () => ({ id: 'receipt', state: 'pending' }) } })
@@ -38,6 +38,30 @@ it('previews locally, then uploads only explicitly selected artwork and allowlis
   expect(authorization).toMatch(/^Bearer [a-f0-9]{64}$/)
   expect(document.body.textContent).not.toContain(authorization.replace('Bearer ', ''))
   expect(location.hash).toBe('')
+})
+it('does not confirm an expired reservation or upload artwork and allows a deliberate new submission', async () => {
+  const posts: string[] = []
+  const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.endsWith('/config')) return { ok: true, json: async () => config }
+    posts.push(JSON.parse(init?.body as string).submissionId)
+    return { ok: true, json: async () => ({ id: posts.at(-1), state: 'expired' }) }
+  })
+  vi.stubGlobal('fetch', fetcher)
+  render(<GallerySubmission labels={[fixture()]} />)
+  fireEvent.click(await screen.findByLabelText('Share Private maker Blend one'))
+  fireEvent.click(screen.getByLabelText(ACKNOWLEDGEMENT))
+  fireEvent.click(screen.getByRole('button', { name: 'Submit for review' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Verify test submission' }))
+  await screen.findByText(/This submission is no longer available/)
+  expect(screen.queryByText(/Submitted for review\./)).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Retry this label' })).toBeNull()
+  expect(screen.getByLabelText('Share Private maker Blend one')).toBeChecked()
+  expect(fetcher.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false)
+  expect(posts).toHaveLength(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Submit for review' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Verify test submission' }))
+  expect(posts).toHaveLength(2)
+  expect(posts[1]).not.toBe(posts[0])
 })
 it('refuses changed bytes against the imported manifest hash before any reservation', async () => {
   const item = fixture(); item.artwork.data = new Uint8Array([3,2,1]).buffer

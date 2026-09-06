@@ -23,7 +23,7 @@ Hosted migration initially failed with D1 `incomplete input` although local SQLi
 
 The enabled staging deployment completed the hosted human/agent moderation proof below. The simplified contributor flow is deployed as staging Worker version `f15e9fdc-6004-4abd-ab5a-f8eaa6b7067d`. A fresh synthetic 1024px browser import/selection/Turnstile submission completed with “Submitted for review.” and zero private/status links. Retired contributor GET status, GET preview and POST withdrawal routes all returned 404 on staging.
 
-- Current simplified-flow suite: **260 tests in 42 files passed**, lint passed, build passed (448 modules), and all 20 historical protocol versions passed.
+- Current simplified-flow suite: **262 tests in 42 files passed**, lint passed, build passed (448 modules), and all 20 historical protocol versions passed.
 - All three updated local Wrangler/D1/R2 end-to-end flows passed: scoped machine grants/version/audit/revocation; changed-byte rejection and revocable downloads; browser selection/private submission/human publication/public reimport/printing.
 - Fresh hosted OTP human login succeeded; the staging queue, submission detail and full-resolution 2048px synthetic artwork loaded.
 - A selected machine grant permitted its scoped queue and artwork read. Downloaded artwork matched the canonical SHA-256. Recommendation plus identical replay returned one recommendation ID.
@@ -35,10 +35,16 @@ The enabled staging deployment completed the hosted human/agent moderation proof
 
 ## Remaining release work
 
-The simplified staging redeploy and its submission/retired-route smoke checks passed. The production root configuration now contains the actual bindings and enabled Worker environment flags, but all three production D1 switches remain 0. Implementation commit `0fff239` is pushed only to `codex/community-gallery`. Automatic approval review rejected a direct push to main and requires approval for that final repository change; a pull request is being prepared. Main and the production gallery remain unchanged. Complete the scoped production release and equivalent hosted checks before claiming production availability.
+The simplified staging redeploy and its submission/retired-route smoke checks passed. The production root configuration now contains the actual bindings and enabled Worker environment flags, but all three production D1 switches remain 0. Implementation commit `0fff239` is pushed only to `codex/community-gallery`. Automatic approval review rejected a direct push to main and requires approval for that final repository change; [pull request #3](https://github.com/Enablement-Engineering/tin-to-cellar/pull/3) is prepared. Main and the production gallery remain unchanged. Complete the scoped production release and equivalent hosted checks before claiming production availability.
 
 Fresh human login and selected-agent staging proof are complete; there is no pending OTP step. Keep the tested publication unpublished. Physical printer alignment and artwork rights are not established by software tests. The original mixed checkout remains untouched; implementation is isolated in `/private/tmp/tin-to-cellar-gallery`.
 
 ## Submission experience update
 
 At the user’s direction, successful contribution now ends with “Submitted for review.” Contributor status links, private preview and withdrawal controls are removed; an internal same-tab nonce remains only for safe reservation/upload retries. Admin rejection/unpublishing and retention remain. The earlier status/withdrawal test evidence describes the retired flow, not a supported feature. Production has not been released.
+
+## Consent and completion refinement
+
+The sharing agreement now says: “I created or generated these labels and agree to share them through Tin to Cellar for personal cellaring.” New submissions use notice version `2026-09-06-v2`; existing v1 consent remains unchanged and reviewable. Retention details are collapsed, and completion appears in a compact result card. Expired upload reservations cannot produce a false success; a deliberate new submission is required. The full 262-test suite, lint and build pass.
+
+The final consent/status build is deployed on staging as `818fd726-ae7a-4018-b849-093bbae20292`. A fresh synthetic 1024px browser submission passed v2 consent and Turnstile, displayed the compact confirmation with no private links, and remained private. The rendered confirmation was visually inspected. All three final local integration workflows passed.

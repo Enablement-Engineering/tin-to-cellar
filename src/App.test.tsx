@@ -302,7 +302,7 @@ it('excludes trusted demo imports from collection and clears prior diagnostics, 
   const manifest = { title: 'Ordinary pack', labels: [], extensions: { 'tin-to-cellar:protocol': { revision: '0.0.20', cellarpackVersion: '0.1.0', feedbackVersion: '0.2.0' }, 'tin-to-cellar:feedback': feedback, 'tin-to-cellar:retrospective': retrospective } }
   importer.mockResolvedValueOnce({ ...ready(), manifest }).mockResolvedValueOnce({ ...ready([imported('Demo blend')]), manifest: { ...manifest, title: 'Trusted example' } })
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {
-    if (String(input) === '/api/gallery/v1/config') return Response.json({ intake: true, serving: true, turnstileSiteKey: 'test', noticeVersion: '2026-09-06-v1' })
+    if (String(input) === '/api/gallery/v1/config') return Response.json({ intake: true, serving: true, turnstileSiteKey: 'test', noticeVersion: '2026-09-06-v2' })
     if (String(input).startsWith('/examples/ten-blends/pack-')) return new Response(new Uint8Array([1]))
     return Response.json({ status: 'collected' })
   })

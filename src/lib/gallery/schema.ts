@@ -30,7 +30,7 @@ export function parseGalleryDraft(value: unknown): GalleryLabelDraftV1 {
         return fail();
     if (!['tin', 'pouch', 'box', 'bulk', 'other', 'unknown'].includes(String(value.package)) || !['current', 'historical', 'special', 'unknown'].includes(String(value.variant)))
         return fail();
-    if (!exact(value.acknowledgement, ['version', 'accepted']) || value.acknowledgement.version !== GALLERY_NOTICE_VERSION || value.acknowledgement.accepted !== true)
+    if (!exact(value.acknowledgement, ['version', 'accepted']) || (value.acknowledgement.version !== GALLERY_NOTICE_VERSION && value.acknowledgement.version !== '2026-09-06-v1') || value.acknowledgement.accepted !== true)
         return fail();
     if (!exact(value.image, ['sha256', 'bytes', 'width', 'height']) || typeof value.image.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(value.image.sha256) || !Number.isInteger(value.image.bytes) || Number(value.image.bytes) < 1 || Number(value.image.bytes) > MAX_IMAGE_BYTES || !Number.isInteger(value.image.width) || Number(value.image.width) < 825 || Number(value.image.width) > 2048 || value.image.height !== value.image.width)
         return fail();

@@ -20,7 +20,7 @@ Private local evidence is ignored under `output/gallery/` and `.wrangler/downloa
 
 | Check | Result |
 | --- | --- |
-| `npm test` | Current simplified contributor/admin/agent run: 260 tests in 42 files passed. The earlier repair checkpoint was 228 tests in 39 files. |
+| `npm test` | Current simplified contributor/admin/agent run: 262 tests in 42 files passed. The earlier repair checkpoint was 228 tests in 39 files. |
 | `npm run lint` | Passed. |
 | `npm run build` | TypeScript and production build passed (448 modules); Vite reports the existing large-bundle warning. |
 | `PROTOCOL_BASE_SHA=919aa50f461dd63413f6f5d1d99ac611e4a8675c npm run protocol:history` | All 20 historical releases unchanged; new local draft is 0.0.21. |
@@ -49,7 +49,7 @@ The imported gallery pack has the expected `LIMITED_RESEARCH` warning: private o
 
 Human unpublishing then made public detail, thumbnail, artwork and pack routes all return 404 with `Cache-Control: no-store`. Revoking the machine grant caused the real client to return `access_denied`. The test publication is no longer public; the submission remains unpublished/private under its retention schedule. Earlier unauthorized and wrong-host denial checks also passed. This is hosted staging evidence, distinct from local fixture authentication.
 
-Current simplified-flow validation passed **260 tests in 42 files**, lint, the 448-module build and all 20 historical protocol versions. All three updated real local Wrangler/D1/R2 end-to-end flows also passed. Prior restricted-server EPERM was resolved by an approved rerun; no production authentication bypass was introduced.
+Current simplified-flow validation passed **262 tests in 42 files**, lint, the 448-module build and all 20 historical protocol versions. All three updated real local Wrangler/D1/R2 end-to-end flows also passed. Prior restricted-server EPERM was resolved by an approved rerun; no production authentication bypass was introduced.
 
 The temporary setup token was deleted through the UI and rejected by a follow-up API request with 401 Invalid API Token. Temporary setup-secret copies were removed; protected ongoing agent credential files remain. No secret values are recorded here.
 
@@ -57,4 +57,10 @@ The temporary setup token was deleted through the UI and rejected by a follow-up
 
 The user removed contributor status links and withdrawal controls. Successful upload now displays “Submitted for review”; internal same-tab reservation/upload retry state remains, while admin rejection, unpublishing and retention continue. Earlier withdrawal/status assertions in the historical sections describe the retired flow. Updated local tests cover the simplified behavior.
 
-The simplified staging redeployment completed as Worker version `f15e9fdc-6004-4abd-ab5a-f8eaa6b7067d`. A fresh synthetic 1024px ZIP passed actual browser import, explicit selection, Turnstile and private submission, ending with “Submitted for review.” and zero private/status links. Hosted GET contributor status, GET preview and POST withdrawal each returned 404. Production root configuration now has actual bindings and enabled Worker flags, but all three production database switches remain 0 and implementation commit `0fff239` is pushed only to the feature branch. No production gallery feature deployment or main-branch update has occurred; direct main push was rejected by automatic approval review and a reviewable pull request is being prepared. Complete the separate production release and verification before claiming production availability. There is no pending OTP step. Software and hosted staging checks do not establish physical printer alignment, artwork fidelity or rights.
+The simplified staging redeployment completed as Worker version `f15e9fdc-6004-4abd-ab5a-f8eaa6b7067d`. A fresh synthetic 1024px ZIP passed actual browser import, explicit selection, Turnstile and private submission, ending with “Submitted for review.” and zero private/status links. Hosted GET contributor status, GET preview and POST withdrawal each returned 404. Production root configuration now has actual bindings and enabled Worker flags, but all three production database switches remain 0 and implementation commit `0fff239` is pushed only to the feature branch. No production gallery feature deployment or main-branch update has occurred; direct main push was rejected by automatic approval review and [pull request #3](https://github.com/Enablement-Engineering/tin-to-cellar/pull/3) is prepared. Complete the separate production release and verification before claiming production availability. There is no pending OTP step. Software and hosted staging checks do not establish physical printer alignment, artwork fidelity or rights.
+
+## Consent and completion refinement
+
+The sharing agreement now says: “I created or generated these labels and agree to share them through Tin to Cellar for personal cellaring.” New submissions use notice version `2026-09-06-v2`; existing v1 consent remains unchanged and reviewable. Retention details are collapsed, and completion appears in a compact result card. Expired upload reservations cannot produce a false success; a deliberate new submission is required. The full 262-test suite, lint and build pass.
+
+The final consent/status build is deployed on staging as `818fd726-ae7a-4018-b849-093bbae20292`. A fresh synthetic 1024px browser submission passed v2 consent and Turnstile, displayed the compact confirmation with no private links, and remained private. The rendered confirmation was visually inspected. All three final local integration workflows passed.

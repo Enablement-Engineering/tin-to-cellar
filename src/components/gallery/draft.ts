@@ -3,7 +3,7 @@ import { GALLERY_NOTICE_VERSION, type GalleryLabelDraftV1, type GalleryReceipt }
 import { parseGalleryDraft, publicReference } from '../../lib/gallery/schema'
 import { findExactTobacco } from '../../lib/tobacco-catalog'
 export const SHARING_NOTICE = 'Your ZIP is read on this device. Only labels you choose to submit are uploaded for private review. Approved labels become public so others can download and print them for personal cellaring. Authorized review tools may inspect submitted artwork.'
-export const ACKNOWLEDGEMENT = 'I created or generated these label designs and want Tin to Cellar to host and share my contribution for personal cellaring. I understand that the original brand artwork may belong to others.'
+export const ACKNOWLEDGEMENT = 'I created or generated these labels and agree to share them through Tin to Cellar for personal cellaring.'
 export type Choice = { edition: string; package: GalleryLabelDraftV1['package']; variant: GalleryLabelDraftV1['variant']; description: string; references: string[] }
 export type Attempt = { label: ImportedCellarLabel; draft: GalleryLabelDraftV1; key: string; receipt?: GalleryReceipt; error?: string; retryable?: boolean }
 export const hex = (bytes: ArrayBuffer) => Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('')

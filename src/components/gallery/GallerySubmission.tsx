@@ -36,6 +36,8 @@ export function GallerySubmission({ labels }: { labels: ImportedCellarLabel[] })
         if (!response.ok) throw await uploadFailure(response)
         completed = await response.json() as GalleryReceipt
       }
+      if (['expired', 'deleting', 'deleted', 'withdrawn'].includes(completed.state)) throw new GalleryUploadError('This submission is no longer available. Use Submit for review to send the selected label again.', false)
+      if (!['pending', 'published', 'unpublished', 'rejected'].includes(completed.state)) throw new GalleryUploadError('Submission not confirmed. Retry to finish sharing this label.', true)
       setAttempts(old => old.map((entry, index) => index === active ? { ...entry, receipt: completed, error: undefined } : entry))
       setSelected(old => old.filter(id => id !== attempt.label.id))
     } catch (e) { setAttempts(old => old.map((entry, index) => index === active ? { ...entry, error: errorText(e), retryable: !(e instanceof GalleryUploadError) || e.retryable } : entry)) }
@@ -63,12 +65,12 @@ export function GallerySubmission({ labels }: { labels: ImportedCellarLabel[] })
       </fieldset>}
     </article> })}</div>
     <label className="gallery-check"><input type="checkbox" checked={accepted} disabled={busy || active !== null} onChange={event => setAccepted(event.target.checked)} />{ACKNOWLEDGEMENT}</label>
-    <p className="field-hint">Unreviewed submissions expire after 30 days. Rejected artwork is scheduled for deletion after 7 days. A limited review record stays for 90 days. Downloaded copies cannot be recalled.</p>
-    <button className="button primary" disabled={!accepted || !selected.length || busy || active !== null} onClick={() => void start()}>Submit for review</button>
+    <details className="gallery-retention"><summary>How long submissions are kept</summary><p className="field-hint">Unreviewed submissions expire after 30 days. Rejected artwork is scheduled for deletion after 7 days. A limited review record stays for 90 days. Downloaded copies cannot be recalled.</p></details>
+    <button className="button primary" disabled={!accepted || !selected.length || busy || active !== null} onClick={() => void start()}>{busy || active !== null ? 'Submitting…' : attempts.length > 0 && !selected.length && attempts.every(a => a.receipt && !a.error) ? 'Submitted' : 'Submit for review'}</button>
     {active !== null && <><p role="status">{busy ? 'Uploading selected artwork…' : `Verify submission ${active + 1} of ${attempts.length}`}</p><Turnstile key={challenge} siteKey={config.turnstileSiteKey} onToken={token} onError={verificationError} /></>}
     {error && <p role="alert">{error}</p>}
-    {attempts.length > 0 && <section aria-label="Submission results">
-      {attempts.map((a, index) => <article key={a.draft.submissionId}><h3>{a.label.label.maker} {a.label.label.blend}</h3><p role="status">{a.error ?? (a.receipt ? 'Submitted for review.' : 'Submission not yet confirmed.')}</p>{(!a.receipt || a.error) && a.retryable !== false && <button className="button quiet" disabled={busy || active !== null} onClick={() => { setActive(index); setChallenge(value => value + 1); setError('') }}>Retry this label</button>}</article>)}
+    {attempts.length > 0 && <section className="gallery-submission-results" aria-label="Submission results">
+      {attempts.map((a, index) => <article className="gallery-submission-result" key={a.draft.submissionId}><h3>{a.label.label.maker} {a.label.label.blend}</h3><p className="field-hint" role="status">{a.error ?? (a.receipt ? a.receipt.state === 'published' ? 'Your label is available in the gallery.' : a.receipt.state === 'rejected' ? 'Reviewed. This label was not approved for the gallery.' : a.receipt.state === 'unpublished' ? 'This label is no longer public in the gallery.' : 'Submitted for review. Your label will appear in the gallery once approved.' : active === index ? 'Submitting this label…' : active !== null && index > active ? 'Waiting to submit.' : 'Submission not confirmed. Retry to finish sharing this label.')}</p>{(!a.receipt || a.error) && a.retryable !== false && active === null && <button className="button quiet" disabled={busy} onClick={() => { setActive(index); setChallenge(value => value + 1); setError('') }}>Retry this label</button>}</article>)}
     </section>}
   </section>
 }

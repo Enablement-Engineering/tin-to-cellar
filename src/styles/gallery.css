@@ -6,6 +6,14 @@
 .gallery-check { display: flex !important; align-items: flex-start; gap: .6rem; margin: 1rem 0; }
 .gallery-check input { flex: 0 0 auto; margin-top: .3rem; width: 1.1rem; height: 1.1rem; }
 .gallery-reference, .gallery-digest { overflow-wrap: anywhere; }
+.gallery-retention { margin: 1rem 0 1.5rem; color: var(--text-muted); font-size: .875rem; }
+.gallery-retention summary { cursor: pointer; }
+.gallery-retention p { margin: .75rem 0 0; }
+.gallery-submission-results { display: grid; gap: .75rem; margin-top: 1.5rem; }
+.gallery-submission-result { padding: 1rem; border: 1px solid var(--line-strong); border-radius: .5rem; background: var(--surface-sunken); overflow-wrap: anywhere; }
+.gallery-submission-result h3 { margin: 0; font-family: inherit; font-size: 1rem; font-weight: 600; }
+.gallery-submission-result p { margin: .35rem 0 0; }
+.gallery-submission-result button { margin-top: .75rem; }
 .gallery-filters, .gallery-actions { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin: 1rem 0; }
 .gallery-filters label { flex: 1; min-width: min(100%, 180px); }
 .gallery-page label:not(.gallery-check), .gallery-submission fieldset label:not(.gallery-check) { display: grid; gap: .4rem; margin: .75rem 0; }

@@ -7,7 +7,7 @@ import { galleryResponse } from './routes';
 import { cleanGallery } from './cleanup';
 import { sha256, type GalleryBucket, type GalleryDatabase, type GalleryEnv } from './storage';
 import type { GalleryLabelDraftV1, GalleryReceipt } from '../../src/lib/gallery/types';
-import { parseGalleryDraft } from '../../src/lib/gallery/schema';
+import { canonicalJson, parseGalleryDraft } from '../../src/lib/gallery/schema';
 import { verifyGalleryAdmin } from './auth';
 class DB implements GalleryDatabase {
     readonly db: DatabaseSync;
@@ -40,7 +40,7 @@ const deps = { verifyAdmin: async (r: Request) => r.headers.get('X-Test-Admin') 
 function call(path: string, method = 'GET', data?: unknown, headers: Record<string, string> = {}) { return galleryResponse(new Request('https://site.example/api/gallery/v1' + path, { method, headers: { Origin: 'https://site.example', Authorization: `Bearer ${key}`, ...(data instanceof Uint8Array ? { 'Content-Type': 'image/png' } : data ? { 'Content-Type': 'application/json' } : {}), ...headers }, body: data instanceof Uint8Array ? data as BodyInit : data ? JSON.stringify(data) : undefined }), env, deps); }
 async function submit() { expect((await call('/submissions', 'POST', draft)).status).toBe(201); const r = await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png); expect(r.status).toBe(200); return r.json(); }
 async function approve() { const r = await submit(); const approved = await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: r.version, digest: r.digest }, { 'X-Test-Admin': 'yes' }); expect(approved.status).toBe(200); return approved.json(); }
-beforeEach(async () => { db = new DB(); bucket = new Bucket(); env = { GALLERY: db, GALLERY_ART: bucket, GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'fixture', GALLERY_RATE_LIMITER: { limit: async () => ({ success: true }) } }; png = encode({ width: 825, height: 825, channels: 3, depth: 8, data: new Uint8Array(825 * 825 * 3).fill(255) }); const inset = { top: .125, right: .125, bottom: .125, left: .125, unit: 'in' as const }; draft = { version: 1, submissionId: crypto.randomUUID(), catalogId: 'test-blend', proposedIdentity: null, package: 'tin', variant: 'current', edition: '', description: 'Synthetic test label', surface: { shape: 'circle', finishedSize: { width: 2.5, height: 2.5, unit: 'in' }, bleed: inset, safeInset: inset }, writeInArea: { id: 'date', purpose: 'jarred-date', geometry: { shape: 'rectangle', x: .35, y: .6, width: .3, height: .1 }, background: { integratedInArtwork: true }, overlay: { mode: 'blank' } }, references: [], image: { sha256: await sha256(png), bytes: png.length, width: 825, height: 825 }, acknowledgement: { version: '2026-09-06-v1', accepted: true } }; });
+beforeEach(async () => { db = new DB(); bucket = new Bucket(); env = { GALLERY: db, GALLERY_ART: bucket, GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'fixture', GALLERY_RATE_LIMITER: { limit: async () => ({ success: true }) } }; png = encode({ width: 825, height: 825, channels: 3, depth: 8, data: new Uint8Array(825 * 825 * 3).fill(255) }); const inset = { top: .125, right: .125, bottom: .125, left: .125, unit: 'in' as const }; draft = { version: 1, submissionId: crypto.randomUUID(), catalogId: 'test-blend', proposedIdentity: null, package: 'tin', variant: 'current', edition: '', description: 'Synthetic test label', surface: { shape: 'circle', finishedSize: { width: 2.5, height: 2.5, unit: 'in' }, bleed: inset, safeInset: inset }, writeInArea: { id: 'date', purpose: 'jarred-date', geometry: { shape: 'rectangle', x: .35, y: .6, width: .3, height: .1 }, background: { integratedInArtwork: true }, overlay: { mode: 'blank' } }, references: [], image: { sha256: await sha256(png), bytes: png.length, width: 825, height: 825 }, acknowledgement: { version: '2026-09-06-v2', accepted: true } }; });
 describe('private gallery workflow', () => {
     it('gates exact reviewed bytes and every direct URL after human unpublish', async () => { const pending = await submit(); expect((await call(`/labels/${draft.submissionId}/artwork`)).status).toBe(404); expect((await call(`/submissions/${draft.submissionId}/preview`, 'GET', undefined, { Authorization: 'Bearer ' + 'b'.repeat(64) })).status).toBe(404); expect((await call(`/admin/submissions/${draft.submissionId}/artwork`)).status).toBe(403); const r = await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: pending.version, digest: pending.digest }, { 'X-Test-Admin': 'yes' }); expect(r.status).toBe(200); const published = await r.json(); for (const kind of ['artwork', 'thumbnail', 'pack']) {
         const a = await call(`/labels/${draft.submissionId}/${kind}`);
@@ -206,4 +206,24 @@ describe('private gallery workflow', () => {
   const review=await(await call(`/admin/submissions/${pending.id}`,'GET',undefined,{'X-Test-Admin':'yes'})).json();expect(review.state).toBe('pending');
  });
 
+});
+
+it('requires v2 for new intake while preserving historical v1 retries, corrections and publication', async () => {
+    expect((await (await call('/config')).json()).noticeVersion).toBe('2026-09-06-v2');
+    const legacy: GalleryLabelDraftV1 = { ...draft, acknowledgement: { version: '2026-09-06-v1', accepted: true } };
+    expect((await call('/submissions', 'POST', legacy)).status).toBe(400);
+    const pending = await submit();
+    // Model a record accepted before the notice change, without changing its consent.
+    db.db.prepare('UPDATE gallery_submissions SET metadata_json=?,request_hash=? WHERE id=?').run(canonicalJson(legacy), await sha256(canonicalJson(legacy)), legacy.submissionId);
+    expect((await call('/submissions', 'POST', legacy)).status).toBe(200);
+    const path = `/admin/submissions/${legacy.submissionId}`;
+    const headers = { 'X-Test-Admin': 'yes' };
+    expect((await call(path, 'PATCH', { expectedVersion: pending.version, metadata: draft }, headers)).status).toBe(400);
+    const saved = await call(path, 'PATCH', { expectedVersion: pending.version, metadata: { ...legacy, edition: 'Reviewed historical submission' } }, headers);
+    expect(saved.status).toBe(200);
+    const corrected = await saved.json();
+    expect(corrected.metadata.acknowledgement).toEqual(legacy.acknowledgement);
+    expect((await call(`${path}/approve`, 'POST', { expectedVersion: corrected.version, digest: corrected.digest }, headers)).status).toBe(200);
+    expect((await call(`/labels/${legacy.submissionId}/pack`)).status).toBe(200);
+    expect(JSON.parse(db.db.prepare('SELECT metadata_json FROM gallery_submissions WHERE id=?').get(legacy.submissionId)!.metadata_json as string).acknowledgement).toEqual(legacy.acknowledgement);
 });

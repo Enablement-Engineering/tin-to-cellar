@@ -17,7 +17,7 @@ if (rejectedPath) test('local Downloads unsupported profile remains printable an
   await page.getByLabel('Label ZIP').setInputFiles(rejectedPath)
   const sharing = page.getByRole('region', { name: 'Share your labels' })
   await sharing.getByRole('checkbox', { name: /^Share / }).first().check()
-  await sharing.getByLabel('I created or generated these label designs', { exact: false }).check()
+  await sharing.getByLabel('I created or generated these labels', { exact: false }).check()
   const uploaded = page.waitForResponse(response => response.request().method() === 'PUT' && new URL(response.url()).pathname.startsWith(`${api}/submissions/`))
   await sharing.getByRole('button', { name: 'Submit for review', exact: true }).click()
   const response = await uploaded
@@ -40,7 +40,7 @@ for (const [index, path] of paths.entries()) test(`local Downloads submission: $
   expect(writes).toEqual([])
   await sharing.getByRole('checkbox', { name: /^Share / }).first().check()
   await sharing.getByLabel('Edition, if known').fill(`Local test ${index + 1}`)
-  await sharing.getByLabel('I created or generated these label designs', { exact: false }).check()
+  await sharing.getByLabel('I created or generated these labels', { exact: false }).check()
   const uploaded = page.waitForResponse(response => response.request().method() === 'PUT' && new URL(response.url()).pathname.startsWith(`${api}/submissions/`))
   await sharing.getByRole('button', { name: 'Submit for review', exact: true }).click()
   const response = await uploaded
@@ -52,7 +52,7 @@ for (const [index, path] of paths.entries()) test(`local Downloads submission: $
   expect(writes).toHaveLength(2)
   expect((await request.get(`${api}/labels/${receipt.id}/artwork`)).status()).toBe(404)
   await page.screenshot({ path: `output/gallery/download-${index + 1}-pending.png`, fullPage: true })
-  await expect(sharing.getByText('Submitted for review.', {exact:true})).toBeVisible()
+  await expect(sharing.getByText('Submitted for review. Your label will appear in the gallery once approved.', {exact:true})).toBeVisible()
   await expect(sharing.getByRole('link', {name:'Private status and withdrawal link'})).toHaveCount(0)
   const original = await JSZip.loadAsync(await readFile(path))
   const manifest = JSON.parse(await original.file('manifest.json')!.async('string'))

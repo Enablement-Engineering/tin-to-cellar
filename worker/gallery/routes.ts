@@ -107,6 +107,8 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                     return json({ error: 'not_found' }, 404);
                 return existing.request_hash === hash ? json(receipt(existing,now)) : json({ error: 'review_changed' }, 409);
             }
+            if (draft.acknowledgement.version !== GALLERY_NOTICE_VERSION)
+                return json({ error: 'invalid_metadata' }, 400);
             if (!switches.intake)
                 return json({ error: 'intake_closed' }, 503);
             if (!(await (deps.verifyTurnstile ?? verifyGalleryTurnstile)(request, env)))
@@ -187,7 +189,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                     return json({ error: 'review_changed' }, 409);
                 const metadata = parseGalleryDraft(action.metadata);
                 const old = JSON.parse(row.metadata_json!) as GalleryLabelDraftV1;
-                if (metadata.submissionId !== row.id || canonicalJson(metadata.image) !== canonicalJson(old.image) || canonicalJson(metadata.surface) !== canonicalJson(old.surface) || canonicalJson(metadata.writeInArea) !== canonicalJson(old.writeInArea))
+                if (canonicalJson(metadata.acknowledgement) !== canonicalJson(old.acknowledgement) || metadata.submissionId !== row.id || canonicalJson(metadata.image) !== canonicalJson(old.image) || canonicalJson(metadata.surface) !== canonicalJson(old.surface) || canonicalJson(metadata.writeInArea) !== canonicalJson(old.writeInArea))
                     return json({ error: 'invalid_metadata' }, 400);
                 if (metadata.catalogId && !await db.prepare('SELECT id FROM gallery_tobaccos WHERE id=? AND active=1').bind(metadata.catalogId).first())
                     return json({ error: 'catalog_mapping_required' }, 400);

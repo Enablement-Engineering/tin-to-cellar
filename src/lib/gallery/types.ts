@@ -1,5 +1,5 @@
 import type { LabelSurface, WriteInArea } from '../cellarpack/types';
-export const GALLERY_NOTICE_VERSION = '2026-09-06-v1';
+export const GALLERY_NOTICE_VERSION = '2026-09-06-v2';
 export interface GalleryLabelDraftV1 {
     version: 1;
     submissionId: string;
@@ -25,7 +25,7 @@ export interface GalleryLabelDraftV1 {
         height: number;
     };
     acknowledgement: {
-        version: typeof GALLERY_NOTICE_VERSION;
+        version: typeof GALLERY_NOTICE_VERSION | '2026-09-06-v1';
         accepted: true;
     };
 }

@@ -73,9 +73,9 @@ test('browser selects artwork, submits privately, reviewer publishes, public use
   expect(writes.filter(w => w.path.startsWith(base))).toEqual([])
   await page.getByLabel(`Share ${tobacco.maker} ${tobacco.blend}`, { exact: true }).check()
   expect(writes.filter(w => w.path.startsWith(base))).toEqual([])
-  await page.getByLabel('I created or generated these label designs', { exact: false }).check()
+  await page.getByLabel('I created or generated these labels', { exact: false }).check()
   await page.getByRole('button', { name: 'Submit for review', exact: true }).click()
-  await expect(page.getByText('Submitted for review.', { exact: true })).toBeVisible()
+  await expect(page.getByText('Submitted for review. Your label will appear in the gallery once approved.', { exact: true })).toBeVisible()
   const creation = writes.find(w => w.path === `${base}/submissions`)!
   expect(creation).toBeTruthy(); expect(creation.body).not.toContain('PRIVATE_')
   const id = JSON.parse(creation.body!).submissionId
