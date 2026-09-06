@@ -224,7 +224,7 @@ function App() {
         <div className="page-heading screen-only"><h1>Print labels</h1><p className="spec-line">Avery 94502 · 2.5 in circles · US Letter</p></div>
         {labels.length > 0 ? <PrintStudio intake={intake} labels={labels} quantities={quantities} onQuantityChange={(id, value) => setQuantities((current) => ({ ...current, [id]: value }))} settings={printSettings} onSettingsChange={setPrintSettings} /> :
           <div className="print-intake screen-only">{intake}<ExamplePack busy={importing} onFile={handlePack} /></div>}
-        <DiagnosticFeedback candidate={feedback} protocolContext={protocolContext} />
+        {(feedback != null || ['conflict', 'invalid', 'unknown'].includes(protocolContext.status)) && <DiagnosticFeedback candidate={feedback} protocolContext={protocolContext} />}
       </>}
     </main>
     <SiteFooter currentView={view} onNavigate={navigate} />

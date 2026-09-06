@@ -227,7 +227,7 @@ it('extracts feedback from a pack and clears it when a later import fails', asyn
   importer.mockRejectedValueOnce(new Error('Invalid ZIP'))
   upload()
   await waitFor(() => expect(screen.queryByText('AI reported: Completed')).not.toBeInTheDocument())
-  expect(screen.getByText(/No readable feedback in this pack/)).toBeInTheDocument()
+  expect(screen.queryByText('AI run details')).not.toBeInTheDocument()
 })
 
 vi.mock('./components/ProofAccess', () => ({ ProofAccess: ({ onPendingChange }: { onPendingChange(pending: boolean): void }) => { useEffect(() => onPendingChange(false), [onPendingChange]); return null } }))
