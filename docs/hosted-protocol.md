@@ -1,12 +1,12 @@
 # Bundled protocol operation
 
-Protocol 0.0.14 uses semantic versions and keeps Copy prompt self-contained. It includes the project request, complete instructions, both schemas and unchanged canonical proof program. Read prompt shows a request preview; Full copied text reveals exactly what is copied. There is no separate retrieval step or Copy complete prompt action.
+Protocol 0.0.15 uses semantic versions and keeps Copy prompt self-contained. It includes the project request, complete instructions, both schemas and unchanged canonical proof program. Read prompt shows a request preview; Full copied text reveals exactly what is copied. There is no separate retrieval step or Copy complete prompt action.
 
 The protocol API under `/api/labels/protocol/` is retired and returns 404. Versioned instruction snapshots and hashes remain in the local registry for provenance and same-chat repairs. Known repairs embed the recorded bundle; unknown revisions require the original instructions rather than guessing. Optional instruction downloads remain in How it works. Site deployment updates the protocol used for new prompts; existing chats keep their pinned revision.
 
 ## Pre-release versions
 
-Current new-run versions are protocol `0.0.14`, CellarPack `0.1.0`, and feedback `0.2.0`. Protocol version strings are stored in the existing `revision` and `protocolRevision` fields. Numeric entries in the release registry are historical snapshots, not the current version scheme. New releases use `major.minor.patch` strings and remain immutable. Bump protocol patch for instruction edits; use a new minor version for incompatible pre-release schema changes. Existing CellarPack 1.x imports remain readable, but new prompts emit 0.1.0.
+Current new-run versions are protocol `0.0.15`, CellarPack `0.1.0`, and feedback `0.2.0`. Protocol version strings are stored in the existing `revision` and `protocolRevision` fields. Numeric entries in the release registry are historical snapshots, not the current version scheme. New releases use `major.minor.patch` strings and remain immutable. Bump protocol patch for instruction edits; use a new minor version for incompatible pre-release schema changes. Existing CellarPack 1.x imports remain readable, but new prompts emit 0.1.0.
 
 The protocol includes example opening, repair, resume, missing-reference, successful-delivery and incomplete-delivery messages. Routine chat omits versions, hashes and proof coordinates; required checks still run, and unresolved problems remain visible. Technical details are available on request.
 
@@ -45,3 +45,5 @@ The untouched ZIP, SHA-256 `6cc57412d02402e8357dd56b5624ff3d010416edbcc501392814
 The downloaded original proof bundle matches its reported hash. Its canonical script matches the repository byte for byte. All three original proof images match independently reproduced proof pixels exactly, despite differing PNG encoding hashes. All nine declared text/panel regions pass local checks. Two visual reviews found the text and whole writing surfaces inside the safe guides, with recognizable source motifs and no composite images. Exact facial detail in the Autumn Evening adaptation remains an editorial judgment; the checks do not certify pixel-identical package reproduction.
 
 This verifies the tested Work workflow with complete-copy fallback. It does not establish reliable hosted retrieval or fix the ordinary Chat image-tool behavior. Evidence and the preserved audit are in local ignored `output/protocol-r12-e2e/`.
+
+Conversation examples were expanded from the recorded test chats in protocol 0.0.15. See [Conversation review](conversation-review.md) for the observed failure modes, successful behavior and evidence limits.

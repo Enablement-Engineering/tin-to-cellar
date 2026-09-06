@@ -54,7 +54,7 @@ describe('self-contained generation protocol', () => {
     expect(code).toBe(read('./local-proof.py').trim())
     expect(prompt).toContain(`Canonical local-proof.py SHA-256: ${createHash('sha256').update(code + '\n').digest('hex')}`)
     expect(code.length).toBeLessThan(10000)
-    expect(prompt.length - code.length).toBeLessThan(35000)
+    expect(prompt.length - code.length).toBeLessThan(38000)
   })
   it('preserves research-before-generation and close reference fidelity', () => {
     const prompt = buildCompleteTinToCellarPrompt({ tobaccos: 'Escudo' })
@@ -276,5 +276,10 @@ it('keeps all emitted version declarations consistent with the selected pre-rele
 
 it('provides user-facing examples without waiving checks or inventing completed work', () => {
   const prompt = buildTinToCellarInstructions()
-  for (const text of ['# Talking with the user', 'Example: starting a requested batch', 'Example: repairing a detected defect', 'Example: an image tool may end the turn', 'Example: a reference is genuinely unavailable', 'Example: successful delivery', 'Example: a label still fails after the allowed repairs', 'Perform every required research, reference, proof and ZIP check', 'Never invent a successful result or a link', 'Do not claim the website has accepted the ZIP before an observed import']) expect(prompt).toContain(text)
+  for (const text of ['# Talking with the user', 'Example: starting a requested batch', 'Example: repairing a detected defect', 'Example: an image tool may end the turn', 'Example: a reference is genuinely unavailable', 'Example: successful delivery', 'Example: the generator returns a multi-label composite', 'Example: the site reports a ZIP structure problem', 'Example: import succeeds but the user notices a visual defect', 'Example: the ZIP download fails', 'Example: a detailed audit is requested', 'Example: a label still fails after the allowed repairs', 'Perform every required research, reference, proof and ZIP check', 'Never invent a successful result or a link', 'Do not claim the website has accepted the ZIP before an observed import']) expect(prompt).toContain(text)
+})
+
+it('uses numbered choices only for genuine decisions and accepts natural replies', () => {
+  const prompt = buildTinToCellarInstructions()
+  for (const text of ['Example: choosing a package edition', 'most recent unanswered menu', 'Accept the option number or an ordinary-language reply', 'Do not append menus to routine progress', 'Never make the user select an already-authorized next step']) expect(prompt).toContain(text)
 })
