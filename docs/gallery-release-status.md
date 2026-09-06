@@ -52,3 +52,7 @@ The final consent/status build is deployed on staging as `818fd726-ae7a-4018-b84
 ## Staging collection availability
 
 Staging intentionally has no diagnostics/source-collection bindings. It now returns a distinct `collection_unconfigured` code, and the UI explains that automatic collection is unavailable without offering an ineffective retry or claiming the diagnostics were shared. Gallery submissions are separate and remain available. This clarification is deployed in staging version `68808dea-3967-4640-b39c-050ca6b70475`; a fresh browser import confirmed the new message and absence of the retry button. Current full suite: 266 tests in 42 files pass; lint and build pass.
+
+## Responsive header
+
+The header now wraps and uses two columns on narrow screens; How it works remains accessible in the footer. A real local browser test passed at 320, 375, 600, 768, 1024 and 1440px, checking link bounds, 44px targets, and footer navigation. Mobile and desktop screenshots were inspected. Final full unit suite remains 266 passing tests, with lint/build passing. Staging version `421d6b7c-e818-4506-904f-4c2eaf14b7fd` includes this change; all four deployed workflow links fit the browser viewport and the footer help link is present.
