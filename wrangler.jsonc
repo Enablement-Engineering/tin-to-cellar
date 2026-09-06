@@ -5,12 +5,15 @@
   "compatibility_date": "2026-09-05",
   "workers_dev": false,
   "preview_urls": false,
-  "vars": { "PROOFS_ENABLED": "true" },
+  "vars": { "PROOFS_ENABLED": "true", "TURNSTILE_SITE_KEY": "0x4AAAAAAEpv53Q_SspS9xS0" },
   "durable_objects": { "bindings": [{ "name": "PROOF_BUDGET", "class_name": "ProofBudget" }] },
   "migrations": [{ "tag": "proof-budget-v1", "new_sqlite_classes": ["ProofBudget"] }],
   "images": { "binding": "IMAGES" },
   "rules": [{ "type": "Data", "globs": ["**/avery-94502-proof-overlay.png"], "fallthrough": true }],
-  "ratelimits": [{ "name": "PROOF_RATE_LIMITER", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }],
+  "ratelimits": [
+    { "name": "PROOF_RATE_LIMITER", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } },
+    { "name": "ACCESS_RATE_LIMITER", "namespace_id": "1003", "simple": { "limit": 3, "period": 60 } }
+  ],
   "routes": [
     { "pattern": "tintocellar.com", "custom_domain": true },
     { "pattern": "www.tintocellar.com", "custom_domain": true }

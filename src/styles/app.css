@@ -352,3 +352,5 @@ a { color: var(--green-700); }
 .order-filename { font-size: .72rem; margin: 0; overflow-wrap: anywhere; }
 .order-review { border-top: 1px solid var(--line); padding-top: 1rem; }
 .order-review .field { margin-bottom: .5rem; }
+.proof-access { margin-block: 1rem 1.5rem; }
+.proof-access .field-hint { margin-block: .6rem; max-width: 42ch; }

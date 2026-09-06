@@ -24,11 +24,12 @@ After deployment, verify the app and both HTTPS domains, then the health and pro
 
 ## Proof API
 
-`GET /api/proof` returns the [live input contract](https://tintocellar.com/api/proof). `POST /api/proof` accepts raw PNG bytes and uses Cloudflare Images to return a separate review PNG:
+`GET /api/proof` returns the [live input contract](https://tintocellar.com/api/proof). `POST /api/proof` requires the private allowance from **Enable hosted image checks**, accepts raw PNG bytes, and returns a separate review PNG. Supply the allowance through an authorization header, never a URL. The following assumes `PROOF_ACCESS_TOKEN` is already set privately:
 
 ```sh
 curl --fail-with-body \
   -H 'Content-Type: image/png' \
+  -H "Authorization: Bearer $PROOF_ACCESS_TOKEN" \
   --data-binary @label.png \
   'https://tintocellar.com/api/proof?diameter=2.5&bleed=0.125&safe=0.125' \
   --output label-review-proof.png
@@ -36,15 +37,23 @@ curl --fail-with-body \
 
 Only Avery 94502 geometry is supported: 2.5-inch diameter with 0.125-inch bleed and safe inset. Input must be a square, non-interlaced, non-animated, 8-bit RGB/RGBA PNG, 128–2048 pixels and at most 8 MiB. Send uncompressed `image/png`, not JSON or multipart. Upload reading times out after ten seconds.
 
-The edge limiter allows ten requests per minute per client IP. A single `PROOF_BUDGET` Durable Object additionally reserves processing attempts across all locations: 30 per minute, 200 per UTC day, and 2,000 per UTC calendar month. Reservations happen before Images processing; rendering failures are not refunded. It stores only aggregate counters, never uploads or client identifiers. Missing or unavailable limiters block processing. Keep the named object and migration history stable across releases so counters survive deployment.
+The edge limiter allows ten requests per minute per client IP. A single `PROOF_BUDGET` Durable Object additionally reserves processing attempts across all locations: 30 per minute, 200 per UTC day, and 1,000 per UTC calendar month. Reservations happen before Images processing; rendering failures are not refunded. It stores aggregate counters and hashes of limited-use credentials with expiry and remaining uses, never uploads, raw credentials, or IP addresses. Expired hashes are pruned when issuing access. Missing or unavailable limiters block processing. Keep the named object and migration history stable across releases so counters survive deployment.
 
 Set `PROOFS_ENABLED` to `"false"` and redeploy to pause hosted processing while preserving the website and local guides. Worker subdomain and version preview URLs are disabled in configuration. These controls bound admitted image attempts, not the entire account bill: Worker requests, Durable Object operations, and unrelated services can still incur usage. An attacker can exhaust the shared allowance and deny hosted proofs to legitimate users. Review account usage and billing separately.
 
-Turnstile is not installed. A compatible next layer is website verification followed by a short-lived, limited-use proof credential carried in the user's prompt. Verify Turnstile server-side, including hostname and action; do not put the raw challenge token in the prompt or challenge direct AI requests. Maintain the shared allowance even after adding verification.
+Turnstile loads only when the user enables hosted checks. The Worker verifies the challenge server-side, including the exact allowed origin/hostname and `proof-access` action. Verification issues an opaque credential valid for 24 hours and up to 60 checks, subject to shared limits. Both copy routes include it; the reusable instruction download does not. No credential is saved in browser storage. Expired or exhausted credentials return 401 and the AI uses local guides. Already copied credentials remain usable until expiry/exhaustion even after the user switches back to local guides.
+
+Access issuance has a separate three-per-minute edge limit and shared caps of five per minute, twenty per UTC day, and two hundred per UTC month. Raw Turnstile tokens are single-use and are never handed to the AI. Create a Managed widget restricted to your production domain, set its public `TURNSTILE_SITE_KEY` in Wrangler, and store `TURNSTILE_SECRET_KEY` through `npm exec -- wrangler secret put TURNSTILE_SECRET_KEY`. Configure `ACCESS_RATE_LIMITER` and `PROOF_BUDGET` alongside the existing bindings. Forks must also change the server's allowed hosts. Never deploy Cloudflare test keys to production.
+
+## Keeping hosting within free allowances
+
+Keep Workers Free and Images Free; no paid upgrade is required. Static assets do not invoke this Worker, and import, OCR and printing run locally. No AI, R2, scheduled jobs, or upload storage are bound to this application. The 1,000-attempt monthly cap leaves room below Images' 5,000 free unique transformations, including the overlay operation; it is not a measurement of account-wide transformation usage. Other projects share account allowances. Images Free rejects new transformations beyond its quota without overage charges. Workers Free has a daily request cap and fixed CPU limit; do not configure a custom CPU limit, which requires Workers Paid. See [Images pricing](https://developers.cloudflare.com/images/pricing/), [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/), and [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/).
+
+Prefer local guides when capacity runs out. Do not automatically upgrade or retry paid processing. The shared cap limits Images work, while free-plan platform limits remain the final protection for Worker and Durable Object traffic. A sufficiently large attack can still exhaust shared account quotas and interrupt other Workers. Review billing and quota usage before changing plans or adding paid bindings.
 
 Cyan marks trim, dashed magenta marks safe, and shading marks bleed. The service stores no uploads and does not change the original file. It does not judge names, packaging resemblance, or writing-space usefulness. Open the proof beside the source reference; never use it as printable artwork or include it in a CellarPack.
 
-Invalid PNG/geometry returns 400, unsupported content type/encoding 415, oversized input 413, stalled upload 408, rate limiting 429 with `Retry-After`, and paused processing or missing required bindings 503. Use local guides for unsupported geometry or an unavailable endpoint.
+Missing, unknown, expired, or exhausted proof access returns 401. Invalid PNG/geometry returns 400, unsupported content type/encoding 415, oversized input 413, stalled upload 408, rate limiting 429 with `Retry-After`, and paused processing or missing required bindings 503. Use local guides for unsupported geometry or an unavailable endpoint.
 
 Some AI execution environments cannot reach the service even when another client can. Record the exact failing request and distinguish a client block from an HTTP error. A successful health check or GET contract does not prove an image POST works. Use the local-guide fallback and report it when necessary.
 

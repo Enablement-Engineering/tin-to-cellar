@@ -58,7 +58,7 @@ describe('self-contained generation protocol', () => {
   it('uses the review service without replacing clean artwork or blocking unsupported environments', () => {
     const prompt = buildTinToCellarPrompt({ tobaccos: 'Escudo' })
     expect(prompt).toContain('https://tintocellar.com/api/proof')
-    expect(prompt).toContain('POST only the generated PNG bytes')
+    expect(prompt).toContain('POST raw generated PNG bytes')
     expect(prompt).toContain('Open the returned PNG')
     expect(prompt).toContain('Never use the proof as artwork, editing reference or ZIP content')
     expect(prompt).toContain('make equivalent guides locally')

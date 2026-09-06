@@ -22,7 +22,7 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     <h2>Why use a separate AI chat?</h2>
     <p>Use the AI account or subscription you already have, within its usual limits. This site does not run a separate paid image-generation service, which keeps it inexpensive to host or run locally.</p>
     <h2>Check the fit before printing</h2>
-    <p>The prompt asks your AI to send generated labels to our review service, which returns a copy with trim and safe-area guides. It does not store the images. Your AI uses the guides to check the fit and make corrections; the clean artwork goes into your label ZIP. If the service is unavailable, the AI can make those guides itself.</p>
+    <p>Your AI makes trim and safe-area guides locally by default. For hosted checks, choose Enable hosted image checks before copying your prompt. Cloudflare verifies access, and your prompt includes an allowance for up to 60 checks over 24 hours. The service returns guide copies without storing images. If access expires or shared capacity runs out, your AI uses local guides. Only clean artwork goes into your label ZIP.</p>
     <h2>What happens on this device?</h2>
     <p>Your chat creates the artwork. This app checks the ZIP and places the labels at their physical size on the printer sheet. Keeping those jobs separate lets the artwork stay independent of the sheet layout.</p>
     <p>Imported files stay in your browser. The app does not upload them or automatically open research links. Switching tabs keeps your work; reloading or closing the page clears the current print job. Keep the downloaded ZIP so you can import it again.</p>

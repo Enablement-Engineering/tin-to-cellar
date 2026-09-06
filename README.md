@@ -56,7 +56,7 @@ The browser does not upload CellarPack files or automatically fetch provenance l
 
 Order reading also runs locally. Screenshot OCR downloads its English reader from the site on first use. Review matches before adding them; purchase quantities do not become print quantities.
 
-An optional Cloudflare proof service accepts explicitly submitted generated PNGs and returns trim/safe-area guides. It stores no uploads. The AI must visually inspect the proof alongside the original package; guides and ZIP validation do not certify artwork fidelity. If the service is unreachable, the instructions provide a local-guide fallback. Cloud OCR and automatic reference-image caching are not implemented.
+An optional Cloudflare proof service accepts explicitly submitted generated PNGs and returns trim/safe-area guides. Choose **Enable hosted image checks** before copying a prompt: Turnstile verification adds a private allowance for up to 60 checks over 24 hours. Shared processing is capped at 1,000 attempts per UTC month to leave free-tier headroom. The service stores no uploads, only usage counters and credential hashes. Without access or available capacity, the AI makes guides locally. It must visually inspect the proof alongside the original package; guides and ZIP validation do not certify artwork fidelity. Cloud OCR and automatic reference-image caching are not implemented.
 
 The default circular export includes opaque artwork through a 0.125-inch bleed ring, then transparent corners outside the 2.75-inch outer circle. The preview shows the finished trim; printing includes the supplied bleed. The generated image owns the entire blank writing surface, without website-added words or lines.
 

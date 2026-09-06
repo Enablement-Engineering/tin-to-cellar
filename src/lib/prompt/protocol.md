@@ -16,7 +16,7 @@ Use only the tobacco list explicitly supplied or confirmed in this conversation.
 - Inspect each render for package fidelity, names, legibility, crop, borders, bleed, and writable surface. Revise defects, up to three attempts per label; report unresolved failures. Generate when available rather than returning only research.
 
 # Dimensioned review proof
-For Avery 94502 circular labels, GET https://tintocellar.com/api/proof for its contract, then POST only the generated PNG bytes with Content-Type: image/png. Parameters diameter, bleed, safe are inches; defaults: ?diameter=2.5&bleed=0.125&safe=0.125. Use network-capable execution, not just a page opener. The service stores nothing. Resize a separate review copy if its limits require it; preserve the original.
+With supplied proof access, GET https://tintocellar.com/api/proof for its contract, then POST raw generated PNG bytes with Content-Type: image/png and Authorization: Bearer as supplied. Keep the credential out of URLs, ZIPs and other hosts. Without access, or on 401/429/503, use local guides without retries. The service stores no images. Resize only a review copy; preserve the original.
 
 Open the returned PNG: cyan is trim, dashed magenta is safe, shading is bleed. Compare names, iconic artwork and the entire writing surface with these guides and the package reference. Refine specific defects, at most twice. Guides do not certify fidelity. Never use the proof as artwork, editing reference or ZIP content. Keep clean originals. For other dimensions/shapes or if unavailable, make equivalent guides locally and report that fallback.
 

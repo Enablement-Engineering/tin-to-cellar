@@ -13,6 +13,7 @@ export async function proofResponse(request: Request, images?: ProofImages, admi
   if (request.method === 'GET') return Response.json({
     version: 1, purpose: 'Circular label review proof, never printable artwork',
     method: 'POST', contentType: 'image/png', body: 'Raw PNG bytes, not JSON or multipart',
+    authorization: 'Bearer credential from Enable hosted image checks on the website. Without access, or on 401/429/503, use local guides; do not retry repeatedly.',
     parameters: { units: 'inches', ...DEFAULT_PROOF_GEOMETRY },
     supportedProfile: 'Avery 94502 only: diameter=2.5, bleed=0.125, safe=0.125. Other geometries must use local guides.',
     limits: { bytes: MAX_PROOF_BYTES, squarePixels: '128–2048', encoding: '8-bit RGB/RGBA, non-interlaced PNG' },
