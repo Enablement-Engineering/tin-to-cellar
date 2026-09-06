@@ -12,10 +12,10 @@ async function audit(page: Page) {
   expect(results.violations).toEqual([])
 }
 for (const width of [1280, 320]) {
-  for (const route of ['home', 'create', 'print', 'help', 'about', 'inspiration', 'privacy']) {
+  for (const route of ['', 'labels', 'labels/create', 'labels/print', 'labels/help', 'about', 'inspiration', 'privacy', 'missing-page']) {
     test(`${route} at ${width}px has no automated violations or horizontal overflow`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 })
-      await page.goto(`/#${route}`)
+      await page.goto(`/${route}`)
       await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
       await audit(page)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
@@ -23,15 +23,15 @@ for (const width of [1280, 320]) {
   }
 }
 test('skip link is first, preserves the route, and route changes set focus and title', async ({ page }) => {
-  await page.goto('/#create')
+  await page.goto('/labels/create')
   await page.keyboard.press('Tab')
   await expect(page.getByRole('link', { name: 'Skip to main content' })).toBeFocused()
   await page.keyboard.press('Enter')
   await expect(page.getByRole('main')).toBeFocused()
-  await expect(page).toHaveURL(/#create$/)
+  await expect(page).toHaveURL(/\/labels\/create$/)
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Make a prompt' })).toBeVisible()
-  await page.getByRole('navigation', { name: 'Workflow' }).getByRole('button', { name: 'Print labels' }).click()
+  await page.getByRole('navigation', { name: 'Workflow' }).getByRole('link', { name: 'Print labels' }).click()
   await expect(page.getByRole('main')).toBeFocused()
   await expect(page).toHaveTitle('Print labels | Tin to Cellar')
   await page.goBack()
@@ -39,7 +39,7 @@ test('skip link is first, preserves the route, and route changes set focus and t
   await expect(page).toHaveTitle('Make a prompt | Tin to Cellar')
 })
 test('keyboard suggestions and removal preserve focus', async ({ page }) => {
-  await page.goto('/#create')
+  await page.goto('/labels/create')
   const input = page.getByRole('combobox', { name: 'Tobaccos' })
   await input.fill('Peterson')
   await input.press('ArrowDown')
@@ -54,7 +54,7 @@ test('keyboard suggestions and removal preserve focus', async ({ page }) => {
 })
 test('order review can be completed by keyboard and returns focus to its trigger', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 })
-  await page.goto('/#create')
+  await page.goto('/labels/create')
   const trigger = page.getByRole('button', { name: 'Import order', exact: true })
   await trigger.focus()
   await trigger.press('Enter')
@@ -66,7 +66,7 @@ test('order review can be completed by keyboard and returns focus to its trigger
   await expect(trigger).toBeFocused()
 })
 test('ZIP input has one visible keyboard entry and failed imports announce a result', async ({ page }) => {
-  await page.goto('/#print')
+  await page.goto('/labels/print')
   await page.getByRole('link', { name: 'Skip to main content' }).focus()
   await page.keyboard.press('Enter')
   await page.keyboard.press('Tab')
@@ -77,7 +77,7 @@ test('ZIP input has one visible keyboard entry and failed imports announce a res
 })
 test('forced colors retain a field outline and reduced motion disables smooth scrolling', async ({ page }) => {
   await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' })
-  await page.goto('/#create')
+  await page.goto('/labels/create')
   const input = page.getByRole('combobox', { name: 'Tobaccos' })
   await input.focus()
   await expect(input).toHaveCSS('outline-style', 'solid')
@@ -87,12 +87,11 @@ test('forced colors retain a field outline and reduced motion disables smooth sc
 
 test('expanded prompt stays accessible at narrow width', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 })
-  await page.goto('/#create')
+  await page.goto('/labels/create')
   await page.getByText('Read prompt', { exact: true }).click()
-  await page.getByText('More options', { exact: true }).click()
   await audit(page)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-  await page.getByRole('button', { name: 'Markdown source' }).click()
+  await page.getByRole('button', { name: 'Full copied text' }).click()
   await audit(page)
 })
 
@@ -100,7 +99,7 @@ for (const width of [1280, 640, 320]) {
   test(`imported sheet, alignment and pagination are accessible at ${width}px`, async ({ page }) => {
     const { printablePack } = await import('./pack')
     await page.setViewportSize({ width, height: 900 })
-    await page.goto('/#print')
+    await page.goto('/labels/print')
     const status = page.getByRole('status').first()
     await page.getByRole('button', { name: 'Choose ZIP' }).focus()
     await page.getByLabel('Label ZIP').setInputFiles({ name: 'fixture.zip', mimeType: 'application/zip', buffer: await printablePack() })

@@ -2,7 +2,7 @@
 
 Tin to Cellar helps people make tobacco jar labels using their existing AI subscription. The static website prepares the prompt, opens the resulting CellarPack ZIP locally, and prints labels. Research, image generation, revisions, and packaging stay in one AI conversation.
 
-**[Open the live site](https://tintocellar.com/)** · [Make a prompt](https://tintocellar.com/#create) · [Print labels](https://tintocellar.com/#print)
+**[Open the live site](https://tintocellar.com/)** · [Make a prompt](https://tintocellar.com/labels/create) · [Print labels](https://tintocellar.com/labels/print)
 
 ## Use it
 

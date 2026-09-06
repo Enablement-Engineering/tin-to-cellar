@@ -17,10 +17,10 @@ export function SiteFooter({ currentView, onNavigate }: SiteFooterProps) {
     <nav className="footer-nav" aria-label="About Tin to Cellar">
       {pages.map(({ page, label }) => <a
         key={page}
-        href={`#${page}`}
+        href={`/${page}`}
         aria-current={currentView === page ? 'page' : undefined}
         onClick={(event) => {
-          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
           event.preventDefault()
           onNavigate(page)
         }}

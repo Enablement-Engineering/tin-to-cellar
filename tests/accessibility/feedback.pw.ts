@@ -21,7 +21,7 @@ for (const width of [1280, 320]) {
     manifest.extensions = { ...manifest.extensions, 'tin-to-cellar:feedback': report }
     zip.file('manifest.json', JSON.stringify(manifest))
     await page.setViewportSize({ width, height: 900 })
-    await page.goto('/#print')
+    await page.goto('/labels/print')
     await page.getByLabel('Label ZIP').setInputFiles({ name: 'feedback.zip', mimeType: 'application/zip', buffer: await zip.generateAsync({ type: 'nodebuffer' }) })
     await expect(page.getByRole('heading', { name: 'Your labels' })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Current run' }).getByText('Blank date area needed attention')).toBeHidden()

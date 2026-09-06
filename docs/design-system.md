@@ -26,14 +26,16 @@ Adaptations made for the application:
 
 | Destination | Entry | Content |
 | --- | --- | --- |
-| Home | No hash or `#home` | Product introduction, workbench photograph, prompt action, workflow steps, print specifications |
-| Make a prompt | `#create` | Optional tobacco list, special requests, prompt handoff, automatic print-guide access, complete-prompt fallback, and advanced input |
-| Print labels | `#print` | Local ZIP import, validation results, quantities, sheet preview, printing and alignment |
-| How it works | `#help` | AI handoff instructions, portable instructions, file handling, proof service explanation, printing guidance |
-| About | `#about`, footer | Dylan Isaac’s introduction, the reason for the app, and a short Enablement Engineering description |
-| Inspiration | `#inspiration`, footer | Credit and a direct link to Hobbiton Piper’s original jar-label guide |
+| Home | `/` | Site introduction and entry to Labels |
+| Labels | `/labels` | Product introduction, workbench photograph, prompt action, workflow steps, print specifications |
+| Make a prompt | `/labels/create` | Optional tobacco list, special requests, complete prompt handoff, automatic print-guide access, and advanced input |
+| Print labels | `/labels/print` | Local ZIP import, validation results, quantities, sheet preview, printing and alignment |
+| How it works | `/labels/help` | AI handoff instructions, portable instructions, file handling, proof service explanation, printing guidance |
+| About | `/about`, footer | Dylan Isaac’s introduction, the reason for the app, and a short Enablement Engineering description |
+| Inspiration | `/inspiration`, footer | Credit and a direct link to Hobbiton Piper’s original jar-label guide |
+| Privacy | `/privacy`, footer | Local processing and limited contribution collection |
 
-The wordmark returns to Home. The sticky header keeps the three tool links visible and uses a raised paper treatment for the selected tool. Navigation must remain usable with the keyboard and browser history. Returning to Home does not require clearing the current request or print job.
+The wordmark returns to the site root. Navigation must remain usable with the keyboard and browser history. Moving between site pages does not clear the current request or print job. Direct path navigation loads the app through the static-assets SPA fallback; legacy hash routes have no compatibility layer.
 
 The footer contains About and Inspiration links, `© {new Date().getFullYear()} Enablement Engineering`, and “Made with ❤️ by Enablement Engineering.” The company name in the maker credit links to [Enablement Engineering](https://www.enablement.engineering/). The year comes from the browser’s clock at render time, so it does not require an annual source edit. Keep format-version labels and file-handling explanations out of this footer; relevant guidance belongs with the tools and in How it works.
 

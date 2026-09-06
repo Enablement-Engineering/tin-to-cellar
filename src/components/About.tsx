@@ -10,7 +10,7 @@ export function About() {
         <h2>Why I made it</h2>
         <p>I'm Dylan Isaac. I made Tin to Cellar to make it easier to carry a tin's artwork over to a jar label. The artwork is part of what makes a blend recognizable.</p>
         <p>You use your own AI chat to make the artwork, then return here to arrange and print the labels. Each design leaves room to write a date by hand.</p>
-        <p><a href="#inspiration">Hobbiton Piper's guide</a> was the starting point. Tin to Cellar builds on his idea so you can make a set of labels without laying out every sheet by hand.</p>
+        <p><a href="/inspiration">Hobbiton Piper's guide</a> was the starting point. Tin to Cellar builds on his idea so you can make a set of labels without laying out every sheet by hand.</p>
       </section>
       <section>
         <h2>Enablement Engineering</h2>

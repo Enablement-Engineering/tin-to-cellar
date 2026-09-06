@@ -6,6 +6,7 @@ import { buildTinToCellarPrompt, buildCompleteTinToCellarPrompt, buildTinToCella
 import { checkAvery94502Compatibility } from './lib/sheets'
 import { Configurator } from './components/Configurator'
 import { HowItWorks } from './components/HowItWorks'
+import { SiteHome } from './components/SiteHome'
 import { Landing } from './components/Landing'
 import { Privacy } from './components/Privacy'
 import { About } from './components/About'
@@ -26,11 +27,11 @@ import './styles/app.css'
 const initialConfig: ConfiguratorState = {
   tobaccos: '', artDirection: '',
 }
-type View = 'home' | 'create' | 'print' | 'help' | 'about' | 'inspiration' | 'privacy'
-function viewFromHash(): View | null {
-  const hash = window.location.hash.slice(1)
-  if (!hash) return 'home'
-  return hash === 'home' || hash === 'create' || hash === 'print' || hash === 'help' || hash === 'about' || hash === 'inspiration' || hash === 'privacy' ? hash : null
+const viewPaths = { home: '/', labels: '/labels', create: '/labels/create', print: '/labels/print', help: '/labels/help', about: '/about', inspiration: '/inspiration', privacy: '/privacy' } as const
+type View = keyof typeof viewPaths
+function viewFromPath(): View | 'not-found' {
+  const pathname = window.location.pathname.replace(/\/$/, '') || '/'
+  return (Object.keys(viewPaths) as View[]).find((view) => viewPaths[view] === pathname) ?? 'not-found'
 }
 function issueText(issue: { message?: string; recovery?: string }) {
   return [issue.message ?? 'The label needs repair.', issue.recovery].filter(Boolean).join(' ')
@@ -39,7 +40,7 @@ function issueText(issue: { message?: string; recovery?: string }) {
 function App() {
   const [proofLease, setProofLease] = useState<ProofLease | null>(null)
   const [config, setConfig] = useState(initialConfig)
-  const [view, setView] = useState<View>(() => viewFromHash() ?? 'home')
+  const [view, setView] = useState<View | 'not-found'>(viewFromPath)
   const main = useRef<HTMLElement>(null)
   const previousView = useRef(view)
   const navigate = (next: View) => {
@@ -48,11 +49,9 @@ function App() {
       main.current?.focus({ preventScroll: true })
       window.scrollTo({ top: 0, left: 0 })
     }
-    if (window.location.hash !== `#${next}`) window.location.hash = next
+    if (window.location.pathname !== viewPaths[next] || window.location.hash) window.history.pushState({}, '', viewPaths[next])
   }
   useEffect(() => {
-    const titles: Record<View, string> = { home: 'Labels for your tobacco jars', create: 'Make a prompt', print: 'Print labels', help: 'How it works', about: 'About', inspiration: 'Inspiration', privacy: 'Privacy' }
-    document.title = `${titles[view]} | Tin to Cellar`
     // Leave initial focus at the document so the skip link is the first Tab stop.
     if (previousView.current !== view) {
       main.current?.focus({ preventScroll: true })
@@ -63,13 +62,10 @@ function App() {
   useEffect(() => {
     const previousRestoration = window.history.scrollRestoration
     window.history.scrollRestoration = 'manual'
-    const onHashChange = () => {
-      const next = viewFromHash()
-      if (next) setView(next)
-    }
-    window.addEventListener('hashchange', onHashChange)
+    const onPopState = () => setView(viewFromPath())
+    window.addEventListener('popstate', onPopState)
     return () => {
-      window.removeEventListener('hashchange', onHashChange)
+      window.removeEventListener('popstate', onPopState)
       window.history.scrollRestoration = previousRestoration
     }
   }, [])
@@ -187,17 +183,37 @@ function App() {
     {repairPrompt && <div className="panel repair-panel"><h3>{labels.length ? 'Some labels need fixing' : 'The ZIP needs fixing'}</h3><p>{labels.length ? 'You can still print the usable labels below. ' : ''}Send the repair request to the same AI chat and import the ZIP it returns.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}><Icon name="copy" size={17} />Copy repair request</button><p className="copy-status" role="status">{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={repairPrompt} rows={8} onFocus={(event) => event.currentTarget.select()} />}</div>}
   </div>
 
-  return <div className="app-shell tc-grain">
+  const titles: Record<View | 'not-found', string> = { home: 'Tin to Cellar', labels: 'Labels for your tobacco jars', 'not-found': 'Page not found', create: 'Make a prompt', print: 'Print labels', help: 'How it works', about: 'About', inspiration: 'Inspiration', privacy: 'Privacy' }
+  const routeClick = (next: View) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    event.preventDefault()
+    navigate(next)
+  }
+  const workflowViews: View[] = ['labels', 'create', 'print', 'help']
+  const navItems: { view: View; label: string }[] = [{ view: 'labels', label: 'Labels' }, ...(workflowViews.includes(view as View) ? [
+    { view: 'create' as const, label: 'Make a prompt' }, { view: 'print' as const, label: 'Print labels' }, { view: 'help' as const, label: 'How it works' },
+  ] : [])]
+
+  return <div className="app-shell tc-grain" onClick={(event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    const anchor = event.target instanceof Element ? event.target.closest('a') : null
+    if (!anchor || anchor.hasAttribute('download') || (anchor.target && anchor.target !== '_self')) return
+    const url = new URL(anchor.href, window.location.href)
+    if (url.origin !== window.location.origin || url.hash || url.search) return
+    const next = (Object.keys(viewPaths) as View[]).find((key) => viewPaths[key] === url.pathname)
+    if (next) { event.preventDefault(); navigate(next) }
+  }}>
+    <title>{view === 'home' ? titles.home : `${titles[view]} | Tin to Cellar`}</title>
     <a className="skip-link" href="#main-content" onClick={(event) => { event.preventDefault(); main.current?.focus(); main.current?.scrollIntoView({ block: 'start' }) }}>Skip to main content</a>
     <p className="visually-hidden screen-only" role="status">{importing ? 'Checking your labels…' : summary ? `${summary.status === 'ready' ? 'Labels ready to print' : summary.status === 'partial' ? 'Some labels need repair' : 'ZIP needs repair'}. ${summary.labels.length} labels ready. ${summary.issues.length} issues to review.` : ''}</p>
     <header className="site-header screen-only">
       <div className="site-header-inner">
-        <button className="wordmark" type="button" onClick={() => navigate('home')} aria-label="Tin to Cellar home"><Wordmark /></button>
-        <nav className="nav-tabs" aria-label="Workflow"><button className={view === 'create' ? 'is-current' : ''} aria-current={view === 'create' ? 'page' : undefined} type="button" onClick={() => navigate('create')}>Make a prompt</button><button className={view === 'print' ? 'is-current' : ''} aria-current={view === 'print' ? 'page' : undefined} type="button" onClick={() => navigate('print')}>Print labels</button><button className={view === 'help' ? 'is-current' : ''} aria-current={view === 'help' ? 'page' : undefined} type="button" onClick={() => navigate('help')}>How it works</button></nav>
+        <a className="wordmark" href="/" onClick={routeClick('home')} aria-label="Tin to Cellar home"><Wordmark /></a>
+        <nav className="nav-tabs" aria-label="Workflow">{navItems.map((item) => <a key={item.view} href={viewPaths[item.view]} aria-current={view === item.view ? 'page' : undefined} onClick={routeClick(item.view)}>{item.label}</a>)}</nav>
       </div>
     </header>
     <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
-      {view === 'home' ? <Landing onNavigate={navigate} /> : view === 'create' ? <div className="screen-only create-workspace">
+      {view === 'home' ? <SiteHome onNavigate={() => navigate('labels')} /> : view === 'not-found' ? <div className="landing-page screen-only"><h1>Page not found</h1><p>This page doesn’t exist.</p><a href="/labels" onClick={routeClick('labels')}>Go to Labels</a></div> : view === 'labels' ? <Landing onNavigate={navigate} /> : view === 'create' ? <div className="screen-only create-workspace">
         <div className="create-grid"><Configurator value={config} onChange={setConfig} /><PromptHandoff proofLease={proofLease} onProofLeaseChange={setProofLease} completePrompt={completePrompt} prompt={prompt} request={request} onPrint={() => navigate('print')} /></div>
       </div> : view === 'help' ? <HowItWorks instructions={instructions} /> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
         <div className="page-heading screen-only"><h1>Print labels</h1><p className="spec-line">Avery 94502 · 2.5 in circles · US Letter</p></div>

@@ -66,7 +66,7 @@ export function ProofAccess({ lease, onChange, onPendingChange }: { lease: Proof
     return () => { disposed = true; clearTimeout(timer); clearTimeout(verificationTimer); controller.abort(); if (widget) window.turnstile?.remove(widget) }
   }, [attempt, onChange])
   return <div className="proof-access">
-    <p className="field-hint">{lease ? 'Print guide access is included in your prompt.' : attempt > 0 ? 'Preparing print guides. Complete the Cloudflare check if it appears.' : 'Your AI will make its own print guides.'} <a href="#privacy">Privacy</a></p>
+    <p className="field-hint">{lease ? 'Print guide access is included in your prompt.' : attempt > 0 ? 'Preparing print guides. Complete the Cloudflare check if it appears.' : 'Your AI will make its own print guides.'} <a href="/privacy">Privacy</a></p>
     <div ref={container} />
     {attempt > 0 && <button className="button quiet" type="button" onClick={() => { setAttempt(0); setMessage('Your AI will make its own guides for this request.') }}>Continue without waiting</button>}
     <p className="field-hint" role="status">{message || (lease ? 'Print guide access is ready. You can copy your prompt.' : attempt > 0 ? 'Preparing print guides.' : 'You can copy your prompt.')}</p>

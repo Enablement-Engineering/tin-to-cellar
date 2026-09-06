@@ -56,7 +56,7 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
         </button>
       </div>
 
-      <p className="import-privacy"><Icon name="lock" size={15} />Importing sends AI feedback and public package source observations to improve future labels. Your ZIP and artwork stay on this device. <a href="#privacy">Privacy details</a></p>
+      <p className="import-privacy"><Icon name="lock" size={15} />Importing sends AI feedback and public package source observations to improve future labels. Your ZIP and artwork stay on this device. <a href="/privacy">Privacy details</a></p>
 
 
       {summary && (summary.status !== 'ready' || summary.issues.length > 0 || summary.quarantined.length > 0) && (
