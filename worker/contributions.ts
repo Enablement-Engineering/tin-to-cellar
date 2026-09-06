@@ -1,4 +1,4 @@
-import { parseContribution, type Contribution, type SuggestedSource } from '../src/lib/contributions'
+import { collectionFeedback, parseContribution, type Contribution, type SuggestedSource } from '../src/lib/contributions'
 import { TOBACCO_CATALOG } from '../src/lib/tobacco-catalog'
 import { diagnosticInsert, storeDiagnostics, type DiagnosticsDatabase, type Statement } from './diagnostics'
 export interface Storage {
@@ -38,8 +38,13 @@ export class CatalogContributions {
       for (const item of records.values()) {
         const date = new Date(item.receivedAt)
         if (date.getTime() <= Date.now() - retention) continue
-        const contribution = parseContribution(item.contribution)
-        if (!contribution || !Number.isFinite(date.getTime())) throw new Error('Invalid stored contribution')
+        // Legacy source metadata is not copied to D1. Its catalog membership may
+        // have changed since collection and must not block diagnostic migration.
+        const stored = item.contribution
+        if (!stored || typeof stored.submissionId !== 'string' || !/^[a-f0-9]{64}$/.test(stored.submissionId) || !Number.isFinite(date.getTime())) throw new Error('Invalid stored diagnostic identity')
+        const feedback = stored.feedback === null ? null : collectionFeedback(stored.feedback)
+        if (stored.feedback !== null && !feedback) throw new Error('Invalid stored diagnostic feedback')
+        const contribution: Contribution = { version: 1, submissionId: stored.submissionId, feedback, sources: [] }
         batch.push(diagnosticInsert(this.database, contribution, date, true))
         if (batch.length === 50) { await this.database.batch(batch); batch = [] }
         copied++

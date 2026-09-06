@@ -86,7 +86,7 @@ it('migrates retained legacy records before new collection and only marks comple
   }, async batch(statements) { return Promise.all(statements.map(statement => statement.run())) } }
   const state = setup(db)
   state.data.set('report:one', { receivedAt: '2026-08-01T00:00:00.000Z', contribution })
-  state.data.set('report:two', { receivedAt: '2026-08-02T00:00:00.000Z', contribution: { ...contribution, submissionId: 'b'.repeat(64) } })
+  state.data.set('report:two', { receivedAt: '2026-08-02T00:00:00.000Z', contribution: { ...contribution, submissionId: 'b'.repeat(64), sources: [{ ...source, catalogId: 'retired-catalog-entry' }] } })
   state.data.set('report:expired', { receivedAt: '2025-01-01T00:00:00.000Z', contribution: { ...contribution, submissionId: 'c'.repeat(64) } })
   const migrate = () => state.object.fetch(new Request('https://catalog/migrate', { method: 'POST' }))
   await expect(migrate()).rejects.toThrow('Interrupted')
