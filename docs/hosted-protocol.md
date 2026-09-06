@@ -1,15 +1,17 @@
 # Hosted protocol operation
 
-Copy prompt supplies the request and directs the agent to retrieve `/api/protocol/v1/instructions.html`, verify both schemas and the end marker, and pin the retrieved revision for the run. Copy complete prompt is the self-contained recovery if retrieval fails. `https://tintocellar.com/api/protocol/v1` returns Markdown; the HTML URL returns the same complete instructions and both schemas as readable HTML. Neither requires proof access or accepts uploads. The content identifies its revision and immutable URL and ends with `END TIN TO CELLAR PROTOCOL N`.
+Copy prompt supplies the request and directs the agent to retrieve `/api/labels/protocol/v1/instructions.html`, verify both schemas and the end marker, and pin the retrieved revision for the run. Copy complete prompt is the self-contained recovery if retrieval fails. `https://tintocellar.com/api/labels/protocol/v1` returns Markdown; the HTML URL returns the same complete instructions and both schemas as readable HTML. Neither requires proof access or accepts uploads. The content identifies its revision and immutable URL and ends with `END TIN TO CELLAR PROTOCOL N`.
 
 ## Published resources
 
-- `/api/protocol/v1` selects the current release and requires cache revalidation.
-- `/api/protocol/v1/instructions.html` selects the current HTML release and requires cache revalidation.
-- `/api/protocol/v1/releases/5/instructions.html` is the first immutable HTML representation. It is generated and hashed at release creation from the exact Markdown contract, with escaped text, both schemas, no scripts, and a distinct ETag.
-- `/api/protocol/v1/releases/1/instructions.md` retains revision 1.
-- `/api/protocol/v1/releases/1/cellarpack.schema.json` exposes its manifest schema.
-- `/api/protocol/v1/releases/1/feedback.schema.json` exposes its feedback schema.
+Revision 6 moves label APIs under `/api/labels/`, including protocol, proof, proof-access, sources, contributions, and the disabled OCR stub. `/api/health` remains site-wide. Former unnamespaced routes return 404; reload already-open clients and create a fresh prompt after deployment. Revisions 1–5 remain byte-identical archival documents served under the new namespace, so their embedded historical URLs are evidence of the original release and are not active compatibility routes. Use revision 6 for new runs.
+
+- `/api/labels/protocol/v1` selects the current release and requires cache revalidation.
+- `/api/labels/protocol/v1/instructions.html` selects the current HTML release and requires cache revalidation.
+- `/api/labels/protocol/v1/releases/5/instructions.html` is the first immutable HTML representation. It is generated and hashed at release creation from the exact Markdown contract, with escaped text, both schemas, no scripts, and a distinct ETag.
+- `/api/labels/protocol/v1/releases/1/instructions.md` retains revision 1.
+- `/api/labels/protocol/v1/releases/1/cellarpack.schema.json` exposes its manifest schema.
+- `/api/labels/protocol/v1/releases/1/feedback.schema.json` exposes its feedback schema.
 
 Immutable responses use a one-year cache lifetime. All support GET, HEAD, ETag, and conditional requests. Unknown routes return 404; unsupported methods on existing resources return 405. No protocol request depends on proof configuration. Private proof access remains separately appended to copied prompts and is never in downloadable instructions.
 

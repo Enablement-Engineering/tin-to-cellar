@@ -62,7 +62,7 @@ describe('self-contained generation protocol', () => {
   })
   it('uses the review service without replacing clean artwork or blocking unsupported environments', () => {
     const prompt = buildCompleteTinToCellarPrompt({ tobaccos: 'Escudo' })
-    expect(prompt).toContain('https://tintocellar.com/api/proof')
+    expect(prompt).toContain('https://tintocellar.com/api/labels/proof')
     expect(prompt).toContain('POST raw generated PNG bytes')
     expect(prompt).toContain('Open the returned PNG')
     expect(prompt).toContain('Never use the proof as artwork, editing reference or ZIP content')
@@ -151,8 +151,8 @@ describe('private diagnostic instructions', () => {
 describe('hosted compact handoff', () => {
   it('retrieves the complete HTML release and offers a self-contained recovery without embedding schemas', () => {
     const prompt = buildTinToCellarPrompt({ tobaccos: ['Westminster', 'Orlik Golden Sliced', 'Autumn Evening'], websiteUrl: 'http://localhost:5173/' })
-    for (const requirement of ['Use only the tobacco list supplied or confirmed in this conversation', 'do not retrieve inventories from account memory or other chats', 'Westminster', 'Orlik Golden Sliced', 'Autumn Evening', 'https://tintocellar.com/api/protocol/v1/instructions.html', 'both JSON schemas', 'end marker', 'throughout this request and its repairs', 'retrieval fails or the content is incomplete', 'then wait', '.cellarpack.zip', 'Importing the returned pack sends validated AI feedback', 'http://localhost:5173/labels/print']) expect(prompt).toContain(requirement)
-    for (const technical of ['"$defs"', 'SHA-256', 'overlay.mode', '50 MiB', 'protocolRevision', '/api/proof']) expect(prompt).not.toContain(technical)
+    for (const requirement of ['Use only the tobacco list supplied or confirmed in this conversation', 'do not retrieve inventories from account memory or other chats', 'Westminster', 'Orlik Golden Sliced', 'Autumn Evening', 'https://tintocellar.com/api/labels/protocol/v1/instructions.html', 'both JSON schemas', 'end marker', 'throughout this request and its repairs', 'retrieval fails or the content is incomplete', 'then wait', '.cellarpack.zip', 'Importing the returned pack sends validated AI feedback', 'http://localhost:5173/labels/print']) expect(prompt).toContain(requirement)
+    for (const technical of ['"$defs"', 'SHA-256', 'overlay.mode', '50 MiB', 'protocolRevision', '/api/labels/proof']) expect(prompt).not.toContain(technical)
     expect(prompt.length).toBeLessThan(2500)
     expect(prompt).toContain('already has a pinned release in this conversation, reuse it instead')
     expect(prompt).toContain('do not switch revisions mid-run')
@@ -171,7 +171,7 @@ describe('hosted compact handoff', () => {
   })
   it('repairs against the immutable recorded revision', () => {
     const prompt = buildCellarPackRepairPrompt([], { status: 'known', revision: 1 })
-    expect(prompt).toContain('/api/protocol/v1/releases/1/instructions.md')
+    expect(prompt).toContain('/api/labels/protocol/v1/releases/1/instructions.md')
     expect(prompt).toContain('do not switch to current')
     expect(prompt).not.toContain('"$defs"')
   })

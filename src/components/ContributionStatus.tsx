@@ -6,7 +6,7 @@ export function ContributionStatus({ contribution }: { contribution: Contributio
   useEffect(() => {
     if (!contribution) return
     const controller = new AbortController()
-    void fetch('/api/contributions', {
+    void fetch('/api/labels/contributions', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(contribution),
       signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
     }).then(async response => {

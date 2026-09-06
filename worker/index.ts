@@ -22,10 +22,10 @@ interface Env {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const path = new URL(request.url).pathname
-    if (path === '/api/contributions' || path === '/api/sources') return contributionsResponse(request, env.CATALOG_CONTRIBUTIONS, env.CONTRIBUTION_RATE_LIMITER, env.CONTRIBUTION_ADMIN_TOKEN)
-    if (path === '/api/protocol' || path.startsWith('/api/protocol/')) return protocolResponse(request)
+    if (path === '/api/labels/contributions' || path === '/api/labels/sources') return contributionsResponse(request, env.CATALOG_CONTRIBUTIONS, env.CONTRIBUTION_RATE_LIMITER, env.CONTRIBUTION_ADMIN_TOKEN)
+    if (path === '/api/labels/protocol' || path.startsWith('/api/labels/protocol/')) return protocolResponse(request)
     const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
-    if (path === '/api/proof-access') {
+    if (path === '/api/labels/proof-access') {
       if (request.method === 'GET') return Response.json({ siteKey: env.PROOFS_ENABLED === 'true' && env.TURNSTILE_SECRET_KEY && env.PROOF_BUDGET && env.ACCESS_RATE_LIMITER ? env.TURNSTILE_SITE_KEY ?? null : null }, { headers })
       if (request.method !== 'POST') return new Response(null, { status: 405, headers })
       if (env.PROOFS_ENABLED !== 'true' || !env.ACCESS_RATE_LIMITER) return new Response(null, { status: 503, headers })
@@ -35,7 +35,7 @@ export default {
       } catch { return new Response(null, { status: 503, headers }) }
       return issueAccess(request, env.TURNSTILE_SECRET_KEY, env.PROOF_BUDGET)
     }
-    if (path === '/api/proof') {
+    if (path === '/api/labels/proof') {
       if (request.method === 'POST') {
         if (env.PROOFS_ENABLED !== 'true') return Response.json({ error: 'Hosted proofs are paused. Create review guides locally.' }, { status: 503, headers })
         if (!env.PROOF_RATE_LIMITER) return Response.json({ error: 'Proof service is not configured. Create review guides locally.' }, { status: 503, headers })
@@ -48,7 +48,7 @@ export default {
       return proofResponse(request, env.IMAGES, () => reserveProof(env.PROOF_BUDGET, bearer(request) ?? undefined))
     }
     if (path === '/api/health' && request.method === 'GET') return Response.json({ status: 'ok', cloudOcrEnabled: false }, { headers })
-    if (path === '/api/ocr') return Response.json({ error: 'Cloud OCR is not enabled. Use a text PDF or paste your order.' }, { status: 503, headers })
+    if (path === '/api/labels/ocr') return Response.json({ error: 'Cloud OCR is not enabled. Use a text PDF or paste your order.' }, { status: 503, headers })
     if (path.startsWith('/api/')) return Response.json({ error: 'Not found' }, { status: 404, headers })
     return env.ASSETS.fetch(request)
   },

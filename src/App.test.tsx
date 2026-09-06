@@ -251,7 +251,7 @@ it('collects valid diagnostics from a readable manifest even when its artwork is
   importer.mockResolvedValueOnce({ ...ready([]), status: 'rejected', manifest: { labels: [], extensions: { 'tin-to-cellar:feedback': feedback } } })
   render(<App />)
   upload()
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/contributions', expect.objectContaining({ method: 'POST' })))
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/labels/contributions', expect.objectContaining({ method: 'POST' })))
   const payload = JSON.parse(fetchMock.mock.calls[0][1]!.body as string)
   expect(payload.feedback.outcome).toBe('failed')
   expect(payload.submissionId).toMatch(/^[a-f0-9]{64}$/)

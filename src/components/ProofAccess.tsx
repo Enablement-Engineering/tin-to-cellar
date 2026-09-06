@@ -42,7 +42,7 @@ export function ProofAccess({ lease, onChange, onPendingChange }: { lease: Proof
     const verificationTimer = setTimeout(() => { if (!disposed) { setMessage('Print guides are unavailable. Your AI will make its own guides.'); setAttempt(0) } }, 30000)
     const timer = setTimeout(() => controller.abort(), 15000)
     void (async () => {
-      const response = await fetch('/api/proof-access', { signal: controller.signal })
+      const response = await fetch('/api/labels/proof-access', { signal: controller.signal })
       const config = await readAccessResponse(response)
       if (typeof config.siteKey !== 'string' || !config.siteKey.trim()) throw new Error('Proof access unavailable')
       await loadTurnstile()
@@ -53,7 +53,7 @@ export function ProofAccess({ lease, onChange, onPendingChange }: { lease: Proof
           if (disposed || verifying) return
           verifying = true; setMessage('Enabling hosted checks…')
           try {
-            const result = await fetch('/api/proof-access', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: token, signal: AbortSignal.timeout(15000) })
+            const result = await fetch('/api/labels/proof-access', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: token, signal: AbortSignal.timeout(15000) })
             const data = await readAccessResponse(result)
             if (typeof data.token !== 'string' || !/^[a-f0-9]{64}$/.test(data.token) || typeof data.expiresAt !== 'number' || !Number.isFinite(data.expiresAt) || data.expiresAt <= Date.now() || data.expiresAt > Date.now() + 86410000 || data.uses !== 60) throw new Error('Invalid proof access response')
             if (!disposed) { onChange({ token: data.token, expiresAt: data.expiresAt, uses: data.uses }); setMessage(''); setAttempt(0) }

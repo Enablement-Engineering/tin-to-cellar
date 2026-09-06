@@ -2,8 +2,8 @@ import { PROTOCOL_REVISION, protocolReleases } from '../src/lib/protocol'
 
 export function protocolResponse(request: Request): Response {
   const path = new URL(request.url).pathname
-  const current = path === '/api/protocol/v1' || path === '/api/protocol/v1/instructions.html'
-  const match = /^\/api\/protocol\/v1\/releases\/([1-9][0-9]{0,6})\/(instructions\.(?:md|html)|cellarpack\.schema\.json|feedback\.schema\.json)$/.exec(path)
+  const current = path === '/api/labels/protocol/v1' || path === '/api/labels/protocol/v1/instructions.html'
+  const match = /^\/api\/labels\/protocol\/v1\/releases\/([1-9][0-9]{0,6})\/(instructions\.(?:md|html)|cellarpack\.schema\.json|feedback\.schema\.json)$/.exec(path)
   const release = protocolReleases[current ? String(PROTOCOL_REVISION) : match?.[1] ?? '']
   const filename = current ? (path.endsWith('.html') ? 'instructions.html' : 'instructions.md') : match?.[2] ?? ''
   const body = release?.files[filename]

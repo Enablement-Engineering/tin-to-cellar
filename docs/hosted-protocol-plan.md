@@ -26,10 +26,10 @@ Use one required fetch for the agent. A separate discovery request is unnecessar
 
 | Proposed route | Response | Policy |
 | --- | --- | --- |
-| `GET /api/protocol/v1` | Complete current Markdown bundle, including both schemas | Revalidate on each new run |
-| `GET /api/protocol/v1/releases/<revision>/instructions.md` | Exact immutable release bundle | Long-lived immutable caching |
-| `GET /api/protocol/v1/releases/<revision>/cellarpack.schema.json` | Exact manifest JSON schema for that release | Immutable |
-| `GET /api/protocol/v1/releases/<revision>/feedback.schema.json` | Exact feedback JSON schema for that release | Immutable |
+| `GET /api/labels/protocol/v1` | Complete current Markdown bundle, including both schemas | Revalidate on each new run |
+| `GET /api/labels/protocol/v1/releases/<revision>/instructions.md` | Exact immutable release bundle | Long-lived immutable caching |
+| `GET /api/labels/protocol/v1/releases/<revision>/cellarpack.schema.json` | Exact manifest JSON schema for that release | Immutable |
+| `GET /api/labels/protocol/v1/releases/<revision>/feedback.schema.json` | Exact feedback JSON schema for that release | Immutable |
 
 Use the API namespace for strict route handling: missing resources must return 404, never a successful SPA document. The resources themselves remain static release content. Implement handlers from a finite release map; no database or arbitrary filesystem/path lookup is needed. GET and HEAD are supported; other methods return 405 with an Allow header.
 
@@ -62,7 +62,7 @@ Retain request-only copying for an existing conversation and explicitly reuse it
 
 Example starting instruction:
 
-> Create the cellar labels listed below. Before researching or generating, read the complete technical instructions at https://tintocellar.com/api/protocol/v1. Use the release identified there for this run and its repairs. If you cannot retrieve the complete instructions, ask me to attach the complete instruction file available under More options on Tin to Cellar. Do not invent the pack format.
+> Create the cellar labels listed below. Before researching or generating, read the complete technical instructions at https://tintocellar.com/api/labels/protocol/v1. Use the release identified there for this run and its repairs. If you cannot retrieve the complete instructions, ask me to attach the complete instruction file available under More options on Tin to Cellar. Do not invent the pack format.
 
 The production builder adds the visible artwork requirements and project input described above. This example is not the full proposed prompt.
 

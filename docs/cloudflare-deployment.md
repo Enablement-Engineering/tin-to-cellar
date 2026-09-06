@@ -26,14 +26,14 @@ After deployment, verify the app and both HTTPS domains, then the health and pro
 
 ## Proof API
 
-`GET /api/proof` returns the [live input contract](https://tintocellar.com/api/proof). `POST /api/proof` requires the private allowance automatically prepared in **Make a prompt**, accepts raw PNG bytes, and returns a separate review PNG. Supply the allowance through an authorization header, never a URL. The following assumes `PROOF_ACCESS_TOKEN` is already set privately:
+`GET /api/labels/proof` returns the [live input contract](https://tintocellar.com/api/labels/proof). `POST /api/labels/proof` requires the private allowance automatically prepared in **Make a prompt**, accepts raw PNG bytes, and returns a separate review PNG. Supply the allowance through an authorization header, never a URL. The following assumes `PROOF_ACCESS_TOKEN` is already set privately:
 
 ```sh
 curl --fail-with-body \
   -H 'Content-Type: image/png' \
   -H "Authorization: Bearer $PROOF_ACCESS_TOKEN" \
   --data-binary @label.png \
-  'https://tintocellar.com/api/proof?diameter=2.5&bleed=0.125&safe=0.125' \
+  'https://tintocellar.com/api/labels/proof?diameter=2.5&bleed=0.125&safe=0.125' \
   --output label-review-proof.png
 ```
 
@@ -59,7 +59,7 @@ Missing, unknown, expired, or exhausted proof access returns 401. Invalid PNG/ge
 
 Some AI execution environments cannot reach the service even when another client can. Record the exact failing request and distinguish a client block from an HTTP error. A successful health check or GET contract does not prove an image POST works. Use the local-guide fallback and report it when necessary.
 
-`GET /api/health` reports availability and whether cloud OCR is enabled. `/api/ocr` currently returns 503 without parsing the request body. No AI binding is configured, so this deployment cannot invoke paid OCR. No uploaded document storage or request-body logging is implemented.
+`GET /api/health` reports availability and whether cloud OCR is enabled. `/api/labels/ocr` currently returns 503 without parsing the request body. No AI binding is configured, so this deployment cannot invoke paid OCR. No uploaded document storage or request-body logging is implemented.
 
 ## Current import
 

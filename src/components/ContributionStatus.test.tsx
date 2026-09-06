@@ -11,7 +11,7 @@ it('sends only the projected contribution and hides the notice after confirmed r
   vi.stubGlobal('fetch', mock)
   render(<ContributionStatus contribution={contribution} />)
   await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
-  expect(mock).toHaveBeenCalledWith('/api/contributions', expect.objectContaining({ method: 'POST', body: JSON.stringify(contribution) }))
+  expect(mock).toHaveBeenCalledWith('/api/labels/contributions', expect.objectContaining({ method: 'POST', body: JSON.stringify(contribution) }))
 })
 it('leaves printing available on collection failure and supports a deliberate retry', async () => {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(Response.json({ status: 'duplicate' })))

@@ -44,7 +44,7 @@ it('matches the existing strict feedback validator for invalid field shapes and 
 it('looks up known blend sources and asks for link revalidation without sending custom requests in URLs', () => {
   const entry = TOBACCO_CATALOG[0]
   const prompt = buildTinToCellarPrompt({ tobaccos: formatTobacco(entry) + '\nPrivate custom text' })
-  expect(prompt).toContain(`/api/sources?catalogId=${entry.id}`)
+  expect(prompt).toContain(`/api/labels/sources?catalogId=${entry.id}`)
   expect(prompt).not.toContain('catalogId=Private')
   const complete = buildCompleteTinToCellarPrompt({ tobaccos: formatTobacco(entry) })
   expect(complete).toContain('wrong-package')

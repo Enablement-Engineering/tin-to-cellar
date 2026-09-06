@@ -1,8 +1,20 @@
 import { expect, it, vi } from 'vitest'
 import worker from './index'
+
+it('retires unnamespaced label APIs without redirects or asset fallthrough', async () => {
+  const env = { ASSETS: { fetch: vi.fn() } }
+  for (const path of ['/api/protocol/v1', '/api/protocol/v1/instructions.html', '/api/proof', '/api/proof-access', '/api/sources', '/api/contributions', '/api/ocr']) {
+    const response = await worker.fetch(new Request(`https://example.com${path}`), env)
+    expect(response.status).toBe(404)
+    expect(response.headers.get('Location')).toBeNull()
+    expect(await response.json()).toEqual({ error: 'Not found' })
+  }
+  expect(env.ASSETS.fetch).not.toHaveBeenCalled()
+})
+
 it('exposes status and fails closed for OCR without reading or storing uploads', async () => {
   const env = { ASSETS: { fetch: vi.fn() } }
-  const response = await worker.fetch(new Request('https://example.com/api/ocr', { method: 'POST', body: 'private document' }), env)
+  const response = await worker.fetch(new Request('https://example.com/api/labels/ocr', { method: 'POST', body: 'private document' }), env)
   expect(response.status).toBe(503)
   expect(response.headers.get('Cache-Control')).toBe('no-store')
   expect(env.ASSETS.fetch).not.toHaveBeenCalled()
@@ -12,7 +24,7 @@ it('exposes status and fails closed for OCR without reading or storing uploads',
 
 it('has a kill switch and fails closed on limiter outages', async () => {
   const images = { input: vi.fn() }, limit = vi.fn().mockRejectedValue(new Error('offline'))
-  const request = () => new Request('https://example.com/api/proof', { method: 'POST', body: 'unread' })
+  const request = () => new Request('https://example.com/api/labels/proof', { method: 'POST', body: 'unread' })
   const env = { ASSETS: { fetch: vi.fn() }, IMAGES: images, PROOF_RATE_LIMITER: { limit } }
   expect((await worker.fetch(request(), { ...env, PROOFS_ENABLED: 'false' })).status).toBe(503)
   expect(limit).not.toHaveBeenCalled()
@@ -21,7 +33,7 @@ it('has a kill switch and fails closed on limiter outages', async () => {
 })
 
 it('requires a configured limiter and rejects excessive proof requests before processing bytes', async () => {
-  const request = () => new Request('https://example.com/api/proof', { method: 'POST', headers: { 'Content-Type': 'image/png', 'CF-Connecting-IP': '192.0.2.1' }, body: 'not decoded' })
+  const request = () => new Request('https://example.com/api/labels/proof', { method: 'POST', headers: { 'Content-Type': 'image/png', 'CF-Connecting-IP': '192.0.2.1' }, body: 'not decoded' })
   expect((await worker.fetch(request(), { ASSETS: { fetch: vi.fn() } })).status).toBe(503)
   const limit = vi.fn().mockResolvedValue({ success: false })
   const response = await worker.fetch(request(), { ASSETS: { fetch: vi.fn() }, PROOFS_ENABLED: 'true', PROOF_RATE_LIMITER: { limit } })

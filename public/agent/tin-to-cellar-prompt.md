@@ -1,13 +1,13 @@
 # Tin to Cellar technical instructions
 
-Protocol revision: 5
+Protocol revision: 6
 CellarPack version: 1.0.0
 Feedback version: 2.0.0
-Canonical immutable instructions: https://tintocellar.com/api/protocol/v1/releases/5/instructions.md
-Manifest JSON schema: https://tintocellar.com/api/protocol/v1/releases/5/cellarpack.schema.json
-Feedback JSON schema: https://tintocellar.com/api/protocol/v1/releases/5/feedback.schema.json
+Canonical immutable instructions: https://tintocellar.com/api/labels/protocol/v1/releases/6/instructions.md
+Manifest JSON schema: https://tintocellar.com/api/labels/protocol/v1/releases/6/cellarpack.schema.json
+Feedback JSON schema: https://tintocellar.com/api/labels/protocol/v1/releases/6/feedback.schema.json
 
-Use this complete release throughout this run and repairs. Do not fetch current again midrun. The schemas below are complete; no additional schema fetch is required. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":5,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}.
+Use this complete release throughout this run and repairs. Do not fetch current again midrun. The schemas below are complete; no additional schema fetch is required. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":6,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}.
 
 # Task
 Create one researched pipe-tobacco cellar label per requested blend and return a .cellarpack.zip for Tin to Cellar. Keep research, generation, revisions and ZIP repairs in this chat.
@@ -56,14 +56,14 @@ For each label, add label.extensions["tin-to-cellar:sources"] as an array of up 
 Include attempted suggested links even when broken or mismatched, plus any eligible replacement source you found. This lets the catalog stop suggesting failed links. Keep required research.sources as usual, including original source attribution. The shared source extension contains no descriptions, personal data, or image files. Importing the pack automatically submits validated diagnostic feedback and these limited source observations for known catalog blends. Do not submit them directly from this chat. Public source suggestions are agent-reported and must be checked on each use.
 
 # Dimensioned review proof
-With supplied proof access, GET https://tintocellar.com/api/proof for its contract, then POST raw generated PNG bytes with Content-Type: image/png and Authorization: Bearer as supplied. Keep the credential out of URLs, ZIPs and other hosts. Without access, or on 401/429/503, use local guides without retries. The service stores no images. Resize only a review copy; preserve the original.
+With supplied proof access, GET https://tintocellar.com/api/labels/proof for its contract, then POST raw generated PNG bytes with Content-Type: image/png and Authorization: Bearer as supplied. Keep the credential out of URLs, ZIPs and other hosts. Without access, or on 401/429/503, use local guides without retries. The service stores no images. Resize only a review copy; preserve the original.
 
 Open the returned PNG: cyan is trim, dashed magenta is safe, shading is bleed. Compare names, iconic artwork and the entire writing surface with these guides and the package reference. Refine specific defects, at most twice. Guides do not certify fidelity. Never use the proof as artwork, editing reference or ZIP content. Keep clean originals. For other dimensions/shapes or if unavailable, make equivalent guides locally and report that fallback.
 
 # CellarPack protocol
 Use the complete schema below; no additional schema fetch is required. Return root manifest.json and artwork/<label-id>.png. Reference assets by artworkAssetId. Compute SHA-256 from actual delivered bytes. Research must distinguish inspected observations from creative adaptation.
 
-Record this release in manifest.extensions["tin-to-cellar:protocol"] as {"revision":5,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}. Keep this revision through repairs; do not switch to a newer release mid-run.
+Record this release in manifest.extensions["tin-to-cellar:protocol"] as {"revision":6,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}. Keep this revision through repairs; do not switch to a newer release mid-run.
 
 Write-in x/y/width/height use the finished trim bounding box, not the bleed canvas. Measure the actual surface; keep it unrotated and inside the safe area. Set overlay.mode to blank. The overlay object contains only mode; the website does not render overlays.
 
@@ -80,7 +80,7 @@ Return one prominent downloadable .cellarpack.zip and the supplied printing link
 ```
 
 # Diagnostic feedback
-Feedback schema version: 2.0.0. Set protocolRevision to the numeric revision of these instructions (5), matching the pack protocol extension. Maintain a diagnostic report using the feedback schema below. Put it in manifest.extensions["tin-to-cellar:feedback"] when returning a pack. If the run ends without a pack, provide tin-to-cellar-feedback.json as a separate download, or a JSON code block if file creation is unavailable. A report is optional for importing old packs. Do not send feedback directly from this chat. Importing the returned pack in Tin to Cellar submits its validated feedback automatically.
+Feedback schema version: 2.0.0. Set protocolRevision to the numeric revision of these instructions (6), matching the pack protocol extension. Maintain a diagnostic report using the feedback schema below. Put it in manifest.extensions["tin-to-cellar:feedback"] when returning a pack. If the run ends without a pack, provide tin-to-cellar-feedback.json as a separate download, or a JSON code block if file creation is unavailable. A report is optional for importing old packs. Do not send feedback directly from this chat. Importing the returned pack in Tin to Cellar submits its validated feedback automatically.
 
 Report only the requested label count and shape, overall outcome, observable workflow stages, attempt counts, and categorized issues, including unclear or conflicting instructions. Use one entry per attempted or skipped stage. Sum actual tool attempts for that stage across labels; use zero for unattempted stages. Mark passed only for checks actually performed. Report failures and unavailable tools honestly. Use other for an issue without a matching code, without adding an explanation field. Update the report after repairs. Do not include hidden reasoning or chain-of-thought.
 
@@ -98,4 +98,4 @@ Maintain cumulative feedback for the whole request across turns and repairs. Kee
 {"$schema":"http://json-schema.org/draft-07/schema#","type":"object","additionalProperties":false,"required":["format","schemaVersion","protocolRevision","request","outcome","steps","issues"],"properties":{"format":{"const":"tin-to-cellar/feedback"},"schemaVersion":{"const":"2.0.0"},"protocolRevision":{"type":"integer","minimum":1,"maximum":1000000},"request":{"type":"object","additionalProperties":false,"required":["labelCount","shape"],"properties":{"labelCount":{"type":"integer","minimum":0,"maximum":500},"shape":{"enum":["circle","oval","square","rectangle","rounded-rectangle","custom","unknown"]}}},"outcome":{"enum":["complete","partial","failed","research-only"]},"steps":{"type":"array","maxItems":7,"items":{"type":"object","additionalProperties":false,"required":["stage","status","attempts"],"properties":{"stage":{"$ref":"#/$defs/stage"},"status":{"enum":["passed","failed","skipped","unavailable"]},"attempts":{"type":"integer","minimum":0,"maximum":1500}}}},"issues":{"type":"array","maxItems":50,"items":{"type":"object","additionalProperties":false,"required":["code","stage","resolved"],"properties":{"code":{"enum":["reference-unavailable","variant-ambiguous","image-handoff-unavailable","generation-unavailable","generation-failed","artwork-fidelity","text-legibility","write-area","geometry","proof-unavailable","schema","archive","instructions-unclear","instructions-conflicting","other","protocol-unavailable","protocol-incomplete"]},"stage":{"$ref":"#/$defs/stage"},"resolved":{"type":"boolean"}}}}},"$defs":{"stage":{"enum":["research","generation","visual-review","proof","packaging","validation","protocol-retrieval"]}}}
 ```
 
-END TIN TO CELLAR PROTOCOL 5
+END TIN TO CELLAR PROTOCOL 6

@@ -6,7 +6,7 @@ const write = (path, value) => writeFile(new URL(`../${path}`, import.meta.url),
 const hash = (text) => createHash('sha256').update(text).digest('hex')
 const registry = JSON.parse(await read('src/lib/protocol/releases.json'))
 const revision = registry.current
-const base = `https://tintocellar.com/api/protocol/v1/releases/${revision}`
+const base = `https://tintocellar.com/api/labels/protocol/v1/releases/${revision}`
 const manifest = await read('src/lib/cellarpack/cellarpack-v1.schema.json')
 const feedback = await read('src/lib/feedback/schema.json')
 const protocol = await read('src/lib/prompt/protocol.md')

@@ -12,7 +12,7 @@ it('validates optional provenance locally and refuses conflicting or malformed a
   fetch.mockRestore()
 })
 it('builds only fixed-origin revision URLs from bounded numbers', () => {
-  expect(protocolRevisionUrl(1)).toBe('https://tintocellar.com/api/protocol/v1/releases/1/instructions.md')
+  expect(protocolRevisionUrl(1)).toBe('https://tintocellar.com/api/labels/protocol/v1/releases/1/instructions.md')
   expect(() => protocolRevisionUrl(NaN)).toThrow()
   expect(() => protocolRevisionUrl(1000001)).toThrow()
 })

@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { encode } from 'fast-png'
 import { proofResponse } from './proof'
-const url = 'https://example.com/api/proof'
+const url = 'https://example.com/api/labels/proof'
 function nativeRenderer() {
   const handle = {
     transform: vi.fn().mockReturnThis(), draw: vi.fn().mockReturnThis(),

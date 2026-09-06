@@ -49,13 +49,13 @@ it('excludes expired sources and cleans records without postponing the alarm on 
 it('guards collection size, origin, schema, rate limits, and private exports', async () => {
   const state = setup()
   const limiter = { limit: vi.fn().mockResolvedValue({ success: true }) }
-  const request = (body: unknown, origin = 'https://site.com') => new Request('https://site.com/api/contributions', { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  const request = (body: unknown, origin = 'https://site.com') => new Request('https://site.com/api/labels/contributions', { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
   expect((await contributionsResponse(request(contribution, 'https://other.com'), state.binding, limiter)).status).toBe(403)
   expect((await contributionsResponse(request({ ...contribution, private: 'extra' }), state.binding, limiter)).status).toBe(400)
   expect((await contributionsResponse(request({ huge: 'a'.repeat(65536) }), state.binding, limiter)).status).toBe(413)
   expect((await contributionsResponse(request(contribution), state.binding, limiter)).status).toBe(200)
-  expect((await contributionsResponse(new Request('https://site.com/api/contributions'), state.binding, limiter)).status).toBe(403)
-  const exported = await contributionsResponse(new Request('https://site.com/api/contributions', { headers: { Authorization: 'Bearer secret' } }), state.binding, limiter, 'secret')
+  expect((await contributionsResponse(new Request('https://site.com/api/labels/contributions'), state.binding, limiter)).status).toBe(403)
+  const exported = await contributionsResponse(new Request('https://site.com/api/labels/contributions', { headers: { Authorization: 'Bearer secret' } }), state.binding, limiter, 'secret')
   expect((await exported.json()).reports).toHaveLength(1)
   limiter.limit.mockResolvedValue({ success: false })
   expect((await contributionsResponse(request(contribution), state.binding, limiter)).status).toBe(429)

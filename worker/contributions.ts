@@ -62,12 +62,12 @@ export async function contributionsResponse(request: Request, binding?: Contribu
   const url = new URL(request.url)
   const target = binding.getByName('catalog-contributions-v1')
   try {
-    if (request.method === 'GET' && url.pathname === '/api/sources') return target.fetch(new Request(`https://catalog/sources?${url.searchParams}`))
-    if (request.method === 'GET' && url.pathname === '/api/contributions') {
+    if (request.method === 'GET' && url.pathname === '/api/labels/sources') return target.fetch(new Request(`https://catalog/sources?${url.searchParams}`))
+    if (request.method === 'GET' && url.pathname === '/api/labels/contributions') {
       if (!adminToken || request.headers.get('Authorization') !== `Bearer ${adminToken}`) return new Response(null, { status: 403, headers })
       return target.fetch(new Request('https://catalog/export'))
     }
-    if (request.method !== 'POST' || url.pathname !== '/api/contributions') return new Response(null, { status: 405, headers })
+    if (request.method !== 'POST' || url.pathname !== '/api/labels/contributions') return new Response(null, { status: 405, headers })
     if (request.headers.get('Origin') !== url.origin) return new Response(null, { status: 403, headers })
     if (request.headers.get('Content-Type') !== 'application/json') return new Response(null, { status: 415, headers })
     if (!limiter || !(await limiter.limit({ key: request.headers.get('CF-Connecting-IP') ?? 'unknown' })).success) return new Response(null, { status: 429, headers })

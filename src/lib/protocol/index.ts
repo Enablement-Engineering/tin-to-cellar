@@ -1,6 +1,6 @@
 import registry from './releases.json'
 
-export const PROTOCOL_URL = 'https://tintocellar.com/api/protocol/v1'
+export const PROTOCOL_URL = 'https://tintocellar.com/api/labels/protocol/v1'
 export const PROTOCOL_HTML_URL = `${PROTOCOL_URL}/instructions.html`
 export const PROTOCOL_REVISION = registry.current
 export const PROTOCOL_KEY = 'tin-to-cellar:protocol'

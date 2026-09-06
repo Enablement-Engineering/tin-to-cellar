@@ -70,7 +70,7 @@ it('copies and reveals the exact complete payload when its clipboard action fail
   fireEvent.click(screen.getByRole('button', { name: 'Copy complete prompt' }))
   await waitFor(() => expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Frozen complete contract' + proofAccessText(null)))
   expect(writeText).toHaveBeenCalledWith('Frozen complete contract' + proofAccessText(null))
-  expect(screen.getByRole('link', { name: 'current instructions' })).toHaveAttribute('href', 'https://tintocellar.com/api/protocol/v1/instructions.html')
+  expect(screen.getByRole('link', { name: 'current instructions' })).toHaveAttribute('href', 'https://tintocellar.com/api/labels/protocol/v1/instructions.html')
 })
 
 it('offers reusable bundled instructions without the project request or proof access', () => {
