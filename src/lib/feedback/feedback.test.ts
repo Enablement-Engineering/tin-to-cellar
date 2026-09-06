@@ -58,12 +58,12 @@ describe('private feedback boundary', () => {
     ]) expect(parseDiagnosticReport(value)).toBeNull()
   })
   it('separates comparison results for every legacy or protocol revision', () => {
-    const summary = summarizeReports([example, protocolExample, { ...protocolExample, protocolRevision: 2 }])
+    const summary = summarizeReports([example, protocolExample, { ...protocolExample, protocolRevision: 999 }])
     expect(summary.reports).toBe(3)
     expect(summary.byRevision.map(({ revisionLabel, reports }) => ({ revisionLabel, reports }))).toEqual([
       { revisionLabel: `Legacy prompt ${PROMPT_VERSION}`, reports: 1 },
       { revisionLabel: 'Protocol revision 1', reports: 1 },
-      { revisionLabel: 'Protocol revision 2 (unrecognized)', reports: 1 },
+      { revisionLabel: 'Protocol revision 999 (unrecognized)', reports: 1 },
     ])
     expect(summary.byRevision[0].issues).toEqual({ 'generation-failed': 1 })
     expect(summary.byRevision[1].issues).toEqual({ 'protocol-incomplete': 1 })

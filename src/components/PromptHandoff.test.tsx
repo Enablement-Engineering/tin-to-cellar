@@ -72,5 +72,5 @@ it('offers reusable bundled instructions without the project request or proof ac
   expect(body).not.toContain('Private complete request')
   expect(body).not.toContain('Private request')
   expect(body).not.toContain(proofAccessText(null))
-  expect(link).toHaveAttribute('download', 'tin-to-cellar-instructions-r1.md')
+  expect(link).toHaveAttribute('download', 'tin-to-cellar-instructions-r2.md')
 })
