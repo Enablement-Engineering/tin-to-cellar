@@ -1,6 +1,7 @@
 import { Icon } from './Icons'
+import { ExamplePack } from './ExamplePack'
 
-type LandingProps = { onNavigate: (view: 'create' | 'print' | 'help') => void }
+type LandingProps = { onNavigate: (view: 'create' | 'print' | 'help') => void; busy: boolean; onFile: (file: File) => Promise<void> }
 
 const steps = [
   { number: '01', icon: 'copy' as const, title: 'Copy the prompt', description: 'Add your blend names, or leave them blank and let your AI ask.' },
@@ -8,7 +9,7 @@ const steps = [
   { number: '03', icon: 'print' as const, title: 'Print at actual size', description: 'Bring the ZIP back here. Nine circles fit a US Letter sheet.' },
 ]
 
-export function Landing({ onNavigate }: LandingProps) {
+export function Landing({ onNavigate, busy, onFile }: LandingProps) {
   return <div className="landing-page screen-only">
     <section className="landing-hero" aria-labelledby="landing-title">
       <div className="landing-hero-copy">
@@ -38,17 +39,6 @@ export function Landing({ onNavigate }: LandingProps) {
       </div>
     </section>
 
-    <section className="landing-specs" aria-labelledby="landing-pack-title">
-      <div className="landing-print-note">
-        <h2 id="landing-pack-title">From chat to sheet</h2>
-        <p>Your AI returns a CellarPack ZIP with the artwork, label dimensions, and source links.</p>
-        <button className="button secondary" type="button" onClick={() => onNavigate('print')}><Icon name="upload" size={17} />Print a pack</button>
-      </div>
-      <dl className="landing-spec-grid">
-        <div className="landing-spec"><dt>Label diameter</dt><dd>2.5 in</dd></div>
-        <div className="landing-spec"><dt>Bleed on every side</dt><dd>0.125 in</dd></div>
-        <div className="landing-spec"><dt>Labels per sheet</dt><dd>9</dd></div>
-      </dl>
-    </section>
+    <ExamplePack variant="landing" busy={busy} onFile={async (file) => { await onFile(file); onNavigate('print') }} />
   </div>
 }

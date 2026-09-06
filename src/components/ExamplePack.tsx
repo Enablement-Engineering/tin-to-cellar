@@ -15,7 +15,7 @@ const blends = [
   ['cornell-diehl-briar-fox', 'Briar Fox'],
 ]
 
-export function ExamplePack({ busy, onFile }: { busy: boolean; onFile: (file: File) => Promise<void> }) {
+export function ExamplePack({ busy, onFile, variant = 'print' }: { busy: boolean; onFile: (file: File) => Promise<void>; variant?: 'print' | 'landing' }) {
   const [action, setAction] = useState<'import' | 'download' | null>(null)
   const [error, setError] = useState('')
   const pending = useRef(false)
@@ -51,6 +51,18 @@ export function ExamplePack({ busy, onFile }: { busy: boolean; onFile: (file: Fi
     }
   }
   const disabled = busy || action !== null
+  if (variant === 'landing') return <section className="landing-specs" aria-labelledby="landing-pack-title">
+    <div className="landing-print-note">
+      <h2 id="landing-pack-title">See what your cellar could look like.</h2>
+      <p>Try ten finished labels. Choose your blends, set how many you need, and preview a sheet before printing.</p>
+      <button className="button secondary" type="button" disabled={disabled} onClick={() => void run('import')}>{action === 'import' ? 'Loading example pack…' : 'Try the example pack'}</button>
+      {action && <p role="status">Opening ten labels…</p>}
+      {error && <p role="alert">{error}</p>}
+    </div>
+    <div className="landing-label-previews">
+      {['cornell-diehl-briar-fox', 'orlik-golden-sliced', 'cornell-diehl-autumn-evening'].map((id) => <img key={id} src={`${base}${id}.jpg`} alt={blends.find(([blendId]) => blendId === id)?.[1] ?? ''} width={320} height={320} loading="lazy" />)}
+    </div>
+  </section>
   return <section className="panel example-pack" aria-labelledby="example-pack-title">
     <p className="eyebrow">Preview</p>
     <h2 id="example-pack-title">Try a complete label pack</h2>
