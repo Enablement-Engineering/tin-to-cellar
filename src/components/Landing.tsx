@@ -21,7 +21,9 @@ export function Landing({ onNavigate }: LandingProps) {
         </div>
         <p className="landing-privacy"><Icon name="lock" size={16} />No Tin to Cellar account needed. Imported files stay on your device.</p>
       </div>
-      <div className="landing-hero-art" role="img" aria-label="A sheet of round labels beside a brass compass and ruler on a workbench" />
+      <div className="landing-hero-art">
+        <img src="/assets/tin-to-cellar-jar-collection.jpg" alt="Illustration of a small collection of tobacco jars, including a stack of two, with Quiet Nights, Early Morning Pipe, and Escudo labels on their lids. Escudo coins are visible through the front jar." width={1254} height={1254} fetchPriority="high" />
+      </div>
     </section>
 
     <section className="landing-process" aria-labelledby="landing-steps-title">

@@ -106,7 +106,7 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 .copy-status { margin-top: 12px; color: var(--text-accent); font: var(--type-spec); overflow-wrap: anywhere; }
 .copy-status:empty { margin: 0; }
 
-/* The landing page introduces the workflow using the existing photograph. */
+/* The landing page pairs the workflow with a finished label example. */
 .landing-page { display: grid; gap: 72px; max-width: var(--width-content); margin: 0 auto; padding: 56px 40px 72px; }
 .landing-hero { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(240px, .85fr); gap: 40px; align-items: center; }
 .landing-hero-copy { display: grid; justify-items: start; gap: 20px; }
@@ -116,8 +116,8 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 .landing-actions .button { min-height: 48px; padding-inline: 24px; font-size: 16px; }
 .landing-privacy { display: flex; align-items: flex-start; gap: 8px; max-width: var(--measure-narrow); color: var(--text-muted); font: var(--type-hint); }
 .landing-privacy .icon { margin-top: 2px; }
-.landing-hero-art { aspect-ratio: 1; margin: 0; border: 1px solid var(--line-hairline); border-radius: var(--radius-card); background: url('/assets/tin-to-cellar-workbench.png') center / cover; box-shadow: var(--shadow-3); overflow: hidden; }
-.landing-hero-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.landing-hero-art { aspect-ratio: 1; margin: 0; border: 1px solid var(--line-hairline); border-radius: var(--radius-card); box-shadow: var(--shadow-3); overflow: hidden; }
+.landing-hero-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 58%; }
 .landing-steps-heading { margin-bottom: 24px; font: var(--type-title); }
 .landing-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
 .landing-step { display: grid; align-content: start; justify-items: start; gap: 12px; }
@@ -363,7 +363,7 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
   .landing-page { gap: 40px; padding: 32px 16px 48px; }
   .landing-hero { grid-template-columns: 1fr; gap: 32px; }
   .landing-hero h1 { max-width: 21ch; font-size: 42px; }
-  .landing-hero-art { width: 100%; max-height: 360px; aspect-ratio: 1.2; }
+  .landing-hero-art { width: 100%; aspect-ratio: 1.1; }
   .landing-steps { grid-template-columns: 1fr; gap: 16px; }
   .landing-step { padding: 24px; }
   .landing-specs { padding: 24px; }
