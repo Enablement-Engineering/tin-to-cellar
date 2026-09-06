@@ -23,7 +23,9 @@ For a conversation that already has the reusable instructions, use More options 
 - Uses label quantities to arrange 2.5-inch circles automatically across Avery 94502 sheets.
 - Prints a calibration proof and physically sized US Letter sheets, with Save as PDF available through the browser print dialog.
 
-The website opens directly to the prompt form, with Print labels and How it works in the navigation. The explanation tab covers the AI handoff, hosting costs, local file handling, and printing instructions. Artwork uses 0.125-inch bleed by default, with an integrated light writing surface; the website prints the artwork without adding any label overlays. Artwork geometry remains separate from sheet geometry. Other profiles exist in the format modules, but the current print UI supports Avery 94502 only.
+The website opens to a home page that introduces the workflow. Make a prompt, Print labels, and How it works remain available in the navigation and through direct hash links. The wordmark returns home. The tools use warm paper backgrounds, moss actions, and Newsreader headings; the [design system guide](docs/design-system.md) records tokens, components, assets, and adaptation decisions.
+
+How it works covers the AI handoff, hosting costs, local file handling, and printing instructions. Artwork uses 0.125-inch bleed by default, with an integrated light writing surface; the website prints the artwork without adding any label overlays. Artwork geometry remains separate from sheet geometry. Other profiles exist in the format modules, but the current print UI supports Avery 94502 only.
 
 Import problems produce a repair request to paste into the same AI conversation. A failed replacement does not discard the current print job. Optional alignment controls support a test sheet and printer offsets.
 
@@ -64,6 +66,7 @@ The default circular export includes opaque artwork through a 0.125-inch bleed r
 
 - [Architecture and documentation index](docs/README.md)
 - [Current user workflow](docs/simplified-workflow.md)
+- [Design system and UI guidance](docs/design-system.md)
 - [Deployment and proof API](docs/cloudflare-deployment.md)
 - [CellarPack specification](public/spec/cellarpack-v1.md) and [JSON Schema](public/spec/cellarpack-v1.schema.json)
 - [Reusable AI instructions](public/agent/tin-to-cellar-prompt.md)

@@ -3,6 +3,9 @@ import { buildTinToCellarPrompt, buildTinToCellarRequest, buildTinToCellarInstru
 import { checkAvery94502Compatibility } from './lib/sheets'
 import { Configurator } from './components/Configurator'
 import { HowItWorks } from './components/HowItWorks'
+import { Landing } from './components/Landing'
+import { Icon } from './components/Icons'
+import { Wordmark } from './components/Wordmark'
 import { PackImporter } from './components/PackImporter'
 import { PrintStudio } from './components/PrintStudio'
 import { PromptHandoff } from './components/PromptHandoff'
@@ -12,11 +15,11 @@ import './styles/app.css'
 const initialConfig: ConfiguratorState = {
   tobaccos: '', artDirection: '',
 }
-type View = 'create' | 'print' | 'help'
+type View = 'home' | 'create' | 'print' | 'help'
 function viewFromHash(): View | null {
   const hash = window.location.hash.slice(1)
-  if (!hash) return 'create'
-  return hash === 'create' || hash === 'print' || hash === 'help' ? hash : null
+  if (!hash) return 'home'
+  return hash === 'home' || hash === 'create' || hash === 'print' || hash === 'help' ? hash : null
 }
 function issueText(issue: { message?: string; recovery?: string }) {
   return [issue.message ?? 'The label needs repair.', issue.recovery].filter(Boolean).join(' ')
@@ -24,18 +27,32 @@ function issueText(issue: { message?: string; recovery?: string }) {
 
 function App() {
   const [config, setConfig] = useState(initialConfig)
-  const [view, setView] = useState<View>(() => viewFromHash() ?? 'create')
+  const [view, setView] = useState<View>(() => viewFromHash() ?? 'home')
+  const main = useRef<HTMLElement>(null)
   const navigate = (next: View) => {
     setView(next)
+    if (next === view) {
+      main.current?.focus({ preventScroll: true })
+      window.scrollTo({ top: 0, left: 0 })
+    }
     if (window.location.hash !== `#${next}`) window.location.hash = next
   }
   useEffect(() => {
+    main.current?.focus({ preventScroll: true })
+    window.scrollTo({ top: 0, left: 0 })
+  }, [view])
+  useEffect(() => {
+    const previousRestoration = window.history.scrollRestoration
+    window.history.scrollRestoration = 'manual'
     const onHashChange = () => {
       const next = viewFromHash()
       if (next) setView(next)
     }
     window.addEventListener('hashchange', onHashChange)
-    return () => window.removeEventListener('hashchange', onHashChange)
+    return () => {
+      window.removeEventListener('hashchange', onHashChange)
+      window.history.scrollRestoration = previousRestoration
+    }
   }, [])
   const [importing, setImporting] = useState(false)
   const [summary, setSummary] = useState<ImportSummary | null>(null)
@@ -129,23 +146,29 @@ function App() {
     catch { setShowRepair(true); setRepairStatus('Select and copy the repair request below, then paste it into the same chat.') }
   }
 
-  return <div className="app-shell">
+  const intake = <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} />
+    {importLoadError && <div className="panel" role="alert"><h3>The label reader couldn’t load</h3><p>The app may have updated, or the connection was interrupted. Reload the page, then choose the same ZIP again. Reloading clears the current workspace.</p><button className="button secondary" type="button" onClick={() => window.location.reload()}>Reload app</button></div>}
+    {repairPrompt && <div className="panel repair-panel" role="status"><h3>{labels.length ? 'Some labels need another pass' : 'The ZIP needs another pass'}</h3><p>{labels.length ? 'Your current printable labels are still available below. ' : ''}Send the repair request to the same ChatGPT chat and import the ZIP it returns.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}><Icon name="copy" size={17} />Copy repair request</button><p className="copy-status">{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={repairPrompt} rows={8} onFocus={(event) => event.currentTarget.select()} />}</div>}
+  </div>
+
+  return <div className="app-shell tc-grain">
     <a className="skip-link" href="#main-content">Skip to main content</a>
     <header className="site-header screen-only">
-      <button className="wordmark" type="button" onClick={() => navigate('create')} aria-label="Tin to Cellar home"><img className="brand-mark" src="/brand/monogram-180.png" width="38" height="38" alt="" /><strong>Tin to Cellar</strong></button>
-      <nav aria-label="Workflow"><button className={view === 'create' ? 'is-current' : ''} aria-current={view === 'create' ? 'page' : undefined} type="button" onClick={() => navigate('create')}>Make a prompt</button><button className={view === 'print' ? 'is-current' : ''} aria-current={view === 'print' ? 'page' : undefined} type="button" onClick={() => navigate('print')}>Print labels</button><button className={view === 'help' ? 'is-current' : ''} aria-current={view === 'help' ? 'page' : undefined} type="button" onClick={() => navigate('help')}>How it works</button></nav>
+      <div className="site-header-inner">
+        <button className="wordmark" type="button" onClick={() => navigate('home')} aria-label="Tin to Cellar home"><Wordmark /></button>
+        <nav className="nav-tabs" aria-label="Workflow"><button className={view === 'create' ? 'is-current' : ''} aria-current={view === 'create' ? 'page' : undefined} type="button" onClick={() => navigate('create')}>Make a prompt</button><button className={view === 'print' ? 'is-current' : ''} aria-current={view === 'print' ? 'page' : undefined} type="button" onClick={() => navigate('print')}>Print labels</button><button className={view === 'help' ? 'is-current' : ''} aria-current={view === 'help' ? 'page' : undefined} type="button" onClick={() => navigate('help')}>How it works</button></nav>
+      </div>
     </header>
-    <main id="main-content">
-      {view === 'create' ? <div className="screen-only create-workspace">
-        <section className="create-grid"><Configurator value={config} onChange={setConfig} /><PromptHandoff prompt={prompt} request={request} /></section>
+    <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
+      {view === 'home' ? <Landing onNavigate={navigate} /> : view === 'create' ? <div className="screen-only create-workspace">
+        <div className="create-grid"><Configurator value={config} onChange={setConfig} /><PromptHandoff prompt={prompt} request={request} onPrint={() => navigate('print')} /></div>
       </div> : view === 'help' ? <HowItWorks instructions={instructions} /> : <>
-        <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} />
-          {importLoadError && <div className="panel" role="alert"><h3>The label reader couldn’t load</h3><p>The app may have updated, or the connection was interrupted. Reload the page, then choose the same ZIP again. Reloading clears the current workspace.</p><button className="button secondary" type="button" onClick={() => window.location.reload()}>Reload app</button></div>}
-          {repairPrompt && <div className="panel repair-panel" role="status"><h3>{labels.length ? 'Some labels need another pass' : 'The ZIP needs another pass'}</h3><p>{labels.length ? 'Your current printable labels are still available below. ' : ''}Send the repair request to the same ChatGPT chat and import the ZIP it returns.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}>Copy repair request</button><p>{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={repairPrompt} rows={8} onFocus={(event) => event.currentTarget.select()} />}</div>}
-        </div>
-        {labels.length > 0 && <PrintStudio labels={labels} quantities={quantities} onQuantityChange={(id, value) => setQuantities((current) => ({ ...current, [id]: value }))} settings={printSettings} onSettingsChange={setPrintSettings} />}
+        <div className="page-heading screen-only"><h1>Print labels</h1><p className="spec-line">Avery 94502 · 2.5 in circles · US Letter</p></div>
+        {labels.length > 0 ? <PrintStudio intake={intake} labels={labels} quantities={quantities} onQuantityChange={(id, value) => setQuantities((current) => ({ ...current, [id]: value }))} settings={printSettings} onSettingsChange={setPrintSettings} /> :
+          <div className="print-intake screen-only">{intake}<section className="print-empty panel" aria-labelledby="print-empty-title"><span className="print-empty-icon"><Icon name="print" size={28} /></span><h2 id="print-empty-title">Your sheet starts here</h2><p>Choose the CellarPack ZIP from your AI chat. Your labels appear here, ready for quantities and printing.</p><p className="field-hint">No labels yet? Start with a prompt and bring back the ZIP.</p><button className="button secondary" type="button" onClick={() => navigate('create')}>Create a label pack</button></section></div>}
       </>}
     </main>
+    <footer className="site-footer screen-only"><span className="wordmark-name">Tin to Cellar</span><p className="spec-line">CellarPack v1 · open format · imported files stay on your device</p></footer>
   </div>
 }
 export default App

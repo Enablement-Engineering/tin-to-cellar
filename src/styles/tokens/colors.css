@@ -1,0 +1,57 @@
+:root{
+/* --- Paper: warm neutral surfaces, lightest to deepest --- */
+--paper-50:#fbf8f3;--paper-100:#f5f0e8;--paper-200:#eae3d7;--paper-300:#dcd3c4;--paper-400:#c4b9a6;--paper-500:#a89c87;
+/* --- Ink: warm near-black through muted --- */
+--ink-900:#211e19;--ink-800:#2e2a23;--ink-700:#3d382f;--ink-500:#6b6459;--ink-400:#8b8478;--ink-300:#a9a294;
+/* --- Moss: the single action colour. Desaturated descendant of the original cellar green --- */
+--moss-800:#33422f;--moss-700:#3f5140;--moss-600:#4e6650;--moss-500:#647c63;--moss-300:#a9bba6;--moss-100:#e2e7dd;
+/* --- Brass: heritage metal. Rules, marks and print registration only, never body text --- */
+--brass-600:#8f7440;--brass-500:#a8894f;--brass-300:#c9ae78;--brass-200:#dcc79a;--brass-100:#efe3c8;
+/* --- Clay + amber: semantics, muted so nothing shouts --- */
+--clay-700:#6f3a2d;--clay-600:#8a4a3a;--clay-100:#f2e2db;
+--amber-700:#7d5623;--amber-600:#9a6b2f;--amber-100:#f4e8d3;
+
+/* --- Semantic surfaces --- */
+--surface-page:var(--paper-100);
+--surface-card:var(--paper-50);
+--surface-sunken:var(--paper-200);
+--surface-inverse:var(--ink-900);
+--surface-accent-soft:var(--moss-100);
+--surface-field:#fffdf9;
+--surface-disabled:var(--paper-200);
+
+/* --- Semantic text --- */
+--text-strong:var(--ink-900);
+--text-body:var(--ink-700);
+--text-muted:var(--ink-500);
+--text-faint:var(--ink-400);
+--text-on-inverse:var(--paper-50);
+--text-on-accent:#fbf8f3;
+--text-accent:var(--moss-700);
+--text-link:var(--moss-700);
+--text-link-hover:var(--moss-800);
+
+/* --- Semantic lines --- */
+--line-hairline:var(--paper-300);
+--line-strong:var(--paper-400);
+--line-field:var(--paper-400);
+--line-focus:var(--moss-600);
+--line-rule-brass:var(--brass-300);
+--line-dashed:var(--paper-400);
+
+/* --- Semantic status --- */
+--status-ready:var(--moss-600);
+--status-ready-surface:var(--moss-100);
+--status-caution:var(--amber-600);
+--status-caution-surface:var(--amber-100);
+--status-problem:var(--clay-600);
+--status-problem-surface:var(--clay-100);
+
+/* --- Action --- */
+--action-primary:var(--moss-600);
+--action-primary-hover:var(--moss-700);
+--action-primary-active:var(--moss-800);
+--action-quiet-border:var(--line-strong);
+--action-danger:var(--clay-600);
+--focus-ring:var(--brass-500);
+}

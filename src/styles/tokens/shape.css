@@ -1,0 +1,19 @@
+:root{
+--radius-1:2px;--radius-2:6px;--radius-3:10px;--radius-4:14px;--radius-5:20px;--radius-pill:999px;--radius-round:50%;
+--radius-card:var(--radius-4);
+--radius-control:var(--radius-2);
+--radius-field:var(--radius-2);
+--radius-chip:var(--radius-pill);
+--radius-label:var(--radius-round);
+
+--border-hairline:1px; /* @kind other */
+--border-emphasis:2px; /* @kind other */
+--border-dashed:1px dashed var(--line-dashed); /* @kind other */
+
+/* Physical print geometry, from the source repo. Do not round these. */
+--label-diameter:2.5in; /* @kind other */
+--label-bleed:0.125in; /* @kind other */
+--sheet-width:8.5in; /* @kind other */
+--sheet-height:11in; /* @kind other */
+--sheet-slots:9; /* @kind other */
+}

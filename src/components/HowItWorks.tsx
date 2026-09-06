@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { Icon } from './Icons'
 
 export function HowItWorks({ instructions }: { instructions: string }) {
   const downloadLink = useRef<HTMLAnchorElement>(null)
@@ -7,25 +8,44 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     if (downloadLink.current) downloadLink.current.href = url
     return () => URL.revokeObjectURL(url)
   }, [instructions])
-  return <section className="how-it-works panel screen-only" aria-labelledby="how-title">
-    <h1 id="how-title">How it works</h1>
+  return <div className="help-page how-it-works screen-only">
+    <section aria-labelledby="how-title">
+    <div className="page-heading"><h1 id="how-title">How it works</h1><p>One prompt, your own AI chat, and a sheet of labels.</p></div>
     <ol className="workflow-steps">
-      <li><h2>Make a prompt</h2><p>List your tobaccos and any special requests. You can leave the list blank and let the AI ask what you are cellaring. Copy the full prompt into ChatGPT or Codex, and attach reference photos there if you have them.</p></li>
-      <li><h2>Create the labels in your chat</h2><p>The AI researches the original packaging and adapts it into round labels with a light writing space. Ask for changes in that same chat, then download the label ZIP it returns.</p></li>
-      <li><h2>Bring the ZIP back and print</h2><p>Open Print labels, import the ZIP, and choose your quantities. If anything needs repair, copy the repair request into the same chat and import the corrected ZIP.</p><p>Use Avery 94502: nine 2.5-inch circles on US Letter paper. Print at Actual Size / 100%, with headers and footers off. Choose Save as PDF for a printable file.</p></li>
+      <li><span className="workflow-step-number" aria-hidden="true">01</span><div><h2>Make a prompt</h2><p>List your tobaccos and special requests, or let your AI ask. Copy the full prompt into your chat and attach reference photos there if you have them.</p></div></li>
+      <li><span className="workflow-step-number" aria-hidden="true">02</span><div><h2>Create the labels in your chat</h2><p>Your AI studies the original packaging and adapts it into round labels with a light writing space. Ask for changes in the same chat, then download the label ZIP.</p></div></li>
+      <li><span className="workflow-step-number" aria-hidden="true">03</span><div><h2>Bring the ZIP back and print</h2><p>Open Print labels, choose your ZIP, and set quantities. Print at actual size with headers and footers off, or choose Save as PDF.</p><p className="spec-line">Avery 94502 · 2.5 in circles · 9 per US Letter sheet</p></div></li>
     </ol>
-    <p><a href="https://chatgpt.com/" target="_blank" rel="noreferrer">Open ChatGPT ↗</a></p>
-    <h2>Reuse the instructions</h2>
-    <p>Copy prompt includes everything for a new chat. For repeated requests, download the instructions below and attach them to your chat, or add them to an AI project that supports reference files. Then use More options → Copy request only.</p>
-    <p>The download is a Markdown reference file. If your chat does not have the instructions, attach them or use the complete prompt before generating.</p>
-    <a className="button secondary" ref={downloadLink} download="tin-to-cellar-instructions.md">Download instructions</a>
+    </section>
+    <section className="help-reuse panel" aria-labelledby="reuse-title">
+    <h2 id="reuse-title">Reuse the instructions</h2>
+    <p>For repeated batches, attach these instructions to your chat or AI project. Next time, use More options and Copy request only.</p>
+    <p className="field-hint">A new chat needs the instructions or the complete prompt before generating.</p>
+    <div className="help-actions"><a className="button secondary" ref={downloadLink} download="tin-to-cellar-instructions.md"><Icon name="download" size={17} />Download instructions</a><a className="button quiet" href="https://chatgpt.com/" target="_blank" rel="noreferrer">Open ChatGPT ↗</a></div>
+    </section>
+    <section className="help-answers" aria-label="Common questions">
+    <article>
     <h2>Why use a separate AI chat?</h2>
-    <p>Use the AI account or subscription you already have, within its usual limits. This site does not run a separate paid image-generation service, which keeps it inexpensive to host or run locally.</p>
+    <p>Use the AI account or subscription you already have, within its usual limits. This site does not run its own image-generation service.</p>
+    </article>
+    <article>
+    <h2>What if a label comes back wrong?</h2>
+    <p>Usable labels remain printable. Labels with incompatible dimensions stay off the sheet. Copy the repair request into the same chat and bring back the corrected ZIP.</p>
+    </article>
+    <article>
     <h2>Check the fit before printing</h2>
-    <p>Your AI makes trim and safe-area guides locally by default. For hosted checks, choose Enable hosted image checks before copying your prompt. Cloudflare verifies access, and your prompt includes an allowance for up to 60 checks over 24 hours. The service returns guide copies without storing images. If access expires or shared capacity runs out, your AI uses local guides. Only clean artwork goes into your label ZIP.</p>
+    <p>Your AI makes trim and safe-area guides by default. For hosted checks, open More options and choose Enable hosted image checks before copying your prompt.</p>
+    <p>Cloudflare verifies access for up to 60 checks over 24 hours. The service returns guide copies without storing images. If access expires or capacity runs out, your AI uses local guides. Only clean artwork goes into the ZIP.</p>
+    </article>
+    <article>
     <h2>What happens on this device?</h2>
-    <p>Your chat creates the artwork. This app checks the ZIP and places the labels at their physical size on the printer sheet. Keeping those jobs separate lets the artwork stay independent of the sheet layout.</p>
-    <p>Imported files stay in your browser. The app does not upload them or automatically open research links. Switching tabs keeps your work; reloading or closing the page clears the current print job. Keep the downloaded ZIP so you can import it again.</p>
-    <p>The return link in your AI chat opens Print labels. You still download the ZIP and choose it here; the link does not transfer files. A localhost link works only on the device running this app.</p>
-  </section>
+    <p>This app checks your ZIP and places each label at its physical size. Imported files stay in your browser, and research links are never opened automatically.</p>
+    <p>Switching views keeps your work; reloading or closing the page clears the print job. Keep the ZIP so you can import it again.</p>
+    </article>
+    <article>
+    <h2>Does the return link bring my labels?</h2>
+    <p>The link opens Print labels. Download the ZIP from your chat, then choose it here. A localhost link works only on the device running this app.</p>
+    </article>
+    </section>
+  </div>
 }

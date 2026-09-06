@@ -10,6 +10,7 @@ describe('PromptHandoff', () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
     const { rerender } = render(<PromptHandoff prompt="Full contract and schema" request="Just the request" />)
+    expect(screen.getByText('Read full prompt').closest('details')).not.toHaveAttribute('open')
     fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }))
     await waitFor(() => expect(writeText).toHaveBeenCalledWith('Full contract and schema' + proofAccessText(null)))
     expect(screen.queryByRole('link', { name: /open chatgpt/i })).not.toBeInTheDocument()
@@ -43,6 +44,7 @@ describe('PromptHandoff', () => {
 it('renders Markdown without fetching embedded images or executing HTML, and preserves exact source', () => {
   const prompt = '# Task\n\n- Research **the label**\n\n```json\n{"labels": []}\n```\n\n![Reference](https://example.com/tracker.png)\n\n<script>alert(1)</script>\n\n[Unsafe](javascript:alert(1))'
   render(<PromptHandoff prompt={prompt} request="Request" />)
+  fireEvent.click(screen.getByText('Read full prompt'))
   expect(screen.getByRole('heading', { name: 'Task' })).toBeInTheDocument()
   expect(screen.getByText('the label').tagName).toBe('STRONG')
   expect(screen.getByRole('region', { name: 'Rendered prompt' }).querySelector('img,script')).toBeNull()

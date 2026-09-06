@@ -28,7 +28,7 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
     <section className="panel importer" aria-labelledby="import-title">
       <div className="panel-heading">
         <div>
-          <h1 id="import-title">Print labels</h1>
+          <h2 id="import-title">Your label pack</h2>
         </div>
       </div>
 
@@ -54,6 +54,8 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
           Choose ZIP
         </button>
       </div>
+
+      <p className="import-privacy"><Icon name="lock" size={15} />Your ZIP stays in this browser. Keep the file so you can print again.</p>
 
       {summary && (
         <div className={`import-report status-${summary.status}`} aria-live="polite">

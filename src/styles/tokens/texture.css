@@ -1,0 +1,12 @@
+:root{
+/* Visible paper. Grain is a filter, not an image asset, so it costs nothing to ship. */
+--texture-grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E"); /* @kind other */
+--texture-grain-opacity:.055; /* @kind other */
+--texture-grain-opacity-strong:.09; /* @kind other */
+--texture-laid:repeating-linear-gradient(90deg,rgb(33 30 25 / 2.5%) 0 1px,transparent 1px 4px); /* @kind other */
+--texture-kraft:repeating-linear-gradient(-45deg,rgb(168 137 79 / 5%) 0 6px,transparent 6px 12px); /* @kind other */
+}
+/* Apply as a pseudo-element so the grain sits over the surface but under content. */
+.tc-grain{position:relative;isolation:isolate}
+.tc-grain::after{content:'';position:absolute;inset:0;pointer-events:none;background-image:var(--texture-grain);opacity:var(--texture-grain-opacity);mix-blend-mode:multiply;z-index:0}
+.tc-grain>*{position:relative;z-index:1}

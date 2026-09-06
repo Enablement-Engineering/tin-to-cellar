@@ -1,0 +1,32 @@
+:root{
+/* --- Families --- */
+--font-display:'Newsreader','Iowan Old Style',Palatino,Georgia,serif;
+--font-sans:'Hanken Grotesk','Avenir Next',Avenir,'Segoe UI',sans-serif;
+--font-mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+
+/* --- Size scale (~1.25) --- */
+--size-11:11px;--size-12:12px;--size-13:13px;--size-14:14px;--size-16:16px;--size-18:18px;
+--size-21:21px;--size-26:26px;--size-33:33px;--size-42:42px;--size-54:54px;--size-68:68px;
+
+/* --- Weights --- */
+--weight-display:300;--weight-display-strong:400;
+--weight-regular:400;--weight-medium:500;--weight-semibold:600;--weight-bold:700;
+
+/* --- Leading + tracking --- */
+--leading-tight:1.08; /* @kind other */--leading-snug:1.25; /* @kind other */--leading-normal:1.5; /* @kind other */--leading-relaxed:1.65; /* @kind other */
+--tracking-display:-0.02em; /* @kind other */--tracking-normal:0; /* @kind other */--tracking-wide:0.04em; /* @kind other */--tracking-caps:0.1em; /* @kind other */
+
+/* --- Semantic roles --- */
+--type-hero:var(--weight-display) var(--size-54)/var(--leading-tight) var(--font-display);
+--type-title:var(--weight-display) var(--size-33)/var(--leading-tight) var(--font-display);
+--type-heading:var(--weight-display-strong) var(--size-21)/var(--leading-snug) var(--font-display);
+--type-subheading:var(--weight-display-strong) var(--size-18)/var(--leading-snug) var(--font-display);
+--type-body:var(--weight-regular) var(--size-16)/var(--leading-relaxed) var(--font-sans);
+--type-body-sm:var(--weight-regular) var(--size-14)/var(--leading-normal) var(--font-sans);
+--type-ui:var(--weight-medium) var(--size-14)/1.2 var(--font-sans);
+--type-ui-strong:var(--weight-semibold) var(--size-14)/1.2 var(--font-sans);
+--type-label:var(--weight-semibold) var(--size-13)/1.3 var(--font-sans);
+--type-hint:var(--weight-regular) var(--size-13)/var(--leading-normal) var(--font-sans);
+--type-spec:var(--weight-regular) var(--size-12)/1.45 var(--font-mono);
+--type-eyebrow:var(--weight-medium) var(--size-11)/1.2 var(--font-mono);
+}

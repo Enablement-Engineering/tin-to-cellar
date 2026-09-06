@@ -1,0 +1,22 @@
+:root{
+--space-1:2px;--space-2:4px;--space-3:6px;--space-4:8px;--space-5:12px;--space-6:16px;
+--space-7:20px;--space-8:24px;--space-9:32px;--space-10:40px;--space-11:56px;--space-12:72px;--space-13:104px;
+
+/* --- Semantic spacing --- */
+--gap-inline:var(--space-4);
+--gap-field:var(--space-3);
+--gap-stack:var(--space-6);
+--gap-section:var(--space-10);
+--pad-card:var(--space-8);
+--pad-card-lg:var(--space-9);
+--pad-control-y:var(--space-5);
+--pad-control-x:var(--space-6);
+
+/* --- Measure + layout --- */
+--measure-prose:64ch; /* @kind other */
+--measure-narrow:46ch; /* @kind other */
+--width-content:1080px;
+--width-wide:1320px;
+--control-height:44px;
+--control-height-sm:34px;
+}

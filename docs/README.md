@@ -1,6 +1,6 @@
 # Documentation
 
-Use [the live site](https://tintocellar.com/) to create a prompt or print a CellarPack. Start with the [user workflow](simplified-workflow.md) for supported inputs and instructions.
+Use [the live site](https://tintocellar.com/) to create a prompt or print a CellarPack. Start with the [user workflow](simplified-workflow.md) for supported inputs and instructions. The [design system](design-system.md) documents the home page, tool layouts, tokens, fonts, assets, and print boundaries.
 
 ## How the application works
 
@@ -8,6 +8,7 @@ The browser combines a reusable protocol, full JSON Schema, and optional tobacco
 
 | Component | Responsibility | Location |
 | --- | --- | --- |
+| Application shell and views | Home, direct tool routes, navigation, and responsive layout | `src/App.tsx`, `src/components/`, `src/styles/` |
 | Prompt builder | Protocol, schema, request, and return instructions | `src/lib/prompt/` |
 | Names catalog | Local autocomplete and alias matching | `src/lib/tobacco-catalog/` |
 | Order import | Local PDF extraction, screenshot OCR, cleanup, and suggestions | `src/lib/order-import/` |
@@ -21,6 +22,7 @@ The app handles orders and packs locally, renders untrusted manifest text as tex
 ## Current guides and contracts
 
 - [User workflow](simplified-workflow.md)
+- [Design system and UI guidance](design-system.md)
 - [Deployment and proof API](cloudflare-deployment.md)
 - [CellarPack specification](../public/spec/cellarpack-v1.md) and [schema](../public/spec/cellarpack-v1.schema.json)
 - [Portable AI instructions](../public/agent/tin-to-cellar-prompt.md)

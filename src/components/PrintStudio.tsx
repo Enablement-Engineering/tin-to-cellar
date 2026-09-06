@@ -1,5 +1,6 @@
-import { useEffect, type CSSProperties } from 'react'
+import { useEffect, type CSSProperties, type ReactNode } from 'react'
 import { LabelArtwork } from './LabelArtwork'
+import { Icon } from './Icons'
 import type { PrintLabel, PrintSettings } from './ui-model'
 import { AVERY_94502_PROFILE } from '../lib/sheets'
 
@@ -9,9 +10,10 @@ type PrintStudioProps = {
   onQuantityChange: (id: string, value: number) => void
   settings: PrintSettings
   onSettingsChange: (settings: PrintSettings) => void
+  intake?: ReactNode
 }
 
-export function PrintStudio({ labels, quantities, onQuantityChange, settings, onSettingsChange }: PrintStudioProps) {
+export function PrintStudio({ labels, quantities, onQuantityChange, settings, onSettingsChange, intake }: PrintStudioProps) {
   const { page, firstSlot, offset } = settings
   const setPage = (page: number) => onSettingsChange({ ...settings, page })
   const setFirstSlot = (firstSlot: number) => onSettingsChange({ ...settings, firstSlot })
@@ -48,6 +50,8 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
   return (
     <section className="simple-print" aria-label="Print labels">
       <div className="print-job screen-only">
+        <div className="print-sidebar">
+        {intake}
         <div className="panel quantity-panel">
           <h2>Your labels</h2><p>Choose how many of each to print. Set a quantity to zero to leave it out.</p>
           {labels.map((label) => <div className="quantity-row" key={label.id}>
@@ -65,10 +69,11 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
             <label>Start at slot <select aria-label="Start at slot" value={firstSlot} onChange={(event) => setFirstSlot(Number(event.target.value))}>{Array.from({ length: 9 }, (_, index) => <option key={index} value={index + 1}>{index + 1}</option>)}</select></label>
             <p className="field-hint">Slots run left to right, then down. Use this for a partly used first sheet.</p>
             <div className="offset-grid">{(['x', 'y'] as const).map((axis) => <label key={axis}>{axis.toUpperCase()} offset (in)<input aria-label={`${axis.toUpperCase()} offset`} type="number" min="-0.25" max="0.25" step="0.01" value={offset[axis]} onChange={(event) => setOffset({ ...offset, [axis]: Math.max(-0.25, Math.min(0.25, Number(event.target.value) || 0)) })} /></label>)}</div>
-            <button className="button secondary" type="button" onClick={() => print('calibration')}>Print alignment sheet</button>
+            <button className="button secondary" type="button" onClick={() => print('calibration')}><Icon name="guide" size={17} />Print alignment sheet</button>
             <p className="field-hint">Print on plain paper at Actual Size. The ruler should measure two inches. Hold it behind your label stock to check the nine circles.</p>
           </details>
-          <div className="print-action"><button className="button primary" disabled={!copies.length} type="button" onClick={() => print('labels')}>Print {copies.length} {copies.length === 1 ? 'label' : 'labels'}</button><p>US Letter · Actual Size / 100% · Headers and footers off. For a PDF, choose Save as PDF.</p></div>
+          <div className="print-action"><button className="button primary" disabled={!copies.length} type="button" onClick={() => print('labels')}><Icon name="print" />Print {copies.length} {copies.length === 1 ? 'label' : 'labels'}</button><p>US Letter · Actual Size / 100% · Headers and footers off. For a PDF, choose Save as PDF.</p></div>
+        </div>
         </div>
         <div className="sheet-stage">
           <div className="sheet-meta"><span>{copies.length} labels · {copies.length ? pageCount : 0} {pageCount === 1 ? 'sheet' : 'sheets'}</span><span>Avery 94502</span></div>

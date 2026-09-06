@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 const { importer } = vi.hoisted(() => ({ importer: vi.fn() }))
@@ -21,12 +21,30 @@ function upload() {
 beforeEach(() => {
   window.history.replaceState({}, '', '/#create')
   importer.mockReset()
+  window.scrollTo = vi.fn()
   Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn(() => 'blob:label') })
   Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() })
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } })
 })
 afterEach(cleanup)
-describe('prompt, print, and help navigation', () => {
+describe('home, prompt, print, and help navigation', () => {
+  it('starts on the landing page and keeps a label request when returning through home', () => {
+    window.history.replaceState({}, '', '/')
+    render(<App />)
+    expect(screen.getByRole('heading', { name: 'Your tobacco keeps better in a jar. Make the jar look like the tin.' })).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Tobaccos' })).not.toBeInTheDocument()
+    expect(importer).not.toHaveBeenCalled()
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Workflow' })).getByRole('button', { name: 'Make a prompt' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'Tobaccos' }), { target: { value: 'Escudo' } })
+    fireEvent.change(screen.getByLabelText('Special requests'), { target: { value: 'Keep the crest' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Tin to Cellar home' }))
+    expect(window.location.hash).toBe('#home')
+    fireEvent.click(within(screen.getByRole('main')).getByRole('button', { name: 'Make a prompt' }))
+    expect(screen.getByRole('main')).toHaveFocus()
+    expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 0, left: 0 })
+    expect(screen.getByRole('button', { name: 'Remove Escudo' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Special requests')).toHaveValue('Keep the crest')
+  })
   it('offers reload for a stale code download without asking AI to repair the ZIP', async () => {
     window.history.replaceState({}, '', '/#print')
     importer.mockRejectedValue(new TypeError('Failed to fetch dynamically imported module: https://example.com/assets/old.js'))
@@ -43,14 +61,24 @@ describe('prompt, print, and help navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }))
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('Unlisted Family Tobacco')))
   })
-  it('returns to the form when browser Back restores the initial URL without a hash', async () => {
+  it('returns to the landing page when browser Back restores the initial URL without a hash', async () => {
     window.history.replaceState({}, '', '/')
     render(<App />)
-    fireEvent.change(screen.getByLabelText('Tobaccos'), { target: { value: 'Escudo' } })
-    fireEvent.click(screen.getByRole('button', { name: 'How it works' }))
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Workflow' })).getByRole('button', { name: 'Make a prompt' }))
     window.history.back()
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Remove Escudo' })).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Your tobacco keeps better in a jar. Make the jar look like the tin.' })).toBeInTheDocument())
     expect(window.location.hash).toBe('')
+    expect(screen.getByRole('main')).toHaveFocus()
+    expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 0, left: 0 })
+  })
+  it('keeps the current view when following the skip link', () => {
+    render(<App />)
+    fireEvent.change(screen.getByLabelText('Special requests'), { target: { value: 'Keep the border' } })
+    vi.mocked(window.scrollTo).mockClear()
+    window.history.replaceState({}, '', '/#main-content')
+    fireEvent(window, new Event('hashchange'))
+    expect(screen.getByLabelText('Special requests')).toHaveValue('Keep the border')
+    expect(window.scrollTo).not.toHaveBeenCalled()
   })
   it('opens a direct print hash without importing or fetching a file', () => {
     window.history.replaceState({}, '', '/#print')
@@ -94,11 +122,10 @@ describe('prompt, print, and help navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Make a prompt' }))
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:label')
   })
-  it('starts at the form and keeps the workflow explanation in its own tab', () => {
-    const { container } = render(<App />)
+  it('opens the form directly and keeps the workflow explanation in its own view', () => {
+    render(<App />)
     expect(screen.getByLabelText('Tobaccos')).toBeInTheDocument()
-    expect(container.querySelector('.welcome')).toBeNull()
-    expect(container.querySelector('footer')).toBeNull()
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'How it works' })).not.toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Tobaccos'), { target: { value: 'Escudo' } })
     fireEvent.change(screen.getByLabelText('Special requests'), { target: { value: 'Cream background' } })
@@ -123,6 +150,7 @@ describe('prompt, print, and help navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Next sheet' }))
     fireEvent.click(screen.getByRole('button', { name: /Make a prompt/i }))
     fireEvent.click(screen.getByRole('button', { name: 'How it works' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tin to Cellar home' }))
     fireEvent.click(screen.getByRole('button', { name: /Print labels/i }))
     expect(screen.getByLabelText('Start at slot')).toHaveValue('2')
     expect(screen.getByLabelText('X offset')).toHaveValue(.05)

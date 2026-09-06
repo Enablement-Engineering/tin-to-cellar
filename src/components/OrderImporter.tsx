@@ -19,7 +19,7 @@ export function OrderImporter({ onAdd }: { onAdd: (names: string[]) => void }) {
   const review = (value: string) => {
     const found = matchOrder(value)
     setMatches(found); setSelected(found.map((match) => match.suggestions.length === 1 ? match.suggestions[0] : ''))
-    setMessage(found.length ? `${found.length} possible matches. Choose the tobaccos to add.` : 'No catalog matches found. Try a clearer file or type names in the tobacco field.')
+    setMessage(found.length ? `${found.length} possible ${found.length === 1 ? 'match. Choose the tobacco' : 'matches. Choose the tobaccos'} to add.` : 'No catalog matches found. Try a clearer file or type names in the tobacco field.')
   }
   const load = async (file: File) => {
     if (busy) return

@@ -1,5 +1,7 @@
 ## Tin to Cellar prompt-workflow plan
 
+Status: historical prompt plan. Use the [current workflow](simplified-workflow.md) and [portable instructions](../public/agent/tin-to-cellar-prompt.md) for the supported contract. The website no longer adds text or writing lines to artwork. The [design system](design-system.md) governs current website presentation.
+
 This prompt follows current official OpenAI guidance: define the outcome and success criteria, keep stable instructions before dynamic user input, ask for the smallest missing field, use an explicit retrieval budget, distinguish sourced facts from creative work, establish stopping conditions, and visually inspect rendered artifacts before finalizing. OpenAI also documents that image models can still struggle with precise text and structured composition, which is why the prompt treats small text as a website-owned overlay and requires visual QA. Sources: [OpenAI model prompting guidance](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-5.5) and [OpenAI image-generation guidance](https://developers.openai.com/api/docs/guides/image-generation).
 
 The placeholder `TIN_TO_CELLAR_SPEC_URL` should be replaced with the canonical v1 specification URL when published. Until then, the prompt can be bundled with the schema document.
