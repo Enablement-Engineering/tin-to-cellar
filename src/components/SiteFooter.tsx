@@ -1,4 +1,4 @@
-type FooterPage = 'about' | 'inspiration' | 'privacy'
+type FooterPage = 'help' | 'about' | 'inspiration' | 'privacy'
 
 interface SiteFooterProps {
   currentView: string
@@ -6,6 +6,7 @@ interface SiteFooterProps {
 }
 
 const pages: { page: FooterPage; label: string }[] = [
+  { page: 'help', label: 'How it works' },
   { page: 'privacy', label: 'Privacy' },
   { page: 'about', label: 'About' },
   { page: 'inspiration', label: 'Inspiration' },
@@ -17,7 +18,7 @@ export function SiteFooter({ currentView, onNavigate }: SiteFooterProps) {
     <nav className="footer-nav" aria-label="About Tin to Cellar">
       {pages.map(({ page, label }) => <a
         key={page}
-        href={`/${page}`}
+        href={page === 'help' ? '/labels/help' : `/${page}`}
         aria-current={currentView === page ? 'page' : undefined}
         onClick={(event) => {
           if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return

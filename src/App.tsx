@@ -217,7 +217,7 @@ function PublicApp() {
   }
   const workflowViews: View[] = ['labels', 'create', 'print', 'help', 'gallery', 'gallery-admin']
   const navItems: { view: View; label: string }[] = [{ view: 'labels', label: 'Labels' }, ...(workflowViews.includes(view as View) ? [
-    { view: 'create' as const, label: 'Make a prompt' }, { view: 'print' as const, label: 'Print labels' }, ...(galleryConfig?.serving ? [{ view: 'gallery' as const, label: 'Community labels' }] : []), { view: 'help' as const, label: 'How it works' },
+    { view: 'create' as const, label: 'Make a prompt' }, { view: 'print' as const, label: 'Print labels' }, ...(galleryConfig?.serving ? [{ view: 'gallery' as const, label: 'Community labels' }] : []),
   ] : [])]
 
   return <div className="app-shell tc-grain" onClick={(event) => {
