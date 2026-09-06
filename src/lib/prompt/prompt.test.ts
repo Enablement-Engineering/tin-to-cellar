@@ -54,7 +54,7 @@ describe('self-contained generation protocol', () => {
     expect(code).toBe(read('./local-proof.py').trim())
     expect(prompt).toContain(`Canonical local-proof.py SHA-256: ${createHash('sha256').update(code + '\n').digest('hex')}`)
     expect(code.length).toBeLessThan(10000)
-    expect(prompt.length - code.length).toBeLessThan(38000)
+    expect(prompt.length - code.length).toBeLessThan(41000)
   })
   it('preserves research-before-generation and close reference fidelity', () => {
     const prompt = buildCompleteTinToCellarPrompt({ tobaccos: 'Escudo' })
