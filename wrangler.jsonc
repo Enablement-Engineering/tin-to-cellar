@@ -1,7 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "tin-to-cellar",
-  "account_id": "97e5d454f1ad2daae1c6d42a5d4c09dd",
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-05",
   "workers_dev": true,

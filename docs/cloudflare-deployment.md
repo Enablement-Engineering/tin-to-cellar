@@ -4,7 +4,7 @@ Production: [tintocellar.com](https://tintocellar.com/) and [www.tintocellar.com
 
 The app is deployed as Worker static assets. Only `/api/*` routes invoke the Worker; files from `dist/` are served as static assets. Deploy with `npm run deploy`; run the production configuration locally with `npm run preview:cloudflare`.
 
-The account and Worker name are in `wrangler.jsonc`. Wrangler authenticates through the developer's existing login; no credentials are stored in the repository. `npm run deploy` publishes the current working tree after building. It does not commit or push it. Deployment uploads `dist/` as website assets and bundles the Worker and proof overlay. Source catalog evidence, local PDFs, ZIPs, and temporary files are not uploaded. A GitHub push does not deploy the site, so the live release can lag behind repository changes.
+The Worker configuration is in `wrangler.jsonc`; account selection is local. Wrangler authenticates through the developer's login; no credentials are stored in the repository. `npm run deploy` publishes the current working tree after building. It does not commit or push it. Deployment uploads `dist/` as website assets and bundles the Worker and proof overlay. Source catalog evidence, local PDFs, ZIPs, and temporary files are not uploaded. A GitHub push does not deploy the site, so the live release can lag behind repository changes.
 
 ## Setup and release
 
@@ -16,7 +16,7 @@ npm run lint
 npm run deploy
 ```
 
-This deploys to the configured production account. For your own installation, first change the account ID, Worker name, and domain routes in `wrangler.jsonc`. Keep its `ASSETS`, `IMAGES`, and `PROOF_RATE_LIMITER` bindings configured. Credentials belong in Wrangler's login store or environment secrets, never Git. `.env*`, `.dev.vars*`, and `.wrangler/` are ignored.
+Set `CLOUDFLARE_ACCOUNT_ID` in your local environment or ignored `.env` file to select the deployment account. For your own installation, change the Worker name and domain routes in `wrangler.jsonc`. Keep its `ASSETS`, `IMAGES`, and `PROOF_RATE_LIMITER` bindings configured. Credentials belong in Wrangler's login store or environment secrets, never Git. `.env*`, `.dev.vars*`, and `.wrangler/` are ignored.
 
 `npm run dev` serves the frontend through Vite. `npm run build` followed by `npm run preview` serves the production frontend build. Use `npm run preview:cloudflare` for Worker routes; verify native Images rendering on Cloudflare as well. Local unit tests alone do not establish hosted proof behavior.
 
@@ -50,7 +50,7 @@ Some AI execution environments cannot reach the service even when another client
 
 The matching stage uses the existing catalog and preselects rows with exactly one catalog suggestion; ambiguous rows remain unselected. The user confirms with Add selected tobaccos. It does not equate purchase quantities with label quantities. File imports show matched tobaccos without an extracted-text editor; pasted order text and custom names in the tobacco picker remain supported. Small images are enlarged for recognition and sparse-text layout handles receipt columns. OCR can still miss or misread names; clearer product-list screenshots work best. Scanned PDFs are not yet supported. Cancelled results are discarded, and screenshot reading has a 90-second timeout.
 
-The provided Smokingpipes order was tested locally with the actual PDF and with PNG images of its two product pages: Quiet Nights, Early Morning Pipe, Golden Sliced, and Autumn Evening were offered; pipe cleaners were excluded. Screenshot results were reviewed and added through the browser UI. The personal order itself is not a committed test fixture. Generic regression tests cover split maker/product lines, OCR weight/price artifacts, package metadata, misspellings, accessories, unmatched text, explicit review, and stale results after cancellation.
+Regression tests cover split maker/product lines, OCR weight/price artifacts, package metadata, misspellings, accessories, unmatched text, explicit review, and stale results after cancellation. Personal order documents are not distributed with the repository.
 
 ## Cloud OCR next
 
@@ -63,4 +63,4 @@ The provided Smokingpipes order was tested locally with the actual PDF and with 
 
 ## Custom domain
 
-`tintocellar.com` and `www.tintocellar.com` are declared as Worker Custom Domains in `wrangler.jsonc`. Registration remains at Hover and DNS is managed in Cloudflare. The configuration retains these routes on subsequent deployments. Preserve unrelated DNS records, including mail, when changing the application domains. Domain-migration steps and old deployment IDs are historical evidence, not instructions to repeat for each release.
+`tintocellar.com` and `www.tintocellar.com` are declared as Worker Custom Domains in `wrangler.jsonc`. Use your own domains when deploying a fork. Preserve unrelated DNS records when changing application routes.

@@ -100,7 +100,7 @@ There is no required standalone `sources.json`: provenance belongs beside each l
   "schemaVersion": "1.0.0",
   "packId": "urn:uuid:43649b43-8094-4a32-b5ee-8be75208fb63",
   "createdAt": "2026-08-31T18:10:00Z",
-  "title": "Dylan's English Cellar",
+  "title": "Example English Cellar",
   "locale": "en-US",
   "generator": {
     "name": "Tin to Cellar prompt workflow",
@@ -347,7 +347,7 @@ A custom profile MAY be included under `sheet-profiles/` and referenced from `cu
 {
   "format": "tin-to-cellar/sheet-profile",
   "schemaVersion": "1.0.0",
-  "id": "custom:dylans-2.5-circle-sheet@1",
+  "id": "custom:example-2.5-circle-sheet@1",
   "page": { "width": 8.5, "height": 11, "unit": "in" },
   "slots": [
     { "x": 0.5, "y": 0.625, "width": 2.5, "height": 2.5, "shape": "circle", "rotationDegrees": 0 }

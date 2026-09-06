@@ -29,8 +29,8 @@ Check original composition, judge illustration, exact logo form, type hierarchy,
 
 ## Sessions
 
-- Method A: https://chatgpt.com/c/6a9c8b52-6178-83e9-8df2-f3cfa8d06167
-- Method B: https://chatgpt.com/c/6a9c8b5f-a368-83ea-9d04-b50ced7fee23
+- Method A: researched text-only generation.
+- Method B: generation using the inspected original image.
 
 Status: complete. Both methods produced an initial render and one correction. All four PNGs were exported from their rendered ChatGPT pages and independently inspected against the exact reference. Both corrected outputs are 1254 × 1254 pixels.
 
@@ -60,7 +60,7 @@ No production prompt or website changes were made as part of this experiment.
 
 ## Method C: original-artwork assembly with bounded critique
 
-Session: https://chatgpt.com/c/6a9c8eb9-cd84-83e9-847d-aeb000ef1024
+Method C ran in a separate conversation.
 
 Same exact source JPEG and output geometry. Explicitly allow cropping, masking, resampling and compositing. Preserve original image elements instead of regenerating them. Generative fill is permitted only for background gaps that cannot otherwise be filled. No complete redraw. At most two targeted corrections; retain versions and disclose source-resolution limitations. Status: complete; see Method C result below.
 

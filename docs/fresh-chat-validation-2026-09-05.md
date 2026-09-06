@@ -19,7 +19,7 @@ Tested through browser UI in fresh ChatGPT Work conversations using GPT-5.6 Sol 
 - Separate failure to load the app's dynamically imported label reader from an invalid ZIP. A stale production tab originally blamed an unchanged valid ZIP after deployment. The new alert offers reload and does not generate an AI repair prompt.
 - Clarify that the entire writing-panel outline must remain inside the circular safe inset. An experimental numeric placement band increased revisions, so it was removed rather than called an improvement.
 
-97 tests passed, including scope and stale-module-error regression coverage; lint and production build passed. Deployment: `8985c54d-72ff-4678-88a4-b48a7d7161cb`. Published protocol checked on tintocellar.com.
+97 tests passed, including scope and stale-module-error regression coverage; lint and production build passed. Published protocol checked on tintocellar.com.
 
 ## Download and print evidence
 
@@ -44,17 +44,6 @@ Two additional fresh sessions use the current instructions:
 - Ten distinct blends: the same nine plus Westminster.
 
 Both acknowledged their complete scope, began inspecting package references, and started generating. ZIP completeness, import, and one-/two-page PDF gates remain pending.
-
-## Test chats
-
-- Complete prompt: https://chatgpt.com/c/6a9c841f-33d4-83ea-a1d8-e5f11cf84258
-- Split instructions/request: https://chatgpt.com/c/6a9c842c-c748-83ea-8248-b9e740f79c1b
-- No supplied blends: https://chatgpt.com/c/6a9c8439-251c-83ea-9474-af054b397a5e
-- Missing protocol recovery: https://chatgpt.com/c/6a9c846b-9de0-83ea-b348-656548116fa9
-- Revised scope rule: https://chatgpt.com/c/6a9c8490-4954-83ea-8409-5e4ef2a8f4ee
-- Repeat Quiet Nights: https://chatgpt.com/c/6a9c85f4-0978-83ea-b173-02766148a6ca
-- Nine labels: https://chatgpt.com/c/6a9c88aa-0f34-83ea-bda5-e558e63e4cfc
-- Ten labels: https://chatgpt.com/c/6a9c88b3-7fc4-83ea-a93c-64876735b8f5
 
 ## Artwork-fidelity rejection
 

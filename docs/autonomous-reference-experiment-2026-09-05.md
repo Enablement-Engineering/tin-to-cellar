@@ -6,12 +6,11 @@ Test the user's preferred workflow: the AI chat finds actual packaging from a bl
 
 ## Fresh-session setup
 
-- Conversation: https://chatgpt.com/c/6a9c92b0-c858-83ea-8511-28865fc50b0a
 - Model shown in browser: GPT-5.6 Sol Medium (Work).
 - Input: Samuel Gawith Full Virginia Flake 50g, research/generation/review requirements, and label geometry. No retailer, image URL, attachment, visual description, or account-memory inventory.
 - Initial render plus at most two refinements; no ZIP until visual acceptance.
 - Canvas specified for this experiment: 1254 square, 2.75-inch bleed canvas, 1140px circular trim diameter, 513px safe radius. Requested blank surface approximately 1.1 × 0.3 inches or larger.
-- Earlier controlled test in conversation 6a9c9267-3608-83ea-a38d-8543cbb2a8fd received an exact URL and was stopped when the user clarified that discovery itself must be tested. It does not count as autonomous research.
+- An earlier controlled test received an exact URL and was stopped because discovery itself needed to be tested. It does not count as autonomous research.
 
 ## Research evidence
 

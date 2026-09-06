@@ -2,7 +2,7 @@
 
 ## What was tested
 
-ChatGPT GPT-5.6 Sol Medium (Work) in https://chatgpt.com/c/6a9c92b0-c858-83ea-8511-28865fc50b0a used its network-capable execution environment to upload actual generated PNG bytes, receive a response, save it, and visually inspect an annotated proof. This demonstrates the capability in that environment, not in every ChatGPT model or tool configuration.
+ChatGPT GPT-5.6 Sol Medium (Work) used its network-capable execution environment to upload actual generated PNG bytes, receive a response, save it, and visually inspect an annotated proof. This demonstrates the capability in that environment, not in every ChatGPT model or tool configuration.
 
 1. A temporary Worker accepted raw image/png and returned size, dimensions and SHA-256 without storing uploads. ChatGPT received HTTP 200 for GET and POST. The 1,654,651-byte final PNG matched local and returned hash `b61894d97e317236cea5047b137bac0d54f49222e3c4da6e4c7652511d092ece`.
 2. The temporary Worker was changed to return the actual proof PNG. ChatGPT uploaded the initial 1254px render, received HTTP 200 / image/png, saved and opened the pixels, and identified the unsafe writing-panel ends, illustration, portrait and decorative border.
@@ -28,11 +28,11 @@ The web-page opener initially rejected the unknown trial domain; curl from the c
 
 `npx tsc --ignoreConfig --noEmit --target es2023 --module esnext --moduleResolution bundler --lib ES2023,DOM --skipLibCheck worker/index.ts worker/assets.d.ts`
 
-The first production version `d9dd48cd-b85a-4a95-81c4-2632715a5f0b` exposed a real failure: the local control returned 200 but ChatGPT received two 503 responses with Cloudflare error 1102. The Free-plan CPU budget made full JavaScript image processing unreliable. A trial deployment with a higher CPU limit was rejected with code 100328: CPU limits are not supported for the Free plan. No account plan upgrade was made.
+The first production version exposed a real failure: the local control returned 200 but ChatGPT received two 503 responses with Cloudflare error 1102. Full JavaScript image processing exceeded the deployment's CPU budget. This motivated the native compositor below.
 
 The fix uses the native Cloudflare Images binding and a precomputed transparent guide PNG. Regenerate that asset with `npm run proof:overlay`. Native image processing is subject to Cloudflare Images usage/limits; there is no AI inference binding. The free-plan Worker now only validates bounded upload headers and forwards bytes to native compositing.
 
-Deployed the corrected existing working tree (no commit/push) as Cloudflare version `3753335d-3def-4632-8135-2e163ebb21ab` to tintocellar.com, www.tintocellar.com and the Workers domain. Production control returned HTTP 200 / image/png, 1254 square, trim radius 570px and safe radius 513px. The deployed reusable prompt hash matched the local file.
+After deployment, the production control returned HTTP 200 / image/png, 1254 square, trim radius 570px and safe radius 513px. The deployed reusable prompt hash matched the local file.
 
 Local ignored evidence: `output/experiments/proof-service/` contains the control and production proof PNGs, response headers and downloaded deployed prompt. The temporary trial Worker is removed after production verification.
 
