@@ -184,7 +184,11 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 .handoff-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .handoff-actions .primary { min-height: 48px; padding-inline: 24px; }
 .handoff-content .button.quiet .icon { transform: rotate(90deg); }
-.handoff-details { padding: 0 24px; }
+.handoff-details { border-top: 1px solid var(--line-hairline); }
+.handoff-text-action { padding: 4px 0; border: 0; background: none; color: var(--text-accent); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.handoff-text-action:hover:not(:disabled) { color: var(--text-strong); }
+.handoff-inspection-note { margin-bottom: 16px; color: var(--text-muted); font: var(--type-hint); }
+.handoff-reuse { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding-bottom: 16px; font: var(--type-hint); }
 .more-options { border-top: 1px solid var(--line-hairline); }
 .more-options summary, .prompt-preview > summary, .alignment-options > summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 52px; padding: 12px 0; color: var(--text-accent); font: var(--type-ui-strong); cursor: pointer; list-style: none; }
 .more-options summary::-webkit-details-marker, .prompt-preview > summary::-webkit-details-marker, .alignment-options > summary::-webkit-details-marker { display: none; }
@@ -366,7 +370,6 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
   .panel-heading { flex-wrap: wrap; gap: 8px; }
   .panel-heading h1, .panel-heading h2 { font-size: 33px; }
   .page-heading h1 { font-size: 33px; }
-  .handoff-details { padding: 0 20px; }
   .prompt-document { padding: 16px; }
   .quantity-row { grid-template-columns: 48px minmax(0, 1fr) auto; gap: 8px; }
   .label-thumbnail { width: 48px; height: 48px; }
