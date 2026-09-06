@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "schemaVersion", "protocolRevision", "request", "outcome", "steps", "issues"],
+  "properties": {
+    "format": { "const": "tin-to-cellar/feedback" },
+    "schemaVersion": { "const": "2.0.0" },
+    "protocolRevision": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+    "request": {
+      "type": "object", "additionalProperties": false, "required": ["labelCount", "shape"],
+      "properties": {
+        "labelCount": { "type": "integer", "minimum": 0, "maximum": 500 },
+        "shape": { "enum": ["circle", "oval", "square", "rectangle", "rounded-rectangle", "custom", "unknown"] }
+      }
+    },
+    "outcome": { "enum": ["complete", "partial", "failed", "research-only"] },
+    "steps": {
+      "type": "array", "maxItems": 7,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["stage", "status", "attempts"],
+        "properties": {
+          "stage": { "$ref": "#/$defs/stage" },
+          "status": { "enum": ["passed", "failed", "skipped", "unavailable"] },
+          "attempts": { "type": "integer", "minimum": 0, "maximum": 1500 }
+        }
+      }
+    },
+    "issues": {
+      "type": "array", "maxItems": 50,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["code", "stage", "resolved"],
+        "properties": {
+          "code": { "enum": ["reference-unavailable", "variant-ambiguous", "image-handoff-unavailable", "generation-unavailable", "generation-failed", "artwork-fidelity", "text-legibility", "write-area", "geometry", "proof-unavailable", "schema", "archive", "instructions-unclear", "instructions-conflicting", "other", "protocol-unavailable", "protocol-incomplete"] },
+          "stage": { "$ref": "#/$defs/stage" },
+          "resolved": { "type": "boolean" }
+        }
+      }
+    }
+  },
+  "$defs": { "stage": { "enum": ["research", "generation", "visual-review", "proof", "packaging", "validation", "protocol-retrieval"] } }
+}

@@ -4,7 +4,7 @@ import Ajv from 'ajv'
 import { parseRetrospective } from '../../src/lib/feedback/retrospective.ts'
 import { parseWebsiteValidation } from '../../src/lib/contributions/validation.ts'
 const ajv = new Ajv()
-const validators = ['schema.json', 'legacy-schema.json'].map(name => ajv.compile(JSON.parse(readFileSync(new URL(`../../src/lib/feedback/${name}`, import.meta.url), 'utf8'))))
+const validators = ['schema.json', 'legacy-schema.json', 'historical-schema.json'].map(name => ajv.compile(JSON.parse(readFileSync(new URL(`../../src/lib/feedback/${name}`, import.meta.url), 'utf8'))))
 export function normalizeSnapshot(input, now = new Date()) {
   if (input?.version !== 1 || !Array.isArray(input.reports) || input.reports.length > 100000 || !Number.isFinite(Date.parse(input.until))) throw new Error('Invalid snapshot')
   const unique = new Map()

@@ -12,7 +12,7 @@ if (!response.ok) throw new Error(`Legacy export failed (${response.status})`)
 const { reports } = await response.json()
 if (!Array.isArray(reports) || reports.length > 1000) throw new Error('Invalid legacy export')
 const ajv = new Ajv()
-const validators = ['schema.json','legacy-schema.json'].map(name => ajv.compile(JSON.parse(readFileSync(new URL(`../../src/lib/feedback/${name}`, import.meta.url), 'utf8'))))
+const validators = ['schema.json','legacy-schema.json', 'historical-schema.json'].map(name => ajv.compile(JSON.parse(readFileSync(new URL(`../../src/lib/feedback/${name}`, import.meta.url), 'utf8'))))
 const quote = value => "'" + value.replaceAll("'", "''") + "'"
 const sql = []
 for (const row of reports) {

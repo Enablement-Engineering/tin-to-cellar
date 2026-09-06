@@ -86,7 +86,7 @@ it('migrates retained legacy records before new collection and only marks comple
   }, async batch(statements) { return Promise.all(statements.map(statement => statement.run())) } }
   const state = setup(db)
   state.data.set('report:one', { receivedAt: '2026-08-01T00:00:00.000Z', contribution })
-  state.data.set('report:two', { receivedAt: '2026-08-02T00:00:00.000Z', contribution: { ...contribution, submissionId: 'b'.repeat(64) } })
+  state.data.set('report:two', { receivedAt: '2026-08-02T00:00:00.000Z', contribution: { ...contribution, submissionId: 'b'.repeat(64), sources: [{ ...source, catalogId: 'retired-catalog-entry' }], feedback: { format: 'tin-to-cellar/feedback', schemaVersion: '2.0.0', protocolRevision: 12, request: { labelCount: 1, shape: 'circle' }, outcome: 'complete', steps: [], issues: [] } } })
   state.data.set('report:expired', { receivedAt: '2025-01-01T00:00:00.000Z', contribution: { ...contribution, submissionId: 'c'.repeat(64) } })
   const migrate = () => state.object.fetch(new Request('https://catalog/migrate', { method: 'POST' }))
   await expect(migrate()).rejects.toThrow('Interrupted')
@@ -94,6 +94,7 @@ it('migrates retained legacy records before new collection and only marks comple
   fail = false
   expect(await (await migrate()).json()).toEqual({ status: 'migrated', copied: 2 })
   expect(rows.size).toBe(2)
+  expect(JSON.parse(String(rows.get('b'.repeat(64))?.[4])).protocolRevision).toBe(12)
   expect(rows.get(contribution.submissionId)?.slice(1,4)).toEqual(['2026-08-01T00:00:00.000Z', '2026-10-30T00:00:00.000Z', 'legacy'])
   expect(await (await migrate()).json()).toEqual({ status: 'already-migrated' })
 })

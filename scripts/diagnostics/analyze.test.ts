@@ -20,3 +20,9 @@ it('removes expired raw data and notes from private snapshots', () => {
   expect(normalizeSnapshot(input(), new Date('2028-01-01'))).toEqual([])
   expect(normalizeSnapshot(input([{ ...report, retrospective: { private: 'expired' }, notesExpiresAt: '2026-09-01' }]), now)[0].retrospective).toBeNull()
 })
+it('retains published numeric-protocol reports without changing their version', () => {
+  const legacy = { ...report, origin: 'legacy', feedback: { ...report.feedback, schemaVersion: '2.0.0', protocolRevision: 12 } }
+  expect(normalizeSnapshot(input([legacy]), now)[0].feedback).toEqual(legacy.feedback)
+  expect(analyze(input([legacy]), now).weekly.byRevision['12'].aiReports).toBe(1)
+  expect(() => analyze(input([{ ...legacy, feedback: { ...legacy.feedback, private: 'unexpected' } }]), now)).toThrow()
+})
