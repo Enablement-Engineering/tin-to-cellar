@@ -11,9 +11,12 @@ test('the local website serves Worker API responses instead of SPA HTML', async 
   expect(await access.json()).toEqual({ error: 'Not found' })
 
   const protocol = await request.get('/api/labels/protocol/v1/instructions.html')
-  expect(protocol.status()).toBe(200)
-  expect(protocol.headers()['content-type']).toContain('text/html')
-  expect(await protocol.text()).toMatch(/END TIN TO CELLAR PROTOCOL [1-9][0-9]*/)
+  expect(protocol.status()).toBe(404)
+  expect(await protocol.json()).toEqual({ error: 'Not found' })
+
+  const instructions = await request.get('/agent/tin-to-cellar-prompt.md')
+  expect(instructions.status()).toBe(200)
+  expect(await instructions.text()).toContain('END TIN TO CELLAR PROTOCOL')
 
   const retired = await request.get('/api/protocol/v1/instructions.html')
   expect(retired.status()).toBe(404)

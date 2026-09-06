@@ -1,4 +1,4 @@
-import { TOBACCO_CATALOG } from '../tobacco-catalog'
+import { TOBACCO_CATALOG, findExactTobacco, resolveTobaccoId } from '../tobacco-catalog'
 import historicalFeedbackSchema from '../feedback/historical-schema.json'
 import feedbackSchema from '../feedback/schema.json'
 import legacyFeedbackSchema from '../feedback/legacy-schema.json'
@@ -11,12 +11,11 @@ export const SOURCE_STATUSES = ['valid', 'unavailable', 'wrong-package', 'unveri
 export type SourceObservation = { catalogId: string; url: string; status: typeof SOURCE_STATUSES[number]; package: 'tin' | 'pouch' | 'box' | 'other' | 'unknown'; variant: 'current' | 'historical' | 'unknown' }
 export type Contribution = { version: 1 | 2; submissionId: string; feedback: DiagnosticReport | null; sources: SourceObservation[]; origin?: 'pack' | 'standalone'; validation?: WebsiteValidation | null }
 export type SuggestedSource = SourceObservation & { checkedAt: string }
-const catalogIds = new Set(TOBACCO_CATALOG.map(item => item.id))
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 const exact = (v: Record<string, unknown>, keys: string[]) => Object.keys(v).length === keys.length && keys.every(k => Object.hasOwn(v, k))
 const normalize = (v: string) => v.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
 export function catalogMatch(maker: string, blend: string) {
-  return TOBACCO_CATALOG.find(item => normalize(item.maker) === normalize(maker) && normalize(item.blend) === normalize(blend))
+  return findExactTobacco(maker, blend) ?? TOBACCO_CATALOG.find(item => normalize(item.maker) === normalize(maker) && normalize(item.blend) === normalize(blend))
 }
 // Pure schema interpreter for these fixed feedback schemas. No runtime code generation in Workers.
 function conforms(value: unknown, schema: Record<string, unknown>, root = schema): boolean {
@@ -54,11 +53,11 @@ export function publicSourceUrl(value: unknown): value is string {
 }
 export function parseSource(value: unknown): SourceObservation | null {
   if (!record(value) || !exact(value, ['catalogId', 'url', 'status', 'package', 'variant'])) return null
-  if (typeof value.catalogId !== 'string' || !catalogIds.has(value.catalogId) || !publicSourceUrl(value.url) ||
+  if (typeof value.catalogId !== 'string' || !resolveTobaccoId(value.catalogId) || !publicSourceUrl(value.url) ||
     !SOURCE_STATUSES.includes(value.status as SourceObservation['status']) ||
     typeof value.package !== 'string' || !['tin', 'pouch', 'box', 'other', 'unknown'].includes(value.package) ||
     typeof value.variant !== 'string' || !['current', 'historical', 'unknown'].includes(value.variant)) return null
-  return { catalogId: value.catalogId, url: value.url, status: value.status, package: value.package, variant: value.variant } as SourceObservation
+  return { catalogId: resolveTobaccoId(value.catalogId as string)!.id, url: value.url, status: value.status, package: value.package, variant: value.variant } as SourceObservation
 }
 export function parseContribution(value: unknown): Contribution | null {
   if (!record(value) || ![1, 2].includes(Number(value.version)) || !exact(value, value.version === 1 ? ['version', 'submissionId', 'feedback', 'sources'] : ['version', 'submissionId', 'feedback', 'sources', 'origin', 'validation']) || typeof value.submissionId !== 'string' || !/^[a-f0-9]{64}$/.test(value.submissionId) || !Array.isArray(value.sources) || value.sources.length > 100) return null

@@ -25,12 +25,15 @@ import { PackImporter } from './components/PackImporter'
 import { PrintStudio } from './components/PrintStudio'
 import { PromptHandoff } from './components/PromptHandoff'
 import type { ConfiguratorState, ImportSummary, PrintLabel, PrintSettings } from './components/ui-model'
+import type { ImportedCellarLabel } from './lib/cellarpack'
+import { GalleryBrowse, GallerySubmission, GalleryAdmin } from './components/gallery'
+import { useConfig as useGalleryConfig } from './components/gallery/client'
 import './styles/app.css'
 
 const initialConfig: ConfiguratorState = {
   tobaccos: '', artDirection: '',
 }
-const viewPaths = { home: '/', labels: '/labels', create: '/labels/create', print: '/labels/print', help: '/labels/help', about: '/about', inspiration: '/inspiration', privacy: '/privacy' } as const
+const viewPaths = { home: '/', labels: '/labels', create: '/labels/create', print: '/labels/print', help: '/labels/help', about: '/about', inspiration: '/inspiration', privacy: '/privacy', gallery: '/gallery', 'gallery-admin': '/admin/gallery' } as const
 type View = keyof typeof viewPaths
 function viewFromPath(): View | 'not-found' {
   const pathname = window.location.pathname.replace(/\/$/, '') || '/'
@@ -44,7 +47,8 @@ function issueText(issue: { message?: string; recovery?: string }) {
   return [issue.message ?? 'The label needs repair.', issue.recovery].filter(Boolean).join(' ')
 }
 
-function App() {
+function PublicApp() {
+  const { config: galleryConfig } = useGalleryConfig()
   const [config, setConfig] = useState(initialConfig)
   const [view, setView] = useState<View | 'not-found'>(viewFromPath)
   const main = useRef<HTMLElement>(null)
@@ -83,6 +87,7 @@ function App() {
   const [importing, setImporting] = useState(false)
   const [summary, setSummary] = useState<ImportSummary | null>(null)
   const [labels, setLabels] = useState<PrintLabel[]>([])
+  const [shareableLabels, setShareableLabels] = useState<ImportedCellarLabel[]>([])
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [printSettings, setPrintSettings] = useState<PrintSettings>({ page: 0, firstSlot: 1, offset: { x: 0, y: 0 } })
   const [repairPrompt, setRepairPrompt] = useState('')
@@ -113,13 +118,14 @@ function App() {
   const instructions = useMemo(() => buildTinToCellarInstructions(window.location.href), [])
   useEffect(() => () => objectUrls.current.forEach((url) => URL.revokeObjectURL(url)), [])
 
-  const handlePack = async (file: File) => {
+  const handlePack = async (file: File, origin: 'local' | 'example' | 'gallery' = 'local') => {
     if (importBusy.current) return
     importBusy.current = true
     setImporting(true)
     setFeedback(null)
     setContribution(null)
     setRetrospective(null)
+    setShareableLabels([])
     setProtocolContext({ status: 'legacy' })
     setRepairStatus('')
     setShowRepair(false)
@@ -129,7 +135,7 @@ function App() {
       const result = await importCellarPack(await file.arrayBuffer())
       const context = resolveProtocolContext(result.manifest?.extensions)
       setProtocolContext(context)
-      setFeedback(result.manifest?.extensions?.[FEEDBACK_KEY] ?? null)
+      if (origin === 'local') setFeedback(result.manifest?.extensions?.[FEEDBACK_KEY] ?? null)
       const issues = result.issues.filter((issue) => issue.code !== 'MISSING_PREVIEW')
       const quarantined = result.quarantinedLabels.map((item) => ({ id: item.id, reason: item.issues.map(issueText).join(' ') }))
       const nextUrls: string[] = []
@@ -160,7 +166,7 @@ function App() {
       const hasFailures = quarantined.length > 0 || result.status !== 'ready' || issues.some((issue) => issue.severity === 'error')
       setSummary({ status: mappedLabels.length ? (hasFailures ? 'partial' : 'ready') : 'rejected', title: result.manifest?.title ?? file.name, labels: mappedLabels, issues: issues.map(issueText), quarantined })
       const repairIssues = [...issues, ...result.quarantinedLabels.flatMap((label) => label.issues)]
-      if (result.manifest) {
+      if (origin === 'local' && result.manifest) {
         const prepared = await contributionFromManifest(result.manifest, websiteValidation(mappedLabels.length ? hasFailures ? 'partial' : 'ready' : 'rejected', repairIssues))
         if (prepared) {
           setContribution(prepared)
@@ -173,6 +179,7 @@ function App() {
         objectUrls.current.forEach((url) => URL.revokeObjectURL(url))
         objectUrls.current = nextUrls
         setLabels(mappedLabels)
+        if (origin === 'local') setShareableLabels(result.labels.filter(item => mappedLabels.some(label => label.id === item.id)))
         setQuantities(Object.fromEntries(mappedLabels.map((label) => [label.id, 1])))
       }
     } catch (error) {
@@ -202,15 +209,15 @@ function App() {
     {repairPrompt && <div className="panel repair-panel"><h3>{labels.length ? 'Some labels need fixing' : 'The ZIP needs fixing'}</h3><p>{labels.length ? 'You can still print the usable labels below. ' : ''}Send the repair request to the same AI chat and import the ZIP it returns.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}><Icon name="copy" size={17} />Copy repair request</button><p className="copy-status" role="status">{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={repairPrompt} rows={8} onFocus={(event) => event.currentTarget.select()} />}</div>}
   </div>
 
-  const titles: Record<View | 'not-found', string> = { home: 'Tin to Cellar', labels: 'Labels for your tobacco jars', 'not-found': 'Page not found', create: 'Make a prompt', print: 'Print labels', help: 'How it works', about: 'About', inspiration: 'Inspiration', privacy: 'Privacy' }
+  const titles: Record<View | 'not-found', string> = { home: 'Tin to Cellar', labels: 'Labels for your tobacco jars', 'not-found': 'Page not found', create: 'Make a prompt', print: 'Print labels', help: 'How it works', about: 'About', inspiration: 'Inspiration', privacy: 'Privacy', gallery: 'Community labels', 'gallery-admin': 'Review submissions' }
   const routeClick = (next: View) => (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
     navigate(next)
   }
-  const workflowViews: View[] = ['labels', 'create', 'print', 'help']
+  const workflowViews: View[] = ['labels', 'create', 'print', 'help', 'gallery', 'gallery-admin']
   const navItems: { view: View; label: string }[] = [{ view: 'labels', label: 'Labels' }, ...(workflowViews.includes(view as View) ? [
-    { view: 'create' as const, label: 'Make a prompt' }, { view: 'print' as const, label: 'Print labels' }, { view: 'help' as const, label: 'How it works' },
+    { view: 'create' as const, label: 'Make a prompt' }, { view: 'print' as const, label: 'Print labels' }, ...(galleryConfig?.serving ? [{ view: 'gallery' as const, label: 'Community labels' }] : []), { view: 'help' as const, label: 'How it works' },
   ] : [])]
 
   return <div className="app-shell tc-grain" onClick={(event) => {
@@ -232,16 +239,30 @@ function App() {
       </div>
     </header>
     <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
-      {view === 'home' ? <SiteHome onNavigate={() => navigate('labels')} /> : view === 'not-found' ? <div className="landing-page screen-only"><h1>Page not found</h1><p>This page doesn’t exist.</p><a href="/labels" onClick={routeClick('labels')}>Go to Labels</a></div> : view === 'labels' ? <Landing onNavigate={navigate} busy={importing} onFile={handlePack} /> : view === 'create' ? <div className="screen-only create-workspace">
+      {view === 'home' ? <SiteHome onNavigate={() => navigate('labels')} /> : view === 'not-found' ? <div className="landing-page screen-only"><h1>Page not found</h1><p>This page doesn’t exist.</p><a href="/labels" onClick={routeClick('labels')}>Go to Labels</a></div> : view === 'labels' ? <Landing onNavigate={navigate} busy={importing} onFile={file => handlePack(file, 'example')} /> : view === 'gallery' ? <GalleryBrowse onUse={async file => { await handlePack(file, 'gallery'); navigate('print') }} /> : view === 'gallery-admin' ? <GalleryAdmin /> : view === 'create' ? <div className="screen-only create-workspace">
         <div className="create-grid"><Configurator value={config} onChange={setConfig} /><PromptHandoff prompt={prompt} request={request} onPrint={() => navigate('print')} /></div>
       </div> : view === 'help' ? <><HowItWorks instructions={instructions} /><StandaloneFeedback /></> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
         <div className="page-heading screen-only"><h1>Print labels</h1><p className="spec-line">Avery 94502 · 2.5 in circles · US Letter</p></div>
         {labels.length > 0 ? <PrintStudio intake={intake} labels={labels} quantities={quantities} onQuantityChange={(id, value) => setQuantities((current) => ({ ...current, [id]: value }))} settings={printSettings} onSettingsChange={setPrintSettings} /> :
-          <div className="print-intake screen-only">{intake}<ExamplePack busy={importing} onFile={handlePack} /></div>}
+          <div className="print-intake screen-only">{intake}<ExamplePack busy={importing} onFile={file => handlePack(file, 'example')} /></div>}
+        {shareableLabels.length > 0 && <GallerySubmission labels={shareableLabels} />}
       </>}
       <ContributionStatus key={contribution?.submissionId ?? 'empty'} contribution={contribution} retrospective={retrospective} hidden={view !== 'print'} />
     </main>
     <SiteFooter currentView={view} onNavigate={navigate} />
   </div>
 }
+function isGalleryAdminHost(hostname: string): boolean {
+  return ['admin.tintocellar.com', 'admin-staging.tintocellar.com'].includes(hostname)
+}
+export function GalleryAdminShell({ hostname }: { hostname: string }) {
+  const publicSite = hostname === 'admin-staging.tintocellar.com' ? 'https://gallery-staging.tintocellar.com/' : 'https://tintocellar.com/'
+  return <div className="app-shell tc-grain">
+    <title>Review submissions | Tin to Cellar</title>
+    <a className="skip-link" href="#main-content">Skip to main content</a>
+    <header className="site-header screen-only"><div className="site-header-inner"><a className="wordmark" href="/" aria-label="Tin to Cellar review home"><Wordmark /></a><nav aria-label="Review navigation"><a href={publicSite} rel="noreferrer">Open public site</a></nav></div></header>
+    <main id="main-content" className="site-main view-gallery-admin" tabIndex={-1}><GalleryAdmin /></main>
+  </div>
+}
+function App() { return isGalleryAdminHost(window.location.hostname) ? <GalleryAdminShell hostname={window.location.hostname} /> : <PublicApp /> }
 export default App

@@ -1,5 +1,5 @@
 import { storedFeedback, parseContribution, type Contribution, type SuggestedSource } from '../src/lib/contributions'
-import { TOBACCO_CATALOG } from '../src/lib/tobacco-catalog'
+import { resolveTobaccoId } from '../src/lib/tobacco-catalog'
 import { diagnosticInsert, storeDiagnostics, type DiagnosticsDatabase, type Statement } from './diagnostics'
 export interface Storage {
   get<T>(key: string): Promise<T | undefined>
@@ -59,8 +59,9 @@ export class CatalogContributions {
       return Response.json({ reports }, { headers })
     }
     if (request.method === 'GET') {
-      const catalogId = url.searchParams.get('catalogId') ?? ''
-      if (!TOBACCO_CATALOG.some(item => item.id === catalogId)) return Response.json({ error: 'Unknown catalog entry' }, { status: 404, headers })
+      const entry = resolveTobaccoId(url.searchParams.get('catalogId') ?? '')
+      if (!entry) return Response.json({ error: 'Unknown catalog entry' }, { status: 404, headers })
+      const catalogId = entry.id
       const sources = await this.ctx.storage.get<SuggestedSource[]>(`sources:${catalogId}`) ?? []
       return Response.json({ catalogId, sources: sources.filter(item => ['valid', 'unverified'].includes(item.status) && Date.parse(item.checkedAt) > Date.now() - retention).slice(0, 5) }, { headers })
     }

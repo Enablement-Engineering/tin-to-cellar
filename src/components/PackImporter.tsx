@@ -56,7 +56,7 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
         </button>
       </div>
 
-      <p className="import-privacy"><Icon name="lock" size={15} />Importing shares structured AI feedback, ZIP-check results, and public package source observations. Process notes are optional. Your ZIP and artwork stay on this device. <a href="/privacy">Privacy details</a></p>
+      <p className="import-privacy"><Icon name="lock" size={15} />Importing automatically shares structured AI feedback, ZIP-check results, and eligible package-source links. Those links may appear in public source suggestions. This does not share your artwork. Process notes require a separate sharing action. <a href="/privacy">Privacy details</a></p>
 
 
       {summary && (summary.status !== 'ready' || summary.issues.length > 0 || summary.quarantined.length > 0) && (

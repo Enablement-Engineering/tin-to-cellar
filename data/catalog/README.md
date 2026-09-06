@@ -48,3 +48,11 @@ npm run lint
 ```
 
 Network collectors are optional maintenance commands; the application never invokes them. Manufacturer/FDA extractions include provenance in `source-assessment-manufacturers.json`; these files require manual source review when refreshed. Do not bypass access challenges or substitute inaccessible pages with inferred names.
+
+## Permanent identity registry
+
+`identities.json` freezes the original 1,482 runtime IDs. IDs are stored, never recomputed from display names. The merge fails on unknown names, collisions, ambiguous aliases, or missing registered identities. Register each researched new blend explicitly with an unused ID before rebuilding. For a rename, retain the same ID, change the registry's display maker/blend, and add the previous `{maker, blend}` to `previousNames`; update source corrections as appropriate. Historical names support exact pack matching, separately from fuzzy autocomplete.
+
+`idAliases` contains explicit `{aliasId, catalogId}` redirects to canonical IDs. Alias chains, collisions with active IDs, and unknown targets are rejected. A true merge requires a reviewed migration of referenced records and source observations before registry retirement; the merge script intentionally cannot silently perform it. Generated runtime identity data mirrors this registry.
+
+Prepare the gallery's additive catalog projection with `npm exec -- node scripts/gallery/seed-catalog.mjs /tmp/gallery-catalog.sql`. This only writes SQL; it does not connect to Cloudflare or apply it. Seed updates never delete referenced tobacco rows. Apply only to the separately configured gallery database under the appropriate release authorization.

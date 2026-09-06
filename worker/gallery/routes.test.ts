@@ -1,0 +1,209 @@
+// @vitest-environment node
+import { beforeEach, describe, expect, it } from 'vitest';
+import { DatabaseSync } from 'node:sqlite';
+import { readFileSync } from 'node:fs';
+import { encode } from 'fast-png';
+import { galleryResponse } from './routes';
+import { cleanGallery } from './cleanup';
+import { sha256, type GalleryBucket, type GalleryDatabase, type GalleryEnv } from './storage';
+import type { GalleryLabelDraftV1, GalleryReceipt } from '../../src/lib/gallery/types';
+import { parseGalleryDraft } from '../../src/lib/gallery/schema';
+import { verifyGalleryAdmin } from './auth';
+class DB implements GalleryDatabase {
+    readonly db: DatabaseSync;
+    constructor(db = new DatabaseSync(':memory:')) { this.db = db; db.exec(readFileSync(new URL('../../migrations/gallery/0001_gallery.sql', import.meta.url), 'utf8'));db.exec(readFileSync(new URL('../../migrations/gallery/0002_agent_review.sql', import.meta.url), 'utf8'));db.exec(readFileSync(new URL('../../migrations/gallery/0003_audit_context.sql', import.meta.url), 'utf8')); db.exec("UPDATE gallery_settings SET intake=1,publication=1,serving=1; INSERT INTO gallery_tobaccos VALUES('test-blend','Test','Blend','[]',1,'fixture')"); }
+    prepare(sql: string) { let args: unknown[] = []; const stmt = { bind: (...a: unknown[]) => { args = a; return stmt; }, run: async () => ({ meta: { changes: Number(this.db.prepare(sql).run(...args as never[]).changes) } }), first: async <T>() => (this.db.prepare(sql).get(...args as never[]) ?? null) as T | null, all: async <T>() => ({ results: this.db.prepare(sql).all(...args as never[]) as T[] }) }; return stmt; }
+    private pendingBatch: Promise<void> = Promise.resolve();
+    async batch(statements: ReturnType<DB['prepare']>[]) {
+        const execute=async()=>{this.db.exec('BEGIN');try{const results=[];for(const statement of statements)results.push(await statement.run());this.db.exec('COMMIT');return results}catch(error){this.db.exec('ROLLBACK');throw error}};
+        const result=this.pendingBatch.then(execute);
+        this.pendingBatch=result.then(()=>{},()=>{});
+        return result;
+    }
+
+}
+class Bucket implements GalleryBucket {
+    objects = new Map<string, Uint8Array>();
+    failPut = false;
+    failDelete = false;
+    async put(key: string, bytes: Uint8Array) { if (this.failPut)
+        throw Error('injected'); this.objects.set(key, bytes.slice()); }
+    async get(key: string) { const bytes = this.objects.get(key); return bytes ? { arrayBuffer: async () => bytes.slice().buffer as ArrayBuffer } : null; }
+    async head(key: string) { return this.objects.has(key) ? {} : null; }
+    async delete(key: string) { if (this.failDelete)
+        throw Error('injected'); this.objects.delete(key); }
+    async list() { return { objects: [...this.objects.keys()].map(key => ({ key, uploaded: new Date('2026-01-01') })), truncated: false }; }
+}
+let db: DB, bucket: Bucket, env: GalleryEnv, draft: GalleryLabelDraftV1, png: Uint8Array;
+const key = 'a'.repeat(64), now = new Date('2026-09-06T12:00:00Z');
+const deps = { verifyAdmin: async (r: Request) => r.headers.get('X-Test-Admin') === 'yes' ? 'admin' : null, verifyTurnstile: async () => true, verifyAgent: async (r:Request)=>r.headers.get('X-Test-Machine')==='yes'?'fixture.access':null, now: () => now };
+function call(path: string, method = 'GET', data?: unknown, headers: Record<string, string> = {}) { return galleryResponse(new Request('https://site.example/api/gallery/v1' + path, { method, headers: { Origin: 'https://site.example', Authorization: `Bearer ${key}`, ...(data instanceof Uint8Array ? { 'Content-Type': 'image/png' } : data ? { 'Content-Type': 'application/json' } : {}), ...headers }, body: data instanceof Uint8Array ? data as BodyInit : data ? JSON.stringify(data) : undefined }), env, deps); }
+async function submit() { expect((await call('/submissions', 'POST', draft)).status).toBe(201); const r = await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png); expect(r.status).toBe(200); return r.json(); }
+async function approve() { const r = await submit(); const approved = await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: r.version, digest: r.digest }, { 'X-Test-Admin': 'yes' }); expect(approved.status).toBe(200); return approved.json(); }
+beforeEach(async () => { db = new DB(); bucket = new Bucket(); env = { GALLERY: db, GALLERY_ART: bucket, GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'fixture', GALLERY_RATE_LIMITER: { limit: async () => ({ success: true }) } }; png = encode({ width: 825, height: 825, channels: 3, depth: 8, data: new Uint8Array(825 * 825 * 3).fill(255) }); const inset = { top: .125, right: .125, bottom: .125, left: .125, unit: 'in' as const }; draft = { version: 1, submissionId: crypto.randomUUID(), catalogId: 'test-blend', proposedIdentity: null, package: 'tin', variant: 'current', edition: '', description: 'Synthetic test label', surface: { shape: 'circle', finishedSize: { width: 2.5, height: 2.5, unit: 'in' }, bleed: inset, safeInset: inset }, writeInArea: { id: 'date', purpose: 'jarred-date', geometry: { shape: 'rectangle', x: .35, y: .6, width: .3, height: .1 }, background: { integratedInArtwork: true }, overlay: { mode: 'blank' } }, references: [], image: { sha256: await sha256(png), bytes: png.length, width: 825, height: 825 }, acknowledgement: { version: '2026-09-06-v1', accepted: true } }; });
+describe('private gallery workflow', () => {
+    it('gates exact reviewed bytes and every direct URL after human unpublish', async () => { const pending = await submit(); expect((await call(`/labels/${draft.submissionId}/artwork`)).status).toBe(404); expect((await call(`/submissions/${draft.submissionId}/preview`, 'GET', undefined, { Authorization: 'Bearer ' + 'b'.repeat(64) })).status).toBe(404); expect((await call(`/admin/submissions/${draft.submissionId}/artwork`)).status).toBe(403); const r = await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: pending.version, digest: pending.digest }, { 'X-Test-Admin': 'yes' }); expect(r.status).toBe(200); const published = await r.json(); for (const kind of ['artwork', 'thumbnail', 'pack']) {
+        const a = await call(`/labels/${draft.submissionId}/${kind}`);
+        expect(a.status).toBe(200);
+        expect(a.headers.get('cache-control')).toBe('no-store');
+    } const projection = await (await call(`/labels/${draft.submissionId}`)).text(); for (const secret of ['capability_hash', 'acknowledgement', 'proposedIdentity', 'r2_key', 'reviewer'])
+        expect(projection).not.toContain(secret); expect((await call(`/admin/submissions/${draft.submissionId}/unpublish`, 'POST', { expectedVersion: published.version }, { 'X-Test-Admin': 'yes' })).status).toBe(200); for (const kind of ['artwork', 'thumbnail', 'pack'])
+        expect((await call(`/labels/${draft.submissionId}/${kind}`, 'GET', undefined, { 'If-None-Match': 'anything' })).status).toBe(404); expect((await call(`/submissions/${draft.submissionId}/withdraw`, 'POST', {})).status).toBe(404); });
+    it('resolves retries without consumed challenges and rejects changed uploads', async () => { await submit(); env.GALLERY_INTAKE = 'false'; expect((await call('/submissions', 'POST', draft)).status).toBe(200); expect((await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png)).status).toBe(200); const changed = png.slice(); changed[50] ^= 1; expect((await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', changed)).status).toBe(400); expect((await call('/submissions', 'POST', { ...draft, edition: 'different' })).status).toBe(409); });
+    it('rejects malformed PNG even with its correct declared hash', async () => { png = new Uint8Array([1, 2, 3]); draft.image.bytes = 3; draft.image.sha256 = await sha256(png); expect((await call('/submissions', 'POST', draft)).status).toBe(201); expect((await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png)).status).not.toBe(200); expect(bucket.objects.size).toBe(0); });
+    it('cannot approve stale metadata or publish an unknown blend', async () => { draft.catalogId = null; draft.proposedIdentity = { maker: 'Unknown', blend: 'Test' }; const r = await submit(); expect((await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: r.version, digest: r.digest }, { 'X-Test-Admin': 'yes' })).status).toBe(400); const mapped = { ...draft, catalogId: 'test-blend', proposedIdentity: null }; expect((await call(`/admin/submissions/${draft.submissionId}`, 'PATCH', { expectedVersion: r.version, metadata: mapped }, { 'X-Test-Admin': 'yes' })).status).toBe(200); expect((await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: r.version, digest: r.digest }, { 'X-Test-Admin': 'yes' })).status).toBe(409); });
+    it('retains capacity and retryable records across failed delete', async () => { const r=await submit(); await call(`/admin/submissions/${draft.submissionId}/reject`,'POST',{expectedVersion:r.version,reason:'unsuitable'},{'X-Test-Admin':'yes'}); bucket.failDelete = true; const failed = await cleanGallery(env, new Date('2026-09-14')); expect(failed.failures).toBeGreaterThan(0); expect(db.db.prepare('SELECT reserved_bytes FROM gallery_submissions').get()!.reserved_bytes).toBeGreaterThan(0); bucket.failDelete = false; expect((await cleanGallery(env, new Date('2026-09-14'))).deleted).toBe(1); expect(bucket.objects.size).toBe(0); expect(db.db.prepare('SELECT metadata_json FROM gallery_submissions').get()!.metadata_json).toBeNull(); });
+    it('recovers failed writes without exposing a pending artifact', async () => { await call('/submissions', 'POST', draft); bucket.failPut = true; expect((await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png)).status).toBe(503); expect((await call(`/labels/${draft.submissionId}/artwork`)).status).toBe(404); bucket.failPut = false; expect((await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png)).status).toBe(200); });
+    it('atomically enforces daily reservation caps', async () => { for (let i = 0; i < 20; i++) {
+        draft.submissionId = crypto.randomUUID();
+        expect((await call('/submissions', 'POST', draft)).status).toBe(201);
+    } draft.submissionId = crypto.randomUUID(); expect((await call('/submissions', 'POST', draft)).status).toBe(429); expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_submissions').get()!.n).toBe(20); });
+    it('rejects cross-origin changes and forged production admin', async () => { expect((await call('/submissions', 'POST', draft, { Origin: 'https://evil.example' })).status).toBe(403); expect(await verifyGalleryAdmin(new Request('https://site.example', { headers: { 'Cf-Access-Jwt-Assertion': 'forged' } }), { GALLERY_ACCESS_ISSUER: 'https://test.cloudflareaccess.com', GALLERY_ACCESS_AUD: 'aud', GALLERY_ADMIN_SUBJECT: 'admin' })).toBeNull(); });
+    it('rejects private manifest fields and unsafe reference URLs', () => { expect(() => parseGalleryDraft({ ...draft, notes: 'secret' })).toThrow(); expect(() => parseGalleryDraft({ ...draft, references: [{ role: 'package-appearance', url: 'https://shop.example/a%40b.com' }] })).toThrow(); expect(() => parseGalleryDraft({ ...draft, references: [{ role: 'package-appearance', url: 'http://127.0.0.1/' }] })).toThrow(); });
+    it('binds publication identity to review and resolves public duplicates only', async () => { const original = await approve(); const oldId = draft.submissionId; db.db.exec("UPDATE gallery_tobaccos SET maker='Renamed' WHERE id='test-blend'"); expect((await (await call(`/labels/${oldId}`)).json()).maker).toBe('Test'); draft.submissionId = crypto.randomUUID(); const pending = await submit(); expect(pending.publicationId).toBeNull(); const duplicate = await (await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: pending.version, digest: pending.digest }, { 'X-Test-Admin': 'yes' })).json(); expect(duplicate.state).toBe('rejected'); expect(duplicate.publicationId).toBe(original.id); expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_submissions WHERE state='published'").get()!.n).toBe(1); });
+    it('serializes concurrent upload leases and cancels approval after a terminal retention transition', async () => { await call('/submissions', 'POST', draft); const uploads = await Promise.all([call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png), call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png)]); expect(uploads.filter(r => r.status === 200)).toHaveLength(1); expect(uploads.filter(r => r.status === 409)).toHaveLength(1); const pending = await (await call(`/admin/submissions/${draft.submissionId}`,'GET',undefined,{'X-Test-Admin':'yes'})).json(); const originalPut = bucket.put.bind(bucket); bucket.put = async (k, b) => { await originalPut(k, b); if (k.includes('/pack-'))
+        db.db.prepare("UPDATE gallery_submissions SET state='expired',row_version=row_version+1 WHERE id=?").run(draft.submissionId); }; expect((await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: pending.version, digest: pending.digest }, { 'X-Test-Admin': 'yes' })).status).not.toBe(200); expect((await call(`/labels/${draft.submissionId}/pack`)).status).toBe(404); expect((await (await call(`/admin/submissions/${draft.submissionId}`,'GET',undefined,{'X-Test-Admin':'yes'})).json()).state).toBe('expired'); });
+    it('rejects alternate API versions and stops new bytes when intake closes', async () => { await call('/submissions', 'POST', draft); env.GALLERY_INTAKE = 'false'; expect((await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png)).status).toBe(503); expect((await galleryResponse(new Request('https://site.example/api/gallery/v2/config'), env, deps)).status).toBe(404); });
+ it('does not delete a publication when a cleanup claim loses its race',async()=>{
+  await approve();db.db.exec("UPDATE gallery_submissions SET state='unpublished',deletion_due='2026-09-05',expires_at='2026-10-05'");
+  const prepare=db.prepare.bind(db);db.prepare=(sql:string)=>{const statement=prepare(sql);if(sql.startsWith("UPDATE gallery_submissions SET state='deleting'")){const run=statement.run;statement.run=async()=>{db.db.exec("UPDATE gallery_submissions SET state='published',deletion_due=NULL");return run()}}return statement};
+  expect((await cleanGallery(env,now)).deleted).toBe(0);expect(bucket.objects.size).toBe(3);expect((await call(`/labels/${draft.submissionId}/pack`)).status).toBe(200)
+ });
+ it('sweeps an old failed-upload object without touching the new upload version',async()=>{
+  await call('/submissions','POST',draft);const put=bucket.put.bind(bucket);let first=true;bucket.put=async(k,b)=>{if(k.includes('thumbnail')&&first){first=false;throw Error('injected')}await put(k,b)};
+  expect((await call(`/submissions/${draft.submissionId}/artwork`,'PUT',png)).status).toBe(503);const oldKeys=[...bucket.objects.keys()];expect((await call(`/submissions/${draft.submissionId}/artwork`,'PUT',png)).status).toBe(200);
+  expect((await cleanGallery(env,now)).orphans).toBe(1);expect(oldKeys.every(k=>!bucket.objects.has(k))).toBe(true);expect((await call(`/admin/submissions/${draft.submissionId}/thumbnail`,'GET',undefined,{'X-Test-Admin':'yes'})).status).toBe(200)
+ });
+ it('fails publication closed when catalog or switch changes during preparation',async()=>{
+  const pending=await submit();const put=bucket.put.bind(bucket);bucket.put=async(k,b)=>{await put(k,b);if(k.includes('/pack-'))db.db.exec('UPDATE gallery_settings SET publication=0')};
+  expect((await call(`/admin/submissions/${draft.submissionId}/approve`,'POST',{expectedVersion:pending.version,digest:pending.digest},{'X-Test-Admin':'yes'})).status).not.toBe(200);expect((await call(`/labels/${draft.submissionId}/artwork`)).status).toBe(404)
+ });
+
+ it('accepts valid finished-trim oval geometry without treating it as its bounding box',()=>{
+  draft.writeInArea.geometry={shape:'oval',x:.272807,y:.70614,width:.449123,height:.209649,rotationDegrees:0};
+  expect(parseGalleryDraft(draft).writeInArea.geometry).toEqual(draft.writeInArea.geometry);
+  draft.writeInArea.geometry={...draft.writeInArea.geometry,y:.85};expect(()=>parseGalleryDraft(draft)).toThrow();
+ });
+
+ it('preserves schema-valid rounded rectangle radii while using the importer perimeter clamp',()=>{
+  draft.writeInArea.geometry={shape:'rounded-rectangle',x:.268657,y:.737489,width:.459175,height:.113257,cornerRadius:.5,rotationDegrees:0};
+  expect(parseGalleryDraft(draft).writeInArea.geometry.cornerRadius).toBe(.5);
+  draft.writeInArea.geometry.cornerRadius=.51;expect(()=>parseGalleryDraft(draft)).toThrow();
+  draft.writeInArea.geometry.cornerRadius=NaN;expect(()=>parseGalleryDraft(draft)).toThrow();
+ });
+
+ it.each(['correct','duplicate','approve','reject','unpublish','republish'])('rolls back %s when its audit insert fails, then retries with one event',async(action)=>{
+  let current:GalleryReceipt;
+  if(action==='unpublish'||action==='republish'){
+   current=await approve();
+   if(action==='republish')current=await(await call(`/admin/submissions/${draft.submissionId}/unpublish`,'POST',{expectedVersion:current.version},{'X-Test-Admin':'yes'})).json();
+  }else if(action==='duplicate'){
+   await approve();draft.submissionId=crypto.randomUUID();current=await submit();
+  }else current=await submit();
+  const before=db.db.prepare('SELECT * FROM gallery_submissions WHERE id=?').get(draft.submissionId)!;
+  const existingCount=db.db.prepare('SELECT COUNT(*) AS n FROM gallery_review_events WHERE submission_id=?').get(draft.submissionId)!.n;
+  db.db.exec(`CREATE TRIGGER fail_review_event BEFORE INSERT ON gallery_review_events WHEN NEW.action='${action}' BEGIN SELECT RAISE(ABORT,'injected audit failure'); END;`);
+  const invoke=async(r:GalleryReceipt)=>action==='correct'?call(`/admin/submissions/${draft.submissionId}`,'PATCH',{expectedVersion:r.version,metadata:{...draft,edition:'reviewed edition'}},{'X-Test-Admin':'yes'}):call(`/admin/submissions/${draft.submissionId}/${action==='duplicate'?'approve':action}`,'POST',{expectedVersion:r.version,...(['approve','duplicate'].includes(action)?{digest:r.digest}:action==='reject'?{reason:'unsuitable'}:{})},{'X-Test-Admin':'yes'});
+  expect((await invoke(current)).status).toBe(503);
+  const after=db.db.prepare('SELECT * FROM gallery_submissions WHERE id=?').get(draft.submissionId)!;
+  expect(after.state).toBe(before.state);expect(after.metadata_json).toBe(before.metadata_json);
+  expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_review_events WHERE submission_id=?').get(draft.submissionId)!.n).toBe(existingCount);
+  if(action!=='approve')expect(after.row_version).toBe(before.row_version);
+  db.db.exec('DROP TRIGGER fail_review_event');current=await(await call(`/admin/submissions/${draft.submissionId}`,'GET',undefined,{'X-Test-Admin':'yes'})).json();
+  expect((await invoke(current)).status).toBe(200);
+  const events=db.db.prepare('SELECT * FROM gallery_review_events WHERE submission_id=? AND action=?').all(draft.submissionId,action);
+  expect(events).toHaveLength(1);const committed=db.db.prepare('SELECT * FROM gallery_submissions WHERE id=?').get(draft.submissionId)!;
+  expect(events[0].row_version).toBe(committed.row_version);expect(events[0].digest).toBe(committed.digest);expect(events[0].actor).toBe('admin');
+ });
+ it('does not write a competing reviewer event for a stale guarded transition',async()=>{
+  const pending=await submit();const commands=[call(`/admin/submissions/${draft.submissionId}/reject`,'POST',{expectedVersion:pending.version,reason:'unsuitable'},{'X-Test-Admin':'yes'}),call(`/admin/submissions/${draft.submissionId}`,'PATCH',{expectedVersion:pending.version,metadata:{...draft,edition:'competing edit'}},{'X-Test-Admin':'yes'})];
+  const results=await Promise.all(commands);expect(results.map(r=>r.status).sort()).toEqual([200,409]);
+  const events=db.db.prepare('SELECT * FROM gallery_review_events WHERE submission_id=?').all(draft.submissionId);expect(events).toHaveLength(1);
+  const row=db.db.prepare('SELECT * FROM gallery_submissions WHERE id=?').get(draft.submissionId)!;expect(events[0].row_version).toBe(row.row_version);expect(events[0].digest).toBe(row.digest);expect(events[0].action).toBe(row.state==='rejected'?'reject':'correct');
+ });
+
+ async function machineGrant(ids:string[],scopes=['queue:read','submission:read','artwork:read','recommendation:write']){
+  env.GALLERY_AGENT_ENABLED='true';const response=await call('/admin/agent-grants','POST',{clientId:'fixture.access',label:'Local assistant',scopes,selection:'selected',submissionIds:ids,expiresAt:'2026-09-20T12:00:00.000Z'},{'X-Test-Admin':'yes'});expect(response.status).toBe(201);return response.json();
+ }
+ const agentCall=(path:string,method='GET',body?:unknown)=>call('/agent'+path,method,body,{'X-Test-Machine':'yes'});
+ const proposal=(r:{version:number;digest:string})=>({schemaVersion:1,expectedVersion:r.version,digest:r.digest,idempotencyKey:crypto.randomUUID(),assessment:'ready-for-human-review',findings:[{category:'artwork',severity:'info',explanation:'Synthetic original label inspected.',evidence:[{type:'artwork'}]}]});
+ it('limits a machine to selected pending records and rejects every human mutation',async()=>{
+  const selected=await submit();draft.submissionId=crypto.randomUUID();const unselected=await submit();await machineGrant([selected.id]);
+  const queue=await(await agentCall('/submissions')).json();expect(queue.submissions.map((r:{id:string})=>r.id)).toEqual([selected.id]);expect(queue.counts).toBeUndefined();
+  expect((await agentCall(`/submissions/${selected.id}/artwork`)).status).toBe(200);expect((await agentCall(`/submissions/${unselected.id}`)).status).toBe(404);
+  const detail=await(await agentCall(`/submissions/${selected.id}`)).text();for(const field of ['capability_hash','r2_key','quota_key','reviewer'])expect(detail).not.toContain(field);
+  for(const action of ['approve','reject','unpublish','republish','withdraw'])expect((await agentCall(`/submissions/${selected.id}/${action}`,'POST',{})).status).toBe(404);
+  expect((await call(`/admin/submissions/${selected.id}/approve`,'POST',{expectedVersion:selected.version,digest:selected.digest},{'X-Test-Machine':'yes'})).status).toBe(403);
+  expect((await call(`/agent/submissions/${selected.id}`)).status).toBe(403);
+ });
+ it('checks grant scopes, expiry and revocation on every access',async()=>{
+  const r=await submit();const grant=await machineGrant([r.id],['submission:read']);expect((await agentCall('/submissions')).status).toBe(403);expect((await agentCall(`/submissions/${r.id}/artwork`)).status).toBe(403);expect((await agentCall(`/submissions/${r.id}`)).status).toBe(200);
+  db.db.prepare('UPDATE gallery_agent_grants SET expires_at=? WHERE id=?').run('2000-01-01',grant.id);expect((await agentCall(`/submissions/${r.id}`)).status).toBe(403);
+  db.db.prepare('UPDATE gallery_agent_grants SET expires_at=? WHERE id=?').run('2026-09-20',grant.id);expect((await call(`/admin/agent-grants/${grant.id}/revoke`,'POST',{expectedVersion:grant.version},{'X-Test-Admin':'yes'})).status).toBe(200);expect((await agentCall(`/submissions/${r.id}`)).status).toBe(403);
+ });
+ it('appends advisory recommendations idempotently without changing review state',async()=>{
+  const r=await submit();await machineGrant([r.id]);const body=proposal(r);expect((await agentCall(`/submissions/${r.id}/recommendations`,'POST',body)).status).toBe(201);expect((await agentCall(`/submissions/${r.id}/recommendations`,'POST',body)).status).toBe(200);
+  expect((await agentCall(`/submissions/${r.id}/recommendations`,'POST',{...body,assessment:'needs-attention'})).status).toBe(409);
+  const state=await(await call(`/admin/submissions/${r.id}`,'GET',undefined,{'X-Test-Admin':'yes'})).json();expect(state.version).toBe(r.version);expect(state.state).toBe('pending');
+  expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_review_events WHERE submission_id=? AND action='recommendation'").get(r.id)!.n).toBe(1);
+  const edited=await(await call(`/admin/submissions/${r.id}`,'PATCH',{expectedVersion:r.version,metadata:{...draft,edition:'corrected'}},{'X-Test-Admin':'yes'})).json();expect(edited.version).toBe(r.version+1);
+  expect((await agentCall(`/submissions/${r.id}/recommendations`,'POST',{...body,idempotencyKey:crypto.randomUUID()})).status).toBe(409);
+  const list=await(await call(`/admin/submissions/${r.id}/recommendations`,'GET',undefined,{'X-Test-Admin':'yes'})).json();expect(list.recommendations[0].stale).toBe(true);
+ });
+ it('rolls recommendation and quotas back together when audit persistence fails',async()=>{
+  const r=await submit();await machineGrant([r.id]);db.db.exec("CREATE TRIGGER fail_agent_audit BEFORE INSERT ON gallery_review_events WHEN NEW.action='recommendation' BEGIN SELECT RAISE(ABORT,'injected'); END");
+  const body=proposal(r);expect((await agentCall(`/submissions/${r.id}/recommendations`,'POST',body)).status).toBe(503);expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_agent_recommendations').get()!.n).toBe(0);expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_agent_quota').get()!.n).toBe(0);
+  db.db.exec('DROP TRIGGER fail_agent_audit');expect((await agentCall(`/submissions/${r.id}/recommendations`,'POST',body)).status).toBe(201);
+ });
+ it('handles concurrent identical recommendations as one append and one quota charge',async()=>{
+  const r=await submit();await machineGrant([r.id]);const body=proposal(r);const responses=await Promise.all([agentCall(`/submissions/${r.id}/recommendations`,'POST',body),agentCall(`/submissions/${r.id}/recommendations`,'POST',body)]);expect(responses.map(r=>r.status).sort()).toEqual([200,201]);expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_agent_recommendations').get()!.n).toBe(1);expect(db.db.prepare('SELECT MAX(used) AS n FROM gallery_agent_quota').get()!.n).toBe(1);
+ });
+ it('rechecks grant revocation during image retrieval and recommendation commit',async()=>{
+  const r=await submit();const grant=await machineGrant([r.id]);const get=bucket.get.bind(bucket);bucket.get=async key=>{const result=await get(key);db.db.prepare('UPDATE gallery_agent_grants SET revoked_at=? WHERE id=?').run(now.toISOString(),grant.id);return result};expect((await agentCall(`/submissions/${r.id}/artwork`)).status).toBe(404);bucket.get=get;
+  db.db.prepare('UPDATE gallery_agent_grants SET revoked_at=NULL WHERE id=?').run(grant.id);const batch=db.batch.bind(db);db.batch=async statements=>{db.db.prepare('UPDATE gallery_agent_grants SET revoked_at=? WHERE id=?').run(now.toISOString(),grant.id);return batch(statements)};
+  expect((await agentCall(`/submissions/${r.id}/recommendations`,'POST',proposal(r))).status).toBe(409);expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_agent_recommendations').get()!.n).toBe(0);
+ });
+ it('enforces recommendation minute limits and strict evidence/actor boundaries',async()=>{
+  const r=await submit();await machineGrant([r.id]);expect((await agentCall(`/submissions/${r.id}/recommendations`,'POST',{...proposal(r),actor:'Dylan'})).status).toBe(400);
+  expect((await agentCall(`/submissions/${r.id}/recommendations`,'POST',{...proposal(r),findings:[{category:'reference',severity:'warning',explanation:'Look here',evidence:[{type:'reference',url:'https://unselected.example/private'}]}]})).status).toBe(400);
+  for(let i=0;i<6;i++)expect((await agentCall(`/submissions/${r.id}/recommendations`,'POST',proposal(r))).status).toBe(201);const limited=await agentCall(`/submissions/${r.id}/recommendations`,'POST',proposal(r));expect(limited.status).toBe(429);expect(limited.headers.get('Retry-After')).toBe('60');
+ });
+ it('purges recommendation text at content expiry and surfaces maintenance results',async()=>{
+  const r=await submit();await machineGrant([r.id]);await agentCall(`/submissions/${r.id}/recommendations`,'POST',proposal(r));await call(`/admin/submissions/${r.id}/reject`,'POST',{expectedVersion:r.version,reason:'unsuitable'},{'X-Test-Admin':'yes'});bucket.failDelete=true;await cleanGallery(env,new Date('2026-09-14'));expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_agent_recommendations').get()!.n).toBe(0);const operations=await(await call('/admin/operations','GET',undefined,{'X-Test-Admin':'yes'})).json();expect(operations.lastCleanupFailures).toBeGreaterThan(0);expect(operations.cleanupWaiting).toBe(1);
+ });
+
+ it('registers and revokes grants atomically with their human audit events',async()=>{
+  const r=await submit();env.GALLERY_AGENT_ENABLED='true';const input={clientId:'fixture.access',label:'Test agent',scopes:['submission:read'],selection:'selected',submissionIds:[r.id],expiresAt:'2026-09-20T12:00:00.000Z'};
+  db.db.exec("CREATE TRIGGER fail_grant_event BEFORE INSERT ON gallery_agent_grant_events BEGIN SELECT RAISE(ABORT,'injected'); END");expect((await call('/admin/agent-grants','POST',input,{'X-Test-Admin':'yes'})).status).toBe(503);expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_agent_grants').get()!.n).toBe(0);db.db.exec('DROP TRIGGER fail_grant_event');
+  const grant=await(await call('/admin/agent-grants','POST',input,{'X-Test-Admin':'yes'})).json();db.db.exec("CREATE TRIGGER fail_revoke_event BEFORE INSERT ON gallery_agent_grant_events WHEN NEW.action='revoke' BEGIN SELECT RAISE(ABORT,'injected'); END");expect((await call(`/admin/agent-grants/${grant.id}/revoke`,'POST',{expectedVersion:1},{'X-Test-Admin':'yes'})).status).toBe(503);expect((await agentCall(`/submissions/${r.id}`)).status).toBe(200);db.db.exec('DROP TRIGGER fail_revoke_event');
+  const results=await Promise.all([call(`/admin/agent-grants/${grant.id}/revoke`,'POST',{expectedVersion:1},{'X-Test-Admin':'yes'}),call(`/admin/agent-grants/${grant.id}/revoke`,'POST',{expectedVersion:1},{'X-Test-Admin':'yes'})]);expect(results.map(r=>r.status).sort()).toEqual([200,409]);expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_agent_grant_events WHERE action='revoke'").get()!.n).toBe(1);
+ });
+ it('enforces hard daily image quota and per-version recommendation cap',async()=>{
+  const r=await submit();const grant=await machineGrant([r.id]);db.db.prepare('INSERT INTO gallery_agent_quota VALUES(?,100,100,?)').run(`${grant.id}:image:day:2026-09-06`,'2026-09-08');expect((await agentCall(`/submissions/${r.id}/artwork`)).status).toBe(429);expect((await agentCall(`/submissions/${r.id}/thumbnail`)).status).toBe(200);
+  for(let i=0;i<10;i++){db.db.prepare("DELETE FROM gallery_agent_quota WHERE bucket LIKE '%recommendation:minute%'").run();expect((await agentCall(`/submissions/${r.id}/recommendations`,'POST',proposal(r))).status).toBe(201)}db.db.prepare("DELETE FROM gallery_agent_quota WHERE bucket LIKE '%recommendation:minute%'").run();expect((await agentCall(`/submissions/${r.id}/recommendations`,'POST',proposal(r))).status).toBe(429);expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_agent_recommendations').get()!.n).toBe(10);
+ });
+ it('provides opaque stable oldest-first queue and mixed audit pagination',async()=>{
+  const r=await submit();await machineGrant([r.id]);await agentCall(`/submissions/${r.id}`);await agentCall(`/submissions/${r.id}/recommendations`,'POST',proposal(r));
+  const history=await(await call(`/admin/submissions/${r.id}/history`,'GET',undefined,{'X-Test-Admin':'yes'})).json();expect(history.events.some((e:{action:string})=>e.action==='detail')).toBe(true);expect(history.events.some((e:{action:string})=>e.action==='recommendation')).toBe(true);
+  for(let i=0;i<25;i++)db.db.prepare('INSERT INTO gallery_agent_activity VALUES(?,?,?,?,?,?,?,?,?,?,?)').run(`fixture:${String(i).padStart(2,'0')}`,null,r.id,'detail','allowed',r.version,r.digest,now.toISOString(),now.toISOString(),1,'2026-10-01');
+  const first=await(await call(`/admin/submissions/${r.id}/history`,'GET',undefined,{'X-Test-Admin':'yes'})).json();expect(first.events).toHaveLength(24);const second=await(await call(`/admin/submissions/${r.id}/history?cursor=${first.nextCursor}`,'GET',undefined,{'X-Test-Admin':'yes'})).json();expect(second.events.length).toBeGreaterThan(0);expect(second.events.every((e:{id:string})=>!first.events.some((f:{id:string})=>e.id===f.id))).toBe(true);
+  const queue=await(await call('/admin/submissions?state=pending&mappingNeeded=false&search=Blend','GET',undefined,{'X-Test-Admin':'yes'})).json();expect(queue.submissions.map((s:{id:string})=>s.id)).toEqual([r.id]);expect(queue.submissions[0].canonicalHash).toBeTruthy();
+ });
+
+ it('returns numeric zero counts for an empty human review queue',async()=>{
+  const response=await call('/admin/submissions','GET',undefined,{'X-Test-Admin':'yes'});
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({submissions:[],nextCursor:null,counts:{pending:0,reservedBytes:0,oldestPendingAt:null,cleanupWaiting:0}});
+ });
+
+ it('denies removed contributor status, preview and withdrawal routes even with the upload nonce',async()=>{
+  const pending=await submit();
+  for(const [path,method] of [[`/submissions/${pending.id}`,'GET'],[`/submissions/${pending.id}/preview`,'GET'],[`/submissions/${pending.id}/withdraw`,'POST']]){
+   expect((await call(path,method,method==='POST'?{}:undefined)).status).toBe(404);
+  }
+  expect((await call('/submissions','POST',draft)).status).toBe(200);
+  expect((await call(`/submissions/${pending.id}/artwork`,'PUT',png)).status).toBe(200);
+  const review=await(await call(`/admin/submissions/${pending.id}`,'GET',undefined,{'X-Test-Admin':'yes'})).json();expect(review.state).toBe('pending');
+ });
+
+});

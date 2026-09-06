@@ -65,6 +65,14 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Apply gallery migrations and catalog
+        run: |
+          npm exec -- wrangler d1 migrations apply GALLERY --remote
+          npm run gallery:seed -- /tmp/gallery-catalog.sql
+          npm exec -- wrangler d1 execute GALLERY --remote --file /tmp/gallery-catalog.sql
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       - name: Deploy Worker and static assets
         run: npm exec -- wrangler deploy
         env:

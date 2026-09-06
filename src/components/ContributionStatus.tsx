@@ -42,7 +42,7 @@ export function ContributionStatus({ contribution, retrospective = null, hidden 
     <button className="button quiet" type="button" onClick={() => dialog.current?.showModal()}>View shared diagnostics</button>
     <dialog className="diagnostics-dialog" ref={dialog} aria-labelledby="shared-diagnostics-title">
       <h2 id="shared-diagnostics-title">Shared diagnostics</h2>
-      <p>{status === 'collected' ? 'Receipt confirmed.' : status === 'partial' ? 'Feedback received; source receipt unconfirmed.' : 'Receipt has not been confirmed.'} Your ZIP and artwork stay on this device.</p>
+      <p>{status === 'collected' ? 'Receipt confirmed.' : status === 'partial' ? 'Feedback received; source receipt unconfirmed.' : 'Receipt has not been confirmed.'} This diagnostics submission does not upload your ZIP or artwork.</p>
       <p className="field-hint">These are the exact structured fields prepared for submission. AI feedback describes the AI’s account; validation describes website checks. Source links are agent-reported leads.</p>
       <pre tabIndex={0} aria-label="Structured submission">{JSON.stringify(contribution, null, 2)}</pre>
       {retrospective && <section aria-labelledby="process-notes-title"><h3 id="process-notes-title">Optional process notes</h3>

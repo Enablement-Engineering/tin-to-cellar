@@ -10,7 +10,7 @@ export function Privacy() {
       <section aria-labelledby="privacy-summary">
         <h2 id="privacy-summary">TL;DR</h2>
         <ul>
-          <li>Your imported orders, ZIPs, and artwork stay on your device.</li>
+          <li>Your imported orders and ZIPs stay on your device. Artwork uploads only when you explicitly submit selected labels for gallery review.</li>
           <li>Importing a readable pack automatically shares structured AI feedback, website ZIP-check results, and public package source observations. Those links can help other users make labels.</li>
           <li>New structured diagnostics are kept for 12 months. Optional process notes and source observations expire after 90 days. Process notes require a separate sharing action.</li>
           <li>Print guides are created in your AI chat’s working environment. Tin to Cellar does not receive the artwork for guide generation.</li>
@@ -40,8 +40,15 @@ export function Privacy() {
         <h2>Package images and sources</h2>
         <p>Your AI is instructed to inspect an actual package image before making a label, preferably from the manufacturer or a specialist retailer. You may also supply a reference image in your chat. The AI records source links or a user-supplied reference description and packaging observations in the label pack so the design has a traceable reference.</p>
         <p>Tin to Cellar does not automatically visit those source links, download reference images, or store copies of your reference images when you import a pack. On import, the app submits eligible public source links for blends that match an existing catalog entry. It also sends fixed observations: whether the AI reported the link valid, unavailable, wrong-package, or unverified; the package type; and whether the packaging was current, historical, or unknown. Older packs can contribute package links marked unverified. Unknown blends are skipped until they have a catalog entry. The app excludes private attachments, reference descriptions, free-text notes, links with query strings or credentials, and image files. Sharing the complete pack yourself shares its artwork and full research records too.</p>
-        <p>These source links, catalog identifiers, observations, and receipt dates can be returned publicly to future AI chats working on the same blend. They are agent-reported leads. The next AI must open and verify the image; a report of a broken or mismatched link stops that link being suggested. The server does not fetch these URLs or store copies of the source images. Public links can reveal information in their paths, so the instructions require ordinary product links with no personal information.
-        </p><p>When your AI requests saved sources, our service receives the requested catalog identifier and ordinary network information. Your AI provider and any source websites it visits handle those requests under their own policies. Opening an external link yourself also contacts that website. Reference images and brand artwork belong to their respective owners; recording a source does not grant permission to reuse it.</p>
+        <p>These source links, catalog identifiers, observations, and receipt dates can be returned publicly to future AI chats working on the same blend. They are agent-reported leads. The next AI must open and verify the image; a report of a broken or mismatched link stops that link being suggested. The server does not fetch these URLs or store copies of the source images. The app filters source links by format. It cannot verify that every link is public or that its path contains no personal information.
+        </p><p>When you select recognized blends, the app can request saved source suggestions from Tin to Cellar. Our service receives the catalog identifier and ordinary network information. Your AI provider and any source websites it visits handle those requests under their own policies. Opening an external link yourself also contacts that website. Reference images and brand artwork belong to their respective owners; recording a source does not grant permission to reuse it.</p>
+      </section>
+      <section>
+        <h2>Community label sharing</h2>
+        <p>Your ZIP is read on this device. Only labels you choose to submit are uploaded for private review. Approved labels become public so others can download and print them for personal cellaring. Built-in example and in-app gallery imports do not submit diagnostics or source observations.</p>
+        <p>Gallery submissions contain selected artwork, blend identity, print geometry, edition, and reference links you explicitly select. They do not contain your original ZIP, private notes, raw manifest, or diagnostic reports. Cloudflare stores submissions privately until review. Turnstile checks explicit submissions to limit abuse.</p>
+        <p>No contributor account is required. After uploading, you’ll see “Submitted for review.” We review submitted labels before making them public.</p>
+        <p>Unreviewed submissions expire after 30 days. Rejected artwork is scheduled for deletion after 7 days. We keep a limited review record for 90 days after the decision. Published labels stay available until unpublished. Unpublished artwork is scheduled for deletion after 30 days unless republished. Copies already downloaded by others cannot be recalled. Provider backups may take longer to expire.</p>
       </section>
       <section>
         <h2>Collection storage and retention</h2>
@@ -53,7 +60,7 @@ export function Privacy() {
         <h2>Video, tracking, and questions</h2>
         <p>The Inspiration page includes a YouTube video in privacy-enhanced mode. Loading or playing that embedded guide contacts YouTube, which handles those requests under <a href="https://policies.google.com/privacy">Google's privacy policy</a>. Privacy-enhanced mode does not mean that no network requests or cookies are involved.</p>
         <p>The app has no advertising trackers, marketing cookies, or session replay. We do not sell imported files or feedback. Cloudflare's hosting and security processing is separate from the files kept in your browser.</p>
-        <p>For privacy questions or a request about feedback you have shared, contact Dylan Isaac through <a href="https://www.enablement.engineering/">Enablement Engineering</a>. Include enough context to identify the message you sent, without resending private artwork or orders.</p>
+        <p>For privacy questions, artwork or source-link concerns, or feedback requests, <a href="mailto:dylan@enablement.engineering">contact Dylan Isaac</a>. Include the relevant label or page link and a short explanation, without resending private artwork or orders.</p>
       </section>
     </div>
   </article>

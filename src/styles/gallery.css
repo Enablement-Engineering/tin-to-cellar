@@ -1,0 +1,48 @@
+.gallery-page { max-width: 1180px; margin: 0 auto; padding: 2rem 1rem; }
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 1.5rem; margin: 1.5rem 0; }
+.gallery-card { padding: 1rem; border: 1px solid var(--line-strong); border-radius: .5rem; background: var(--surface-card); min-width: 0; }
+.gallery-card img { width: 100%; max-height: 350px; object-fit: contain; }
+.gallery-card h2 { font-size: 1.2rem; }
+.gallery-check { display: flex !important; align-items: flex-start; gap: .6rem; margin: 1rem 0; }
+.gallery-check input { flex: 0 0 auto; margin-top: .3rem; width: 1.1rem; height: 1.1rem; }
+.gallery-reference, .gallery-digest { overflow-wrap: anywhere; }
+.gallery-filters, .gallery-actions { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin: 1rem 0; }
+.gallery-filters label { flex: 1; min-width: min(100%, 180px); }
+.gallery-page label:not(.gallery-check), .gallery-submission fieldset label:not(.gallery-check) { display: grid; gap: .4rem; margin: .75rem 0; }
+.gallery-page input:not([type=checkbox]):not([type=radio]), .gallery-page select, .gallery-submission select, .gallery-submission input:not([type=checkbox]):not([type=radio]) { padding: .6rem; font: inherit; width: 100%; min-width: 0; }
+.gallery-submission fieldset, .gallery-page fieldset { border: 1px solid var(--line-strong); padding: 1rem; min-width: 0; }
+.gallery-review-art { display: block; width: 100%; max-width: 700px; }
+.gallery-admin-layout { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(0, 3fr); gap: 2rem; }
+.gallery-queue-item { display: grid; text-align: left; gap: .4rem; width: 100%; padding: 1rem; margin-bottom: .5rem; font: inherit; cursor: pointer; }
+.gallery-digest { font-family: monospace; font-size: .85rem; }
+@media (max-width: 680px) { .gallery-admin-layout { grid-template-columns: 1fr; } .gallery-filters { display: grid; } }
+@media print { .gallery-page, .gallery-submission { display: none !important; } }
+
+.gallery-page input:focus-visible, .gallery-page select:focus-visible, .gallery-submission input:focus-visible, .gallery-submission select:focus-visible, .gallery-queue-item:focus-visible { outline: 3px solid var(--line-focus); outline-offset: 3px; }
+.gallery-admin-tabs { display:flex; flex-wrap:wrap; gap:.6rem; margin:1.5rem 0; }
+.gallery-admin-tabs [aria-pressed=true] { background:var(--action-primary); color:var(--text-on-accent); }
+.gallery-queue-item { display:grid; grid-template-columns:64px minmax(0,1fr); align-items:start; border:1px solid var(--line-hairline); border-radius:.4rem; background:var(--surface-card); color:var(--text-body); }
+.gallery-queue-item[aria-current=true] { border-color:var(--line-focus); box-shadow:inset 3px 0 var(--line-focus); }
+.gallery-queue-item img,.gallery-thumbnail-placeholder { width:64px; height:64px; object-fit:contain; }
+.gallery-thumbnail-placeholder { display:grid; place-items:center; background:var(--surface-sunken); font-size:.7rem; color:var(--text-muted); }
+.gallery-queue-item>span { display:grid; gap:.35rem; font-size:.85rem; }
+.gallery-queue-item strong { font-size:1rem; }
+.gallery-review-evidence { margin:1.5rem 0; }
+.gallery-review-evidence details { border-top:1px solid var(--line-hairline); padding:.9rem 0; }
+.gallery-review-evidence summary { cursor:pointer; font-weight:600; }
+.gallery-facts { display:grid; gap:.75rem; }
+.gallery-facts dt { font-weight:600; }
+.gallery-facts dd { margin:0; overflow-wrap:anywhere; }
+.gallery-detail-thumbnail { max-width:140px; margin:1rem 0; }
+.gallery-advice { border-left:3px solid var(--line-rule-brass); background:var(--surface-card); padding:.75rem 1rem; margin:1rem 0; overflow-wrap:anywhere; }
+.gallery-advice h4 { text-transform:capitalize; }
+.gallery-timeline { padding-left:1.4rem; }
+.gallery-timeline li { padding:.5rem 0; }
+.gallery-timeline p { margin:.25rem 0; font-size:.9rem; }
+.gallery-operations,.gallery-grants { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; }
+.gallery-operations>div { padding:1rem; background:var(--surface-sunken); }
+.gallery-operations dd { margin:.5rem 0 0; font-size:1.2rem; }
+.gallery-grant-form { margin:1.5rem 0; max-width:760px; }
+.gallery-grant-form fieldset { margin:1rem 0; }
+.gallery-admin-layout>section { max-height:80vh; overflow:auto; padding:.25rem; }
+@media (max-width:680px) { .gallery-admin-layout>section { max-height:350px; } }
