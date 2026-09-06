@@ -241,7 +241,7 @@ describe('original package image handoff', () => {
     expect(complete).toContain('Resuming alone is not a reason to regenerate')
     expect(complete).toContain('measured failed checks and next unfinished step')
     expect(complete).toContain('repair width, height and position together')
-    expect(complete).toContain('share three attempts per label')
+    expect(complete).toContain('share five total attempts per label')
     expect(complete).toContain('arcname=file.relative_to(staging).as_posix()')
     expect(complete).toContain('"manifest.json" in archive.namelist()')
     expect(complete).toContain("assert every asset's path is present")
