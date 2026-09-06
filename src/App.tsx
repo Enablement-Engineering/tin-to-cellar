@@ -181,7 +181,7 @@ function App() {
     catch { setShowRepair(true); setRepairStatus('Select and copy the repair request below, then paste it into the same chat.') }
   }
 
-  const intake = <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} /><ContributionStatus key={JSON.stringify(contribution)} contribution={contribution} /><DiagnosticFeedback candidate={feedback} protocolContext={protocolContext} />
+  const intake = <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} /><ContributionStatus key={JSON.stringify(contribution)} contribution={contribution} />
     {importLoadError && <div className="panel" role="alert"><h3>The label reader couldn’t load</h3><p>The app may have updated, or the connection was interrupted. Reload the page, then choose the same ZIP again. Reloading clears the current workspace.</p><button className="button secondary" type="button" onClick={() => window.location.reload()}>Reload app</button></div>}
     {repairPrompt && <div className="panel repair-panel"><h3>{labels.length ? 'Some labels need fixing' : 'The ZIP needs fixing'}</h3><p>{labels.length ? 'You can still print the usable labels below. ' : ''}Send the repair request to the same AI chat and import the ZIP it returns.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}><Icon name="copy" size={17} />Copy repair request</button><p className="copy-status" role="status">{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={repairPrompt} rows={8} onFocus={(event) => event.currentTarget.select()} />}</div>}
   </div>
@@ -202,6 +202,7 @@ function App() {
         <div className="page-heading screen-only"><h1>Print labels</h1><p className="spec-line">Avery 94502 · 2.5 in circles · US Letter</p></div>
         {labels.length > 0 ? <PrintStudio intake={intake} labels={labels} quantities={quantities} onQuantityChange={(id, value) => setQuantities((current) => ({ ...current, [id]: value }))} settings={printSettings} onSettingsChange={setPrintSettings} /> :
           <div className="print-intake screen-only">{intake}<section className="print-empty panel" aria-labelledby="print-empty-title"><span className="print-empty-icon"><Icon name="print" size={28} /></span><h2 id="print-empty-title">Ready to print?</h2><p>Choose the CellarPack ZIP from your AI chat. You can then set the quantities and preview your sheets.</p><p className="field-hint">If you still need labels, start by making a prompt.</p><button className="button secondary" type="button" onClick={() => navigate('create')}>Start with a prompt</button></section></div>}
+        <DiagnosticFeedback candidate={feedback} protocolContext={protocolContext} />
       </>}
     </main>
     <SiteFooter currentView={view} onNavigate={navigate} />

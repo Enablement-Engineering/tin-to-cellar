@@ -433,3 +433,29 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
   .prompt-view-switch { flex-wrap: wrap; }
   .order-review select { white-space: normal; }
 }
+
+/* Optional run diagnostics follow the print workspace. */
+.feedback-panel { margin-top: 32px; border-block: 1px solid var(--line-hairline); font: var(--type-body-sm); overflow-wrap: anywhere; }
+.feedback-panel summary { cursor: pointer; min-height: 44px; padding-block: 12px; color: var(--text-strong); font: var(--type-ui-strong); }
+.feedback-toggle { display: flex; align-items: center; gap: 12px; padding-block: 20px !important; }
+.feedback-toggle::before { content: '+'; font-size: 22px; font-weight: 400; }
+.feedback-panel > details[open] > .feedback-toggle::before { content: '−'; }
+.feedback-toggle small { display: block; margin-top: 5px; color: var(--text-muted); font: var(--type-hint); }
+.feedback-content { display: grid; gap: 16px; min-width: 0; padding-bottom: 20px; max-width: 760px; }
+.feedback-run { display: grid; gap: 12px; padding: 20px; border: 1px solid var(--line-hairline); border-radius: var(--radius-card); background: var(--surface-card); }
+.feedback-run-heading, .feedback-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.feedback-run-heading { justify-content: space-between; }
+.feedback-outcome, .feedback-counts li { padding: 5px 10px; border-radius: var(--radius-control); background: var(--surface-sunken); color: var(--text-strong); font: var(--type-hint); }
+.feedback-issues { list-style: none; padding: 0; margin: 0; }
+.feedback-issues li { display: flex; justify-content: space-between; gap: 20px; padding-block: 12px; border-bottom: 1px solid var(--line-hairline); }
+.feedback-issues li > span:last-child { flex-shrink: 0; color: var(--text-muted); }
+.feedback-issues small { display: block; color: var(--text-muted); margin-top: 4px; }
+.feedback-disclosure { min-width: 0; border-top: 1px solid var(--line-hairline); }
+.feedback-disclosure pre { max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 16px; background: var(--surface-sunken); font: var(--type-spec); }
+.feedback-group { display: grid; gap: 12px; }
+.feedback-counts { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.feedback-notice { padding: 12px 16px; border-left: 3px solid var(--line-rule-brass); background: var(--surface-sunken); }
+@media (max-width: 600px) {
+  .feedback-run { padding: 16px; }
+  .feedback-issues li { flex-wrap: wrap; gap: 6px 12px; }
+}

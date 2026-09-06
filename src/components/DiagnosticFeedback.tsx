@@ -1,11 +1,28 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { parseDiagnosticReport, summarizeReports, reportRevisionLabel, type DiagnosticReport } from '../lib/feedback'
+
+const outcomeLabels: Record<DiagnosticReport['outcome'], string> = {
+  complete: 'Completed', partial: 'Partly completed', failed: 'Failed', 'research-only': 'Research only',
+}
+const issueLabels: Record<string, string> = {
+  'reference-unavailable': 'Reference image unavailable', 'variant-ambiguous': 'Unclear tobacco variant',
+  'image-handoff-unavailable': 'Reference image could not reach the generator',
+  'generation-unavailable': 'Image generator unavailable', 'generation-failed': 'Image generation failed',
+  'artwork-fidelity': 'Artwork did not match the reference', 'text-legibility': 'Hard-to-read text',
+  'write-area': 'Blank date area needed attention', geometry: 'Label dimensions needed attention',
+  'proof-unavailable': 'Print proof unavailable', schema: 'Pack format needed attention',
+  archive: 'ZIP needed attention', 'instructions-unclear': 'Unclear instructions',
+  'instructions-conflicting': 'Conflicting instructions', other: 'Other issue',
+  'protocol-unavailable': 'Instructions unavailable', 'protocol-incomplete': 'Incomplete instructions',
+}
+function readable(value: string) { return value.charAt(0).toUpperCase() + value.slice(1).replaceAll('-', ' ') }
 
 export function DiagnosticFeedback({ candidate, protocolContext }: { candidate: unknown; protocolContext?: { status: string; revision?: number } }) {
   const report = useMemo(() => parseDiagnosticReport(candidate), [candidate])
   const [saved, setSaved] = useState<DiagnosticReport[]>([])
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const fileInput = useRef<HTMLInputElement>(null)
   const reports = useMemo(() => {
     const unique = new Map<string, DiagnosticReport>()
     for (const item of [...(report && protocolContext?.status !== 'conflict' && protocolContext?.status !== 'invalid' ? [report] : []), ...saved]) unique.set(JSON.stringify(item), item)
@@ -36,25 +53,48 @@ export function DiagnosticFeedback({ candidate, protocolContext }: { candidate: 
     setMessage(`${accepted.length} ${accepted.length === 1 ? 'report' : 'reports'} loaded. ${rejected} rejected. These files replace the reports you opened before.`)
     setBusy(false)
   }
-  return <section className="panel screen-only" aria-labelledby="feedback-title">
+  return <section className="feedback-panel screen-only" aria-labelledby="feedback-title">
     <details>
-      <summary id="feedback-title">Prompt feedback</summary>
-      <p>See what your AI reported about the request, the steps it took, and any problems. Reports use fixed categories and counts. Importing a label pack sends its valid feedback to help improve the instructions. Reports you open separately are kept in this browser.</p>
-      {protocolContext?.status === 'conflict' && <p role="status">The pack and its feedback list different instruction versions. Check the original chat to find which version was used before asking for repairs or comparing reports. You can still print labels that passed the ZIP checks.</p>}
-      {protocolContext?.status === 'invalid' && <p role="status">The app couldn’t read the pack’s instruction version. Use the instructions from the original chat when asking for repairs. You can still print labels that passed the ZIP checks.</p>}
-      {protocolContext?.status === 'unknown' && <p role="status">The app doesn’t recognize the pack’s instruction version. Keep the original chat’s instructions for repairs. You can still print labels that passed the ZIP checks.</p>}
-      {candidate != null && !report && <p role="status">The pack’s feedback could not be read in the expected format and was excluded. You can still print labels that passed the ZIP checks.</p>}
-      {!report && <p>No readable feedback report in this pack. If your AI provided a separate JSON report after a failed attempt, you can open it below.</p>}
-      {report && <><p>The AI reported: {report.outcome}. {reportRevisionLabel(report)}. The app has not independently verified this report.</p><details><summary>Review report</summary><pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{JSON.stringify(report, null, 2)}</pre></details><button className="button secondary" type="button" onClick={() => download(report, 'tin-to-cellar-feedback.json')}>Download feedback</button></>}
-      <p><label>Open saved feedback reports <input aria-label="Open saved feedback reports" type="file" accept=".json,application/json" multiple disabled={busy} onChange={(event) => { void readFiles(Array.from(event.target.files ?? [])); event.target.value = '' }} /></label></p>
-      <p role="status">{message}</p>
-      {reports.length > 0 && <>
-        <p>{totals.reports} distinct {totals.reports === 1 ? 'report' : 'reports'}. Identical reports count once, even if they came from separate attempts. These totals cover only the reports open here.</p>
-        {protocolContext?.status === 'conflict' && <p>The current pack’s report is left out of comparisons because its instruction version doesn’t match the pack.</p>}
-        {totals.byRevision.map((group) => <section key={group.revisionLabel} aria-label={group.revisionLabel}><h3>{group.revisionLabel}</h3><p>{group.reports} {group.reports === 1 ? 'report' : 'reports'}</p><ul>{Object.entries(group.outcomes).map(([outcome, count]) => <li key={outcome}>{outcome}: {count}</li>)}</ul><ul>{Object.entries(group.issues).map(([code, count]) => <li key={code}>{code}: {count} {count === 1 ? 'report' : 'reports'}</li>)}</ul></section>)}
-        <details><summary>Review all reports</summary><pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{JSON.stringify(reports, null, 2)}</pre></details>
-        <button className="button secondary" type="button" onClick={() => download({ format: 'tin-to-cellar/feedback-summary', totals, reports }, 'tin-to-cellar-feedback-summary.json')}>Download feedback summary</button>
-      </>}
+      <summary className="feedback-toggle" id="feedback-title"><span>AI run details<small>Optional feedback and saved reports</small></span></summary>
+      <div className="feedback-content">
+        <p className="field-hint">This is the AI's account of the run. Use the ZIP checks and sheet preview to decide what to print.</p>
+        {protocolContext?.status === 'conflict' && <p className="feedback-notice" role="status">The pack and its feedback list different instruction versions. This report is excluded from comparisons. Check the original chat before requesting repairs.</p>}
+        {protocolContext?.status === 'invalid' && <p className="feedback-notice" role="status">The pack's instruction version could not be read. This report is excluded from comparisons. Use the original chat's instructions for repairs.</p>}
+        {protocolContext?.status === 'unknown' && <p className="feedback-notice" role="status">This instruction version is not recognized. Keep the original chat's instructions for repairs.</p>}
+        {candidate != null && !report && <p className="feedback-notice" role="status">The pack's feedback could not be read and was excluded. Labels that passed the ZIP checks can still be printed.</p>}
+        {!report && <p>No readable feedback in this pack. You can open a separate report below.</p>}
+        {report && <section className="feedback-run" aria-label="Current run">
+          <div className="feedback-run-heading"><h3>This run</h3><span className="feedback-outcome">AI reported: {outcomeLabels[report.outcome]}</span></div>
+          <p className="field-hint">{report.request.labelCount} {report.request.labelCount === 1 ? 'label' : 'labels'} requested · {reportRevisionLabel(report)}</p>
+          {report.issues.length > 0 ? <ul className="feedback-issues">{report.issues.map((issue, index) => <li key={index}><span>{issueLabels[issue.code] ?? readable(issue.code)}<small>{readable(issue.stage)}</small></span><span className="feedback-issue-status">{issue.resolved ? 'Resolved' : 'Unresolved'}</span></li>)}</ul> : <p className="field-hint">No issues reported by the AI.</p>}
+          {report.steps.length > 0 && <details className="feedback-disclosure"><summary>Steps taken</summary><ul className="feedback-issues">{report.steps.map((step, index) => <li key={index}><span>{readable(step.stage)}<small>{step.attempts} {step.attempts === 1 ? 'attempt' : 'attempts'}</small></span><span>{readable(step.status)}</span></li>)}</ul></details>}
+          <div className="feedback-actions"><button className="button secondary" type="button" onClick={() => download(report, 'tin-to-cellar-feedback.json')}>Download report</button></div>
+          <details className="feedback-disclosure"><summary>View report JSON</summary><pre tabIndex={0} aria-label="Report JSON">{JSON.stringify(report, null, 2)}</pre></details>
+        </section>}
+        <details className="feedback-disclosure feedback-comparison">
+          <summary>Open and compare saved reports</summary>
+          <div className="feedback-content">
+            <p className="field-hint">Open JSON reports from other runs to compare their outcomes. These files stay in this tab and replace any reports opened earlier.</p>
+            <div className="feedback-actions">
+              <input ref={fileInput} aria-label="Open saved feedback reports" type="file" hidden accept=".json,application/json" multiple disabled={busy} onChange={(event) => { const files = Array.from(event.target.files ?? []); if (files.length) void readFiles(files); event.target.value = '' }} />
+              <button className="button secondary" type="button" disabled={busy} onClick={() => fileInput.current?.click()}>{busy ? 'Opening reports…' : 'Choose reports'}</button>
+              {saved.length > 0 && <button className="button quiet" type="button" onClick={() => { setSaved([]); setMessage('Saved reports cleared.'); }}>Clear saved reports</button>}
+            </div>
+            <p className="field-hint" role="status">{message}</p>
+            {reports.length > 0 && <>
+              <p className="field-hint">{totals.reports} distinct {totals.reports === 1 ? 'report' : 'reports'}, including this pack when eligible. Identical reports count once, even from separate runs.</p>
+              {totals.byRevision.map((group) => <section className="feedback-group" key={group.revisionLabel} aria-label={group.revisionLabel}>
+                <h4>{group.revisionLabel}</h4>
+                <ul className="feedback-counts">{Object.entries(group.outcomes).filter(([, count]) => count > 0).map(([outcome, count]) => <li key={outcome}>{outcomeLabels[outcome as DiagnosticReport['outcome']]}: {count}</li>)}</ul>
+                {Object.keys(group.issues).length > 0 && <><p className="field-hint">Reports mentioning each issue, including resolved issues</p><ul className="feedback-issues">{Object.entries(group.issues).map(([code, count]) => <li key={code}><span>{issueLabels[code] ?? readable(code)}</span><span>{count} {count === 1 ? 'report' : 'reports'}</span></li>)}</ul></>}
+              </section>)}
+              <div className="feedback-actions"><button className="button secondary" type="button" onClick={() => download({ format: 'tin-to-cellar/feedback-summary', totals, reports }, 'tin-to-cellar-feedback-summary.json')}>Download comparison</button></div>
+              <details className="feedback-disclosure"><summary>View all reports JSON</summary><pre tabIndex={0} aria-label="All reports JSON">{JSON.stringify(reports, null, 2)}</pre></details>
+            </>}
+          </div>
+        </details>
+        <p className="field-hint">Importing a pack sends valid AI feedback to help improve the instructions. Your ZIP and artwork stay on this device. Reports opened here are not sent.</p>
+      </div>
     </details>
   </section>
 }
