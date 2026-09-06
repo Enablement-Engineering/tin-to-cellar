@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Icon } from './Icons'
-import { PROTOCOL_REVISION, PROTOCOL_URL, protocolInstructions } from '../lib/protocol'
+import { PROTOCOL_URL, protocolInstructions } from '../lib/protocol'
 import { ProofAccess } from './ProofAccess'
 import { proofAccessText, type ProofLease } from '../lib/prompt/proof-access'
 
@@ -41,7 +41,7 @@ export function PromptHandoff({ prompt, request, completePrompt = prompt, onPrin
       <p className="panel-intro">Copy the prompt into your AI chat. When your labels are ready, download the ZIP and bring it back here.</p>
       <div className="handoff-actions"><button className="button primary" type="button" disabled={checking} onClick={() => void copy('prompt')}><Icon name="copy" />Copy prompt</button></div>
       <ProofAccess lease={lease} onChange={setLease} onPendingChange={setChecking} />
-      <p className="copy-status" role="status">{currentResult ? currentResult.failed ? 'Automatic copying did not work. Select and copy the text below.' : currentResult.kind === 'prompt' ? 'Prompt copied. Paste it into your AI chat and send it.' : currentResult.kind === 'complete' ? `Complete prompt copied with instruction version ${PROTOCOL_REVISION}. Paste it into your AI chat and send it.` : 'Request copied. Paste it into the chat where you already added the Tin to Cellar instructions.' : ''}</p>
+      <p className="copy-status" role="status">{currentResult ? currentResult.failed ? 'Automatic copying did not work. Select and copy the text below.' : currentResult.kind === 'prompt' ? 'Prompt copied. Paste it into your AI chat and send it.' : currentResult.kind === 'complete' ? 'Complete prompt copied. Paste it into your AI chat and send it.' : 'Request copied. Paste it into the chat where you already added the Tin to Cellar instructions.' : ''}</p>
       {onPrint && <button className="button quiet" type="button" onClick={onPrint}>Already have a ZIP? Print it<Icon name="arrow" size={16} /></button>}
       </div>
       <div className="handoff-details panel">
@@ -57,7 +57,7 @@ export function PromptHandoff({ prompt, request, completePrompt = prompt, onPrin
             <Markdown remarkPlugins={[remarkGfm]} skipHtml components={{ img: ({ alt }) => <span>{alt ?? 'Image reference'}</span>, a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> }}>{preview}</Markdown>
           </div>}
       </details>
-      <details className="more-options"><summary>More options</summary><p className="field-hint">The complete prompt includes your request and instruction version {PROTOCOL_REVISION}, so your AI can read everything in the chat. This version may be older than the current instructions on the site.</p><button className="button secondary" type="button" disabled={checking} onClick={() => void copy('complete')}>Copy complete prompt</button><p><a href={`data:text/markdown;charset=utf-8,${encodeURIComponent(protocolInstructions())}`} download={`tin-to-cellar-instructions-r${PROTOCOL_REVISION}.md`}>Download instructions, version {PROTOCOL_REVISION}</a></p><p className="field-hint">The download contains instructions only. Attach it to your chat, then use Copy request only to add your blends, special requests, and print guide access.</p><p className="field-hint">You can also use Copy request only for another batch in the same chat.</p><button className="button secondary" type="button" disabled={checking} onClick={() => void copy('request')}>Copy request only</button></details>
+      <details className="more-options"><summary>More options</summary><p className="field-hint">The complete prompt includes your request and the instructions, so your AI can read everything in the chat.</p><button className="button secondary" type="button" disabled={checking} onClick={() => void copy('complete')}>Copy complete prompt</button><p><a href={`data:text/markdown;charset=utf-8,${encodeURIComponent(protocolInstructions())}`} download="tin-to-cellar-instructions.md">Download instructions</a></p><p className="field-hint">The download contains instructions only. Attach it to your chat, then use Copy request only to add your blends, special requests, and print guide access.</p><p className="field-hint">You can also use Copy request only for another batch in the same chat.</p><button className="button secondary" type="button" disabled={checking} onClick={() => void copy('request')}>Copy request only</button></details>
       </div>
     </section>
   )

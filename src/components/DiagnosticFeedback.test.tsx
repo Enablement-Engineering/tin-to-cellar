@@ -48,7 +48,7 @@ it('keeps revisions in separate comparison groups and identifies conflicting pac
   await waitFor(() => expect(screen.getByText(/1 report loaded. 0 rejected/)).toBeTruthy())
   expect(screen.getAllByText('Failed: 1')).toHaveLength(2)
   rerender(<DiagnosticFeedback candidate={JSON.parse(JSON.stringify(current))} protocolContext={{ status: 'conflict' }} />)
-  expect(screen.getByText(/pack and its feedback list different instruction versions/)).toBeTruthy()
+  expect(screen.getByText(/pack and its feedback refer to different instructions/)).toBeTruthy()
   expect(screen.getAllByText('Failed: 1')).toHaveLength(1)
 })
 

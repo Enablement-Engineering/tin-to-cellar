@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { parseDiagnosticReport, summarizeReports, reportRevisionLabel, type DiagnosticReport } from '../lib/feedback'
+import { parseDiagnosticReport, summarizeReports, type DiagnosticReport } from '../lib/feedback'
 
 const outcomeLabels: Record<DiagnosticReport['outcome'], string> = {
   complete: 'Completed', partial: 'Partly completed', failed: 'Failed', 'research-only': 'Research only',
@@ -58,14 +58,14 @@ export function DiagnosticFeedback({ candidate, protocolContext }: { candidate: 
       <summary className="feedback-toggle" id="feedback-title"><span>AI run details<small>Optional feedback and saved reports</small></span></summary>
       <div className="feedback-content">
         <p className="field-hint">This is the AI's account of the run. Use the ZIP checks and sheet preview to decide what to print.</p>
-        {protocolContext?.status === 'conflict' && <p className="feedback-notice" role="status">The pack and its feedback list different instruction versions. This report is excluded from comparisons. Check the original chat before requesting repairs.</p>}
-        {protocolContext?.status === 'invalid' && <p className="feedback-notice" role="status">The pack's instruction version could not be read. This report is excluded from comparisons. Use the original chat's instructions for repairs.</p>}
-        {protocolContext?.status === 'unknown' && <p className="feedback-notice" role="status">This instruction version is not recognized. Keep the original chat's instructions for repairs.</p>}
+        {protocolContext?.status === 'conflict' && <p className="feedback-notice" role="status">The pack and its feedback refer to different instructions. This report is excluded from comparisons. Check the original chat before requesting repairs.</p>}
+        {protocolContext?.status === 'invalid' && <p className="feedback-notice" role="status">We could not identify the instructions used for this pack. This report is excluded from comparisons. Use the original chat's instructions for repairs.</p>}
+        {protocolContext?.status === 'unknown' && <p className="feedback-notice" role="status">We could not match this pack to known instructions. Keep the original chat's instructions for repairs.</p>}
         {candidate != null && !report && <p className="feedback-notice" role="status">The pack's feedback could not be read and was excluded. Labels that passed the ZIP checks can still be printed.</p>}
         {!report && <p>No readable feedback in this pack. You can open a separate report below.</p>}
         {report && <section className="feedback-run" aria-label="Current run">
           <div className="feedback-run-heading"><h3>This run</h3><span className="feedback-outcome">AI reported: {outcomeLabels[report.outcome]}</span></div>
-          <p className="field-hint">{report.request.labelCount} {report.request.labelCount === 1 ? 'label' : 'labels'} requested · {reportRevisionLabel(report)}</p>
+          <p className="field-hint">{report.request.labelCount} {report.request.labelCount === 1 ? 'label' : 'labels'} requested</p>
           {report.issues.length > 0 ? <ul className="feedback-issues">{report.issues.map((issue, index) => <li key={index}><span>{issueLabels[issue.code] ?? readable(issue.code)}<small>{readable(issue.stage)}</small></span><span className="feedback-issue-status">{issue.resolved ? 'Resolved' : 'Unresolved'}</span></li>)}</ul> : <p className="field-hint">No issues reported by the AI.</p>}
           {report.steps.length > 0 && <details className="feedback-disclosure"><summary>Steps taken</summary><ul className="feedback-issues">{report.steps.map((step, index) => <li key={index}><span>{readable(step.stage)}<small>{step.attempts} {step.attempts === 1 ? 'attempt' : 'attempts'}</small></span><span>{readable(step.status)}</span></li>)}</ul></details>}
           <div className="feedback-actions"><button className="button secondary" type="button" onClick={() => download(report, 'tin-to-cellar-feedback.json')}>Download report</button></div>
@@ -83,8 +83,9 @@ export function DiagnosticFeedback({ candidate, protocolContext }: { candidate: 
             <p className="field-hint" role="status">{message}</p>
             {reports.length > 0 && <>
               <p className="field-hint">{totals.reports} distinct {totals.reports === 1 ? 'report' : 'reports'}, including this pack when eligible. Identical reports count once, even from separate runs.</p>
-              {totals.byRevision.map((group) => <section className="feedback-group" key={group.revisionLabel} aria-label={group.revisionLabel}>
-                <h4>{group.revisionLabel}</h4>
+              <p className="field-hint">Reports are grouped by the instructions used to create the labels.</p>
+              {totals.byRevision.map((group, index) => <section className="feedback-group" key={group.revisionLabel} aria-label={`Report group ${index + 1}`}>
+                <h4>Report group {index + 1}</h4>
                 <ul className="feedback-counts">{Object.entries(group.outcomes).filter(([, count]) => count > 0).map(([outcome, count]) => <li key={outcome}>{outcomeLabels[outcome as DiagnosticReport['outcome']]}: {count}</li>)}</ul>
                 {Object.keys(group.issues).length > 0 && <><p className="field-hint">Reports mentioning each issue, including resolved issues</p><ul className="feedback-issues">{Object.entries(group.issues).map(([code, count]) => <li key={code}><span>{issueLabels[code] ?? readable(code)}</span><span>{count} {count === 1 ? 'report' : 'reports'}</span></li>)}</ul></>}
               </section>)}

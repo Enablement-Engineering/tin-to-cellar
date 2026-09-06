@@ -4,7 +4,6 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PromptHandoff } from './PromptHandoff'
-import { PROTOCOL_REVISION } from '../lib/protocol'
 import { proofAccessText } from '../lib/prompt/proof-access'
 afterEach(cleanup)
 describe('PromptHandoff', () => {
@@ -68,13 +67,13 @@ it('copies and reveals the exact complete payload when its clipboard action fail
 
 it('offers reusable bundled instructions without the project request or proof access', () => {
   render(<PromptHandoff prompt="Private project request" completePrompt="Private complete request" request="Private request" />)
-  const link = screen.getByRole('link', { name: /Download instructions, version/ })
+  const link = screen.getByRole('link', { name: 'Download instructions' })
   const body = decodeURIComponent(link.getAttribute('href')!.split(',').slice(1).join(','))
   expect(body).not.toContain('Private project request')
   expect(body).not.toContain('Private complete request')
   expect(body).not.toContain('Private request')
   expect(body).not.toContain(proofAccessText(null))
-  expect(link).toHaveAttribute('download', `tin-to-cellar-instructions-r${PROTOCOL_REVISION}.md`)
+  expect(link).toHaveAttribute('download', 'tin-to-cellar-instructions.md')
 })
 
 vi.mock('./ProofAccess', () => ({ ProofAccess: ({ onPendingChange }: { onPendingChange(pending: boolean): void }) => { useEffect(() => onPendingChange(false), [onPendingChange]); return null } }))
