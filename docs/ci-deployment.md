@@ -13,7 +13,7 @@ Follow [Cloudflare's GitHub Actions setup](https://developers.cloudflare.com/wor
 
 ## Releases
 
-The deploy job uses the `production` GitHub environment and serializes runs on `main` so deployments do not overlap. It uses the Wrangler version in the npm lockfile, preserves the bindings and migrations in `wrangler.jsonc`, and checks both production domains and the health endpoint after deployment. HTTP checks do not establish full hosted image-proof behavior.
+The deploy job uses the `production` GitHub environment and serializes runs on `main` so deployments do not overlap. It uses the Wrangler version in the npm lockfile, preserves the bindings and migrations in `wrangler.jsonc`, and checks both production domains and the health endpoint after deployment. HTTP checks establish deployment response behavior, not successful artwork generation, canonical local proof review, ZIP delivery, website import, or printing. Record those workflow checks separately.
 
 If credentials are missing, checks still run and deployment fails with a specific setup message. After adding credentials, rerun the failed workflow or dispatch it from the Actions tab. Inspect the deployment log for the Cloudflare version ID and the run's commit SHA.
 

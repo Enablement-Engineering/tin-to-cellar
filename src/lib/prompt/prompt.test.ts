@@ -236,6 +236,18 @@ describe('original package image handoff', () => {
     expect(complete).toContain('do not repeat the same call')
     expect(complete).toContain('attachment retries do not reset it')
   })
+  it('resumes measured repairs and checks the delivered archive layout', () => {
+    const complete = buildTinToCellarInstructions()
+    expect(complete).toContain('Review unreviewed artwork and run proof before another image call')
+    expect(complete).toContain('Resuming alone is not a reason to regenerate')
+    expect(complete).toContain('measured failed checks and next unfinished step')
+    expect(complete).toContain('repair width, height and position together')
+    expect(complete).toContain('share three attempts per label')
+    expect(complete).toContain('arcname=file.relative_to(staging).as_posix()')
+    expect(complete).toContain('"manifest.json" in archive.namelist()')
+    expect(complete).toContain("assert every asset's path is present")
+    expect(complete).toContain('even if ZIP integrity passes')
+  })
   it('requires completion through delivery without manufacturing tool capabilities or proof', () => {
     const complete = buildTinToCellarInstructions()
     const compact = buildTinToCellarPrompt({ tobaccos: 'Autumn Evening' })
