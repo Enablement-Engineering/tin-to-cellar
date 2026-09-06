@@ -256,6 +256,15 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 .print-empty { display: grid; justify-items: start; align-content: center; gap: 16px; min-height: 320px; padding: 32px; background: transparent; box-shadow: none; }
 .print-empty-icon { display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid var(--line-rule-brass); border-radius: 50%; color: var(--text-accent); }
 .print-empty h2 { font-size: 26px; }
+.example-pack { display: grid; justify-items: start; gap: 16px; }
+.example-pack h2 { font-size: 26px; }
+.example-pack > p { color: var(--text-muted); }
+.example-pack-gallery { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; width: 100%; padding: 16px; border: 1px solid var(--line-rule-brass); border-radius: var(--radius-card); background: var(--surface-sunken); cursor: pointer; color: var(--text-accent); }
+.example-pack-gallery:hover { background: var(--surface-accent-soft); }
+.example-pack-gallery:disabled { cursor: wait; opacity: .65; }
+.example-pack-label { display: block; aspect-ratio: 1; border-radius: 50%; overflow: hidden; position: relative; }
+.example-pack-label img { position: absolute; width: 110%; height: 110%; max-width: none; left: -5%; top: -5%; }
+.example-pack-caption { grid-column: 1 / -1; font: var(--type-hint); padding-top: 6px; }
 .print-empty p { max-width: var(--measure-narrow); color: var(--text-muted); font: var(--type-body-sm); }
 .quantity-panel > h2 { margin-bottom: 12px; font-size: 26px; }
 .quantity-panel > p { color: var(--text-muted); font: var(--type-hint); }

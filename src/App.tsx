@@ -16,6 +16,7 @@ import { Wordmark } from './components/Wordmark'
 import { DiagnosticFeedback } from './components/DiagnosticFeedback'
 import { resolveProtocolContext } from './lib/protocol'
 import { FEEDBACK_KEY } from './lib/feedback'
+import { ExamplePack } from './components/ExamplePack'
 import { PackImporter } from './components/PackImporter'
 import { PrintStudio } from './components/PrintStudio'
 import { PromptHandoff } from './components/PromptHandoff'
@@ -201,7 +202,7 @@ function App() {
       </div> : view === 'help' ? <HowItWorks instructions={instructions} /> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
         <div className="page-heading screen-only"><h1>Print labels</h1><p className="spec-line">Avery 94502 · 2.5 in circles · US Letter</p></div>
         {labels.length > 0 ? <PrintStudio intake={intake} labels={labels} quantities={quantities} onQuantityChange={(id, value) => setQuantities((current) => ({ ...current, [id]: value }))} settings={printSettings} onSettingsChange={setPrintSettings} /> :
-          <div className="print-intake screen-only">{intake}<section className="print-empty panel" aria-labelledby="print-empty-title"><span className="print-empty-icon"><Icon name="print" size={28} /></span><h2 id="print-empty-title">Ready to print?</h2><p>Choose the CellarPack ZIP from your AI chat. You can then set the quantities and preview your sheets.</p><p className="field-hint">If you still need labels, start by making a prompt.</p><button className="button secondary" type="button" onClick={() => navigate('create')}>Start with a prompt</button></section></div>}
+          <div className="print-intake screen-only">{intake}<ExamplePack busy={importing} onFile={handlePack} /></div>}
         <DiagnosticFeedback candidate={feedback} protocolContext={protocolContext} />
       </>}
     </main>

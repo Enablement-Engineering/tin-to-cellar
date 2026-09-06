@@ -38,6 +38,7 @@ export function PromptHandoff({ prompt, request, completePrompt = prompt, onPrin
       <div className="handoff-content">
       <div className="panel-heading"><h2 id="handoff-title">Create the artwork</h2></div>
       <p className="panel-intro">Copy the prompt, paste it into your AI chat, and send. It includes all the instructions. Bring the finished ZIP back here to print.</p>
+      <p className="field-hint">Generating the images and creating the ZIP may take several minutes.</p>
       <div className="handoff-actions"><button className="button primary" type="button" disabled={checking} onClick={() => void copy('complete')}><Icon name="copy" />Copy prompt</button></div>
       <ProofAccess lease={lease} onChange={setLease} onPendingChange={setChecking} />
       <p className="copy-status" role="status">{currentResult ? currentResult.failed ? 'Automatic copying did not work. Select and copy the text below.' : currentResult.kind === 'complete' ? 'Prompt and all instructions copied. Paste into your AI chat and send.' : 'Request copied. Paste it into the chat where you already added the Tin to Cellar instructions.' : ''}</p>
