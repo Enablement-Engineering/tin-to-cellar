@@ -1,4 +1,5 @@
 import { readFile, readdir, writeFile, mkdir } from 'node:fs/promises'
+import { assignPermanentIds } from "./identities.mjs"
 import { key, normalizeRecord } from './normalize.mjs'
 
 const files = (await readdir('data/catalog/sources')).filter((name) => name.endsWith('.json') && !name.endsWith('-provenance.json')).sort((a, b) => Number(b === 'seed-verified.json') - Number(a === 'seed-verified.json') || a.localeCompare(b))
@@ -34,10 +35,13 @@ for (const file of files) {
     }
   }
 }
-const catalog = [...records.values()].map((entry) => ({ ...entry, aliases: [...new Set(entry.aliases)].filter((alias) => key(alias) !== key(entry.blend)) })).sort((a, b) => a.maker.localeCompare(b.maker) || a.blend.localeCompare(b.blend))
+const registry = JSON.parse(await readFile("data/catalog/identities.json", "utf8"))
+const catalog = assignPermanentIds([...records.values()].map((entry) => ({ ...entry, aliases: [...new Set(entry.aliases)].filter((alias) => key(alias) !== key(entry.blend)) })).sort((a, b) => a.maker.localeCompare(b.maker) || a.blend.localeCompare(b.blend)), registry)
 const report = { generatedAt: new Date().toISOString(), sourceFiles: files, rawCount, uniqueCount: catalog.length, makerCount: new Set(catalog.map((entry) => entry.maker)).size, mergeCount: merges.length, excludedCount: excluded.length, correctionCount: corrections.length, excluded, merges, corrections }
 await mkdir('data/catalog/reports', { recursive: true })
 await writeFile('data/catalog/catalog.json', JSON.stringify(catalog, null, 2) + '\n')
 await writeFile('data/catalog/reports/merge.json', JSON.stringify(report, null, 2) + '\n')
 await writeFile('src/lib/tobacco-catalog/catalog.json', JSON.stringify(catalog.map(({ sources: _sources, ...entry }) => entry), null, 2) + '\n')
 console.log(JSON.stringify({ ...report, merges: undefined, excluded: undefined, corrections: undefined }, null, 2))
+
+await writeFile("src/lib/tobacco-catalog/identities.json", JSON.stringify(registry, null, 2) + "\n")

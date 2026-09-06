@@ -6,7 +6,11 @@ import { printablePack } from './pack'
 for (const width of [1280, 320]) {
   test(`compact diagnostics and optional notes are accessible at ${width}px`, async ({ page }) => {
     const sent: Array<{ url: string; body: unknown }> = []
-    await page.route('**/api/**', route => { sent.push({ url: route.request().url(), body: route.request().postDataJSON() }); return route.fulfill({ status: 200, contentType: 'application/json', body: '{"status":"collected"}' }) })
+    await page.route('**/api/**', route => {
+      if (new URL(route.request().url()).pathname === '/api/gallery/v1/config') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ intake: false, serving: false, noticeVersion: '2026-09-06-v1', turnstileSiteKey: '' }) })
+      if (route.request().method() === 'POST') sent.push({ url: route.request().url(), body: route.request().postDataJSON() })
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{"status":"collected"}' })
+    })
     await page.route('https://**/*', route => route.abort())
     const zip = await JSZip.loadAsync(await printablePack())
     const manifest = JSON.parse(await zip.file('manifest.json')!.async('string'))

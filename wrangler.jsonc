@@ -1,12 +1,40 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "tin-to-cellar",
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-05",
   "workers_dev": false,
   "preview_urls": false,
-  "d1_databases": [{ "binding": "DIAGNOSTICS", "database_name": "tin-to-cellar-diagnostics", "database_id": "10c1a5a7-9884-46ad-86d0-2eedf5d8426a", "migrations_dir": "migrations" }],
-  "triggers": { "crons": ["17 4 * * *"] },
+  "vars": {
+    "GALLERY_INTAKE": "true",
+    "GALLERY_SERVING": "true",
+    "GALLERY_PUBLICATION": "true",
+    "GALLERY_ADMIN_HOST": "admin.tintocellar.com",
+    "GALLERY_AGENT_ENABLED": "true",
+    "GALLERY_AGENT_ACCESS_AUD": "8c5185768f552efb3c258fa1bacc092e613a47c32ea9ce4961c611a21cedfb6f",
+    "GALLERY_ACCESS_ISSUER": "https://winter-king-937f.cloudflareaccess.com",
+    "GALLERY_ACCESS_AUD": "0f7fe1b0924770df29a68ac7d55fde65502263491d56a94617139f85fa383fce",
+    "GALLERY_ADMIN_SUBJECT": "0edcdc1f-d755-58cd-8133-7914d6708ee6",
+    "GALLERY_TURNSTILE_SITE_KEY": "0x4AAAAAAEqmPyk8lrLHg5Mk"
+  },
+  "d1_databases": [
+    {
+      "binding": "DIAGNOSTICS",
+      "database_name": "tin-to-cellar-diagnostics",
+      "database_id": "10c1a5a7-9884-46ad-86d0-2eedf5d8426a",
+      "migrations_dir": "migrations"
+    },
+    {
+      "binding": "GALLERY",
+      "database_name": "tin-to-cellar-gallery",
+      "database_id": "37bebdd3-76f1-44cf-839a-c8a980113d87",
+      "migrations_dir": "migrations/gallery"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "17 4 * * *"
+    ]
+  },
   "durable_objects": {
     "bindings": [
       {
@@ -43,6 +71,14 @@
         "limit": 3,
         "period": 60
       }
+    },
+    {
+      "name": "GALLERY_RATE_LIMITER",
+      "namespace_id": "1005",
+      "simple": {
+        "limit": 5,
+        "period": 60
+      }
     }
   ],
   "routes": [
@@ -53,17 +89,29 @@
     {
       "pattern": "www.tintocellar.com",
       "custom_domain": true
+    },
+    {
+      "pattern": "admin.tintocellar.com",
+      "custom_domain": true
     }
   ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "run_worker_first": [
-      "/api/*"
-    ],
+    "run_worker_first": true,
     "not_found_handling": "single-page-application"
   },
   "observability": {
     "enabled": false
+  },
+  "account_id": "97e5d454f1ad2daae1c6d42a5d4c09dd",
+  "r2_buckets": [
+    {
+      "binding": "GALLERY_ART",
+      "bucket_name": "tin-to-cellar-gallery"
+    }
+  ],
+  "limits": {
+    "cpu_ms": 2000
   }
 }

@@ -1,3 +1,4 @@
+import identities from "./identities.json"
 import catalog from './catalog.json'
 
 export type TobaccoEntry = { id: string; maker: string; blend: string; sourceUrl: string; aliases?: string[] }
@@ -16,9 +17,7 @@ export function formatTobacco(entry: Pick<TobaccoEntry, 'maker' | 'blend'>): str
   return `${entry.maker} — ${entry.blend}`
 }
 
-export const TOBACCO_CATALOG: readonly TobaccoEntry[] = catalog.map((entry) => ({
-  ...entry, id: normalize(`${entry.maker} ${entry.blend}`).replaceAll(' ', '-'),
-}))
+export const TOBACCO_CATALOG: readonly TobaccoEntry[] = catalog
 
 const indexed = TOBACCO_CATALOG.map((entry) => {
   const aliases = [...(entry.aliases ?? []), ...(makerAliases[entry.maker] ?? [])]
@@ -58,4 +57,13 @@ export function searchTobaccos(query: string, limit = 8): TobaccoEntry[] {
     return [{ entry, score }]
   }).sort((a, b) => a.score - b.score || a.entry.blend.localeCompare(b.entry.blend) || a.entry.maker.localeCompare(b.entry.maker))
     .slice(0, Math.min(50, Math.floor(limit))).map(({ entry }) => entry)
+}
+
+const catalogById = new Map(TOBACCO_CATALOG.map(entry => [entry.id, entry]))
+const historicalIds = new Map((identities.idAliases as {aliasId: string; catalogId: string}[]).map(alias => [alias.aliasId, alias.catalogId]))
+export function resolveTobaccoId(id: string): TobaccoEntry | undefined { return catalogById.get(historicalIds.get(id) ?? id) }
+const exactNames = new Map(identities.entries.flatMap(entry => [entry, ...(entry.previousNames as {maker: string; blend: string}[])].map(name => [normalize(name.maker) + "|" + normalize(name.blend), entry.id] as const)))
+export function findExactTobacco(maker: string, blend: string): TobaccoEntry | undefined {
+  const id = exactNames.get(normalize(maker) + "|" + normalize(blend))
+  return id ? catalogById.get(id) : undefined
 }

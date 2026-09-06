@@ -26,6 +26,12 @@ The app handles orders and packs locally, renders untrusted manifest text as tex
 - [Deployment and local review guides](cloudflare-deployment.md)
 - [CellarPack specification](../public/spec/cellarpack-v1.md) and [schema](../public/spec/cellarpack-v1.schema.json)
 - [Portable AI instructions](../public/agent/tin-to-cellar-prompt.md)
+- [Community gallery operations and local validation](gallery-operations.md) — implemented locally; hosted release remains gated.
+- [Gallery release preparation](gallery-release-plan.md) records the verified account, completed Workers upgrade, proposed staging resources and exact rollout commands.
+- [Gallery authentication configuration](gallery-auth-release.md) defines reviewer destinations, identity verification and Turnstile boundaries.
+- [Gallery admin and advisory agent plan](gallery-admin-plan.md) records the implemented local review interface, scoped machine permissions, audit and remaining hosted proof.
+- [Trusted local agent workflow](gallery-agent-workflow.md) covers protected credentials, granted review reads, append-only advice and temporary-image cleanup.
+- [Gallery local validation](gallery-validation.md) records implementation evidence and the remaining release boundary.
 - [Catalog evidence and maintenance](../data/catalog/README.md)
 - [Catalog update skill](../.agents/skills/update-tobacco-catalog/SKILL.md)
 

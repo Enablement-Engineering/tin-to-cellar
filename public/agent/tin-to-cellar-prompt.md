@@ -1,12 +1,14 @@
 # Tin to Cellar technical instructions
 
-Protocol version: 0.0.20
+Protocol version: 0.0.21
 CellarPack version: 0.1.0
 Feedback version: 0.2.0
-The complete protocol, all JSON schemas and canonical proof program are included below. Use this revision throughout this run and repairs. Do not fetch protocol instructions or schemas. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":"0.0.20","cellarpackVersion":"0.1.0","feedbackVersion":"0.2.0"}.
+The complete protocol, all JSON schemas and canonical proof program are included below. Use this revision throughout this run and repairs. Do not fetch protocol instructions or schemas. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":"0.0.21","cellarpackVersion":"0.1.0","feedbackVersion":"0.2.0"}.
 
 # Task
 Create one researched pipe-tobacco cellar label per requested blend and return a .cellarpack.zip for Tin to Cellar. Keep research, generation, revisions and ZIP repairs in this chat.
+
+Create these labels for the user's personal tobacco cellaring. They are not for resale or commercial packaging. Tin to Cellar is independent of tobacco brands; do not describe the labels as official, endorsed, or licensed. Reference approval selects the packaging edition and does not establish permission to reuse its artwork. The user may later choose individual labels to submit for private review on Tin to Cellar. Do not upload artwork or submit gallery contributions from this chat.
 
 Complete generation, review, validation and ZIP delivery automatically whenever tools permit. Pause for package-reference approval before generation; otherwise ask only for missing information, required reference attachments or unavailable actions. Images alone are not completion. Never claim a check passed unless you performed it.
 
@@ -152,7 +154,7 @@ For each label, add label.extensions["tin-to-cellar:sources"] as an array of up 
 - package: tin, pouch, box, other, or unknown, based on what you actually observed.
 - variant: current, historical, or unknown. Use unknown unless the edition is supported by source evidence.
 
-Include attempted suggestions even when broken or mismatched, plus eligible replacements. Keep required research.sources and original attribution. Shared source records contain no descriptions, personal data or images. Import automatically submits validated feedback and these source observations for known catalog blends. Do not submit directly from chat. Suggestions remain agent-reported; verify them on each use.
+Include attempted suggestions even when broken or mismatched, plus eligible replacements. Keep required research.sources and original attribution. Include only ordinary public product links. Exclude private attachments and links containing personal information or access tokens. Import may publish eligible source links; format validation cannot establish that a link is safe to share. Import automatically submits validated feedback and these source observations for known catalog blends. Do not submit directly from chat. Suggestions remain agent-reported; verify them on each use.
 
 # Dimensioned review proof
 Save the supplied local Python/Pillow renderer as local-proof.py and execute it unchanged. No hosted service, credentials or code download. Default: `uv run --with pillow local-proof.py artwork.png review-proof.png`, or your Python/Pillow runner. Rectangles: `--shape rectangle --width 3 --height 2 --bleed 0.125 --safe 0.125` with actual same-unit values. Circles require equal dimensions; squares use rectangle. Disclose unsupported shapes rather than substituting geometry. For unavailable tooling, record proof-unavailable; do not claim validation passed.
@@ -350,7 +352,7 @@ Return one prominent downloadable .cellarpack.zip and the supplied printing link
 ```
 
 # Diagnostic feedback
-Feedback schema version: 0.2.0. Set protocolRevision to the semantic version string "0.0.20", matching the pack protocol extension. Maintain a diagnostic report using the feedback schema below. Put it in manifest.extensions["tin-to-cellar:feedback"] when returning a pack. If the run ends without a pack, provide tin-to-cellar-feedback.json as a separate download, or a JSON code block if file creation is unavailable. A report is optional for importing old packs. Do not send feedback directly from this chat. Importing the returned pack in Tin to Cellar submits its validated feedback automatically.
+Feedback schema version: 0.2.0. Set protocolRevision to the semantic version string "0.0.21", matching the pack protocol extension. Maintain a diagnostic report using the feedback schema below. Put it in manifest.extensions["tin-to-cellar:feedback"] when returning a pack. If the run ends without a pack, provide tin-to-cellar-feedback.json as a separate download, or a JSON code block if file creation is unavailable. A report is optional for importing old packs. Do not send feedback directly from this chat. Importing the returned pack in Tin to Cellar submits its validated feedback automatically.
 
 Report only the requested label count and shape, overall outcome, observable workflow stages, attempt counts, and categorized issues, including unclear or conflicting instructions. Use one entry per attempted or skipped stage. Sum actual tool attempts for that stage across labels; use zero for unattempted stages. Mark passed only for checks actually performed. Report failures and unavailable tools honestly. Use other for an issue without a matching code, without adding an explanation field. Update the report after repairs. Do not include hidden reasoning or chain-of-thought.
 
@@ -386,4 +388,4 @@ If no ZIP can be produced, return a single tin-to-cellar-feedback.json containin
 {"$schema":"http://json-schema.org/draft-07/schema#","type":"object","additionalProperties":false,"required":["format","schemaVersion","protocolRevision","capabilities","tools","observations"],"properties":{"format":{"const":"tin-to-cellar/retrospective"},"schemaVersion":{"const":"0.1.0"},"protocolRevision":{"type":"string","pattern":"^(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})$"},"capabilities":{"type":"object","additionalProperties":false,"properties":{"browsing":{"$ref":"#/$defs/capability"},"image-generation":{"$ref":"#/$defs/capability"},"file-creation":{"$ref":"#/$defs/capability"},"local-execution":{"$ref":"#/$defs/capability"}}},"tools":{"type":"array","maxItems":2,"items":{"type":"object","additionalProperties":false,"required":["id","version"],"properties":{"id":{"enum":["local-proof","pack-builder"]},"version":{"type":"string","pattern":"^(unknown|(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5}))$"}}}},"observations":{"type":"array","minItems":1,"maxItems":5,"items":{"type":"object","additionalProperties":false,"required":["stage","kind","explanation"],"properties":{"stage":{"enum":["research","generation","visual-review","proof","packaging","validation","protocol-retrieval"]},"kind":{"enum":["helped","friction","recovery","suggestion"]},"explanation":{"type":"string","minLength":1,"maxLength":600,"pattern":"\\S"},"result":{"enum":["worked","partly-worked","failed","not-tested"]}},"if":{"properties":{"kind":{"const":"recovery"}}},"then":{"required":["result"]},"else":{"not":{"required":["result"]}}}}},"$defs":{"capability":{"enum":["available","unavailable","unknown"]}}}
 ```
 
-END TIN TO CELLAR PROTOCOL 0.0.20
+END TIN TO CELLAR PROTOCOL 0.0.21

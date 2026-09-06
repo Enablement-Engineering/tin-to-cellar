@@ -55,6 +55,7 @@ export function ExamplePack({ busy, onFile, variant = 'print' }: { busy: boolean
     <div className="landing-print-note">
       <h2 id="landing-pack-title">See what your cellar could look like.</h2>
       <p>Try ten finished labels. Choose your blends, set how many you need, and preview a sheet before printing.</p>
+      <p className="field-hint">AI-generated examples for personal cellaring. Not official brand artwork or a license to reuse the original designs.</p>
       <button className="button secondary" type="button" disabled={disabled} onClick={() => void run('import')}>{action === 'import' ? 'Loading example pack…' : 'Try the example pack'}</button>
       {action && <p role="status">Opening ten labels…</p>}
       {error && <p role="alert">{error}</p>}
@@ -66,6 +67,7 @@ export function ExamplePack({ busy, onFile, variant = 'print' }: { busy: boolean
   return <section className="panel example-pack" aria-labelledby="example-pack-title">
     <p className="eyebrow">Preview</p>
     <h2 id="example-pack-title">Try a complete label pack</h2>
+    <p className="field-hint">AI-generated examples for personal cellaring. Not official brand artwork or a license to reuse the original designs.</p>
     <p>Ten finished labels, ready to explore. Click the preview to import them, then set quantities and preview your print sheets.</p>
     <button className="example-pack-gallery" type="button" disabled={disabled} onClick={() => void run('import')} aria-label="Import preview pack with ten labels">
       {blends.map(([id, name]) => <span className="example-pack-label" key={id}><img src={`${base}${id}.jpg`} alt={name} width={320} height={320} loading="lazy" /></span>)}

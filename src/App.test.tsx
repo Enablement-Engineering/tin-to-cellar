@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
+import App, { GalleryAdminShell } from './App'
 const { importer } = vi.hoisted(() => ({ importer: vi.fn() }))
 vi.mock('./lib/cellarpack', () => ({ importCellarPack: importer }))
 const imported = (id: string, shape = 'circle') => ({
@@ -251,7 +251,7 @@ it('collects valid diagnostics from a readable manifest even when its artwork is
   render(<App />)
   upload()
   await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/labels/contributions', expect.objectContaining({ method: 'POST' })))
-  const payload = JSON.parse(fetchMock.mock.calls[0][1]!.body as string)
+  const payload = JSON.parse(fetchMock.mock.calls.find(([url]) => url === '/api/labels/contributions')![1]!.body as string)
   expect(payload.feedback.outcome).toBe('failed')
   expect(payload.submissionId).toMatch(/^[a-f0-9]{64}$/)
   expect(payload).not.toHaveProperty('manifest')
@@ -293,4 +293,68 @@ it('opens import privacy details without discarding the imported pack', async ()
   window.history.back()
   await waitFor(() => expect(screen.getByLabelText('Quantity for Blend A')).toHaveValue(6))
   expect(URL.revokeObjectURL).not.toHaveBeenCalled()
+})
+
+it('excludes trusted demo imports from collection and clears prior diagnostics, notes, and artwork sharing', async () => {
+  window.history.replaceState({}, '', '/labels/print')
+  const feedback = { format: 'tin-to-cellar/feedback', schemaVersion: '0.2.0', protocolRevision: '0.0.20', request: { labelCount: 1, shape: 'circle' }, outcome: 'complete', steps: [], issues: [] }
+  const retrospective = { format: 'tin-to-cellar/retrospective', schemaVersion: '0.1.0', protocolRevision: '0.0.20', capabilities: {}, tools: [], observations: [{ stage: 'proof', kind: 'helped', explanation: 'Prior private process note' }] }
+  const manifest = { title: 'Ordinary pack', labels: [], extensions: { 'tin-to-cellar:protocol': { revision: '0.0.20', cellarpackVersion: '0.1.0', feedbackVersion: '0.2.0' }, 'tin-to-cellar:feedback': feedback, 'tin-to-cellar:retrospective': retrospective } }
+  importer.mockResolvedValueOnce({ ...ready(), manifest }).mockResolvedValueOnce({ ...ready([imported('Demo blend')]), manifest: { ...manifest, title: 'Trusted example' } })
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {
+    if (String(input) === '/api/gallery/v1/config') return Response.json({ intake: true, serving: true, turnstileSiteKey: 'test', noticeVersion: '2026-09-06-v2' })
+    if (String(input).startsWith('/examples/ten-blends/pack-')) return new Response(new Uint8Array([1]))
+    return Response.json({ status: 'collected' })
+  })
+  const oldArrayBuffer = Object.getOwnPropertyDescriptor(File.prototype, 'arrayBuffer')
+  const oldShowModal = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, 'showModal')
+  Object.defineProperty(File.prototype, 'arrayBuffer', { configurable: true, value: async () => new ArrayBuffer(1) })
+  Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value: function (this: HTMLDialogElement) { this.setAttribute('open', '') } })
+  try {
+    render(<App />)
+    upload()
+    await screen.findByRole('heading', { name: 'Share your labels' })
+    fireEvent.click(await screen.findByRole('button', { name: 'View shared diagnostics' }))
+    expect(screen.getByText(/Prior private process note/)).toBeInTheDocument()
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([url, init]) => url === '/api/labels/contributions' && init?.method === 'POST')).toHaveLength(1))
+    fireEvent.click(screen.getByRole('link', { name: 'Tin to Cellar home' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Try the example pack' }))
+    await screen.findByLabelText('Quantity for Demo blend')
+    expect(importer).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls.filter(([url, init]) => url === '/api/labels/contributions' && init?.method === 'POST')).toHaveLength(1)
+    expect(fetchMock.mock.calls.some(([url]) => url === '/api/labels/process-notes')).toBe(false)
+    expect(screen.queryByRole('button', { name: 'View shared diagnostics' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/Prior private process note/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Share process notes' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Share your labels' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Print 1 label' })).toBeEnabled()
+  } finally {
+    fetchMock.mockRestore()
+    if (oldArrayBuffer) Object.defineProperty(File.prototype, 'arrayBuffer', oldArrayBuffer); else Reflect.deleteProperty(File.prototype, 'arrayBuffer')
+    if (oldShowModal) Object.defineProperty(HTMLDialogElement.prototype, 'showModal', oldShowModal); else Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal')
+  }
+})
+
+it('renders a dedicated review shell with explicit public-site links and no contributor workflow', async () => {
+ const fetcher=vi.fn(async(_input: RequestInfo | URL)=>Response.json({submissions:[],nextCursor:null}))
+ vi.stubGlobal('fetch',fetcher)
+ try {
+  render(<GalleryAdminShell hostname="admin.tintocellar.com" />)
+  expect(screen.getByRole('link',{name:'Open public site'})).toHaveAttribute('href','https://tintocellar.com/')
+  expect(screen.queryByRole('navigation',{name:'Workflow'})).not.toBeInTheDocument();expect(screen.queryByText('Make a prompt')).not.toBeInTheDocument()
+  await waitFor(()=>expect(fetcher).toHaveBeenCalled())
+  expect(fetcher.mock.calls.every(call=>String(call[0]).startsWith('/api/gallery/v1/admin/'))).toBe(true)
+ } finally { cleanup();vi.unstubAllGlobals() }
+})
+it('retires contributor status navigation without using old private-link fragments', async () => {
+  const fetcher = vi.fn(async (_input: RequestInfo | URL) => Response.json({ intake: false, serving: false }))
+  vi.stubGlobal('fetch', fetcher)
+  try {
+    window.history.replaceState({}, '', '/gallery/status#id=old-submission&key=old-private-value')
+    render(<App />)
+    expect(screen.getByRole('heading', { name: 'Page not found' })).toBeInTheDocument()
+    await waitFor(() => expect(fetcher).toHaveBeenCalled())
+    expect(fetcher.mock.calls.some(call => /submissions|old-private-value/.test(String(call[0])))).toBe(false)
+    expect(screen.queryByRole('button', { name: /withdraw/i })).not.toBeInTheDocument()
+  } finally { cleanup(); vi.unstubAllGlobals() }
 })

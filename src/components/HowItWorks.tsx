@@ -40,7 +40,7 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     <article>
     <h2>What stays in my browser?</h2>
     <p>This app checks your ZIP and places each label at its physical size. Imported files stay in your browser, and research links are never opened automatically.</p>
-    <p>If your ZIP includes a feedback report, you can review and download it under Prompt feedback. Reports use fixed categories and counts to describe what worked and what went wrong. You can open saved reports to compare results in your browser. Importing a pack sends valid AI feedback and public package source observations to help improve future labels. The ZIP and artwork stay on your device. See the Privacy page for details.</p>
+    <p>Importing automatically shares valid AI feedback, ZIP-check results, and eligible package-source links. Choose View shared diagnostics to inspect the shared fields, or Report a failed AI run for a separate failure report. This collection does not upload your ZIP or artwork. Gallery sharing requires a separate selection and submission. See Privacy for details.</p>
     <p>Switching views keeps your work; reloading or closing the page clears the print job. Keep the ZIP so you can import it again.</p>
     </article>
     <article>
