@@ -7,7 +7,7 @@ Tin to Cellar helps people make tobacco jar labels using their existing AI subsc
 ## Use it
 
 1. Choose tobaccos with autocomplete, type custom names, paste a list, or import an order PDF or screenshot. You can also leave the list blank and supply it in your AI chat.
-2. Copy the prompt into a chat with web research, image generation, and ZIP creation tools. It includes your request and a link to the complete hosted instructions and schemas. If the chat cannot retrieve them, use Copy complete prompt to paste everything in one message. ChatGPT has been used in the documented experiments; other providers are not yet verified end to end.
+2. Copy the prompt into a chat with web research, image generation, and ZIP creation tools. It links to an immutable protocol release and requires its exact revision and end marker, avoiding cached older instructions from the current-release URL. If retrieval is incomplete or the revision differs, use Copy complete prompt to paste everything in one message. ChatGPT has been used in the documented experiments; other providers are not yet verified end to end.
 3. Review the generated labels against the original packaging in that same conversation. Ask for corrections before the AI packages the final images.
 4. Download the `.cellarpack.zip`, import it into Print labels, and choose quantities. Copy any import repair request back into the original chat.
 5. Print at Actual Size / 100% on US Letter, with browser headers and footers off, or choose Save as PDF. Avery 94502 holds nine circles per sheet; extra labels continue onto additional sheets. Test alignment on plain paper first.

@@ -1,5 +1,5 @@
 import { TOBACCO_CATALOG, formatTobacco } from '../tobacco-catalog'
-import { PROTOCOL_HTML_URL, PROTOCOL_REVISION, protocolInstructions, protocolRevisionUrl, resolveProtocolContext } from '../protocol'
+import { PROTOCOL_REVISION, protocolInstructions, protocolRevisionUrl, resolveProtocolContext } from '../protocol'
 import { assessPromptInput, normalizeTobaccos } from './assessment'
 import {
   CHATGPT_PROMPT_URL,
@@ -124,7 +124,7 @@ export function buildTinToCellarPrompt(input: PromptProjectInput): string {
     geometry: input.geometry ?? { shape: 'circle', diameter: 2.5, unit: 'in' },
     printPreference: input.printPreference ?? 'tin-to-cellar:avery-94502@1',
   }
-  return `Create the cellar labels listed below. First read the complete instructions and both JSON schemas at ${PROTOCOL_HTML_URL}. Verify the release revision and final end marker. Follow that release throughout this request and its repairs; do not switch revisions mid-run. If this request already has a pinned release in this conversation, reuse it instead. If retrieval fails or the content is incomplete, ask me to use Copy complete prompt on Tin to Cellar and paste it here, then wait. Do not guess the instructions or pack format.
+  return `Create the cellar labels listed below. This request requires protocol revision ${PROTOCOL_REVISION}. First read the complete instructions and both JSON schemas at ${protocolRevisionUrl(PROTOCOL_REVISION).replace(/instructions\.md$/, 'instructions.html')}. Verify "Protocol revision: ${PROTOCOL_REVISION}" and the exact final end marker "END TIN TO CELLAR PROTOCOL ${PROTOCOL_REVISION}". Use this exact release throughout this request and its repairs; do not substitute an older or newer revision. Reuse instructions already in this conversation only if they are complete and match both identifiers. If retrieval fails, content is incomplete, or either identifier differs, ask me to use Copy complete prompt on Tin to Cellar and paste it here, then wait. Do not guess the instructions or pack format.
 
 Use only the tobacco list supplied or confirmed in this conversation; do not retrieve inventories from account memory or other chats.
 

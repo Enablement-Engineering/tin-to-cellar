@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
+import { PROTOCOL_REVISION } from '../protocol'
 import { describe, expect, it } from 'vitest'
 import { buildCompleteTinToCellarPrompt, buildTinToCellarInstructions, buildTinToCellarRequest, assessPromptInput, buildCellarPackRepairPrompt, buildChatGPTLaunchPrompt, buildTinToCellarPrompt, createChatGPTUrl } from './index'
 
@@ -163,11 +164,14 @@ describe('private diagnostic instructions', () => {
 describe('hosted compact handoff', () => {
   it('retrieves the complete HTML release and offers a self-contained recovery without embedding schemas', () => {
     const prompt = buildTinToCellarPrompt({ tobaccos: ['Westminster', 'Orlik Golden Sliced', 'Autumn Evening'], websiteUrl: 'http://localhost:5173/' })
-    for (const requirement of ['Use only the tobacco list supplied or confirmed in this conversation', 'do not retrieve inventories from account memory or other chats', 'Westminster', 'Orlik Golden Sliced', 'Autumn Evening', 'https://tintocellar.com/api/labels/protocol/v1/instructions.html', 'both JSON schemas', 'end marker', 'throughout this request and its repairs', 'retrieval fails or the content is incomplete', 'then wait', '.cellarpack.zip', 'Importing the returned pack sends validated AI feedback', 'http://localhost:5173/labels/print']) expect(prompt).toContain(requirement)
+    for (const requirement of ['Use only the tobacco list supplied or confirmed in this conversation', 'do not retrieve inventories from account memory or other chats', 'Westminster', 'Orlik Golden Sliced', 'Autumn Evening', `https://tintocellar.com/api/labels/protocol/v1/releases/${PROTOCOL_REVISION}/instructions.html`, 'both JSON schemas', 'end marker', 'throughout this request and its repairs', 'If retrieval fails, content is incomplete, or either identifier differs', 'then wait', '.cellarpack.zip', 'Importing the returned pack sends validated AI feedback', 'http://localhost:5173/labels/print']) expect(prompt).toContain(requirement)
     for (const technical of ['"$defs"', 'SHA-256', 'overlay.mode', '50 MiB', 'protocolRevision', '/api/labels/proof']) expect(prompt).not.toContain(technical)
     expect(prompt.length).toBeLessThan(2500)
-    expect(prompt).toContain('already has a pinned release in this conversation, reuse it instead')
-    expect(prompt).toContain('do not switch revisions mid-run')
+    expect(prompt).toContain(`Protocol revision: ${PROTOCOL_REVISION}`)
+    expect(prompt).toContain(`END TIN TO CELLAR PROTOCOL ${PROTOCOL_REVISION}`)
+    expect(prompt).toContain('only if they are complete and match both identifiers')
+    expect(prompt).toContain('do not substitute an older or newer revision')
+    expect(prompt).not.toContain('/v1/instructions.html')
     expect(prompt).toContain('Copy complete prompt')
     expect(prompt).not.toContain('under More options')
   })
