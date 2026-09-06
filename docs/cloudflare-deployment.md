@@ -18,7 +18,9 @@ npm run deploy
 
 Set `CLOUDFLARE_ACCOUNT_ID` in your local environment or ignored `.env` file to select the deployment account. For your own installation, change the Worker name and domain routes in `wrangler.jsonc`. Keep its `ASSETS`, `IMAGES`, and `PROOF_RATE_LIMITER` bindings configured. Credentials belong in Wrangler's login store or environment secrets, never Git. `.env*`, `.dev.vars*`, and `.wrangler/` are ignored.
 
-`npm run dev` serves the frontend through Vite. `npm run build` followed by `npm run preview` serves the production frontend build. Use `npm run preview:cloudflare` for Worker routes; verify native Images rendering on Cloudflare as well. Local unit tests alone do not establish hosted proof behavior.
+`npm run dev` builds the frontend and runs it with the Worker locally through Wrangler. `npm run build` followed by `npm run preview` also serves the built frontend and Worker together. Rebuild after frontend edits; Wrangler watches Worker source changes. `npm run dev:frontend` and `npm run preview:frontend` explicitly run only Vite, without API routes. Use them for isolated presentation work, not backend verification.
+
+The full local server routes `/api/*` through `worker/index.ts`, so an API request cannot fall through to the frontend HTML page. Local access configuration returns JSON with `siteKey: null` unless the required verification configuration exists. Production Turnstile credentials are restricted to the production domains; localhost does not issue production proof allowances. Verify native Images rendering and the complete verification flow on Cloudflare as well. Local unit tests alone do not establish hosted proof behavior.
 
 After deployment, verify the app and both HTTPS domains, then the health and proof endpoints. Submit a generated test PNG to check actual proof rendering and visually inspect the guides. Test browser import and printing when those flows change. Record the Wrangler deployment version separately from the Git commit.
 

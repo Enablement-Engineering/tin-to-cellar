@@ -3,6 +3,13 @@ import type { ProofLease } from '../lib/prompt/proof-access'
 type Turnstile = { render(container: HTMLElement, options: Record<string, unknown>): string; remove(id: string): void }
 declare global { interface Window { turnstile?: Turnstile } }
 let loading: Promise<void> | undefined
+const unavailableMessage = 'Print guides are unavailable. You can still copy your prompt; your AI will make its own guides.'
+async function readAccessResponse(response: Response): Promise<Record<string, unknown>> {
+  if (!response.ok || !response.headers.get('content-type')?.toLowerCase().includes('application/json')) throw new Error('Proof access unavailable')
+  const data: unknown = await response.json()
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid proof access response')
+  return data as Record<string, unknown>
+}
 function loadTurnstile() {
   if (window.turnstile) return Promise.resolve()
   if (!loading) loading = new Promise<void>((resolve, reject) => {
@@ -36,9 +43,8 @@ export function ProofAccess({ lease, onChange, onPendingChange }: { lease: Proof
     const timer = setTimeout(() => controller.abort(), 15000)
     void (async () => {
       const response = await fetch('/api/proof-access', { signal: controller.signal })
-      if (!response.ok) throw new Error('Hosted checks are unavailable. You can still copy your prompt.')
-      const config = await response.json() as { siteKey?: string }
-      if (!config.siteKey) throw new Error('Hosted checks are unavailable. You can still copy your prompt.')
+      const config = await readAccessResponse(response)
+      if (typeof config.siteKey !== 'string' || !config.siteKey.trim()) throw new Error('Proof access unavailable')
       await loadTurnstile()
       if (disposed || !container.current) return
       widget = window.turnstile!.render(container.current, {
@@ -48,15 +54,15 @@ export function ProofAccess({ lease, onChange, onPendingChange }: { lease: Proof
           verifying = true; setMessage('Enabling hosted checks…')
           try {
             const result = await fetch('/api/proof-access', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: token, signal: AbortSignal.timeout(15000) })
-            const data = await result.json() as ProofLease & { error?: string }
-            if (!result.ok || !/^[a-f0-9]{64}$/.test(data.token ?? '') || !Number.isFinite(data.expiresAt) || data.expiresAt <= Date.now() || data.expiresAt > Date.now() + 86410000 || data.uses !== 60) throw new Error(data.error || 'Could not enable hosted checks.')
-            if (!disposed) { onChange(data); setMessage(''); setAttempt(0) }
-          } catch (error) { if (!disposed) { setMessage(error instanceof Error ? error.message : 'Verification failed.'); setAttempt(0) } }
+            const data = await readAccessResponse(result)
+            if (typeof data.token !== 'string' || !/^[a-f0-9]{64}$/.test(data.token) || typeof data.expiresAt !== 'number' || !Number.isFinite(data.expiresAt) || data.expiresAt <= Date.now() || data.expiresAt > Date.now() + 86410000 || data.uses !== 60) throw new Error('Invalid proof access response')
+            if (!disposed) { onChange({ token: data.token, expiresAt: data.expiresAt, uses: data.uses }); setMessage(''); setAttempt(0) }
+          } catch { if (!disposed) { setMessage(unavailableMessage); setAttempt(0) } }
         },
         'error-callback': () => { if (!disposed) { setMessage('Verification failed. Your AI will make its own guides.'); setAttempt(0) } },
         'expired-callback': () => { if (!disposed) { setMessage('Verification expired. Your AI will make its own guides.'); setAttempt(0) } },
       })
-    })().catch(error => { if (!disposed) { setMessage(error instanceof Error ? error.message : 'Verification unavailable.'); setAttempt(0) } }).finally(() => clearTimeout(timer))
+    })().catch(() => { if (!disposed) { setMessage(unavailableMessage); setAttempt(0) } }).finally(() => clearTimeout(timer))
     return () => { disposed = true; clearTimeout(timer); clearTimeout(verificationTimer); controller.abort(); if (widget) window.turnstile?.remove(widget) }
   }, [attempt, onChange])
   return <div className="proof-access">

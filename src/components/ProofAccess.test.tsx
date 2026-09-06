@@ -34,7 +34,7 @@ it('omits expired credentials and leaves copying available when verification can
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ siteKey: null })))
   render(<PromptHandoff prompt="Instructions" request="Request" />)
   await waitFor(() => expect(screen.getByRole('button', { name: 'Copy prompt' })).toBeEnabled())
-  expect(screen.getByText('Hosted checks are unavailable. You can still copy your prompt.')).toBeInTheDocument()
+  expect(screen.getByText('Print guides are unavailable. You can still copy your prompt; your AI will make its own guides.')).toBeInTheDocument()
 })
 it('lets users continue while verification is pending and ignores a late result', async () => {
   const writeText = vi.fn().mockResolvedValue(undefined)
@@ -64,4 +64,31 @@ it('reuses valid access when returning to the prompt builder without issuing ano
   render(<PromptHandoff prompt="Instructions" request="Request" proofLease={{ token: 'c'.repeat(64), uses: 60, expiresAt: Date.now() + 60000 }} onProofLeaseChange={vi.fn()} />)
   expect(fetchMock).not.toHaveBeenCalled()
   expect(screen.getByRole('button', { name: 'Copy prompt' })).toBeEnabled()
+})
+it.each([
+  ['HTML fallback', () => new Response('<!doctype html><html>App page</html>', { headers: { 'Content-Type': 'text/html' } })],
+  ['malformed JSON', () => new Response('<!doctype html>', { headers: { 'Content-Type': 'application/json' } })],
+  ['null JSON', () => Response.json(null)],
+  ['network failure', () => Promise.reject(new TypeError('Failed to fetch'))],
+])('keeps copying available without exposing %s errors', async (_name, response) => {
+  const writeText = vi.fn().mockResolvedValue(undefined)
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+  vi.stubGlobal('fetch', vi.fn().mockImplementation(response))
+  render(<PromptHandoff prompt="Instructions" request="Request" />)
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Copy prompt' })).toBeEnabled())
+  expect(screen.getByText('Print guides are unavailable. You can still copy your prompt; your AI will make its own guides.')).toBeInTheDocument()
+  expect(screen.queryByText(/Unexpected token|Failed to fetch|doctype/)).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }))
+  await waitFor(() => expect(writeText).toHaveBeenCalledWith('Instructions' + proofAccessText(null)))
+})
+it('handles an HTML response after verification without leaking a parser error', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(Response.json({ siteKey: 'key' })).mockResolvedValueOnce(new Response('<!doctype html>', { headers: { 'Content-Type': 'text/html' } })))
+  let callback: (token: string) => Promise<void>
+  window.turnstile = { render: vi.fn((_element, options) => { callback = options.callback as typeof callback; return 'widget' }), remove: vi.fn() }
+  render(<PromptHandoff prompt="Instructions" request="Request" />)
+  await waitFor(() => expect(window.turnstile!.render).toHaveBeenCalled())
+  await act(() => callback!('challenge'))
+  expect(screen.getByRole('button', { name: 'Copy prompt' })).toBeEnabled()
+  expect(screen.getByText('Print guides are unavailable. You can still copy your prompt; your AI will make its own guides.')).toBeInTheDocument()
+  expect(window.turnstile!.remove).toHaveBeenCalledWith('widget')
 })

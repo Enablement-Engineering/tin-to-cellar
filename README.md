@@ -48,7 +48,7 @@ npm run lint
 npm run build
 ```
 
-The dev/build scripts prepare the OCR runtime automatically. `npm run preview` serves the built frontend; `npm run preview:cloudflare` builds and runs the Worker configuration with Wrangler. See the [deployment guide](docs/cloudflare-deployment.md) before using `npm run deploy`, particularly with your own account or domain. A GitHub push does not deploy the live site.
+The dev/build scripts prepare the OCR runtime automatically. `npm run dev` builds the frontend and serves it with the real Worker API locally through Wrangler. `npm run preview` serves an existing build with that backend; `npm run preview:cloudflare` is an alias for `npm run dev`. Rebuild after frontend edits. For frontend-only work with hot reload, use `npm run dev:frontend`; it does not run the API or hosted verification. See the [deployment guide](docs/cloudflare-deployment.md) before using `npm run deploy`, particularly with your own account or domain. A GitHub push does not deploy the live site.
 
 The prompt artifact is published at `public/agent/tin-to-cellar-prompt.md`. CellarPack's human-readable specification and JSON Schema live under `public/spec/`.
 

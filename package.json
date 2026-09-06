@@ -4,15 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "npm run prepare:ocr && vite",
+    "dev": "npm run build && wrangler dev --local",
+    "dev:frontend": "npm run prepare:ocr && vite",
     "build": "npm run protocol:release && npm run prepare:ocr && tsc -b && vite build",
     "protocol:release": "node scripts/protocol-release.mjs",
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "preview": "vite preview",
+    "preview": "wrangler dev --local",
+    "preview:frontend": "vite preview",
     "deploy": "npm run build && wrangler deploy",
-    "preview:cloudflare": "npm run build && wrangler dev",
+    "preview:cloudflare": "npm run dev",
     "prepare:ocr": "node scripts/prepare-ocr.mjs",
     "proof:overlay": "node scripts/generate-proof-overlay.mjs",
     "test:a11y": "playwright test"
@@ -44,6 +46,6 @@
     "typescript": "~6.0.2",
     "vite": "^8.2.2",
     "vitest": "4.1.11",
-    "wrangler": "4.127.1"
+    "wrangler": "4.129.0"
   }
 }
