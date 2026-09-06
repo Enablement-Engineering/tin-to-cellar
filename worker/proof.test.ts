@@ -17,7 +17,7 @@ it('describes the contract and composites a scaled guide with the native rendere
   const help = await proofResponse(new Request(url))
   expect((await help.json()).storesUploads).toBe(false)
   const images = nativeRenderer()
-  const response = await proofResponse(request(), images)
+  const response = await proofResponse(request(), images, async () => null)
   expect(response.status).toBe(200)
   expect(response.headers.get('Cache-Control')).toBe('no-store')
   expect(response.headers.get('X-Proof-Only')).toBe('true')
@@ -35,4 +35,34 @@ it('rejects unsupported inputs before native processing and fails closed without
   expect((await proofResponse(request('?diameter=3'), images)).status).toBe(400)
   expect((await proofResponse(request())).status).toBe(503)
   expect(images.input).not.toHaveBeenCalled()
+})
+
+it('does not render when the shared allowance rejects a valid PNG', async () => {
+  const images = nativeRenderer(), admit = vi.fn(async () => new Response(null, { status: 429 }))
+  expect((await proofResponse(request(), images, admit)).status).toBe(429)
+  expect(admit).toHaveBeenCalledOnce()
+  expect(images.input).not.toHaveBeenCalled()
+})
+
+it('does not spend allowance on malformed or compressed uploads', async () => {
+  const images = nativeRenderer(), admit = vi.fn(async () => null)
+  const bad = new Request(url, { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: 'malformed' })
+  expect((await proofResponse(bad, images, admit)).status).toBe(400)
+  const compressed = request(); compressed.headers.set('Content-Encoding', 'gzip')
+  expect((await proofResponse(compressed, images, admit)).status).toBe(415)
+  expect(admit).not.toHaveBeenCalled()
+  expect(images.input).not.toHaveBeenCalled()
+})
+
+it('times out a stalled upload without rendering or spending allowance', async () => {
+  vi.useFakeTimers()
+  try {
+    const images = nativeRenderer(), admit = vi.fn(async () => null)
+    const stream = new ReadableStream<Uint8Array>({ start() {} })
+    const pending = proofResponse(new Request(url, { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: stream, duplex: 'half' } as RequestInit), images, admit)
+    await vi.advanceTimersByTimeAsync(10001)
+    expect((await pending).status).toBe(408)
+    expect(admit).not.toHaveBeenCalled()
+    expect(images.input).not.toHaveBeenCalled()
+  } finally { vi.useRealTimers() }
 })

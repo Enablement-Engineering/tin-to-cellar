@@ -34,11 +34,17 @@ curl --fail-with-body \
   --output label-review-proof.png
 ```
 
-Only Avery 94502 geometry is supported: 2.5-inch diameter with 0.125-inch bleed and safe inset. Input must be a square, non-interlaced, 8-bit RGB/RGBA PNG, 128–2048 pixels and at most 8 MiB. Send `image/png`, not JSON or multipart. The configured limiter allows ten requests per minute per client IP; it is not a global spending cap.
+Only Avery 94502 geometry is supported: 2.5-inch diameter with 0.125-inch bleed and safe inset. Input must be a square, non-interlaced, non-animated, 8-bit RGB/RGBA PNG, 128–2048 pixels and at most 8 MiB. Send uncompressed `image/png`, not JSON or multipart. Upload reading times out after ten seconds.
+
+The edge limiter allows ten requests per minute per client IP. A single `PROOF_BUDGET` Durable Object additionally reserves processing attempts across all locations: 30 per minute, 200 per UTC day, and 2,000 per UTC calendar month. Reservations happen before Images processing; rendering failures are not refunded. It stores only aggregate counters, never uploads or client identifiers. Missing or unavailable limiters block processing. Keep the named object and migration history stable across releases so counters survive deployment.
+
+Set `PROOFS_ENABLED` to `"false"` and redeploy to pause hosted processing while preserving the website and local guides. Worker subdomain and version preview URLs are disabled in configuration. These controls bound admitted image attempts, not the entire account bill: Worker requests, Durable Object operations, and unrelated services can still incur usage. An attacker can exhaust the shared allowance and deny hosted proofs to legitimate users. Review account usage and billing separately.
+
+Turnstile is not installed. A compatible next layer is website verification followed by a short-lived, limited-use proof credential carried in the user's prompt. Verify Turnstile server-side, including hostname and action; do not put the raw challenge token in the prompt or challenge direct AI requests. Maintain the shared allowance even after adding verification.
 
 Cyan marks trim, dashed magenta marks safe, and shading marks bleed. The service stores no uploads and does not change the original file. It does not judge names, packaging resemblance, or writing-space usefulness. Open the proof beside the source reference; never use it as printable artwork or include it in a CellarPack.
 
-Invalid PNG/geometry returns 400, unsupported content type 415, oversized input 413, rate limiting 429 with `Retry-After: 60`, and missing required bindings 503. Use local guides for unsupported geometry or an unavailable endpoint.
+Invalid PNG/geometry returns 400, unsupported content type/encoding 415, oversized input 413, stalled upload 408, rate limiting 429 with `Retry-After`, and paused processing or missing required bindings 503. Use local guides for unsupported geometry or an unavailable endpoint.
 
 Some AI execution environments cannot reach the service even when another client can. Record the exact failing request and distinguish a client block from an HTTP error. A successful health check or GET contract does not prove an image POST works. Use the local-guide fallback and report it when necessary.
 
