@@ -1,3 +1,4 @@
+import { useSavedSources } from './lib/prompt/use-saved-sources'
 import { ContributionStatus } from './components/ContributionStatus'
 import { contributionFromManifest, type Contribution } from './lib/contributions'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -98,13 +99,15 @@ function App() {
     previousLabelCount.current = labels.length
   }, [labels, view])
   const importBusy = useRef(false)
+  const savedSources = useSavedSources(config.tobaccos, view === 'create')
   const promptInput = useMemo(() => ({
     tobaccos: config.tobaccos,
+    savedSources,
     geometry: { shape: 'circle' as const, width: 2.5, height: 2.5, diameter: 2.5, unit: 'in' as const },
     websiteUrl: window.location.href,
     printPreference: 'tin-to-cellar:avery-94502@1',
     artDirection: ['Use 0.125 inch bleed on every side and integrate a blank, light date-writing surface into the artwork, with no words or writing line.', config.artDirection].filter(Boolean).join(' '),
-  }), [config])
+  }), [config, savedSources])
   const prompt = useMemo(() => buildTinToCellarPrompt(promptInput), [promptInput])
   const request = useMemo(() => buildTinToCellarRequest(promptInput), [promptInput])
   const instructions = useMemo(() => buildTinToCellarInstructions(window.location.href), [])

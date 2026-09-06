@@ -32,6 +32,7 @@ export interface PromptInspiration {
 }
 
 export interface PromptProjectInput {
+  savedSources?: readonly import("../contributions").SourceObservation[]
   websiteUrl?: string
   tobaccos?: string | readonly (string | PromptTobacco)[]
   makerNotes?: string
