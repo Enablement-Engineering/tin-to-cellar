@@ -50,7 +50,7 @@ describe('PrintStudio', () => {
   })
   it('shares offset geometry between preview and print and renders nine proof circles', () => {
     const { container } = render(<Studio labels={[label]} quantities={{ a: 1 }} onQuantityChange={() => undefined} />)
-    fireEvent.change(screen.getByLabelText('X offset'), { target: { value: '.1' } })
+    fireEvent.change(screen.getByLabelText('Horizontal adjustment'), { target: { value: '.1' } })
     const preview = container.querySelector<HTMLElement>('.preview-slot')!
     expect(parseFloat(preview.style.left)).toBeCloseTo(.475 / 8.5 * 100)
     expect(container.querySelector<HTMLElement>('.production-pages')?.style.getPropertyValue('--offset-x')).toBe('0.1in')

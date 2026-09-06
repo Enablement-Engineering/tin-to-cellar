@@ -19,7 +19,7 @@ export function OrderImporter({ onAdd }: { onAdd: (names: string[]) => void }) {
   const review = (value: string) => {
     const found = matchOrder(value)
     setMatches(found); setSelected(found.map((match) => match.suggestions.length === 1 ? match.suggestions[0] : ''))
-    setMessage(found.length ? `${found.length} possible ${found.length === 1 ? 'match. Choose the tobacco' : 'matches. Choose the tobaccos'} to add.` : 'No catalog matches found. Try a clearer file or type names in the tobacco field.')
+    setMessage(found.length ? `${found.length} possible ${found.length === 1 ? 'match. Choose the tobacco' : 'matches. Choose the tobaccos'} to add.` : 'No matching tobaccos found. Check the names, try a clearer file, or add the names under Tobaccos.')
   }
   const load = async (file: File) => {
     if (busy) return
@@ -52,16 +52,16 @@ export function OrderImporter({ onAdd }: { onAdd: (names: string[]) => void }) {
       <button type="button" className={`order-file-drop${dragging ? ' is-dragging' : ''}`} disabled={busy} onClick={() => input.current?.click()} onDragOver={(event) => { event.preventDefault(); if (!busy) setDragging(true) }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); const files = event.dataTransfer.files; if (files.length !== 1) { setMessage('Choose one order file at a time.'); return } void load(files[0]) }}>
         <Icon name="file" size={28} /><strong>{busy ? 'Reading your order…' : 'Choose a file or drop it here'}</strong><span>PDF · PNG · JPEG · WebP · up to 10 MB</span>
       </button>
-      <p className="order-local-note"><Icon name="lock" size={13} /> Files stay on your device. Screenshot reading may take a moment.</p>
+      <p className="order-local-note"><Icon name="lock" size={13} /> Files stay on your device. Reading a screenshot may take a moment.</p>
       {filename && <p className="order-filename">{filename}</p>}
       <p role="status" className="field-hint">{message}</p>
       {busy && <button type="button" className="button quiet" onClick={cancel}>Cancel reading</button>}
       {!filename && <><label className="field"><span>Or paste your order</span><textarea aria-label="Order text" rows={3} maxLength={100000} value={text} disabled={busy} placeholder="Paste the product list from your order email…" onChange={(event) => { setText(event.target.value); setMatches([]); setSelected([]); setMessage('') }} /></label>
       <button className="button secondary" type="button" disabled={busy || !text.trim()} onClick={() => { try { review(text) } catch (error) { setMessage((error as Error).message) } }}>Find tobaccos</button></>}
       {matches.length > 0 && <div className="order-review">{matches.map((match, index) => <label className="field" key={`${index}-${match.source}`}><span>{match.source}</span><select aria-label={`Match for ${match.source}`} value={selected[index]} onChange={(event) => setSelected(selected.map((value, i) => i === index ? event.target.value : value))}>
-        <option value="">Skip / choose a match</option>
+        <option value="">Skip this item</option>
         {match.suggestions.map((suggestion) => <option key={suggestion} value={suggestion}>{suggestion}</option>)}
-        <option value={match.source}>Keep original: {match.source}</option>
+        <option value={match.source}>Use the name as written: {match.source}</option>
       </select></label>)}</div>}
       {matches.length > 0 && <button className="button primary" type="button" disabled={!selected.some(Boolean)} onClick={() => { onAdd([...new Set(selected.filter(Boolean))]); setOpen(false); setText(''); setMatches([]); setSelected([]); setMessage(''); setFilename('') }}>Add selected tobaccos</button>}
     </div>}

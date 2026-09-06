@@ -16,7 +16,7 @@ Adaptations made for the application:
 
 - Add a home page while keeping direct links to every existing tool.
 - Keep multiline tobacco paste in the picker and PDF or screenshot order reading behind a disclosure.
-- Keep optional hosted image checks and the complete generated prompt. Collapse its preview until requested.
+- Keep optional hosted image checks and a complete-prompt fallback. Collapse the prompt preview until requested.
 - Host the three font families with the site instead of loading Google Fonts at runtime.
 - Use readable text colors for small metadata and hints. The source's faint ink swatch remains a palette value, not permission to use low-contrast body text.
 - Use the existing photograph, brand files, and inline icons. No new generated imagery is needed.
@@ -27,11 +27,21 @@ Adaptations made for the application:
 | Destination | Entry | Content |
 | --- | --- | --- |
 | Home | No hash or `#home` | Product introduction, workbench photograph, prompt action, workflow steps, print specifications |
-| Make a prompt | `#create` | Optional tobacco list, special requests, complete prompt handoff, advanced input and proof options |
+| Make a prompt | `#create` | Optional tobacco list, special requests, prompt handoff, complete-prompt fallback, advanced input and proof options |
 | Print labels | `#print` | Local ZIP import, validation results, quantities, sheet preview, printing and alignment |
 | How it works | `#help` | AI handoff instructions, portable instructions, file handling, proof service explanation, printing guidance |
+| About | `#about`, footer | Dylan Isaac’s introduction, the reason for the app, and a short Enablement Engineering description |
+| Inspiration | `#inspiration`, footer | Credit and a direct link to Hobbiton Piper’s original jar-label guide |
 
 The wordmark returns to Home. The sticky header keeps the three tool links visible and uses a raised paper treatment for the selected tool. Navigation must remain usable with the keyboard and browser history. Returning to Home does not require clearing the current request or print job.
+
+The footer contains About and Inspiration links, `© {new Date().getFullYear()} Enablement Engineering`, and “Made with ❤️ by Enablement Engineering.” The company name in the maker credit links to [Enablement Engineering](https://www.enablement.engineering/). The year comes from the browser’s clock at render time, so it does not require an annual source edit. Keep format-version labels and file-handling explanations out of this footer; relevant guidance belongs with the tools and in How it works.
+
+About and Inspiration share a 760px reading layout: an eyebrow, Newsreader title, short introduction, and sections of prose limited to 64ch. They use open spacing instead of additional cards. Footer links have 44px targets and an underlined current-page state. Copyright and navigation share the first row on wide screens; the maker credit is centered across a separate full-width row in 12px Hanken Grotesk with 18px leading. The footer has 24px between rows, 32px above, and 40px below. Below 600px it stacks with 16px gaps, 24px top padding, 32px bottom padding, and an extra 8px before the centered credit. Both pages use the existing hash navigation, focus restoration, and browser history without clearing the current request or print job.
+
+The first About draft was developed with the owner's ChatGPT and the [public company About page](https://www.enablement.engineering/about/). The owner then defined Enablement Engineering more broadly as a philosophy and practice of expanding people's capabilities through technology in human and equitable ways, with accessibility and education at its center. The current copy follows that direction rather than defining the practice by AI services. [Copy guidance](copy-guide.md) records the voice and audit scope. Inspiration credits [Hobbiton Piper's guide](https://www.youtube.com/watch?v=2zPQSh5kHHQ), published October 25, 2021. The video's public captions substantiate the Microsoft Word, paper, cutting, gluing, and handwritten-year description. The app's AI workflow is its own adaptation.
+
+The Inspiration page embeds the guide above its title and direct YouTube link. The player uses [YouTube's privacy-enhanced mode](https://support.google.com/youtube/answer/171780?hl=en) on `youtube-nocookie.com`, lazy loading, a descriptive frame title, fullscreen support, and no autoplay. It fills the reading column at 16:9, with a 200px minimum height on narrow screens. Keep the direct link as a fallback if the player is unavailable. Loading or playing the player contacts YouTube; privacy-enhanced mode is not a promise of no third-party requests. No separate image asset is needed.
 
 The home and prompt content width is 1080px. The print workspace uses 1320px, and help uses 760px. Two-column tool layouts place inputs on the left and the action or result on the right. They stack at 900px and below; a 600px breakpoint adjusts compact layouts and stacks the landing hero. At 1100px, the landing specification band stacks and the hero heading steps down. The print preview remains sticky on wide screens; small screens use normal document flow. The header uses an 88% paper background with 8px backdrop blur.
 
@@ -132,7 +142,7 @@ Use the first elevation for chips and secondary buttons, the second for cards, a
 | Quantity controls | Labeled controls with zero as the exclusion state; preserve automatic pagination |
 | Sheet preview | Paper sheet on a neutral background, actual artwork from the imported pack, measurements in mono |
 
-`Import order` reveals local PDF, screenshot, or pasted-text reading. `Read full prompt` starts collapsed. `More options` contains Copy request only and Enable hosted image checks. `Paper and alignment` contains printer adjustments. These are optional paths; the primary copy and print actions remain visible without expanding them.
+`Import order` reveals local PDF, screenshot, or pasted-text reading. `Read prompt` starts collapsed. `More options` contains Copy complete prompt, downloadable instructions, Copy request only, and Enable hosted image checks. `Paper and alignment` contains printer adjustments. These are optional paths; the primary copy and print actions remain visible without expanding them.
 
 Standard controls are at least 44px tall. The source permits 34px dense controls, but compact appearance must not prevent touch or keyboard use. Hover changes color or border only. A primary action moves from moss 600 to 700 on hover and 800 when pressed. Do not move, scale, spring, or ripple controls.
 
@@ -175,7 +185,7 @@ The preview clips at finished trim. Production printing includes the supplied bl
 
 The UI's typography, grain, shadows, navigation, and cards do not appear on label output. Calibration guides remain a separate print mode. Physical printer accuracy still requires a plain-paper test at Actual Size / 100%; browser screenshots and passing code checks cannot establish that accuracy.
 
-## Verification
+## Initial redesign verification
 
 The full suite passed 121 tests across 21 files during integration. After the final copy-only correction, all four focused order-import tests passed. Final typecheck/build and lint passed. The build retains the existing Vite chunk-size advisory. A source review confirmed routes, disclosures, font paths and ranges, semantic color overrides, responsive breakpoints, and separate production print rules.
 

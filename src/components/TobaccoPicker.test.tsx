@@ -29,7 +29,7 @@ describe('TobaccoPicker', () => {
     expect(screen.getByRole('button', { name: 'Remove Cornell & Diehl — Pirate Kake' })).toBeInTheDocument()
     type('Peterson')
     fireEvent.keyDown(input, { key: 'ArrowUp' })
-    expect(screen.getByRole('option', { name: 'Use “Peterson”' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('option', { name: 'Use "Peterson"' })).toHaveAttribute('aria-selected', 'true')
     fireEvent.click(screen.getByRole('option', { name: 'Nightcap by Peterson' }))
     expect(screen.getByTestId('published')).toHaveTextContent('Peterson — Nightcap')
   })
@@ -40,7 +40,7 @@ describe('TobaccoPicker', () => {
     expect(screen.getByRole('button', { name: 'Remove Pirate' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Remove Cornell & Diehl — Pirate Kake' })).not.toBeInTheDocument()
     type('Unlisted Family Blend')
-    fireEvent.click(screen.getByRole('option', { name: 'Use “Unlisted Family Blend”' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Use "Unlisted Family Blend"' }))
     expect(screen.getByRole('button', { name: 'Remove Unlisted Family Blend' })).toBeInTheDocument()
   })
   it('closes suggestions with Escape and immediately publishes unfinished text for copying', () => {

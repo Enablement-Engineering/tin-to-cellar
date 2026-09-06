@@ -12,21 +12,21 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     <section aria-labelledby="how-title">
     <div className="page-heading"><h1 id="how-title">How it works</h1><p>One prompt, your own AI chat, and a sheet of labels.</p></div>
     <ol className="workflow-steps">
-      <li><span className="workflow-step-number" aria-hidden="true">01</span><div><h2>Make a prompt</h2><p>List your tobaccos and special requests, or let your AI ask. Copy the full prompt into your chat and attach reference photos there if you have them.</p></div></li>
-      <li><span className="workflow-step-number" aria-hidden="true">02</span><div><h2>Create the labels in your chat</h2><p>Your AI studies the original packaging and adapts it into round labels with a light writing space. Ask for changes in the same chat, then download the label ZIP.</p></div></li>
-      <li><span className="workflow-step-number" aria-hidden="true">03</span><div><h2>Bring the ZIP back and print</h2><p>Open Print labels, choose your ZIP, and set quantities. Print at actual size with headers and footers off, or choose Save as PDF.</p><p className="spec-line">Avery 94502 · 2.5 in circles · 9 per US Letter sheet</p></div></li>
+      <li><span className="workflow-step-number" aria-hidden="true">01</span><div><h2>Make a prompt</h2><p>Add your blend names and any special requests, or leave them blank and let your AI ask. Choose Copy prompt, paste it into your chat, and send it. Attach reference photos there if you have them.</p></div></li>
+      <li><span className="workflow-step-number" aria-hidden="true">02</span><div><h2>Create the labels in your chat</h2><p>Your AI uses the original packaging to make round labels with a blank space for the date. Ask for changes in the same chat, then download the label ZIP.</p></div></li>
+      <li><span className="workflow-step-number" aria-hidden="true">03</span><div><h2>Bring the ZIP back and print</h2><p>Open Print labels, choose your ZIP, and set quantities. Print at actual size or 100% scale with headers and footers off. You can also choose Save as PDF.</p><p className="spec-line">Avery 94502 · 2.5 in circles · 9 per US Letter sheet</p></div></li>
     </ol>
     </section>
     <section className="help-reuse panel" aria-labelledby="reuse-title">
     <h2 id="reuse-title">Reuse the instructions</h2>
-    <p>For repeated batches, attach these instructions to your chat or AI project. Next time, use More options and Copy request only.</p>
-    <p className="field-hint">A new chat needs the instructions or the complete prompt before generating.</p>
+    <p>The standard prompt asks your AI to read the current instructions from this site. If it cannot open them, use More options and Copy complete prompt, or download the instructions and attach them to your chat.</p>
+    <p className="field-hint">For another batch in a chat that already has the instructions, use More options and Copy request only.</p>
     <div className="help-actions"><a className="button secondary" ref={downloadLink} download="tin-to-cellar-instructions.md"><Icon name="download" size={17} />Download instructions</a><a className="button quiet" href="https://chatgpt.com/" target="_blank" rel="noreferrer">Open ChatGPT ↗</a></div>
     </section>
     <section className="help-answers" aria-label="Common questions">
     <article>
     <h2>Why use a separate AI chat?</h2>
-    <p>Use the AI account or subscription you already have, within its usual limits. This site does not run its own image-generation service.</p>
+    <p>Use a chat that can browse the web, generate images, and create a ZIP download. You can use the account you already have, within its usual limits. Tin to Cellar does not generate the images itself.</p>
     </article>
     <article>
     <h2>What if a label comes back wrong?</h2>
@@ -34,13 +34,13 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     </article>
     <article>
     <h2>Check the fit before printing</h2>
-    <p>Your AI makes trim and safe-area guides by default. For hosted checks, open More options and choose Enable hosted image checks before copying your prompt.</p>
-    <p>Cloudflare verifies access for up to 60 checks over 24 hours. The service returns guide copies without storing images. If access expires or capacity runs out, your AI uses local guides. Only clean artwork goes into the ZIP.</p>
+    <p>Your AI makes guide copies to check where each label will be cut and whether its text fits. To have this service make those guides, open More options and choose Enable hosted image checks before copying your prompt.</p>
+    <p>Hosted checks send artwork to this service, which returns guide copies without storing the images. Access covers up to 60 checks over 24 hours. If access expires or capacity runs out, your AI makes the guides itself. Only the artwork without guides goes into the ZIP.</p>
     </article>
     <article>
-    <h2>What happens on this device?</h2>
+    <h2>What stays in my browser?</h2>
     <p>This app checks your ZIP and places each label at its physical size. Imported files stay in your browser, and research links are never opened automatically.</p>
-    <p>Under Print labels, Prompt feedback lets you review the agent’s diagnostic report and download it for sharing. Only fixed categories and counts are accepted. You can open saved reports to compare results locally. Nothing is submitted automatically.</p>
+    <p>If your ZIP includes a feedback report, you can review and download it under Prompt feedback. Reports use fixed categories and counts to describe what worked and what went wrong. You can open saved reports to compare results in your browser. Nothing is submitted automatically.</p>
     <p>Switching views keeps your work; reloading or closing the page clears the print job. Keep the ZIP so you can import it again.</p>
     </article>
     <article>

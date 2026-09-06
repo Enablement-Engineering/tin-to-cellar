@@ -7,7 +7,7 @@ function loadTurnstile() {
   if (window.turnstile) return Promise.resolve()
   if (!loading) loading = new Promise<void>((resolve, reject) => {
     const script = document.createElement('script')
-    const fail = () => { clearTimeout(timer); script.remove(); loading = undefined; reject(new Error('Verification could not load.')) }
+    const fail = () => { clearTimeout(timer); script.remove(); loading = undefined; reject(new Error('Verification could not load. Try again or continue without hosted checks.')) }
     const timer = setTimeout(fail, 15000)
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
     script.async = true
@@ -24,7 +24,7 @@ export function ProofAccess({ lease, onChange }: { lease: ProofLease | null; onC
   const container = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!lease) return
-    const timer = setTimeout(() => { onChange(null); setMessage('Access expired. Enable again or use local guides.') }, Math.max(0, lease.expiresAt - Date.now()))
+    const timer = setTimeout(() => { onChange(null); setMessage('Hosted check access expired. Enable it again if you want to use it, then copy a new prompt.') }, Math.max(0, lease.expiresAt - Date.now()))
     return () => clearTimeout(timer)
   }, [lease, onChange])
   useEffect(() => {
@@ -34,9 +34,9 @@ export function ProofAccess({ lease, onChange }: { lease: ProofLease | null; onC
     const timer = setTimeout(() => controller.abort(), 15000)
     void (async () => {
       const response = await fetch('/api/proof-access', { signal: controller.signal })
-      if (!response.ok) throw new Error('Hosted checks are unavailable. Local guides still work.')
+      if (!response.ok) throw new Error('Hosted checks are unavailable. You can still copy your prompt.')
       const config = await response.json() as { siteKey?: string }
-      if (!config.siteKey) throw new Error('Hosted checks are unavailable. Local guides still work.')
+      if (!config.siteKey) throw new Error('Hosted checks are unavailable. You can still copy your prompt.')
       await loadTurnstile()
       if (disposed || !container.current) return
       widget = window.turnstile!.render(container.current, {
@@ -51,19 +51,19 @@ export function ProofAccess({ lease, onChange }: { lease: ProofLease | null; onC
             if (!disposed) { onChange(data); setMessage(''); setAttempt(0) }
           } catch (error) { if (!disposed) { setMessage(error instanceof Error ? error.message : 'Verification failed.'); setAttempt(0) } }
         },
-        'error-callback': () => { if (!disposed) { setMessage('Verification failed. Retry or use local guides.'); setAttempt(0) } },
+        'error-callback': () => { if (!disposed) { setMessage('Verification failed. Try again or continue without hosted checks.'); setAttempt(0) } },
         'expired-callback': () => { if (!disposed) { setMessage('Verification expired. Please retry.'); setAttempt(0) } },
       })
     })().catch(error => { if (!disposed) { setMessage(error instanceof Error ? error.message : 'Verification unavailable.'); setAttempt(0) } }).finally(() => clearTimeout(timer))
     return () => { disposed = true; clearTimeout(timer); controller.abort(); if (widget) window.turnstile?.remove(widget) }
   }, [attempt, onChange])
   return <div className="proof-access">
-    {lease ? <><p>Hosted image checks enabled · up to 60 checks for 24 hours. Copy your prompt now.</p><button className="button secondary" onClick={() => onChange(null)} type="button">Use local guides instead</button></> : <>
+    {lease ? <><p>Hosted image checks enabled. You have up to 60 checks over the next 24 hours. Copy your prompt to include access.</p><button className="button secondary" onClick={() => onChange(null)} type="button">Turn off hosted checks</button></> : <>
       <button className="button secondary" type="button" disabled={attempt > 0} onClick={() => { setMessage(''); setAttempt(value => value + 1) }}>Enable hosted image checks</button>
-      <p className="field-hint">Optional. Verify with Cloudflare to include access in your prompt. Otherwise your AI makes guides locally.</p>
+      <p className="field-hint">Optional. Complete Cloudflare's verification to let your AI chat use this site's image checks. Without it, your AI chat makes its own guide images.</p>
     </>}
     <div ref={container} />
-    {attempt > 0 && <button className="button secondary" type="button" onClick={() => { setAttempt(0); setMessage('Using local guides.') }}>Cancel verification</button>}
+    {attempt > 0 && <button className="button secondary" type="button" onClick={() => { setAttempt(0); setMessage('Hosted checks are off. You can still copy your prompt.') }}>Cancel verification</button>}
     {message && <p role="status">{message}</p>}
   </div>
 }

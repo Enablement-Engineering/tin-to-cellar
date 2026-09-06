@@ -232,7 +232,7 @@ export async function importCellarPack(data: ArrayBuffer): Promise<CellarPackImp
         code: 'UNKNOWN_PRINT_PRESET',
         path: 'defaultPrintIntent.sheetProfileId',
         message: `Print preset ${manifest.defaultPrintIntent.sheetProfileId} is not available.`,
-        recovery: 'Choose another sheet profile in the print studio.',
+        recovery: 'Ask your AI chat to correct the pack’s print preset.',
       })
     }
   }
@@ -568,7 +568,7 @@ async function importCustomSheetProfiles(
         code: 'INVALID_SHEET_PROFILE',
         path: reference.path,
         message: `Custom sheet profile ${reference.path} is invalid or its ID does not match.`,
-        recovery: 'Correct the profile or choose a built-in sheet in the print studio.',
+        recovery: 'Ask your AI chat to correct the custom sheet information in the pack.',
       })
     }
   }

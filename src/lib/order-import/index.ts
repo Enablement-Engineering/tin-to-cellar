@@ -72,7 +72,7 @@ export async function readOrderPdf(file: File): Promise<string> {
       text += [...rows.entries()].sort(([a], [b]) => b - a).map(([, row]) => row.sort((a, b) => a.x - b.x).map((item) => item.text).join(' ')).join('\n') + '\n'
       if (text.length > 100_000) throw new Error('This PDF has too much text. Paste just the product list.')
     }
-    if (!text.trim()) throw new Error('This PDF appears to be scanned. Paste the product names or extract them in your AI chat for now.')
+    if (!text.trim()) throw new Error('This PDF appears to be scanned. Choose a screenshot of the product list, or paste the names.')
     return text
   } finally { await task.destroy() }
 }

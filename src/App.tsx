@@ -4,6 +4,9 @@ import { checkAvery94502Compatibility } from './lib/sheets'
 import { Configurator } from './components/Configurator'
 import { HowItWorks } from './components/HowItWorks'
 import { Landing } from './components/Landing'
+import { About } from './components/About'
+import { Inspiration } from './components/Inspiration'
+import { SiteFooter } from './components/SiteFooter'
 import { Icon } from './components/Icons'
 import { Wordmark } from './components/Wordmark'
 import { DiagnosticFeedback } from './components/DiagnosticFeedback'
@@ -18,11 +21,11 @@ import './styles/app.css'
 const initialConfig: ConfiguratorState = {
   tobaccos: '', artDirection: '',
 }
-type View = 'home' | 'create' | 'print' | 'help'
+type View = 'home' | 'create' | 'print' | 'help' | 'about' | 'inspiration'
 function viewFromHash(): View | null {
   const hash = window.location.hash.slice(1)
   if (!hash) return 'home'
-  return hash === 'home' || hash === 'create' || hash === 'print' || hash === 'help' ? hash : null
+  return hash === 'home' || hash === 'create' || hash === 'print' || hash === 'help' || hash === 'about' || hash === 'inspiration' ? hash : null
 }
 function issueText(issue: { message?: string; recovery?: string }) {
   return [issue.message ?? 'The label needs repair.', issue.recovery].filter(Boolean).join(' ')
@@ -151,13 +154,13 @@ function App() {
     }
   }
   const copyRepair = async () => {
-    try { await navigator.clipboard.writeText(repairPrompt); setRepairStatus('Copied. Paste this into the same ChatGPT chat, then import its repaired ZIP.') }
+    try { await navigator.clipboard.writeText(repairPrompt); setRepairStatus('Copied. Paste this into the same AI chat, then import the corrected ZIP.') }
     catch { setShowRepair(true); setRepairStatus('Select and copy the repair request below, then paste it into the same chat.') }
   }
 
   const intake = <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} /><DiagnosticFeedback candidate={feedback} protocolContext={protocolContext} />
     {importLoadError && <div className="panel" role="alert"><h3>The label reader couldn’t load</h3><p>The app may have updated, or the connection was interrupted. Reload the page, then choose the same ZIP again. Reloading clears the current workspace.</p><button className="button secondary" type="button" onClick={() => window.location.reload()}>Reload app</button></div>}
-    {repairPrompt && <div className="panel repair-panel" role="status"><h3>{labels.length ? 'Some labels need another pass' : 'The ZIP needs another pass'}</h3><p>{labels.length ? 'Your current printable labels are still available below. ' : ''}Send the repair request to the same ChatGPT chat and import the ZIP it returns.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}><Icon name="copy" size={17} />Copy repair request</button><p className="copy-status">{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={repairPrompt} rows={8} onFocus={(event) => event.currentTarget.select()} />}</div>}
+    {repairPrompt && <div className="panel repair-panel" role="status"><h3>{labels.length ? 'Some labels need fixing' : 'The ZIP needs fixing'}</h3><p>{labels.length ? 'You can still print the usable labels below. ' : ''}Send the repair request to the same AI chat and import the ZIP it returns.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}><Icon name="copy" size={17} />Copy repair request</button><p className="copy-status">{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={repairPrompt} rows={8} onFocus={(event) => event.currentTarget.select()} />}</div>}
   </div>
 
   return <div className="app-shell tc-grain">
@@ -171,13 +174,13 @@ function App() {
     <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
       {view === 'home' ? <Landing onNavigate={navigate} /> : view === 'create' ? <div className="screen-only create-workspace">
         <div className="create-grid"><Configurator value={config} onChange={setConfig} /><PromptHandoff completePrompt={completePrompt} prompt={prompt} request={request} onPrint={() => navigate('print')} /></div>
-      </div> : view === 'help' ? <HowItWorks instructions={instructions} /> : <>
+      </div> : view === 'help' ? <HowItWorks instructions={instructions} /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
         <div className="page-heading screen-only"><h1>Print labels</h1><p className="spec-line">Avery 94502 · 2.5 in circles · US Letter</p></div>
         {labels.length > 0 ? <PrintStudio intake={intake} labels={labels} quantities={quantities} onQuantityChange={(id, value) => setQuantities((current) => ({ ...current, [id]: value }))} settings={printSettings} onSettingsChange={setPrintSettings} /> :
-          <div className="print-intake screen-only">{intake}<section className="print-empty panel" aria-labelledby="print-empty-title"><span className="print-empty-icon"><Icon name="print" size={28} /></span><h2 id="print-empty-title">Your sheet starts here</h2><p>Choose the CellarPack ZIP from your AI chat. Your labels appear here, ready for quantities and printing.</p><p className="field-hint">No labels yet? Start with a prompt and bring back the ZIP.</p><button className="button secondary" type="button" onClick={() => navigate('create')}>Create a label pack</button></section></div>}
+          <div className="print-intake screen-only">{intake}<section className="print-empty panel" aria-labelledby="print-empty-title"><span className="print-empty-icon"><Icon name="print" size={28} /></span><h2 id="print-empty-title">Ready to print?</h2><p>Choose the CellarPack ZIP from your AI chat. You can then set the quantities and preview your sheets.</p><p className="field-hint">If you still need labels, start by making a prompt.</p><button className="button secondary" type="button" onClick={() => navigate('create')}>Start with a prompt</button></section></div>}
       </>}
     </main>
-    <footer className="site-footer screen-only"><span className="wordmark-name">Tin to Cellar</span><p className="spec-line">CellarPack v1 · open format · imported files stay on your device</p></footer>
+    <SiteFooter currentView={view} onNavigate={navigate} />
   </div>
 }
 export default App

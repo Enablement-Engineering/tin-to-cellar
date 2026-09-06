@@ -55,7 +55,7 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
         </button>
       </div>
 
-      <p className="import-privacy"><Icon name="lock" size={15} />Your ZIP stays in this browser. Keep the file so you can print again.</p>
+      <p className="import-privacy"><Icon name="lock" size={15} />Your ZIP stays on this device. Keep the file so you can print again.</p>
 
       {summary && (
         <div className={`import-report status-${summary.status}`} aria-live="polite">
@@ -64,19 +64,19 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
               <p>{summary.status === 'ready' ? 'Labels ready to print' : summary.status === 'partial' ? 'Some labels need repair' : 'ZIP needs repair'}</p>
               <h3>{summary.title}</h3>
             </div>
-            <span>{summary.labels.length} usable</span>
+            <span>{summary.labels.length} {summary.labels.length === 1 ? 'label' : 'labels'} ready</span>
           </div>
 
           {summary.issues.length > 0 && (
             <details open={summary.status === 'rejected'}>
-              <summary>{summary.issues.length} validation {summary.issues.length === 1 ? 'issue' : 'issues'}</summary>
+              <summary>{summary.issues.length} {summary.issues.length === 1 ? 'issue' : 'issues'} to review</summary>
               <ul>{summary.issues.map((issue, index) => <li key={`${issue}-${index}`}>{issue}</li>)}</ul>
             </details>
           )}
 
           {summary.quarantined.length > 0 && (
             <div className="quarantine-note">
-              <strong>{summary.quarantined.length} label {summary.quarantined.length === 1 ? 'was' : 'were'} kept off the sheet</strong>
+              <strong>{summary.quarantined.length} {summary.quarantined.length === 1 ? 'label was' : 'labels were'} left off the sheet</strong>
               <ul>
                 {summary.quarantined.map((label) => <li key={label.id}>{label.id}: {label.reason}</li>)}
               </ul>

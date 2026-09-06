@@ -22,7 +22,7 @@ it('loads standalone failed-run reports locally and rejects unknown fields', asy
     { size: 500, text: async () => JSON.stringify(report) },
     { size: 500, text: async () => JSON.stringify({ ...report, log: 'secret@example.com' }) },
   ] } })
-  await waitFor(() => expect(screen.getByText(/1 reports loaded. 1 rejected/)).toBeTruthy())
+  await waitFor(() => expect(screen.getByText(/1 report loaded. 1 rejected/)).toBeTruthy())
   expect(screen.getByText('failed: 1')).toBeTruthy()
   expect(screen.queryByText(/secret@example/)).toBeNull()
   expect(screen.getByText('Download feedback summary')).toBeTruthy()
@@ -45,9 +45,9 @@ it('keeps revisions in separate comparison groups and identifies conflicting pac
   fireEvent.change(screen.getByLabelText('Open saved feedback reports'), { target: { files: [
     { size: 500, text: async () => JSON.stringify(report) },
   ] } })
-  await waitFor(() => expect(screen.getByText(/1 reports loaded. 0 rejected/)).toBeTruthy())
+  await waitFor(() => expect(screen.getByText(/1 report loaded. 0 rejected/)).toBeTruthy())
   expect(screen.getAllByText('failed: 1')).toHaveLength(2)
   rerender(<DiagnosticFeedback candidate={JSON.parse(JSON.stringify(current))} protocolContext={{ status: 'conflict' }} />)
-  expect(screen.getByText(/pack and feedback name different protocol revisions/)).toBeTruthy()
+  expect(screen.getByText(/pack and its feedback list different instruction versions/)).toBeTruthy()
   expect(screen.getAllByText('failed: 1')).toHaveLength(1)
 })
