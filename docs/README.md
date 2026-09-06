@@ -4,7 +4,7 @@ Use [the live site](https://tintocellar.com/) to create a prompt or print a Cell
 
 ## How the application works
 
-The browser creates a prompt with a pinned hosted protocol URL and optional tobacco request. Copy complete prompt supplies the full instructions, schemas, and local proof program when retrieval fails. The user carries it into one AI conversation for research, image generation, review, and ZIP creation. The downloaded ZIP returns to the browser for validation, sheet layout, and printing. The protocol's supplied Python script creates review guides inside the AI chat.
+The browser builds one complete prompt containing the request, versioned instructions, both schemas and local proof program. No protocol retrieval is required. The user pastes it into an AI chat and returns the generated ZIP for local validation, sheet layout and printing.
 
 | Component | Responsibility | Location |
 | --- | --- | --- |

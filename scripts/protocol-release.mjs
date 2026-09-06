@@ -6,14 +6,13 @@ const write = (path, value) => writeFile(new URL(`../${path}`, import.meta.url),
 const hash = (text) => createHash('sha256').update(text).digest('hex')
 const registry = JSON.parse(await read('src/lib/protocol/releases.json'))
 const revision = registry.current
-const base = `https://tintocellar.com/api/labels/protocol/v1/releases/${revision}`
 const manifest = await read('src/lib/cellarpack/cellarpack-v1.schema.json')
 const feedback = await read('src/lib/feedback/schema.json')
 const localProof = await read('src/lib/prompt/local-proof.py')
 if (localProof !== localProof.trim() + '\n') throw new Error('Proof source must have exactly one trailing LF')
 const protocol = (await read('src/lib/prompt/protocol.md')).replace('<!-- LOCAL_PROOF_SCRIPT -->', `Canonical local-proof.py SHA-256: ${hash(localProof)}\n\n\`\`\`python\n${localProof.trim()}\n\`\`\``)
 const feedbackInstructions = await read('src/lib/prompt/feedback.md')
-const instructions = `# Tin to Cellar technical instructions\n\nProtocol revision: ${revision}\nCellarPack version: 1.0.0\nFeedback version: 2.0.0\nCanonical immutable instructions: ${base}/instructions.md\nManifest JSON schema: ${base}/cellarpack.schema.json\nFeedback JSON schema: ${base}/feedback.schema.json\n\nUse this complete release throughout this run and repairs. Do not fetch current again midrun. The schemas below are complete; no additional schema fetch is required. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":${revision},"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}.\n\n${protocol.trim()}\n\n# Complete CellarPack v1 JSON Schema\n\n\`\`\`json\n${JSON.stringify(JSON.parse(manifest))}\n\`\`\`\n\n${feedbackInstructions.trim()}\n\n# Complete feedback JSON Schema\n\n\`\`\`json\n${JSON.stringify(JSON.parse(feedback))}\n\`\`\`\n\nEND TIN TO CELLAR PROTOCOL ${revision}\n`
+const instructions = `# Tin to Cellar technical instructions\n\nProtocol revision: ${revision}\nCellarPack version: 1.0.0\nFeedback version: 2.0.0\nThe complete protocol, both JSON schemas and canonical proof program are included below. Use this revision throughout this run and repairs. Do not fetch protocol instructions or schemas. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":${revision},"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}.\n\n${protocol.trim()}\n\n# Complete CellarPack v1 JSON Schema\n\n\`\`\`json\n${JSON.stringify(JSON.parse(manifest))}\n\`\`\`\n\n${feedbackInstructions.trim()}\n\n# Complete feedback JSON Schema\n\n\`\`\`json\n${JSON.stringify(JSON.parse(feedback))}\n\`\`\`\n\nEND TIN TO CELLAR PROTOCOL ${revision}\n`
 const files = { 'instructions.md': instructions, 'instructions.html': protocolHtml(instructions, revision), 'cellarpack.schema.json': manifest, 'feedback.schema.json': feedback }
 for (const release of Object.values(registry.releases)) {
   for (const [name, content] of Object.entries(release.files)) {

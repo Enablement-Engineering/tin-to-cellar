@@ -1,13 +1,9 @@
 # Tin to Cellar technical instructions
 
-Protocol revision: 12
+Protocol revision: 13
 CellarPack version: 1.0.0
 Feedback version: 2.0.0
-Canonical immutable instructions: https://tintocellar.com/api/labels/protocol/v1/releases/12/instructions.md
-Manifest JSON schema: https://tintocellar.com/api/labels/protocol/v1/releases/12/cellarpack.schema.json
-Feedback JSON schema: https://tintocellar.com/api/labels/protocol/v1/releases/12/feedback.schema.json
-
-Use this complete release throughout this run and repairs. Do not fetch current again midrun. The schemas below are complete; no additional schema fetch is required. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":12,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}.
+The complete protocol, both JSON schemas and canonical proof program are included below. Use this revision throughout this run and repairs. Do not fetch protocol instructions or schemas. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":13,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}.
 
 # Task
 Create one researched pipe-tobacco cellar label per requested blend and return a .cellarpack.zip for Tin to Cellar. Keep research, generation, revisions and ZIP repairs in this chat.
@@ -239,7 +235,7 @@ if __name__ == "__main__":
 # CellarPack protocol
 Use the complete schema below; no additional schema fetch is required. Return root manifest.json and artwork/<label-id>.png. Reference assets by artworkAssetId. Compute SHA-256 from actual delivered bytes. Research must distinguish inspected observations from creative adaptation.
 
-Record this release in manifest.extensions["tin-to-cellar:protocol"] as {"revision":12,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}. Keep this revision through repairs; do not switch to a newer release mid-run.
+Record this release in manifest.extensions["tin-to-cellar:protocol"] as {"revision":13,"cellarpackVersion":"1.0.0","feedbackVersion":"2.0.0"}. Keep this revision through repairs; do not switch to a newer release mid-run.
 
 Write-in x/y/width/height use the finished trim bounding box, not the bleed canvas. Measure the actual surface; keep it unrotated and inside the safe area. Set overlay.mode to blank. The overlay object contains only mode; the website does not render overlays.
 
@@ -258,7 +254,7 @@ Return one prominent downloadable .cellarpack.zip and the supplied printing link
 ```
 
 # Diagnostic feedback
-Feedback schema version: 2.0.0. Set protocolRevision to the numeric revision of these instructions (12), matching the pack protocol extension. Maintain a diagnostic report using the feedback schema below. Put it in manifest.extensions["tin-to-cellar:feedback"] when returning a pack. If the run ends without a pack, provide tin-to-cellar-feedback.json as a separate download, or a JSON code block if file creation is unavailable. A report is optional for importing old packs. Do not send feedback directly from this chat. Importing the returned pack in Tin to Cellar submits its validated feedback automatically.
+Feedback schema version: 2.0.0. Set protocolRevision to the numeric revision of these instructions (13), matching the pack protocol extension. Maintain a diagnostic report using the feedback schema below. Put it in manifest.extensions["tin-to-cellar:feedback"] when returning a pack. If the run ends without a pack, provide tin-to-cellar-feedback.json as a separate download, or a JSON code block if file creation is unavailable. A report is optional for importing old packs. Do not send feedback directly from this chat. Importing the returned pack in Tin to Cellar submits its validated feedback automatically.
 
 Report only the requested label count and shape, overall outcome, observable workflow stages, attempt counts, and categorized issues, including unclear or conflicting instructions. Use one entry per attempted or skipped stage. Sum actual tool attempts for that stage across labels; use zero for unattempted stages. Mark passed only for checks actually performed. Report failures and unavailable tools honestly. Use other for an issue without a matching code, without adding an explanation field. Update the report after repairs. Do not include hidden reasoning or chain-of-thought.
 
@@ -276,4 +272,4 @@ Maintain cumulative feedback for the whole request across turns and repairs. Kee
 {"$schema":"http://json-schema.org/draft-07/schema#","type":"object","additionalProperties":false,"required":["format","schemaVersion","protocolRevision","request","outcome","steps","issues"],"properties":{"format":{"const":"tin-to-cellar/feedback"},"schemaVersion":{"const":"2.0.0"},"protocolRevision":{"type":"integer","minimum":1,"maximum":1000000},"request":{"type":"object","additionalProperties":false,"required":["labelCount","shape"],"properties":{"labelCount":{"type":"integer","minimum":0,"maximum":500},"shape":{"enum":["circle","oval","square","rectangle","rounded-rectangle","custom","unknown"]}}},"outcome":{"enum":["complete","partial","failed","research-only"]},"steps":{"type":"array","maxItems":7,"items":{"type":"object","additionalProperties":false,"required":["stage","status","attempts"],"properties":{"stage":{"$ref":"#/$defs/stage"},"status":{"enum":["passed","failed","skipped","unavailable"]},"attempts":{"type":"integer","minimum":0,"maximum":1500}}}},"issues":{"type":"array","maxItems":50,"items":{"type":"object","additionalProperties":false,"required":["code","stage","resolved"],"properties":{"code":{"enum":["reference-unavailable","variant-ambiguous","image-handoff-unavailable","generation-unavailable","generation-failed","artwork-fidelity","text-legibility","write-area","geometry","proof-unavailable","schema","archive","instructions-unclear","instructions-conflicting","other","protocol-unavailable","protocol-incomplete"]},"stage":{"$ref":"#/$defs/stage"},"resolved":{"type":"boolean"}}}}},"$defs":{"stage":{"enum":["research","generation","visual-review","proof","packaging","validation","protocol-retrieval"]}}}
 ```
 
-END TIN TO CELLAR PROTOCOL 12
+END TIN TO CELLAR PROTOCOL 13

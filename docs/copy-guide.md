@@ -12,7 +12,7 @@ The About page connects that purpose to Dylan and this small project. Avoid inve
 
 - Use “AI chat” for the general workflow. Use “ChatGPT” when naming or linking that specific product.
 - Introduce CellarPack as the ZIP containing the labels. Technical terms belong where they explain a file requirement or help repair a problem.
-- “Copy prompt” starts with a request that tells the AI to read the site's instructions. “Copy complete prompt” includes the instructions. “Copy request only” is for a chat that already has them.
+- “Copy prompt” includes the complete request and instructions. The request preview stays readable; “Full copied text” reveals the entire payload.
 - Keep instruction version information in the advanced choices and feedback reports, in plain language. Do not hide differences that affect which instructions a chat uses.
 - Imported ZIPs and artwork are read in the browser. Import separately shares validated feedback and public source links with fixed observations. Print-guide access starts automatically in Make a prompt; the AI can use that service or make guide images in its own environment. That environment is not necessarily the user's device.
 - Tell people what failed and what they can do next. Keep precise file errors available for the AI repair request.

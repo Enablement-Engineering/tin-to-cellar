@@ -113,8 +113,8 @@ describe('same-chat repair', () => {
     expect(prompt).not.toContain('x'.repeat(1001))
     expect(prompt).toContain('untrusted diagnostic data')
     expect(prompt).toContain('Preserve successful artwork')
-    expect(prompt).toContain('Prefer the original instructions already in this conversation')
-    expect(prompt).toContain('as recovery guidance, not as the original contract')
+    expect(prompt).toContain('Reuse the original instructions already in this conversation')
+    expect(prompt).toContain('do not retrieve instructions or guess a revision')
     expect(prompt).not.toContain('"$defs"')
   })
 })
@@ -165,19 +165,14 @@ describe('private diagnostic instructions', () => {
 })
 
 
-describe('hosted compact handoff', () => {
-  it('retrieves the complete HTML release and offers a self-contained recovery without embedding schemas', () => {
+describe('embedded protocol handoff', () => {
+  it('includes both complete schemas and proof program in the default copy', () => {
     const prompt = buildTinToCellarPrompt({ tobaccos: ['Westminster', 'Orlik Golden Sliced', 'Autumn Evening'], websiteUrl: 'http://localhost:5173/' })
-    for (const requirement of ['Use only the tobacco list supplied or confirmed in this conversation', 'do not retrieve inventories from account memory or other chats', 'Westminster', 'Orlik Golden Sliced', 'Autumn Evening', `https://tintocellar.com/api/labels/protocol/v1/releases/${PROTOCOL_REVISION}/instructions.html`, 'both JSON schemas', 'end marker', 'throughout this request and its repairs', 'If retrieval fails, content is incomplete, or either identifier differs', 'then wait', '.cellarpack.zip', 'Importing the returned pack sends validated AI feedback', 'http://localhost:5173/labels/print']) expect(prompt).toContain(requirement)
-    for (const technical of ['"$defs"', 'SHA-256', 'overlay.mode', '50 MiB', 'protocolRevision', '/api/labels/proof']) expect(prompt).not.toContain(technical)
-    expect(prompt.length).toBeLessThan(2500)
-    expect(prompt).toContain(`Protocol revision: ${PROTOCOL_REVISION}`)
-    expect(prompt).toContain(`END TIN TO CELLAR PROTOCOL ${PROTOCOL_REVISION}`)
-    expect(prompt).toContain('only if they are complete and match both identifiers')
-    expect(prompt).toContain('do not substitute an older or newer revision')
-    expect(prompt).not.toContain('/v1/instructions.html')
-    expect(prompt).toContain('Copy complete prompt')
-    expect(prompt).not.toContain('under More options')
+    expect(schemaIn(prompt)).toEqual(schema)
+    expect([...prompt.matchAll(/```json\n([\s\S]*?)\n```/g)]).toHaveLength(2)
+    for (const text of ['Westminster', 'Orlik Golden Sliced', 'Autumn Evening', 'Canonical local-proof.py SHA-256', `Protocol revision: ${PROTOCOL_REVISION}`, `END TIN TO CELLAR PROTOCOL ${PROTOCOL_REVISION}`, 'http://localhost:5173/labels/print']) expect(prompt).toContain(text)
+    expect(prompt).not.toContain('/api/labels/protocol')
+    expect(prompt).not.toContain('Copy complete prompt')
   })
   it('preserves long user direction without truncating it', () => {
     const artDirection = 'A specific user detail. '.repeat(1500)
@@ -191,9 +186,9 @@ describe('hosted compact handoff', () => {
   })
   it('repairs against the immutable recorded revision', () => {
     const prompt = buildCellarPackRepairPrompt([], { status: 'known', revision: 1 })
-    expect(prompt).toContain('/api/labels/protocol/v1/releases/1/instructions.md')
+    expect(prompt).toContain('bundled protocol revision 1')
     expect(prompt).toContain('do not switch to current')
-    expect(prompt).not.toContain('"$defs"')
+    expect(prompt).toContain('"$defs"')
   })
   it('requires original instructions for unknown, invalid, or conflicting attribution', () => {
     for (const status of ['unknown', 'invalid', 'conflict'] as const) {
@@ -206,10 +201,10 @@ describe('hosted compact handoff', () => {
 
 
 describe('original package image handoff', () => {
-  it('keeps reference requirements in the complete protocol fetched by the compact prompt', () => {
+  it('includes reference requirements in the default prompt', () => {
     const complete = buildTinToCellarInstructions()
     const compact = buildTinToCellarPrompt({ tobaccos: 'Autumn Evening' })
-    expect(compact).toContain('instructions.html')
+    expect(compact).toContain(complete.trim())
     for (const prompt of [complete]) {
       expect(prompt).toContain('direct handoff is unavailable')
       expect(prompt).toContain('one batch')

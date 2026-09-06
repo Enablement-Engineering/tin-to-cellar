@@ -1,3 +1,5 @@
+> Historical plan. Hosted instruction retrieval was retired in revision 13; see hosted-protocol.md for the current bundled delivery.
+
 > Historical plan: revision 7 replaces hosted proof and credential handling described below with a supplied local Python proof program. See [current protocol operations](hosted-protocol.md).
 
 # Hosted CellarPack protocol plan

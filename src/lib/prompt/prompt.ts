@@ -1,5 +1,5 @@
 import { TOBACCO_CATALOG, formatTobacco } from '../tobacco-catalog'
-import { PROTOCOL_REVISION, protocolInstructions, protocolRevisionUrl, resolveProtocolContext } from '../protocol'
+import { protocolInstructions, protocolReleases, resolveProtocolContext } from '../protocol'
 import { assessPromptInput, normalizeTobaccos } from './assessment'
 import {
   CHATGPT_PROMPT_URL,
@@ -111,7 +111,7 @@ export function buildTinToCellarRequest(input: PromptProjectInput): string {
     geometry: input.geometry ?? { shape: 'circle', diameter: 2.5, unit: 'in' },
     printPreference: input.printPreference ?? 'tin-to-cellar:avery-94502@1',
   }
-  return `Reuse the pinned Tin to Cellar protocol revision and complete CellarPack v1 schema supplied in this conversation or attached instruction file. Keep that revision for this request and its repairs; do not switch to the current hosted release. Deliver a .cellarpack.zip using format tin-to-cellar/cellarpack and schemaVersion 1.0.0. If those instructions or the schema are missing, ask me to paste or attach them before generating; do not invent the format.\n\n${projectInputText(project)}${input.websiteUrl ? `\n\n${returnGuidance(input.websiteUrl)}` : ''}`
+  return `Reuse the pinned Tin to Cellar protocol revision and complete CellarPack v1 schema supplied in this conversation or attached instruction file. Keep that revision for this request and its repairs; do not switch revisions. Deliver a .cellarpack.zip using format tin-to-cellar/cellarpack and schemaVersion 1.0.0. If those instructions or the schema are missing, ask me to paste or attach them before generating; do not invent the format.\n\n${projectInputText(project)}${input.websiteUrl ? `\n\n${returnGuidance(input.websiteUrl)}` : ''}`
 }
 
 export function buildCompleteTinToCellarPrompt(input: PromptProjectInput): string {
@@ -119,22 +119,7 @@ export function buildCompleteTinToCellarPrompt(input: PromptProjectInput): strin
 }
 
 export function buildTinToCellarPrompt(input: PromptProjectInput): string {
-  const project: PromptProjectInput = {
-    ...input,
-    geometry: input.geometry ?? { shape: 'circle', diameter: 2.5, unit: 'in' },
-    printPreference: input.printPreference ?? 'tin-to-cellar:avery-94502@1',
-  }
-  return `Create the cellar labels listed below. This request requires protocol revision ${PROTOCOL_REVISION}. First read the complete instructions and both JSON schemas at ${protocolRevisionUrl(PROTOCOL_REVISION).replace(/instructions\.md$/, 'instructions.html')}. Verify "Protocol revision: ${PROTOCOL_REVISION}" and the exact final end marker "END TIN TO CELLAR PROTOCOL ${PROTOCOL_REVISION}". Use this exact release throughout this request and its repairs; do not substitute an older or newer revision. Reuse instructions already in this conversation only if they are complete and match both identifiers. If retrieval fails, content is incomplete, or either identifier differs, ask me to use Copy complete prompt on Tin to Cellar and paste it here, then wait. Do not guess the instructions or pack format.
-
-Use only the tobacco list supplied or confirmed in this conversation; do not retrieve inventories from account memory or other chats.
-
-Complete generation, review, validation and ZIP delivery automatically whenever tools permit. Ask only for missing information, required attachments or unavailable actions. Before a turn-ending image tool, explain how to resume with "Continue" if it stops; otherwise continue directly. Images alone are not completion. At pauses, state the blocker and next action. Preserve accepted artwork through repairs.
-
-${projectInputText(project)}
-
-Return one prominent downloadable .cellarpack.zip and the printing link, with brief validation results and any unresolved limitations. Keep feedback inside the pack and provide auxiliary downloads only on request. Importing the returned pack sends validated AI feedback and public package source observations to Tin to Cellar. Keep private references and personal information out of shared source records.
-
-${returnGuidance(input.websiteUrl)}`
+  return buildCompleteTinToCellarPrompt(input)
 }
 
 export function buildChatGPTLaunchPrompt(input: PromptProjectInput): string {
@@ -153,9 +138,9 @@ export function buildCellarPackRepairPrompt(
   context: ReturnType<typeof resolveProtocolContext> = { status: 'legacy' },
 ): string {
   const revisionGuidance = context.status === 'known' && context.revision !== undefined
-    ? `Use protocol revision ${context.revision}, pinned at ${protocolRevisionUrl(context.revision)}. Reuse its instructions from this conversation or retrieve that exact complete release. If unavailable or incomplete, ask me to attach the original instructions and wait; do not switch to current.`
+    ? `Use the bundled protocol revision ${context.revision} below throughout this repair; do not switch to current. Historical URLs in this archived release are identifiers only: do not fetch protocol instructions or schemas.\n\n${protocolReleases[String(context.revision)].files['instructions.md']}`
     : context.status === 'legacy'
-      ? `This pack has no recorded protocol revision. Prefer the original instructions already in this conversation. Only if those are absent, retrieve compatible bundled baseline revision ${PROTOCOL_REVISION} at ${protocolRevisionUrl(PROTOCOL_REVISION)} as recovery guidance, not as the original contract. If unavailable, ask me to attach the complete instructions and wait.`
+      ? 'This pack has no recorded protocol revision. Reuse the original instructions already in this conversation. If absent, ask me to provide them before repairing; do not retrieve instructions or guess a revision.'
       : context.status === 'conflict'
         ? 'The pack and feedback claim conflicting protocol revisions. Ask me to clarify which original instructions produced this pack and attach them before repairing. Do not silently choose a revision or fetch current.'
         : 'The recorded protocol revision is unknown or invalid. Ask me to provide the original complete instructions before repairing. Do not substitute the current or bundled release.'

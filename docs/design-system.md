@@ -144,7 +144,7 @@ Use the first elevation for chips and secondary buttons, the second for cards, a
 | Quantity controls | Labeled controls with zero as the exclusion state; preserve automatic pagination |
 | Sheet preview | Paper sheet on a neutral background, actual artwork from the imported pack, measurements in mono |
 
-`Import order` reveals local PDF, screenshot, or pasted-text reading. `Read prompt` starts collapsed. `More options` contains Copy complete prompt, downloadable instructions, and Copy request only. Print-guide access starts automatically in Make a prompt, with its status and any Cloudflare check beside the primary copy action. Copying waits for that check to finish or for the user to choose Continue without waiting. `Paper and alignment` contains printer adjustments. The primary copy and print actions remain visible without expanding a disclosure.
+`Import order` reveals local PDF, screenshot, or pasted-text reading. `Read prompt` starts collapsed and separates the readable request preview from the full copied protocol. Copy prompt includes everything in one action. `Paper and alignment` contains printer adjustments. Copy and print remain visible without expanding a disclosure.
 
 Standard controls are at least 44px tall. The source permits 34px dense controls, but compact appearance must not prevent touch or keyboard use. Hover changes color or border only. A primary action moves from moss 600 to 700 on hover and 800 when pressed. Do not move, scale, spring, or ripple controls.
 

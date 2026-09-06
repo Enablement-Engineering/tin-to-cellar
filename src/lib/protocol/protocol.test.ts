@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { PROTOCOL_KEY, resolveProtocolContext, protocolRevisionUrl } from './index'
+import { PROTOCOL_KEY, resolveProtocolContext } from './index'
 const provenance = { revision: 1, cellarpackVersion: '1.0.0', feedbackVersion: '2.0.0' }
 it('validates optional provenance locally and refuses conflicting or malformed attribution', () => {
   const fetch = vi.spyOn(globalThis, 'fetch')
@@ -10,9 +10,4 @@ it('validates optional provenance locally and refuses conflicting or malformed a
   expect(resolveProtocolContext({ [PROTOCOL_KEY]: provenance, 'tin-to-cellar:feedback': { format: 'tin-to-cellar/feedback', schemaVersion: '2.0.0', protocolRevision: 2 } }).status).toBe('conflict')
   expect(fetch).not.toHaveBeenCalled()
   fetch.mockRestore()
-})
-it('builds only fixed-origin revision URLs from bounded numbers', () => {
-  expect(protocolRevisionUrl(1)).toBe('https://tintocellar.com/api/labels/protocol/v1/releases/1/instructions.md')
-  expect(() => protocolRevisionUrl(NaN)).toThrow()
-  expect(() => protocolRevisionUrl(1000001)).toThrow()
 })

@@ -16,7 +16,7 @@ describe('repair after a protocol release advances', () => {
     })
     expect(context).toEqual({ status: 'known', revision: 1 })
     const repair = buildCellarPackRepairPrompt([{ message: 'Artwork hash does not match.' }], context)
-    expect(repair).toContain('/api/labels/protocol/v1/releases/1/instructions.md')
+    expect(repair).toContain('Protocol revision: 1')
     expect(repair).not.toContain('/releases/2/')
     expect(repair).toContain('do not switch to current')
   })
