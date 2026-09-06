@@ -1,6 +1,6 @@
 # Gallery release status
 
-In progress, September 6, 2026. User has authorized implementing and deploying the admin and advisory-agent workflow, including dedicated gallery resources, Access, Turnstile, subdomains, migrations and a scoped repository release. This supersedes the earlier approval-pending language in the preparation packet. Workers Paid was already activated by the user and remains active.
+Production deployed, September 6, 2026. PR #3 merged after explicit user approval at commit `30598bb4652f7bdbf561714bd4ff31df039832cf`. GitHub Actions run `34065368814` succeeded, deploying Worker version `1f9c90fb-e097-4197-8774-28620573fdf3`. Human moderation, public download and production advisory-agent checks passed. Workers Paid was already activated by the user and remains active.
 
 ## Resource record
 
@@ -17,7 +17,7 @@ The CLI OAuth credential could not manage Access; setup proceeded through a temp
 
 ## Migration compatibility
 
-Hosted migration initially failed with D1 `incomplete input` although local SQLite and Wrangler parsing accepted the files. Rewriting trigger guards from nested `CASE ... END` to equivalent `SELECT RAISE(...) WHERE ...` resolved the server parser issue without weakening limits or atomicity. Both environments successfully applied `0001_gallery.sql`, `0002_agent_review.sql` and `0003_audit_context.sql`, and each loaded the 1,482-entry catalog seed. Production database switches remain off; staging is enabled for the controlled checks described below. A new regression runs all migrations through the installed Wrangler splitter and verifies trigger execution and atomic counter rollback.
+Hosted migration initially failed with D1 `incomplete input` although local SQLite and Wrangler parsing accepted the files. Rewriting trigger guards from nested `CASE ... END` to equivalent `SELECT RAISE(...) WHERE ...` resolved the server parser issue without weakening limits or atomicity. Both environments successfully applied `0001_gallery.sql`, `0002_agent_review.sql` and `0003_audit_context.sql`, and each loaded the 1,482-entry catalog seed. Both environments now have intake, publication and serving switches set to 1. A new regression runs all migrations through the installed Wrangler splitter and verifies trigger execution and atomic counter rollback.
 
 ## Current verification
 
@@ -35,13 +35,17 @@ The enabled staging deployment completed the hosted human/agent moderation proof
 
 ## Remaining release work
 
-The simplified staging redeploy and its submission/retired-route smoke checks passed. The production root configuration now contains the actual bindings and enabled Worker environment flags, but all three production D1 switches remain 0. Implementation commit `0fff239` is pushed only to `codex/community-gallery`. Automatic approval review rejected a direct push to main and requires approval for that final repository change; [pull request #3](https://github.com/Enablement-Engineering/tin-to-cellar/pull/3) is prepared. Main and the production gallery remain unchanged. Complete the scoped production release and equivalent hosted checks before claiming production availability.
+The production release is live. [Pull request #3](https://github.com/Enablement-Engineering/tin-to-cellar/pull/3) merged after the user's explicit yes; CI checks, migrations, catalog seed, deployment and response checks passed. All three production D1 switches were enabled and read back as 1 after deployment.
+
+Production browser checks passed: existing human Access login opened the admin UI; two synthetic packs imported and submitted through Turnstile with v2 consent and compact success receipts. Automatic diagnostics collection succeeded. Admin corrections and full-resolution 2048px artwork loaded. The synthetic release-check submission `33c39bb0-2223-4122-b2a8-eead76fa037f` was approved, downloaded and reimported as one printable label on one sheet, then unpublished. Its public artwork SHA-256 matched `f437caa8e021ca65ba4f7d6a934831586be689331bbbf356c7aa8a8446ab7e00`. All four public detail/thumbnail/artwork/pack endpoints subsequently returned 404 with `no-store`, and the public listing was empty. A separate synthetic private feedback example remains pending.
+
+Unauthenticated production admin returned an Access redirect, the public-host admin API returned 404, and unauthenticated agent access returned 401. The securely stored production machine credential without an application grant returned `access_denied`. After direct user authorization, the selected-only production grant was registered successfully as `89190d2c-319d-44c4-8c20-d383536eb007`, expiring October 5, 2026 at 23:27 UTC. The client queue returned only synthetic pending submission `ad595ec2-c4b3-4846-b561-a83f8558e6c9`. Downloaded artwork matched canonical SHA-256 `b3dd632a59e36ef01bc46911e91c91b35f504994fd605e22c1a1b8c6ca2e52ae`. Recommendation `24daad22-cf36-4a0f-b609-c41155b0a69e` appeared in the human admin UI for version 4. The separate unpublished submission was denied to the client. Agent credentials could not reach human approval (Access redirect), and no agent approval route exists (404). The synthetic example remains private and pending with sample advice for feedback. The grant permits reads and recommendations only, with no future-arrival access. Temporary local artwork and recommendation files were removed; protected ongoing credentials remain outside the repository. New searchable-blend and footer refinements from the UI feedback task remain local follow-up changes and are not included in this production version.
 
 Fresh human login and selected-agent staging proof are complete; there is no pending OTP step. Keep the tested publication unpublished. Physical printer alignment and artwork rights are not established by software tests. The original mixed checkout remains untouched; implementation is isolated in `/private/tmp/tin-to-cellar-gallery`.
 
 ## Submission experience update
 
-At the user’s direction, successful contribution now ends with “Submitted for review.” Contributor status links, private preview and withdrawal controls are removed; an internal same-tab nonce remains only for safe reservation/upload retries. Admin rejection/unpublishing and retention remain. The earlier status/withdrawal test evidence describes the retired flow, not a supported feature. Production has not been released.
+At the user’s direction, successful contribution now ends with “Submitted for review.” Contributor status links, private preview and withdrawal controls are removed; an internal same-tab nonce remains only for safe reservation/upload retries. Admin rejection/unpublishing and retention remain. The earlier status/withdrawal test evidence describes the retired flow, not a supported feature. This simplified experience is now deployed in production.
 
 ## Consent and completion refinement
 

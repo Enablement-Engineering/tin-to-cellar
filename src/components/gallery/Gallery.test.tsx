@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
 import { webcrypto } from 'node:crypto'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { ImportedCellarLabel } from '../../lib/cellarpack/types'
 import { GallerySubmission } from './GallerySubmission'
@@ -15,6 +15,26 @@ function fixture(id = 'one'): ImportedCellarLabel {
 beforeEach(() => { vi.stubGlobal('crypto', webcrypto); URL.createObjectURL = vi.fn(() => 'blob:local'); URL.revokeObjectURL = vi.fn() })
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); history.replaceState({}, '', '/') })
 const config = { intake: true, serving: true, turnstileSiteKey: 'test', noticeVersion: '2026-09-06-v2' }
+it('searches blends with keyboard suggestions and clears the catalog filter without an edition field', async () => {
+  const fetcher = vi.fn(async (url: string) => ({ ok: true, json: async () => url.endsWith('/config') ? config : { labels: [], nextCursor: null } }))
+  vi.stubGlobal('fetch', fetcher)
+  render(<GalleryBrowse onUse={vi.fn()} />)
+  const input = await screen.findByRole('combobox', { name: 'Blend' })
+  expect(screen.queryByLabelText('Edition')).toBeNull()
+  fireEvent.change(input, { target: { value: 'Peterson Nightcap' } })
+  expect(screen.getByRole('button', { name: 'Search' })).toBeDisabled()
+  expect(screen.getByRole('option', { name: /Nightcap by Peterson/ })).toBeInTheDocument()
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(input).toHaveValue('Peterson — Nightcap')
+  fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+  await waitFor(() => expect(fetcher.mock.calls.at(-1)?.[0]).toContain('catalogId='))
+  expect(fetcher.mock.calls.at(-1)?.[0]).not.toContain('edition=')
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Search' })).toBeEnabled())
+  fireEvent.click(screen.getByRole('button', { name: 'Clear blend' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+  await waitFor(() => expect(fetcher.mock.calls.at(-1)?.[0]).toMatch(/labels\?geometry=circle-2.5$/))
+})
 it('previews locally, then uploads only explicitly selected artwork and allowlisted metadata', async () => {
   const calls: { url: string; init?: RequestInit }[] = []
   const fetcher = vi.fn(async (url: string, init?: RequestInit) => { calls.push({ url, init }); if (url.endsWith('/config')) return { ok: true, json: async () => config }; if (url.endsWith('/submissions')) { const d = JSON.parse(init?.body as string); return { ok: true, json: async () => ({ id: d.submissionId, state: 'reserved' }) } }; return { ok: true, json: async () => ({ id: 'receipt', state: 'pending' }) } })
