@@ -14,7 +14,8 @@
     "deploy": "npm run build && wrangler deploy",
     "preview:cloudflare": "npm run build && wrangler dev",
     "prepare:ocr": "node scripts/prepare-ocr.mjs",
-    "proof:overlay": "node scripts/generate-proof-overlay.mjs"
+    "proof:overlay": "node scripts/generate-proof-overlay.mjs",
+    "test:a11y": "playwright test"
   },
   "dependencies": {
     "@tesseract.js-data/eng": "1.0.0",
@@ -29,6 +30,8 @@
     "tesseract.js": "7.0.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.62.1",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.6",

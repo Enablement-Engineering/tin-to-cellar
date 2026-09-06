@@ -53,7 +53,7 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
         <div className="print-sidebar">
         {intake}
         <div className="panel quantity-panel">
-          <h2>Your labels</h2><p>Choose how many of each to print. Set a quantity to zero to leave it out.</p>
+          <h2 tabIndex={-1}>Your labels</h2><p>Choose how many of each to print. Set a quantity to zero to leave it out.</p>
           {labels.map((label) => <div className="quantity-row" key={label.id}>
             <div className="label-thumbnail"><LabelArtwork label={label} /></div>
             <div><strong>{label.blend}</strong><small>{label.maker}</small></div>
@@ -66,10 +66,10 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
           {copies.length >= 450 && <p className="field-hint">This batch has 450 labels, the limit for one print job. Reduce some quantities to add others.</p>}
           <details className="alignment-options"><summary>Paper and alignment</summary>
             <p>Avery 94502 · US Letter · 2.5-inch circles</p>
-            <label>Start at slot <select aria-label="Start at slot" value={firstSlot} onChange={(event) => setFirstSlot(Number(event.target.value))}>{Array.from({ length: 9 }, (_, index) => <option key={index} value={index + 1}>{index + 1}</option>)}</select></label>
-            <p className="field-hint">Slots run left to right, then down. Use this for a partly used first sheet.</p>
-            <div className="offset-grid">{(['x', 'y'] as const).map((axis) => <label key={axis}>{axis === 'x' ? 'Horizontal' : 'Vertical'} adjustment (in)<input aria-label={`${axis === 'x' ? 'Horizontal' : 'Vertical'} adjustment`} type="number" min="-0.25" max="0.25" step="0.01" value={offset[axis]} onChange={(event) => setOffset({ ...offset, [axis]: Math.max(-0.25, Math.min(0.25, Number(event.target.value) || 0)) })} /></label>)}</div>
-            <p className="field-hint">Positive values move labels right or down. Negative values move them left or up.</p>
+            <label>Start at slot <select aria-describedby="slot-hint" aria-label="Start at slot" value={firstSlot} onChange={(event) => setFirstSlot(Number(event.target.value))}>{Array.from({ length: 9 }, (_, index) => <option key={index} value={index + 1}>{index + 1}</option>)}</select></label>
+            <p className="field-hint" id="slot-hint">Slots run left to right, then down. Use this for a partly used first sheet.</p>
+            <div className="offset-grid">{(['x', 'y'] as const).map((axis) => <label key={axis}>{axis === 'x' ? 'Horizontal' : 'Vertical'} adjustment (in)<input aria-describedby="offset-hint" aria-label={`${axis === 'x' ? 'Horizontal' : 'Vertical'} adjustment`} type="number" min="-0.25" max="0.25" step="0.01" value={offset[axis]} onChange={(event) => setOffset({ ...offset, [axis]: Math.max(-0.25, Math.min(0.25, Number(event.target.value) || 0)) })} /></label>)}</div>
+            <p className="field-hint" id="offset-hint">Positive values move labels right or down. Negative values move them left or up.</p>
             <button className="button secondary" type="button" onClick={() => print('calibration')}><Icon name="guide" size={17} />Print alignment sheet</button>
             <p className="field-hint">Print on plain paper at Actual Size. The ruler should measure two inches. Hold it behind your label stock to check the nine circles.</p>
           </details>
@@ -77,12 +77,13 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
         </div>
         </div>
         <div className="sheet-stage">
-          <div className="sheet-meta"><span>{copies.length} {copies.length === 1 ? 'label' : 'labels'} · {copies.length ? pageCount : 0} {copies.length && pageCount === 1 ? 'sheet' : 'sheets'}</span><span>Avery 94502</span></div>
+          <div className="sheet-meta"><span role="status">{copies.length} {copies.length === 1 ? 'label' : 'labels'} · {copies.length ? pageCount : 0} {copies.length && pageCount === 1 ? 'sheet' : 'sheets'}</span><span>Avery 94502</span></div>
           {pageCount > 1 && <div className="page-controls"><button type="button" onClick={() => setPage(currentPage - 1)} disabled={currentPage === 0}>Previous sheet</button><span>Sheet {currentPage + 1} of {pageCount}</span><button type="button" onClick={() => setPage(currentPage + 1)} disabled={currentPage === pageCount - 1}>Next sheet</button></div>}
-          <div className="avery-sheet simple-sheet" aria-label={`Preview sheet ${currentPage + 1}`}>
+          <p className="visually-hidden" role="status">Preview sheet {currentPage + 1} of {pageCount}</p>
+          <div className="avery-sheet simple-sheet" role="region" aria-label={`Preview sheet ${currentPage + 1}`}>
             {AVERY_94502_PROFILE.slots.map((slot, index) => {
               const label = instances[currentPage * 9 + index]
-              return <div className="preview-slot" key={index} style={position(slot, true)}>{label ? <LabelArtwork label={label} /> : <span className="empty-preview">{index + 1}</span>}</div>
+              return <div className="preview-slot" role="img" aria-label={`Slot ${index + 1}: ${label ? `${label.maker} — ${label.blend}` : 'empty'}`} key={index} style={position(slot, true)}>{label ? <LabelArtwork label={label} /> : <span className="empty-preview">{index + 1}</span>}</div>
             })}
           </div>
         </div>

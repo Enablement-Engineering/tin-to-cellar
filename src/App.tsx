@@ -40,6 +40,7 @@ function App() {
   const [config, setConfig] = useState(initialConfig)
   const [view, setView] = useState<View>(() => viewFromHash() ?? 'home')
   const main = useRef<HTMLElement>(null)
+  const previousView = useRef(view)
   const navigate = (next: View) => {
     setView(next)
     if (next === view) {
@@ -49,8 +50,14 @@ function App() {
     if (window.location.hash !== `#${next}`) window.location.hash = next
   }
   useEffect(() => {
-    main.current?.focus({ preventScroll: true })
-    window.scrollTo({ top: 0, left: 0 })
+    const titles: Record<View, string> = { home: 'Labels for your tobacco jars', create: 'Make a prompt', print: 'Print labels', help: 'How it works', about: 'About', inspiration: 'Inspiration', privacy: 'Privacy' }
+    document.title = `${titles[view]} | Tin to Cellar`
+    // Leave initial focus at the document so the skip link is the first Tab stop.
+    if (previousView.current !== view) {
+      main.current?.focus({ preventScroll: true })
+      window.scrollTo({ top: 0, left: 0 })
+      previousView.current = view
+    }
   }, [view])
   useEffect(() => {
     const previousRestoration = window.history.scrollRestoration
@@ -78,6 +85,14 @@ function App() {
   const [importLoadError, setImportLoadError] = useState(false)
   const [showRepair, setShowRepair] = useState(false)
   const objectUrls = useRef<string[]>([])
+  const previousLabelCount = useRef(0)
+  useEffect(() => {
+    // The first usable pack replaces the empty workspace, removing its upload button.
+    if (!previousLabelCount.current && labels.length && view === 'print' && document.activeElement === document.body) {
+      main.current?.querySelector<HTMLElement>('.quantity-panel h2')?.focus()
+    }
+    previousLabelCount.current = labels.length
+  }, [labels, view])
   const importBusy = useRef(false)
   const promptInput = useMemo(() => ({
     tobaccos: config.tobaccos,
@@ -168,11 +183,12 @@ function App() {
 
   const intake = <div className="import-section screen-only"><PackImporter busy={importing} summary={summary} onFile={handlePack} /><ContributionStatus key={JSON.stringify(contribution)} contribution={contribution} /><DiagnosticFeedback candidate={feedback} protocolContext={protocolContext} />
     {importLoadError && <div className="panel" role="alert"><h3>The label reader couldn’t load</h3><p>The app may have updated, or the connection was interrupted. Reload the page, then choose the same ZIP again. Reloading clears the current workspace.</p><button className="button secondary" type="button" onClick={() => window.location.reload()}>Reload app</button></div>}
-    {repairPrompt && <div className="panel repair-panel" role="status"><h3>{labels.length ? 'Some labels need fixing' : 'The ZIP needs fixing'}</h3><p>{labels.length ? 'You can still print the usable labels below. ' : ''}Send the repair request to the same AI chat and import the ZIP it returns.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}><Icon name="copy" size={17} />Copy repair request</button><p className="copy-status">{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={repairPrompt} rows={8} onFocus={(event) => event.currentTarget.select()} />}</div>}
+    {repairPrompt && <div className="panel repair-panel"><h3>{labels.length ? 'Some labels need fixing' : 'The ZIP needs fixing'}</h3><p>{labels.length ? 'You can still print the usable labels below. ' : ''}Send the repair request to the same AI chat and import the ZIP it returns.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}><Icon name="copy" size={17} />Copy repair request</button><p className="copy-status" role="status">{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={repairPrompt} rows={8} onFocus={(event) => event.currentTarget.select()} />}</div>}
   </div>
 
   return <div className="app-shell tc-grain">
-    <a className="skip-link" href="#main-content">Skip to main content</a>
+    <a className="skip-link" href="#main-content" onClick={(event) => { event.preventDefault(); main.current?.focus(); main.current?.scrollIntoView({ block: 'start' }) }}>Skip to main content</a>
+    <p className="visually-hidden screen-only" role="status">{importing ? 'Checking your labels…' : summary ? `${summary.status === 'ready' ? 'Labels ready to print' : summary.status === 'partial' ? 'Some labels need repair' : 'ZIP needs repair'}. ${summary.labels.length} labels ready. ${summary.issues.length} issues to review.` : ''}</p>
     <header className="site-header screen-only">
       <div className="site-header-inner">
         <button className="wordmark" type="button" onClick={() => navigate('home')} aria-label="Tin to Cellar home"><Wordmark /></button>

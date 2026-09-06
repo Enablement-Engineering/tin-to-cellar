@@ -42,6 +42,7 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
         <input
           ref={inputRef}
           type="file"
+          tabIndex={-1}
           aria-label="Label ZIP"
           disabled={busy}
           accept=".zip,.cellarpack.zip,application/zip"
@@ -59,7 +60,7 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
 
 
       {summary && (
-        <div className={`import-report status-${summary.status}`} aria-live="polite">
+        <div className={`import-report status-${summary.status}`}>
           <div className="report-topline">
             <div>
               <p>{summary.status === 'ready' ? 'Labels ready to print' : summary.status === 'partial' ? 'Some labels need repair' : 'ZIP needs repair'}</p>

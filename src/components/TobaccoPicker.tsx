@@ -62,7 +62,7 @@ export function TobaccoPicker({ value, onChange }: { value: string; onChange: (v
     <label htmlFor={id}>Tobaccos <em>optional</em></label>
     <span className="field-hint" id={`${id}-hint`}>Search by maker or blend, type your own, or paste one blend per line. You can also choose blends later in your AI chat.</span>
     <div className="tobacco-editor">
-      <input id={id} ref={input} type="text" role="combobox" aria-label="Tobaccos" aria-autocomplete="list" aria-controls={`${id}-options`} aria-expanded={showOptions} aria-activedescendant={showOptions && active >= 0 ? `${id}-option-${active}` : undefined} aria-describedby={`${id}-hint`} autoComplete="off" value={draft} placeholder={names.length ? 'Add another tobacco…' : 'Search or type a tobacco…'} onFocus={() => setOpen(true)} onBlur={() => { setOpen(false); setActive(-1) }} onKeyDown={keyDown} onChange={(event) => { publish(names, event.target.value); setActive(-1); setOpen(true) }} onPaste={(event) => {
+      <input id={id} ref={input} type="text" role="combobox" aria-label="Tobaccos" aria-autocomplete="list" aria-controls={showOptions ? `${id}-options` : undefined} aria-expanded={showOptions} aria-activedescendant={showOptions && active >= 0 ? `${id}-option-${active}` : undefined} aria-describedby={`${id}-hint`} autoComplete="off" value={draft} placeholder={names.length ? 'Add another tobacco…' : 'Search or type a tobacco…'} onFocus={() => setOpen(true)} onBlur={() => { setOpen(false); setActive(-1) }} onKeyDown={keyDown} onChange={(event) => { publish(names, event.target.value); setActive(-1); setOpen(true) }} onPaste={(event) => {
         const text = event.clipboardData.getData('text')
         if (!/[\r\n]/.test(text)) return
         event.preventDefault()
@@ -78,7 +78,7 @@ export function TobaccoPicker({ value, onChange }: { value: string; onChange: (v
       <li id={`${id}-option-${matches.length}`} role="option" aria-selected={active === matches.length} onMouseDown={(event) => event.preventDefault()} onClick={() => choose(draft)}>Use "{draft.trim()}"</li>
     </ul>}
     </div>
-    {names.length > 0 && <ul className="tobacco-chips" aria-label="Selected tobaccos">{names.map((name) => <li key={name}><span>{name}</span><button type="button" aria-label={`Remove ${name}`} onClick={() => publish(names.filter((item) => item !== name), draft)}>×</button></li>)}</ul>}
+    {names.length > 0 && <ul className="tobacco-chips" aria-label="Selected tobaccos">{names.map((name) => <li key={name}><span>{name}</span><button type="button" aria-label={`Remove ${name}`} onClick={() => { publish(names.filter((item) => item !== name), draft); input.current?.focus() }}>×</button></li>)}</ul>}
     <span className="visually-hidden" aria-live="polite">{showOptions ? `${matches.length} catalog ${matches.length === 1 ? 'suggestion' : 'suggestions'}.` : ''}</span>
     <button className="clear-tobaccos" style={{ visibility: names.length > 0 || draft ? 'visible' : 'hidden' }} type="button" onClick={() => { publish([], ''); setOpen(false); setActive(-1); input.current?.focus() }}>Clear tobaccos</button>
   </div>

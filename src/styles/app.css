@@ -42,6 +42,7 @@ a:hover { color: var(--text-link-hover); }
 ::selection { background: var(--brass-200); color: var(--ink-900); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .skip-link { position: fixed; left: 16px; top: -80px; z-index: 100; padding: 12px 16px; background: var(--surface-card); color: var(--text-strong); border-radius: var(--radius-control); }
+.skip-link:not(:focus) { clip-path: inset(50%); }
 .skip-link:focus { top: 16px; }
 .icon { flex: 0 0 auto; }
 
@@ -98,12 +99,12 @@ input[type='text'], input[type='number'], select { padding: 10px 12px; }
 textarea { width: 100%; padding: 12px; resize: vertical; }
 .field input, .field textarea, .field select { width: 100%; }
 input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1; }
-input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 0; border-color: var(--line-focus); box-shadow: var(--shadow-focus); }
+input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--line-focus); outline-offset: 3px; border-color: var(--line-focus); box-shadow: var(--shadow-focus); }
 input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); background: var(--surface-disabled); cursor: not-allowed; }
 .inline-note, .handoff-warning { margin: 16px 0; padding: 12px 16px; border: 1px solid var(--line-hairline); border-radius: var(--radius-control); background: var(--surface-sunken); color: var(--text-muted); font: var(--type-hint); }
 .handoff-warning { border-color: var(--brass-200); background: var(--status-caution-surface); color: var(--amber-700); }
 .copy-status { margin-top: 12px; color: var(--text-accent); font: var(--type-spec); overflow-wrap: anywhere; }
-.copy-status:empty { display: none; }
+.copy-status:empty { margin: 0; }
 
 /* The landing page introduces the workflow using the existing photograph. */
 .landing-page { display: grid; gap: 72px; max-width: var(--width-content); margin: 0 auto; padding: 56px 40px 72px; }
@@ -142,7 +143,7 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 .tobacco-editor { position: relative; min-width: 0; border: 1px solid var(--line-field); border-radius: var(--radius-field); background: var(--surface-field); box-shadow: var(--shadow-inset-field); }
 .tobacco-editor:focus-within { border-color: var(--line-focus); box-shadow: var(--shadow-focus); }
 .tobacco-editor input[type='text'] { width: 100%; border: 0; background: transparent; box-shadow: none; }
-.tobacco-editor input[type='text']:focus-visible { outline: 0; box-shadow: none; }
+.tobacco-editor input[type='text']:focus-visible { outline: 2px solid var(--line-focus); box-shadow: none; }
 .tobacco-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; padding: 0; list-style: none; }
 .tobacco-chips li { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 32px; padding: 2px 4px 2px 12px; border-radius: var(--radius-chip); background: var(--paper-200); color: var(--text-strong); font: var(--type-ui); }
 .tobacco-chips li > span { overflow-wrap: anywhere; }
@@ -229,8 +230,8 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 .drop-zone > span:not(.drop-icon), .drop-zone small { color: var(--text-muted); font: var(--type-hint); }
 .drop-icon { display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid var(--line-rule-brass); border-radius: 50%; background: var(--surface-card); color: var(--text-accent); }
 .importer > .field-hint { margin-top: 16px; }
-.import-privacy { display: flex; align-items: flex-start; gap: 8px; margin-top: 16px; color: var(--text-muted); font: var(--type-hint); }
-.import-privacy .icon { margin-top: 2px; }
+.import-privacy { margin-top: 16px; color: var(--text-muted); font: var(--type-hint); }
+.import-privacy .icon { vertical-align: text-bottom; margin-right: 4px; }
 .import-report { margin-top: 24px; border: 1px solid var(--line-hairline); border-radius: var(--radius-3); background: var(--surface-card); overflow: hidden; }
 .import-report.status-ready { border-top: 3px solid var(--status-ready); }
 .import-report.status-partial { border-top: 3px solid var(--status-caution); }
@@ -341,6 +342,7 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 
 @media (max-width: 600px) {
   html { scroll-padding-top: 140px; }
+  .site-header { position: static; }
   .site-header-inner { flex-wrap: wrap; justify-content: center; gap: 8px; padding: 12px 16px 8px; }
   .wordmark strong, .wordmark-name { font-size: 21px; }
   .site-header nav { justify-content: center; width: 100%; gap: 2px; }
@@ -409,4 +411,25 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
   /* Preview at trim; print the supplied artwork through its outer bleed circle. */
   .production-slot .label-art { overflow: visible; contain: none; border-radius: 0; background: transparent; }
   .production-slot .label-art > img { border-radius: 50%; }
+}
+
+/* Keep keyboard focus visible in high contrast modes, which suppress shadows. */
+@media (forced-colors: active) {
+  :focus-visible { outline: 2px solid Highlight; }
+  input:focus-visible, textarea:focus-visible, select:focus-visible,
+  .tobacco-editor input[type='text']:focus-visible { outline: 2px solid Highlight; }
+  .tobacco-suggestions li[aria-selected='true'] { outline: 2px solid Highlight; outline-offset: -2px; }
+  .prompt-view-switch button[aria-pressed='true'], .nav-tabs [aria-current='page'] { border: 2px solid Highlight; }
+}
+@media screen {
+  .tobacco-chips button { width: 44px; height: 44px; }
+  .clear-tobaccos, .prompt-view-switch button, .page-controls button { min-height: 44px; }
+  .quantity-control button, .quantity-control input { min-width: 44px; height: 44px; }
+  :where(a, button, input, select, textarea, summary, [tabindex]) { scroll-margin-block: 100px 24px; }
+}
+@media screen and (max-width: 600px) {
+  .quantity-row { grid-template-columns: 48px minmax(0, 1fr); }
+  .quantity-control { grid-column: 2; }
+  .prompt-view-switch { flex-wrap: wrap; }
+  .order-review select { white-space: normal; }
 }

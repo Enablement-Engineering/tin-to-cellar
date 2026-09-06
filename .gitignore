@@ -37,3 +37,6 @@ test-results/
 
 # Session-specific validation notes can contain personal inventory details.
 /docs/cellar-e2e-*.md
+
+# Local audit and decision records.
+/docs/adr/

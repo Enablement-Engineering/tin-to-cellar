@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { matchOrder, readOrderPdf, type OrderMatch } from '../lib/order-import'
 import { Icon } from './Icons'
 
 export function OrderImporter({ onAdd }: { onAdd: (names: string[]) => void }) {
+  const panelId = useId()
+  const trigger = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
   const [matches, setMatches] = useState<OrderMatch[]>([])
@@ -42,12 +44,12 @@ export function OrderImporter({ onAdd }: { onAdd: (names: string[]) => void }) {
     } finally { clearTimeout(timeout); if (ticket === request.current) setBusy(false) }
   }
   return <div className="order-import">
-    <button type="button" className="order-import-trigger" aria-label={open ? 'Close order import' : 'Import order'} aria-expanded={open} onClick={() => { if (busy) cancel(); setOpen(!open) }}>
+    <button type="button" className="order-import-trigger" ref={trigger} aria-controls={open ? panelId : undefined} aria-label={open ? 'Close order import' : 'Import order'} aria-expanded={open} onClick={() => { if (busy) cancel(); setOpen(!open) }}>
       <span className="order-import-symbol"><Icon name="upload" size={21} /></span>
       <span><strong>{open ? 'Close order import' : 'Import order'}</strong><small>PDF, screenshot, or pasted text</small></span>
       <span className="order-import-toggle" aria-hidden="true">{open ? '−' : '+'}</span>
     </button>
-    {open && <div className="order-import-panel" aria-busy={busy}>
+    {open && <div className="order-import-panel" id={panelId}>
       <input ref={input} className="visually-hidden" tabIndex={-1} aria-label="Order file" type="file" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void load(file) }} />
       <button type="button" className={`order-file-drop${dragging ? ' is-dragging' : ''}`} disabled={busy} onClick={() => input.current?.click()} onDragOver={(event) => { event.preventDefault(); if (!busy) setDragging(true) }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); const files = event.dataTransfer.files; if (files.length !== 1) { setMessage('Choose one order file at a time.'); return } void load(files[0]) }}>
         <Icon name="file" size={28} /><strong>{busy ? 'Reading your order…' : 'Choose a file or drop it here'}</strong><span>PDF · PNG · JPEG · WebP · up to 10 MB</span>
@@ -55,7 +57,7 @@ export function OrderImporter({ onAdd }: { onAdd: (names: string[]) => void }) {
       <p className="order-local-note"><Icon name="lock" size={13} /> Files stay on your device. Reading a screenshot may take a moment.</p>
       {filename && <p className="order-filename">{filename}</p>}
       <p role="status" className="field-hint">{message}</p>
-      {busy && <button type="button" className="button quiet" onClick={cancel}>Cancel reading</button>}
+      {busy && <button type="button" className="button quiet" onClick={() => { cancel(); trigger.current?.focus() }}>Cancel reading</button>}
       {!filename && <><label className="field"><span>Or paste your order</span><textarea aria-label="Order text" rows={3} maxLength={100000} value={text} disabled={busy} placeholder="Paste the product list from your order email…" onChange={(event) => { setText(event.target.value); setMatches([]); setSelected([]); setMessage('') }} /></label>
       <button className="button secondary" type="button" disabled={busy || !text.trim()} onClick={() => { try { review(text) } catch (error) { setMessage((error as Error).message) } }}>Find tobaccos</button></>}
       {matches.length > 0 && <div className="order-review">{matches.map((match, index) => <label className="field" key={`${index}-${match.source}`}><span>{match.source}</span><select aria-label={`Match for ${match.source}`} value={selected[index]} onChange={(event) => setSelected(selected.map((value, i) => i === index ? event.target.value : value))}>
@@ -63,7 +65,7 @@ export function OrderImporter({ onAdd }: { onAdd: (names: string[]) => void }) {
         {match.suggestions.map((suggestion) => <option key={suggestion} value={suggestion}>{suggestion}</option>)}
         <option value={match.source}>Use the name as written: {match.source}</option>
       </select></label>)}</div>}
-      {matches.length > 0 && <button className="button primary" type="button" disabled={!selected.some(Boolean)} onClick={() => { onAdd([...new Set(selected.filter(Boolean))]); setOpen(false); setText(''); setMatches([]); setSelected([]); setMessage(''); setFilename('') }}>Add selected tobaccos</button>}
+      {matches.length > 0 && <button className="button primary" type="button" disabled={!selected.some(Boolean)} onClick={() => { onAdd([...new Set(selected.filter(Boolean))]); setOpen(false); setText(''); setMatches([]); setSelected([]); setMessage(''); setFilename(''); trigger.current?.focus() }}>Add selected tobaccos</button>}
     </div>}
   </div>
 }
