@@ -1,13 +1,14 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { CatalogContributions, contributionsResponse } from './contributions'
+import { CatalogContributions, contributionsResponse, type Storage } from './contributions'
 import { TOBACCO_CATALOG } from '../src/lib/tobacco-catalog'
+import type { DiagnosticsDatabase } from './diagnostics'
 const source = { catalogId: TOBACCO_CATALOG[0].id, url: 'https://retailer.com/tin.png', status: 'valid', package: 'tin', variant: 'current' }
 const contribution = { version: 1, submissionId: 'a'.repeat(64), feedback: null, sources: [source] }
-function setup() {
+function setup(database?: DiagnosticsDatabase) {
   const data = new Map<string, unknown>()
   let alarm: number | null = null
   let serial = Promise.resolve<unknown>(undefined)
-  const storage = {
+  const storage: Storage = {
     async get<T>(key: string): Promise<T | undefined> { return structuredClone(data.get(key)) as T | undefined },
     async put(key: string, value: unknown) { data.set(key, structuredClone(value)) },
     async delete(key: string) { return data.delete(key) },
@@ -16,7 +17,7 @@ function setup() {
     async setAlarm(time: number) { alarm = time },
     transaction<T>(callback: (s: typeof storage) => Promise<T>): Promise<T> { const result = serial.then(() => callback(storage)); serial = result.catch(() => {}); return result },
   }
-  const object = new CatalogContributions({ storage })
+  const object = new CatalogContributions({ storage }, { DIAGNOSTICS: database })
   return { object, data, storage, binding: { getByName: () => object } }
 }
 const post = (body = contribution) => new Request('https://catalog/collect', { method: 'POST', body: JSON.stringify(body) })
@@ -68,4 +69,31 @@ it('allows a new pack to report a recovered link while reimporting an old pack c
   expect((await (await state.object.fetch(get())).json()).sources).toEqual([])
   await state.object.fetch(post({ ...contribution, submissionId: 'c'.repeat(64) }))
   expect((await (await state.object.fetch(get())).json()).sources).toHaveLength(1)
+})
+it('migrates retained legacy records before new collection and only marks completion after successful writes', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-09-06'))
+  const rows = new Map<string, unknown[]>()
+  let fail = true
+  const db: DiagnosticsDatabase = { prepare() {
+    let values: unknown[] = []
+    const statement = { bind(...v: unknown[]) { values = v; return statement }, async run() {
+      if (fail && rows.size === 1) throw new Error('Interrupted')
+      const id = String(values[0]); const changed = !rows.has(id)
+      if (changed) rows.set(id, values)
+      return { meta: { changes: changed ? 1 : 0 } }
+    }, async first<T>() { return null as T | null }, async all<T>() { return { results: [] as T[] } } }
+    return statement
+  }, async batch(statements) { return Promise.all(statements.map(statement => statement.run())) } }
+  const state = setup(db)
+  state.data.set('report:one', { receivedAt: '2026-08-01T00:00:00.000Z', contribution })
+  state.data.set('report:two', { receivedAt: '2026-08-02T00:00:00.000Z', contribution: { ...contribution, submissionId: 'b'.repeat(64) } })
+  state.data.set('report:expired', { receivedAt: '2025-01-01T00:00:00.000Z', contribution: { ...contribution, submissionId: 'c'.repeat(64) } })
+  const migrate = () => state.object.fetch(new Request('https://catalog/migrate', { method: 'POST' }))
+  await expect(migrate()).rejects.toThrow('Interrupted')
+  expect(state.data.has('diagnostics-migrated-v1')).toBe(false)
+  fail = false
+  expect(await (await migrate()).json()).toEqual({ status: 'migrated', copied: 2 })
+  expect(rows.size).toBe(2)
+  expect(rows.get(contribution.submissionId)?.slice(1,4)).toEqual(['2026-08-01T00:00:00.000Z', '2026-10-30T00:00:00.000Z', 'legacy'])
+  expect(await (await migrate()).json()).toEqual({ status: 'already-migrated' })
 })

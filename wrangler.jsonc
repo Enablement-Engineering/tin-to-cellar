@@ -5,6 +5,8 @@
   "compatibility_date": "2026-09-05",
   "workers_dev": false,
   "preview_urls": false,
+  "d1_databases": [{ "binding": "DIAGNOSTICS", "database_name": "tin-to-cellar-diagnostics", "database_id": "10c1a5a7-9884-46ad-86d0-2eedf5d8426a", "migrations_dir": "migrations" }],
+  "triggers": { "crons": ["17 4 * * *"] },
   "durable_objects": {
     "bindings": [
       {

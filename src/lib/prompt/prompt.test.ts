@@ -54,7 +54,8 @@ describe('self-contained generation protocol', () => {
     expect(code).toBe(read('./local-proof.py').trim())
     expect(prompt).toContain(`Canonical local-proof.py SHA-256: ${createHash('sha256').update(code + '\n').digest('hex')}`)
     expect(code.length).toBeLessThan(10000)
-    expect(prompt.length - code.length).toBeLessThan(41000)
+    // Includes the new optional retrospective contract and its closed schema.
+    expect(prompt.length - code.length).toBeLessThan(44000)
   })
   it('preserves research-before-generation and close reference fidelity', () => {
     const prompt = buildCompleteTinToCellarPrompt({ tobaccos: 'Escudo' })
@@ -166,10 +167,12 @@ describe('private diagnostic instructions', () => {
 
 
 describe('embedded protocol handoff', () => {
-  it('includes both complete schemas and proof program in the default copy', () => {
+  it('includes all complete schemas and proof program in the default copy', () => {
     const prompt = buildTinToCellarPrompt({ tobaccos: ['Westminster', 'Orlik Golden Sliced', 'Autumn Evening'], websiteUrl: 'http://localhost:5173/' })
     expect(schemaIn(prompt)).toEqual(schema)
-    expect([...prompt.matchAll(/```json\n([\s\S]*?)\n```/g)]).toHaveLength(2)
+    const schemas = [...prompt.matchAll(/```json\n([\s\S]*?)\n```/g)].map(match => JSON.parse(match[1]))
+    expect(schemas).toHaveLength(3)
+    expect(schemas[2]).toEqual(JSON.parse(read('../feedback/retrospective.schema.json')))
     for (const text of ['Westminster', 'Orlik Golden Sliced', 'Autumn Evening', 'Canonical local-proof.py SHA-256', `Protocol version: ${PROTOCOL_REVISION}`, `END TIN TO CELLAR PROTOCOL ${PROTOCOL_REVISION}`, 'http://localhost:5173/labels/print']) expect(prompt).toContain(text)
     expect(prompt).not.toContain('/api/labels/protocol')
     expect(prompt).not.toContain('Copy complete prompt')
