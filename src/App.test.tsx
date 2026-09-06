@@ -39,8 +39,7 @@ describe('home, prompt, print, and help navigation', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Tobaccos' }), { target: { value: 'Escudo' } })
     fireEvent.change(screen.getByLabelText('Special requests'), { target: { value: 'Keep the crest' } })
     fireEvent.click(screen.getByRole('link', { name: 'Tin to Cellar home' }))
-    expect(window.location.pathname).toBe('/')
-    fireEvent.click(screen.getByRole('link', { name: 'Explore Labels' }))
+    expect(window.location.pathname).toBe('/labels')
     fireEvent.click(within(screen.getByRole('main')).getByRole('button', { name: 'Make a prompt' }))
     expect(screen.getByRole('main')).toHaveFocus()
     expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 0, left: 0 })
@@ -154,7 +153,6 @@ describe('home, prompt, print, and help navigation', () => {
     fireEvent.click(screen.getByRole('link', { name: /Make a prompt/i }))
     fireEvent.click(screen.getByRole('link', { name: 'How it works' }))
     fireEvent.click(screen.getByRole('link', { name: 'Tin to Cellar home' }))
-    fireEvent.click(screen.getByRole('link', { name: 'Explore Labels' }))
     fireEvent.click(screen.getByRole('link', { name: /Print labels/i }))
     expect(screen.getByLabelText('Start at slot')).toHaveValue('2')
     expect(screen.getByLabelText('Horizontal adjustment')).toHaveValue(.05)
@@ -261,13 +259,10 @@ it('collects valid diagnostics from a readable manifest even when its artwork is
   fetchMock.mockRestore()
 })
 
-it('introduces Labels from the site root using real links', () => {
+it('redirects the site root to Labels using real links', () => {
   window.history.replaceState({}, '', '/')
   render(<App />)
-  expect(screen.getByRole('heading', { name: 'For the jars in your cellar.' })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: 'Explore Labels' })).toHaveAttribute('href', '/labels')
   expect(screen.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy')
-  fireEvent.click(screen.getByRole('link', { name: 'Explore Labels' }))
   expect(window.location.pathname).toBe('/labels')
   expect(screen.getByRole('heading', { name: 'Make the jar look like the tin.' })).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Print labels' })).toHaveAttribute('href', '/labels/print')

@@ -31,6 +31,10 @@ const viewPaths = { home: '/', labels: '/labels', create: '/labels/create', prin
 type View = keyof typeof viewPaths
 function viewFromPath(): View | 'not-found' {
   const pathname = window.location.pathname.replace(/\/$/, '') || '/'
+  if (pathname === '/') {
+    window.history.replaceState(window.history.state, '', `/labels${window.location.search}${window.location.hash}`)
+    return 'labels'
+  }
   return (Object.keys(viewPaths) as View[]).find((view) => viewPaths[view] === pathname) ?? 'not-found'
 }
 function issueText(issue: { message?: string; recovery?: string }) {
@@ -44,6 +48,7 @@ function App() {
   const main = useRef<HTMLElement>(null)
   const previousView = useRef(view)
   const navigate = (next: View) => {
+    if (next === 'home') next = 'labels'
     setView(next)
     if (next === view) {
       main.current?.focus({ preventScroll: true })
