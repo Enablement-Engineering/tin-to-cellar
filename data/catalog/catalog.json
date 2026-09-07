@@ -19720,7 +19720,7 @@
   },
   {
     "maker": "Lane Limited",
-    "blend": "Bca",
+    "blend": "BCA",
     "sourceUrl": "https://4noggins.com/products/lane-limited-bulk-bca",
     "reviewedAt": "2026-09-05",
     "aliases": [
@@ -20333,7 +20333,7 @@
   },
   {
     "maker": "Lane Limited",
-    "blend": "Rlp-6",
+    "blend": "RLP-6",
     "sourceUrl": "https://4noggins.com/products/lane-limited-bulk-rlp-6",
     "reviewedAt": "2026-09-05",
     "aliases": [
@@ -23134,10 +23134,12 @@
   },
   {
     "maker": "Per Jensen",
-    "blend": "Legacy Collection Brothers in Arms",
+    "blend": "Legacy Collection: Brothers in Arms",
     "sourceUrl": "https://wvsmokeshop.com/perjensenlegacycollectionbrothersinarms2oztin.aspx",
     "reviewedAt": "2026-09-05",
-    "aliases": [],
+    "aliases": [
+      "Legacy Collection Brothers in Arms"
+    ],
     "sources": [
       {
         "url": "https://wvsmokeshop.com/perjensenlegacycollectionbrothersinarms2oztin.aspx",
@@ -23182,10 +23184,12 @@
   },
   {
     "maker": "Per Jensen",
-    "blend": "Legacy Collection Port Guardian",
+    "blend": "Legacy Collection: Port Guardian",
     "sourceUrl": "https://wvsmokeshop.com/PerJensenLegacyCollectionPortGuardian2ozTin.aspx",
     "reviewedAt": "2026-09-05",
-    "aliases": [],
+    "aliases": [
+      "Legacy Collection Port Guardian"
+    ],
     "sources": [
       {
         "url": "https://wvsmokeshop.com/PerJensenLegacyCollectionPortGuardian2ozTin.aspx",
@@ -28983,10 +28987,12 @@
   },
   {
     "maker": "Seattle Pipe Club",
-    "blend": "Mississippi River Barrel Aged",
+    "blend": "Mississippi River: Barrel Aged",
     "sourceUrl": "https://4noggins.com/products/seattle-pipe-club-mississippi-river-barrel-aged-2oz",
     "reviewedAt": "2026-09-05",
-    "aliases": [],
+    "aliases": [
+      "Mississippi River Barrel Aged"
+    ],
     "sources": [
       {
         "url": "https://4noggins.com/products/seattle-pipe-club-mississippi-river-barrel-aged-2oz",
@@ -32408,5 +32414,29 @@
       }
     ],
     "id": "wilsons-of-sharrow-superior"
+  },
+  {
+    "maker": "Cornell & Diehl",
+    "blend": "CPCC 30th Anniversary: 1996",
+    "sourceUrl": "https://www.smokingpipes.com/pipe-tobacco/cornell-diehl/cpcc-30th-anniversary%3A-1996-2oz/product_id/724485",
+    "reviewedAt": "2026-09-06",
+    "aliases": [],
+    "id": "cornell-and-diehl-cpcc-30th-anniversary-1996"
+  },
+  {
+    "maker": "Cornell & Diehl",
+    "blend": "CPCC 30th Anniversary: 2026",
+    "sourceUrl": "https://www.smokingpipes.com/pipe-tobacco/cornell-diehl/cpcc-30th-anniversary%3A-2026-2oz/product_id/724487",
+    "reviewedAt": "2026-09-06",
+    "aliases": [],
+    "id": "cornell-and-diehl-cpcc-30th-anniversary-2026"
+  },
+  {
+    "maker": "Low Country",
+    "blend": "Pee Dee",
+    "sourceUrl": "https://www.smokingpipes.com/tobacco/by-maker/low-country/moreinfo.cfm?product_id=678899",
+    "reviewedAt": "2026-09-06",
+    "aliases": [],
+    "id": "low-country-pee-dee"
   }
 ]

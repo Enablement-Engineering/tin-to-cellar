@@ -164,9 +164,139 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
             const admin = await (deps.verifyAdmin ?? verifyGalleryAdmin)(request, env);
             if (!admin)
                 return json({ error: 'forbidden' }, 403);
+            if (path === '/admin/reconcile' && method === 'POST') {
+                if (!switches.publication)
+                    return json({ error: 'publication_closed' }, 503);
+                const encoded = await boundedBody(request, MAX_IMAGE_BYTES + MAX_METADATA_BYTES + 65536);
+                const form = await new Response(encoded as BodyInit, { headers: { 'Content-Type': request.headers.get('Content-Type') ?? '' } }).formData();
+                const rawMetadata = form.get('metadata');
+                const artworkFile = form.get('artwork');
+                if (typeof rawMetadata !== 'string' || !(artworkFile instanceof File) || artworkFile.type !== 'image/png' || new TextEncoder().encode(rawMetadata).length > MAX_METADATA_BYTES)
+                    return json({ error: 'invalid_metadata' }, 400);
+                const incoming = parseGalleryDraft(JSON.parse(rawMetadata));
+                if (!incoming.catalogId || incoming.acknowledgement.version !== GALLERY_NOTICE_VERSION)
+                    return json({ error: 'invalid_metadata' }, 400);
+                const matches = (await db.prepare("SELECT * FROM gallery_submissions WHERE state='published' AND catalog_id=? LIMIT 2").bind(incoming.catalogId).all<Row>()).results;
+                if (!matches.length)
+                    return json({ error: 'publication_not_found' }, 404);
+                if (matches.length !== 1)
+                    return json({ error: 'review_changed' }, 409);
+                const row = matches[0];
+                const source = new Uint8Array(await artworkFile.arrayBuffer());
+                if (source.length > MAX_IMAGE_BYTES || source.length !== incoming.image.bytes || await sha256(source) !== incoming.image.sha256)
+                    return json({ error: 'image_mismatch' }, 400);
+                const metadata = { ...incoming, submissionId: row.id };
+                const normalized = await normalizeGalleryImage(source);
+                if (normalized.width !== metadata.image.width || normalized.height !== metadata.image.height)
+                    return json({ error: 'image_mismatch' }, 400);
+                const tobacco = await db.prepare('SELECT maker,blend FROM gallery_tobaccos WHERE id=? AND active=1').bind(metadata.catalogId).first<{ maker: string; blend: string }>();
+                if (!tobacco)
+                    return json({ error: 'catalog_mapping_required' }, 400);
+                const metadataJson = canonicalJson(metadata);
+                const metadataHash = await sha256(metadataJson);
+                const artworkHash = await sha256(normalized.artwork);
+                const approvalDigest = await digest(metadata, artworkHash);
+                const pack = await buildGalleryPack({ metadata, ...tobacco, packId: row.id, createdAt: row.created_at }, normalized.artwork);
+                const version = row.row_version + 1;
+                const prepared = [
+                    { kind: 'artwork', bytes: normalized.artwork },
+                    { kind: 'thumbnail', bytes: normalized.thumbnail },
+                    { kind: 'pack', bytes: pack },
+                ];
+                const assets = await Promise.all(prepared.map(async ({ kind, bytes }) => {
+                    const hash = await sha256(bytes);
+                    const key = `gallery/${row.id}/${kind}-${version}-${hash}`;
+                    await env.GALLERY_ART!.put(key, bytes);
+                    return { kind, bytes, hash, key };
+                }));
+                if (!(await Promise.all(assets.map(asset => env.GALLERY_ART!.head(asset.key)))).every(Boolean))
+                    throw new Error('storage_unavailable');
+                const comparable = canonicalJson({ catalogId: metadata.catalogId, surface: metadata.surface, writeInArea: metadata.writeInArea, edition: metadata.edition, references: metadata.references, package: metadata.package, variant: metadata.variant });
+                const dedupeHash = await sha256(artworkHash + comparable);
+                const totalBytes = assets.reduce((sum, asset) => sum + asset.bytes.length, 0);
+                const mutationId = crypto.randomUUID();
+                const update = db.prepare("UPDATE gallery_submissions SET request_hash=?,metadata_json=?,metadata_hash=?,input_bytes=?,artwork_hash=?,digest=?,approval_digest=?,published_maker=?,published_blend=?,dedupe_hash=?,reserved_bytes=?,row_version=row_version+1 WHERE id=? AND row_version=? AND state='published' AND EXISTS(SELECT 1 FROM gallery_settings WHERE id=1 AND publication=1) AND EXISTS(SELECT 1 FROM gallery_tobaccos WHERE id=gallery_submissions.catalog_id AND active=1 AND maker=? AND blend=?) AND (SELECT COALESCE(SUM(reserved_bytes),0) FROM gallery_submissions WHERE id<>?)<=8589934592-?")
+                    .bind(metadataHash, metadataJson, metadataHash, source.length, artworkHash, approvalDigest, approvalDigest, tobacco.maker, tobacco.blend, dedupeHash, totalBytes, row.id, row.row_version, tobacco.maker, tobacco.blend, row.id, totalBytes);
+                const statements = [
+                    update,
+                    db.prepare(`INSERT INTO gallery_review_events (id,submission_id,actor,action,row_version,digest,created_at,before_version,before_digest,request_id,reason)
+                        SELECT ?,id,?,'reconcile',row_version,digest,?,row_version-1,?, ?,reason FROM gallery_submissions WHERE id=? AND changes()=1`)
+                        .bind(mutationId, admin, now.toISOString(), row.digest, mutationId, row.id),
+                    ...assets.map(asset => db.prepare(`INSERT INTO gallery_assets(id,submission_id,kind,r2_key,sha256,bytes) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM gallery_review_events WHERE id=? AND submission_id=?) ON CONFLICT(submission_id,kind) DO UPDATE SET r2_key=excluded.r2_key,sha256=excluded.sha256,bytes=excluded.bytes`)
+                        .bind(crypto.randomUUID(), row.id, asset.kind, asset.key, asset.hash, asset.bytes.length, mutationId, row.id)),
+                ];
+                const [changed] = await db.batch(statements);
+                if (!(changed as { meta: { changes: number } }).meta.changes)
+                    return json({ error: 'review_changed' }, 409);
+                return json(receipt((await get(db, row.id))!, now));
+            }
+            if (path === '/admin/intake' && method === 'POST') {
+                const draft = parseGalleryDraft(await body(request));
+                const metadata = canonicalJson(draft);
+                const hash = await sha256(metadata);
+                const existing = await get(db, draft.submissionId);
+                if (existing)
+                    return existing.request_hash === hash ? json(receipt(existing, now)) : json({ error: 'review_changed' }, 409);
+                if (!switches.intake)
+                    return json({ error: 'intake_closed' }, 503);
+                if (draft.acknowledgement.version !== GALLERY_NOTICE_VERSION)
+                    return json({ error: 'invalid_metadata' }, 400);
+                if (draft.catalogId && !await db.prepare('SELECT id FROM gallery_tobaccos WHERE id=? AND active=1').bind(draft.catalogId).first())
+                    return json({ error: 'catalog_mapping_required' }, 400);
+                const capHash = await sha256(`admin-intake:${admin}:${draft.submissionId}`);
+                try {
+                    await db.prepare(`INSERT INTO gallery_submissions(id,capability_hash,request_hash,state,created_at,expires_at,metadata_json,metadata_hash,catalog_id,input_bytes,quota_key) VALUES(?,?,?,'reserved',?,?,?,?,?,?,?)`).bind(draft.submissionId, capHash, hash, now.toISOString(), addDays(now, 1 / 24), metadata, hash, draft.catalogId, draft.image.bytes, `admin:${now.toISOString().slice(0, 10)}:${draft.submissionId}`).run();
+                }
+                catch (e) {
+                    if (String(e).includes('gallery_capacity'))
+                        return json({ error: 'limit_exceeded' }, 429);
+                    throw e;
+                }
+                return json(receipt((await get(db, draft.submissionId))!, now), 201);
+            }
+            const adminIntake = path.match(/^\/admin\/intake\/([a-f0-9-]+)\/artwork$/);
+            if (adminIntake && uuid(adminIntake[1]) && method === 'PUT') {
+                const row = await get(db, adminIntake[1]);
+                if (!row)
+                    return json({ error: 'not_found' }, 404);
+                if (!row.metadata_json || terminal.includes(row.state))
+                    return json({ error: 'expired' }, 410);
+                if (request.headers.get('Content-Type') !== 'image/png')
+                    return json({ error: 'unsupported_image' }, 415);
+                if (!switches.intake && ['reserved', 'uploading'].includes(row.state))
+                    return json({ error: 'intake_closed' }, 503);
+                const bytes = await boundedBody(request, MAX_IMAGE_BYTES);
+                const draft = JSON.parse(row.metadata_json) as GalleryLabelDraftV1;
+                if (bytes.length !== draft.image.bytes || await sha256(bytes) !== draft.image.sha256)
+                    return json({ error: 'image_mismatch' }, 400);
+                if (['pending', 'published', 'preparing-publication'].includes(row.state))
+                    return json(receipt(row, now));
+                if (!['reserved', 'uploading'].includes(row.state) || row.expires_at <= now.toISOString())
+                    return json({ error: 'expired' }, 410);
+                const lease = await db.prepare("UPDATE gallery_submissions SET state='uploading',lease_until=?,row_version=row_version+1 WHERE id=? AND row_version=? AND (state='reserved' OR (state='uploading' AND lease_until<=?))").bind(addDays(now, 5 / 1440), row.id, row.row_version, now.toISOString()).run();
+                if (!lease.meta.changes)
+                    return json({ error: 'upload_in_progress' }, 409);
+                const version = row.row_version + 1;
+                try {
+                    const image = await normalizeGalleryImage(bytes);
+                    if (image.width !== draft.image.width || image.height !== draft.image.height)
+                        throw new Error('image_mismatch');
+                    const imageHash = await putAsset(db, env, row.id, 'artwork', image.artwork, version);
+                    await putAsset(db, env, row.id, 'thumbnail', image.thumbnail, version);
+                    const d = await digest(draft, imageHash);
+                    const done = await auditedMutation(db, db.prepare("UPDATE gallery_submissions SET state='pending',row_version=row_version+1,lease_until=NULL,expires_at=?,artwork_hash=?,digest=? WHERE id=? AND row_version=? AND state='uploading'").bind(addDays(now, 30), imageHash, d, row.id, version), row.id, admin, 'curated-intake', now);
+                    if (!done.meta.changes)
+                        return json({ error: 'review_changed' }, 409);
+                    return json(receipt((await get(db, row.id))!, now));
+                }
+                catch (e) {
+                    await db.prepare("UPDATE gallery_submissions SET state='reserved',lease_until=NULL,row_version=row_version+1 WHERE id=? AND row_version=? AND state='uploading'").bind(row.id, version).run();
+                    throw e;
+                }
+            }
             const extra=await adminAgentResponse(request,db,admin,now);if(extra)return extra;
             if(path==='/admin/submissions'&&method==='GET')return json(await humanQueue(db,url,now));
-            const match = path.match(/^\/admin\/(submissions|publications)\/([a-f0-9-]+)(?:\/(artwork|thumbnail|approve|reject|unpublish|republish))?$/);
+            const match = path.match(/^\/admin\/(submissions|publications)\/([a-f0-9-]+)(?:\/(artwork|thumbnail|approve|reject|unpublish|republish|refresh))?$/);
             if (!match || !uuid(match[2]))
                 return json({ error: 'not_found' }, 404);
             let row = await get(db, match[2]);
@@ -260,6 +390,38 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                 const changed = await auditedMutation(db, db.prepare("UPDATE gallery_submissions SET state='unpublished',expires_at=?,deletion_due=?,row_version=row_version+1 WHERE id=? AND row_version=? AND state='published'").bind(addDays(now, 30), addDays(now, 30), row.id, row.row_version), row.id, admin, 'unpublish', now);
                 if (!changed.meta.changes)
                     return json({ error: 'review_changed' }, 409);
+            }
+            else if (method === 'POST' && match[3] === 'refresh') {
+                if (!switches.publication)
+                    return json({ error: 'publication_closed' }, 503);
+                if (row.state !== 'published' || !row.catalog_id || !row.metadata_json || !row.artwork_hash)
+                    return json({ error: 'review_changed' }, 409);
+                const tobacco = await db.prepare('SELECT maker,blend FROM gallery_tobaccos WHERE id=? AND active=1').bind(row.catalog_id).first<{
+                    maker: string;
+                    blend: string;
+                }>();
+                if (!tobacco)
+                    return json({ error: 'catalog_mapping_required' }, 400);
+                const asset = await db.prepare("SELECT * FROM gallery_assets WHERE submission_id=? AND kind='artwork'").bind(row.id).first<Asset>();
+                const object = asset && await env.GALLERY_ART.get(asset.r2_key);
+                if (!object) throw new Error('storage_unavailable');
+                const bytes = new Uint8Array(await object.arrayBuffer());
+                if (await sha256(bytes) !== row.artwork_hash) throw new Error('storage_unavailable');
+                const pack = await buildGalleryPack({ metadata: JSON.parse(row.metadata_json), ...tobacco, packId: row.id, createdAt: row.created_at }, bytes);
+                const hash = await sha256(pack);
+                const key = `gallery/${row.id}/pack-${row.row_version + 1}-${hash}`;
+                await env.GALLERY_ART.put(key, pack);
+                if (!await env.GALLERY_ART.head(key)) throw new Error('storage_unavailable');
+                const mutationId = crypto.randomUUID();
+                const [changed] = await db.batch([
+                    db.prepare("UPDATE gallery_submissions SET published_maker=?,published_blend=?,row_version=row_version+1,reserved_bytes=(SELECT COALESCE(SUM(bytes),0) FROM gallery_assets WHERE submission_id=? AND kind<>'pack')+? WHERE id=? AND row_version=? AND state='published' AND EXISTS(SELECT 1 FROM gallery_settings WHERE id=1 AND publication=1) AND EXISTS(SELECT 1 FROM gallery_tobaccos WHERE id=gallery_submissions.catalog_id AND active=1 AND maker=? AND blend=?) AND (SELECT COALESCE(SUM(reserved_bytes),0) FROM gallery_submissions WHERE id<>?)+(SELECT COALESCE(SUM(bytes),0) FROM gallery_assets WHERE submission_id=? AND kind<>'pack')<=8589934592-?")
+                        .bind(tobacco.maker, tobacco.blend, row.id, pack.length, row.id, row.row_version, tobacco.maker, tobacco.blend, row.id, row.id, pack.length),
+                    db.prepare("INSERT INTO gallery_review_events(id,submission_id,actor,action,row_version,digest,created_at,before_version,before_digest,request_id,reason) SELECT ?,id,?,'refresh',row_version,digest,?,row_version-1,digest,?,reason FROM gallery_submissions WHERE id=? AND changes()=1")
+                        .bind(mutationId, admin, now.toISOString(), mutationId, row.id),
+                    db.prepare("UPDATE gallery_assets SET r2_key=?,sha256=?,bytes=? WHERE submission_id=? AND kind='pack' AND EXISTS(SELECT 1 FROM gallery_review_events WHERE id=?)")
+                        .bind(key, hash, pack.length, row.id, mutationId),
+                ]);
+                if (!(changed as {meta:{changes:number}}).meta.changes) return json({error:'review_changed'},409);
             }
             else if (method === 'POST' && match[3] === 'republish') {
                 if (!switches.publication)

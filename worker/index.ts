@@ -83,7 +83,7 @@ export default {
     if (path === '/api/labels/process-notes') return shareNotes(request, env.DIAGNOSTICS, env.CONTRIBUTION_RATE_LIMITER, env.CATALOG_CONTRIBUTIONS)
     if (path === '/api/labels/contributions' || path === '/api/labels/sources') return contributionsResponse(request, env.CATALOG_CONTRIBUTIONS, env.CONTRIBUTION_RATE_LIMITER, env.CONTRIBUTION_ADMIN_TOKEN, env.DIAGNOSTICS, env.SOURCES_RATE_LIMITER)
     const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
-    if (path === '/api/health' && request.method === 'GET') return Response.json({ status: 'ok', cloudOcrEnabled: false }, { headers })
+    if (path === '/api/health' && request.method === 'GET') return Response.json({ status: 'ok', cloudOcrEnabled: false, capabilities: ['diagnostic-budget-v1', 'curated-intake-v1', 'curated-reconcile-v1'] }, { headers })
     if (path === '/api/labels/ocr') return Response.json({ error: 'Cloud OCR is not enabled. Use a text PDF or paste your order.' }, { status: 503, headers })
     if (path.startsWith('/api/')) return Response.json({ error: 'Not found' }, { status: 404, headers })
     return env.ASSETS.fetch(request)
