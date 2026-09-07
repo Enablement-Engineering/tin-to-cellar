@@ -90,7 +90,7 @@ a:hover { color: var(--text-link-hover); }
 .button.quiet:hover:not(:disabled) { background: var(--surface-accent-soft); }
 .button.full { width: 100%; }
 .button:disabled, .button[aria-disabled='true'] { opacity: .45; box-shadow: none; cursor: not-allowed; }
-.text-button, .clear-tobaccos { border: 0; background: none; color: var(--text-accent); font: var(--type-ui); text-decoration: underline; text-underline-offset: 3px; }
+.text-button { border: 0; background: none; color: var(--text-accent); font: var(--type-ui); text-decoration: underline; text-underline-offset: 3px; }
 .field { display: grid; gap: var(--gap-field); margin: 0 0 16px; min-width: 0; }
 .field > span:first-child, .field legend, .field > label, .alignment-options label { color: var(--text-strong); font: var(--type-label); }
 .field em { margin-left: 4px; color: var(--text-muted); font-weight: 400; font-style: normal; }
@@ -142,26 +142,17 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 
 /* Prompt building, including the existing order reading and proof controls. */
 .create-workspace { max-width: var(--width-content); margin: 0 auto; padding: 40px 40px 72px; }
-.create-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, .82fr); align-items: start; gap: 32px; }
-.configurator { padding: 32px; }
-.configurator > .field-hint, .configurator > .spec-line { margin-top: 24px; font: var(--type-spec); }
 .tobacco-picker { position: relative; }
 .tobacco-editor { position: relative; min-width: 0; border: 1px solid var(--line-field); border-radius: var(--radius-field); background: var(--surface-field); box-shadow: var(--shadow-inset-field); }
 .tobacco-editor:focus-within { border-color: var(--line-focus); box-shadow: var(--shadow-focus); }
 .tobacco-editor input[type='text'] { width: 100%; border: 0; background: transparent; box-shadow: none; }
 .tobacco-editor input[type='text']:focus-visible { outline: 2px solid var(--line-focus); box-shadow: none; }
-.tobacco-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; padding: 0; list-style: none; }
-.tobacco-chips li { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 32px; padding: 2px 4px 2px 12px; border-radius: var(--radius-chip); background: var(--paper-200); color: var(--text-strong); font: var(--type-ui); }
-.tobacco-chips li > span { overflow-wrap: anywhere; }
-.tobacco-chips button { display: grid; place-items: center; flex: 0 0 auto; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-muted); font-size: 19px; }
-.tobacco-chips button:hover { color: var(--clay-700); background: var(--clay-100); }
 .tobacco-suggestions { position: absolute; z-index: 20; top: calc(100% + 6px); left: -1px; right: -1px; max-height: min(304px, 45dvh); margin: 0; padding: 4px 0; overflow-y: auto; overscroll-behavior: contain; list-style: none; border: 1px solid var(--line-hairline); border-radius: var(--radius-3); background: var(--surface-card); box-shadow: var(--shadow-3); }
 .tobacco-suggestions li { min-height: 44px; padding: 10px 12px; font: var(--type-body-sm); cursor: pointer; }
 .tobacco-suggestions li[aria-selected='true'], .tobacco-suggestions li:hover { background: var(--paper-100); }
 .tobacco-suggestions strong, .tobacco-suggestions span { display: block; }
 .tobacco-suggestions span { margin-top: 2px; color: var(--text-muted); font: var(--type-hint); }
 .tobacco-suggestions li:last-child { border-top: 1px solid var(--line-hairline); color: var(--text-accent); }
-.clear-tobaccos { justify-self: end; min-height: 28px; padding: 2px 0; font-size: 13px; }
 .order-import { margin: 24px 0; }
 .order-import-trigger { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 12px 0; border: 0; border-top: 1px solid var(--line-hairline); background: transparent; color: var(--text-accent); text-align: left; transition: var(--transition-control); }
 .order-import-trigger:hover { color: var(--action-primary-active); }
@@ -345,7 +336,7 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 @media (max-width: 900px) {
   .site-header-inner { padding-inline: 24px; }
   .landing-page, .create-workspace, .view-print { padding-inline: 24px; }
-  .create-grid, .print-intake, .print-job { grid-template-columns: 1fr; }
+  .print-intake, .print-job { grid-template-columns: 1fr; }
   .create-workspace { max-width: 760px; }
   .sheet-stage { position: relative; top: auto; width: 100%; max-width: 620px; margin: 0 auto; }
   .landing-hero { grid-template-columns: minmax(0, 1.1fr) minmax(220px, .9fr); gap: 24px; }
@@ -379,8 +370,8 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
   .create-workspace, .view-print, .help-page, .editorial-page { padding: 32px 16px 48px; }
   .editorial-page { gap: 32px; }
   .editorial-header h1 { font-size: var(--size-42); }
-  .create-grid, .print-job, .print-intake { gap: 24px; }
-  .panel, .configurator, .help-reuse { padding: 24px; }
+  .print-job, .print-intake { gap: 24px; }
+  .panel, .help-reuse { padding: 24px; }
   .panel-heading { flex-wrap: wrap; gap: 8px; }
   .panel-heading h1, .panel-heading h2 { font-size: 33px; }
   .page-heading h1 { font-size: 33px; }
@@ -439,8 +430,7 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
   .prompt-view-switch button[aria-pressed='true'], .nav-tabs [aria-current='page'] { border: 2px solid Highlight; }
 }
 @media screen {
-  .tobacco-chips button { width: 44px; height: 44px; }
-  .clear-tobaccos, .prompt-view-switch button, .page-controls button { min-height: 44px; }
+  .prompt-view-switch button, .page-controls button { min-height: 44px; }
   .quantity-control button, .quantity-control input { min-width: 44px; height: 44px; }
   :where(a, button, input, select, textarea, summary, [tabindex]) { scroll-margin-block: 100px 24px; }
 }
@@ -483,3 +473,54 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 .diagnostics-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8rem; max-height: 22rem; overflow: auto; }
 .diagnostics-dialog form { margin-top: 1rem; }
 .standalone-preview { max-height: 18rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8rem; }
+
+/* One preparation surface for community artwork and creation requests. */
+.preparation-workspace { display: grid; gap: 28px; width: 100%; max-width: 1120px; margin: 0 auto; }
+.preparation-workspace .page-heading { margin-bottom: 0; }
+.preparation-start, .preparation-intake { display: grid; gap: 20px; }
+.preparation-add-line { display: flex; align-items: start; gap: 12px; }
+.preparation-add-line .tobacco-editor { flex: 1; min-width: 0; }
+.preparation-add-line > .button { flex-shrink: 0; }
+.preparation-entry-actions, .preparation-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; }
+.preparation-entry-actions { justify-content: flex-start; padding-top: 12px; border-top: 1px solid var(--line-hairline); }
+.preparation-summary h2 { margin-bottom: 6px; }
+.preparation-summary p { color: var(--text-muted); font: var(--type-body-sm); }
+.preparation-rows, .preparation-row, .preparation-create-choice { display: grid; gap: 20px; min-width: 0; }
+.preparation-row-heading { display: flex; align-items: center; gap: 16px; }
+.preparation-row-heading > div:not(.label-thumbnail) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.preparation-row-heading > .button { margin-left: auto; }
+.preparation-row-heading .label-thumbnail { flex-shrink: 0; }
+.preparation-row-heading p { font: var(--type-body-sm); color: var(--text-muted); margin-block: 4px; }
+.preparation-designs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; list-style: none; padding: 0; margin: 12px 0; }
+.preparation-designs li { min-width: 0; max-width: 220px; display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding: 12px; border: 1px solid var(--line-hairline); border-radius: var(--radius-control); background: var(--surface-page); }
+.preparation-designs .gallery-thumbnail, .preparation-designs img { width: 100%; aspect-ratio: 1; object-fit: contain; }
+.preparation-designs p { font: var(--type-body-sm); text-align: center; overflow-wrap: anywhere; }
+.preparation-designs .button { margin-top: auto; padding-inline: 10px; }
+.preparation-notice { padding: 12px 16px; border-left: 2px solid var(--line-rule-brass); font: var(--type-body-sm); }
+.preparation-create-choice { justify-items: start; padding-top: 16px; border-top: 1px solid var(--line-hairline); }
+.preparation-create-choice .field { width: 100%; max-width: 640px; }
+.preparation-create-choice [aria-pressed='true'] { background: var(--surface-sunken); border-color: var(--text-muted); }
+.preparation-change > summary { padding-block: 10px; cursor: pointer; min-height: 44px; }
+.preparation-storage { max-width: 75ch; }
+.view-create > .preparation-storage { max-width: 1120px; margin: 0 auto 32px; padding-inline: 40px; }
+.preparation-identity-options { display: flex; align-items: start; flex-wrap: wrap; gap: 8px; }
+.preparation-identity-options > p { flex-basis: 100%; }
+.preparation-identity-options .button { white-space: normal; text-align: left; }
+.preparation-workspace .handoff { max-width: none; }
+.import-review { display: grid; gap: 20px; }
+.import-review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 20px; }
+.import-review-label { display: grid; align-content: start; gap: 12px; min-width: 0; padding: 16px; border: 1px solid var(--line-hairline); border-radius: var(--radius-control); overflow-wrap: anywhere; }
+.import-review-label img { width: 160px; height: 160px; object-fit: contain; justify-self: center; }
+.import-review-label label { font: var(--type-ui-strong); }
+.import-review-label select { width: 100%; min-width: 0; min-height: 44px; }
+@media screen and (max-width: 600px) {
+  .view-create > .preparation-storage { padding-inline: 16px; }
+  .preparation-add-line { flex-wrap: wrap; }
+  .preparation-add-line .tobacco-editor { flex-basis: 100%; }
+  .preparation-row-heading { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 12px; }
+  .preparation-row-heading > div:first-child:not(.label-thumbnail) { grid-column: 1 / -1; }
+  .preparation-row-heading > .button { grid-column: 1 / -1; justify-self: start; margin-left: 0; }
+  .preparation-designs { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+  .preparation-designs li { padding: 10px; }
+  .preparation-designs .button { white-space: normal; }
+}

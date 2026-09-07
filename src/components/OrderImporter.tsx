@@ -1,8 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { matchOrder, readOrderPdf, type OrderMatch } from '../lib/order-import'
 import { Icon } from './Icons'
+import { formatTobacco, TOBACCO_CATALOG } from '../lib/tobacco-catalog'
+import type { PreparationIdentity } from './PreparationWorkspace'
 
-export function OrderImporter({ onAdd }: { onAdd: (names: string[]) => void }) {
+export function OrderImporter({ onAdd }: { onAdd: (identities: PreparationIdentity[]) => void | Promise<void> }) {
   const panelId = useId()
   const trigger = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
@@ -10,6 +12,8 @@ export function OrderImporter({ onAdd }: { onAdd: (names: string[]) => void }) {
   const [matches, setMatches] = useState<OrderMatch[]>([])
   const [selected, setSelected] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState('')
   const [message, setMessage] = useState('')
   const [filename, setFilename] = useState('')
   const [dragging, setDragging] = useState(false)
@@ -60,12 +64,27 @@ export function OrderImporter({ onAdd }: { onAdd: (names: string[]) => void }) {
       {busy && <button type="button" className="button quiet" onClick={() => { cancel(); trigger.current?.focus() }}>Cancel reading</button>}
       {!filename && <><label className="field"><span>Or paste your order</span><textarea aria-label="Order text" rows={3} maxLength={100000} value={text} disabled={busy} placeholder="Paste the product list from your order email…" onChange={(event) => { setText(event.target.value); setMatches([]); setSelected([]); setMessage('') }} /></label>
       <button className="button secondary" type="button" disabled={busy || !text.trim()} onClick={() => { try { review(text) } catch (error) { setMessage((error as Error).message) } }}>Find tobaccos</button></>}
-      {matches.length > 0 && <div className="order-review">{matches.map((match, index) => <label className="field" key={`${index}-${match.source}`}><span>{match.source}</span><select aria-label={`Match for ${match.source}`} value={selected[index]} onChange={(event) => setSelected(selected.map((value, i) => i === index ? event.target.value : value))}>
+      {matches.length > 0 && <div className="order-review">{matches.map((match, index) => <label className="field" key={`${index}-${match.source}`}><span>{match.source}</span><select aria-label={`Match for ${match.source}`} value={selected[index]} disabled={adding} onChange={(event) => setSelected(selected.map((value, i) => i === index ? event.target.value : value))}>
         <option value="">Skip this item</option>
         {match.suggestions.map((suggestion) => <option key={suggestion} value={suggestion}>{suggestion}</option>)}
         <option value={match.source}>Use the name as written: {match.source}</option>
       </select></label>)}</div>}
-      {matches.length > 0 && <button className="button primary" type="button" disabled={!selected.some(Boolean)} onClick={() => { onAdd([...new Set(selected.filter(Boolean))]); setOpen(false); setText(''); setMatches([]); setSelected([]); setMessage(''); setFilename(''); trigger.current?.focus() }}>Add selected tobaccos</button>}
+      {addError && <p role="alert">{addError} Your reviewed choices are still here. Try adding them again.</p>}
+      {matches.length > 0 && <button className="button primary" type="button" disabled={adding || !selected.some(Boolean)} onClick={async () => {
+        const names = [...new Set(selected.filter(Boolean))]
+        setAdding(true); setAddError('')
+        try {
+        const saved = onAdd(names.map(name => {
+          // Only a reviewed catalog suggestion can carry a catalog identity.
+          const wasSuggestion = matches.some(match => match.suggestions.includes(name))
+          const entry = wasSuggestion ? TOBACCO_CATALOG.find(item => formatTobacco(item) === name) : undefined
+          return entry ? { catalogId: entry.id, maker: entry.maker, blend: entry.blend } : { catalogId: null, maker: '', blend: name }
+        }))
+        if (saved) await saved
+        setOpen(false); setText(''); setMatches([]); setSelected([]); setMessage(''); setFilename(''); trigger.current?.focus()
+        } catch (failure) { setAddError(failure instanceof Error ? failure.message : 'These blends could not be saved.') }
+        finally { setAdding(false) }
+      }}>Add selected tobaccos</button>}
     </div>}
   </div>
 }

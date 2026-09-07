@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto'
 import JSZip from 'jszip'
 import { decode } from 'fast-png'
 import type { GalleryLabelDraftV1, GalleryReceipt } from '../../src/lib/gallery/types'
+import { resolveTobaccoId } from '../../src/lib/tobacco-catalog'
 
 const paths: string[] = JSON.parse(process.env.GALLERY_TEST_PACKS ?? '[]')
 const api = '/api/gallery/v1'
@@ -15,6 +16,7 @@ if (rejectedPath) test('local Downloads unsupported profile remains printable an
   await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js*', route => route.fulfill({ contentType: 'application/javascript', body: 'window.turnstile={render:function(e,o){setTimeout(function(){o.callback("local-turnstile-token")},10);return "fixture"},remove:function(){},reset:function(){}};' }))
   await page.goto('/labels/print')
   await page.getByLabel('Label ZIP').setInputFiles(rejectedPath)
+  await page.getByRole('button', { name: /^Add \d+ labels?$/ }).click()
   const sharing = page.getByRole('region', { name: 'Share your labels' })
   await sharing.getByRole('checkbox', { name: /^Share / }).first().check()
   await sharing.getByLabel('I created or generated these labels', { exact: false }).check()
@@ -29,12 +31,13 @@ if (rejectedPath) test('local Downloads unsupported profile remains printable an
   const id = new URL(response.url()).pathname.split('/').at(-2)
   expect((await request.get(`${api}/labels/${id}/artwork`)).status()).toBe(404)
 })
-for (const [index, path] of paths.entries()) test(`local Downloads submission: ${basename(path)}`, async ({ page, request }) => {
+for (const [index, path] of paths.entries()) test(`local Downloads submission: ${basename(path)}`, async ({ page, request, browser }) => {
   const writes: { url: string; body: string | null }[] = []
   page.on('request', req => { if (['POST', 'PUT'].includes(req.method()) && new URL(req.url()).pathname.startsWith(api)) writes.push({ url: new URL(req.url()).pathname, body: req.method() === 'POST' ? req.postData() : null }) })
   await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js*', route => route.fulfill({ contentType: 'application/javascript', body: 'window.turnstile={render:function(e,o){setTimeout(function(){o.callback("local-turnstile-token")},10);return "fixture"},remove:function(){},reset:function(){}};' }))
   await page.goto('/labels/print')
   await page.getByLabel('Label ZIP').setInputFiles(path)
+  await page.getByRole('button', { name: /^Add \d+ labels?$/ }).click()
   const sharing = page.getByRole('region', { name: 'Share your labels' })
   await expect(sharing).toBeVisible()
   expect(writes).toEqual([])
@@ -65,15 +68,20 @@ for (const [index, path] of paths.entries()) test(`local Downloads submission: $
   expect(decode(canonical).data).toEqual(decode(originalPng).data)
   const pack = await request.get(`${api}/labels/${receipt.id}/pack`)
   expect(pack.status()).toBe(200)
-  await page.goto('/gallery')
-  await page.getByRole('combobox', { name: 'Blend', exact: true }).selectOption(draft.catalogId!)
-  await page.getByRole('button', { name: 'Search', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Use label' })).toBeVisible()
-  await page.getByRole('button', { name: 'Use label' }).click()
-  await expect(page.getByRole('button', { name: 'Print 1 label', exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Share your labels' })).toHaveCount(0)
-  await page.screenshot({ path: `output/gallery/download-${index + 1}-print-preview.png`, fullPage: true })
-  await page.pdf({ path: `output/gallery/download-${index + 1}-print.pdf`, format: 'Letter', printBackground: true })
+  const publicContext = await browser.newContext()
+  const publicPage = await publicContext.newPage()
+  await publicPage.goto('http://127.0.0.1:43928/gallery')
+  const tobacco = resolveTobaccoId(draft.catalogId!)!
+  const search = publicPage.getByRole('combobox', { name: 'Maker or blend', exact: true })
+  await search.fill(`${tobacco.maker} ${tobacco.blend}`); await search.press('ArrowDown'); await search.press('Enter')
+  await publicPage.getByRole('button', { name: 'Add to your labels' }).first().click()
+  await expect(publicPage.getByRole('button', { name: 'Added to your labels' })).toBeVisible()
+  await publicPage.getByRole('button', { name: 'View your labels' }).click()
+  await expect(publicPage.getByRole('button', { name: 'Print 1 label', exact: true })).toBeVisible()
+  await expect(publicPage.getByRole('heading', { name: 'Share your labels' })).toHaveCount(0)
+  await publicPage.screenshot({ path: `output/gallery/download-${index + 1}-print-preview.png`, fullPage: true })
+  await publicPage.pdf({ path: `output/gallery/download-${index + 1}-print.pdf`, format: 'Letter', printBackground: true })
+  await publicContext.close()
   const approved=await approval.json()
   const unpublished=await request.post(`${api}/admin/submissions/${receipt.id}/unpublish`,{headers:{Origin:'http://127.0.0.1:43928','X-Gallery-Test-Admin':'reviewer-fixture'},data:{expectedVersion:approved.version}})
   expect(unpublished.status()).toBe(200)

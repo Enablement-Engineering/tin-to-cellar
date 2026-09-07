@@ -6,16 +6,30 @@ import { ContributionStatus } from './ContributionStatus'
 import type { Contribution } from '../lib/contributions'
 const contribution: Contribution = { version: 1, submissionId: 'a'.repeat(64), feedback: { format: 'tin-to-cellar/feedback', schemaVersion: '0.2.0', protocolRevision: '0.0.14', request: { labelCount: 1, shape: 'circle' }, outcome: 'complete', steps: [], issues: [] }, sources: [] }
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
+it('restores confirmed and uncertain receipts without resending them', async () => {
+  const fetcher = vi.fn().mockResolvedValue(Response.json({ status: 'duplicate' }))
+  vi.stubGlobal('fetch', fetcher)
+  const { rerender } = render(<ContributionStatus contribution={contribution} delivery="sent" />)
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  rerender(<ContributionStatus contribution={{ ...contribution }} delivery="sent" hidden />)
+  expect(fetcher).not.toHaveBeenCalled()
+  cleanup()
+  render(<ContributionStatus contribution={contribution} delivery="pending" />)
+  expect(fetcher).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: 'Retry contribution' }))
+  await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1))
+  expect(JSON.parse(fetcher.mock.calls[0][1].body).submissionId).toBe(contribution.submissionId)
+})
 it('sends only the projected contribution and hides the notice after confirmed receipt', async () => {
   const mock = vi.fn().mockResolvedValue(Response.json({ status: 'collected' }))
   vi.stubGlobal('fetch', mock)
-  render(<ContributionStatus contribution={contribution} />)
+  render(<ContributionStatus autoSend contribution={contribution} />)
   await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
   expect(mock).toHaveBeenCalledWith('/api/labels/contributions', expect.objectContaining({ method: 'POST', body: JSON.stringify(contribution) }))
 })
 it('leaves printing available on collection failure and supports a deliberate retry', async () => {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(Response.json({ status: 'duplicate' })))
-  render(<ContributionStatus contribution={contribution} />)
+  render(<ContributionStatus autoSend contribution={contribution} />)
   expect(await screen.findByRole('button', { name: 'Retry contribution' })).toBeEnabled()
   expect(screen.getByRole('status')).toHaveTextContent('You can still print')
   fireEvent.click(screen.getByRole('button', { name: 'Retry contribution' }))
@@ -24,9 +38,9 @@ it('leaves printing available on collection failure and supports a deliberate re
 it('does not claim success for an unrelated successful response or submit absent data', async () => {
   const mock = vi.fn().mockResolvedValue(Response.json({ ok: true }))
   vi.stubGlobal('fetch', mock)
-  const { rerender } = render(<ContributionStatus contribution={null} />)
+  const { rerender } = render(<ContributionStatus autoSend contribution={null} />)
   expect(mock).not.toHaveBeenCalled()
-  rerender(<ContributionStatus contribution={contribution} />)
+  rerender(<ContributionStatus autoSend contribution={contribution} />)
   expect(await screen.findByRole('button', { name: 'Retry contribution' })).toBeEnabled()
 })
 it('keeps process notes local until explicitly shared and does not resubmit when hidden', async () => {
@@ -34,12 +48,12 @@ it('keeps process notes local until explicitly shared and does not resubmit when
   vi.stubGlobal('fetch', mock)
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
   const notes = { format: 'tin-to-cellar/retrospective' as const, schemaVersion: '0.1.0' as const, protocolRevision: '0.0.14', capabilities: {}, tools: [], observations: [{ stage: 'proof' as const, kind: 'helped' as const, explanation: '<script>untrusted text</script>' }] }
-  const { rerender } = render(<ContributionStatus contribution={contribution} retrospective={notes} />)
+  const { rerender } = render(<ContributionStatus autoSend contribution={contribution} retrospective={notes} />)
   await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
   expect(mock).toHaveBeenCalledTimes(1)
   expect(mock.mock.calls[0][1].body).not.toContain('untrusted')
-  rerender(<ContributionStatus contribution={contribution} retrospective={notes} hidden />)
-  rerender(<ContributionStatus contribution={contribution} retrospective={notes} />)
+  rerender(<ContributionStatus autoSend contribution={contribution} retrospective={notes} hidden />)
+  rerender(<ContributionStatus autoSend contribution={contribution} retrospective={notes} />)
   expect(mock).toHaveBeenCalledTimes(1)
   fireEvent.click(screen.getByRole('button', { name: 'View shared diagnostics' }))
   expect(screen.getByRole('dialog')).toHaveTextContent('<script>untrusted text</script>')
@@ -56,7 +70,7 @@ it('explains an unconfigured collector without offering retry or claiming diagno
   vi.stubGlobal('fetch', mock)
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
   const notes = { format: 'tin-to-cellar/retrospective' as const, schemaVersion: '0.1.0' as const, protocolRevision: '0.0.14', capabilities: {}, tools: [], observations: [] }
-  render(<ContributionStatus contribution={contribution} retrospective={notes} />)
+  render(<ContributionStatus autoSend contribution={contribution} retrospective={notes} />)
   fireEvent.click(await screen.findByRole('button', { name: 'View prepared diagnostics' }))
   expect(screen.getByRole('status')).toHaveTextContent('Automatic feedback collection is unavailable on this site. This does not affect printing or label submissions.')
   expect(screen.queryByRole('button', { name: 'Retry contribution' })).not.toBeInTheDocument()
@@ -70,7 +84,7 @@ it.each([
   [500, { code: 'collection_unconfigured' }],
 ])('keeps retry for other HTTP failure responses (%s)', async (status, body) => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(body, { status })))
-  render(<ContributionStatus contribution={contribution} />)
+  render(<ContributionStatus autoSend contribution={contribution} />)
   expect(await screen.findByRole('button', { name: 'Retry contribution' })).toBeEnabled()
   expect(screen.queryByRole('button', { name: 'View prepared diagnostics' })).not.toBeInTheDocument()
 })

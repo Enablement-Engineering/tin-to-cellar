@@ -28,9 +28,11 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
     <section className="panel importer" aria-labelledby="import-title">
       <div className="panel-heading">
         <div>
-          <h2 id="import-title">Your label pack</h2>
+          <h2 id="import-title">Add artwork</h2>
         </div>
       </div>
+
+      <p className="field-hint">Add finished artwork to your labels. You’ll review additions and any replacements before saving.</p>
 
       <div
         className={`drop-zone ${dragging ? 'is-dragging' : ''}`}

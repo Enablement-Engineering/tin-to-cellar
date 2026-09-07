@@ -37,3 +37,24 @@ it('renders untrusted request Markdown without fetching images or executing HTML
   expect(screen.getByRole('region', { name: 'Rendered prompt' }).querySelector('img,script')).toBeNull()
   expect(screen.getByText('Unsafe')).not.toHaveAttribute('href', 'javascript:alert(1)')
 })
+
+it('does not copy or offer an unsaved fallback when saving the handoff fails', async () => {
+  const writeText = vi.fn(), onCopied = vi.fn()
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+  render(<PromptHandoff prompt="Unsaved draft" request="Request" onCopy={vi.fn().mockRejectedValue(new Error('Browser storage is full. Try again.'))} onCopied={onCopied} copyLabel="Copy prompt for 2 labels" />)
+  fireEvent.click(screen.getByRole('button', { name: 'Copy prompt for 2 labels' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Browser storage is full')
+  expect(writeText).not.toHaveBeenCalled(); expect(onCopied).not.toHaveBeenCalled()
+  expect(screen.queryByLabelText('Prompt to copy')).not.toBeInTheDocument()
+})
+
+it('copies the saved payload and uses it for manual fallback if clipboard access fails', async () => {
+  const writeText = vi.fn().mockRejectedValue(new Error('Clipboard denied'))
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+  const onCopied = vi.fn()
+  render(<PromptHandoff prompt="Draft before save" request="Request" onCopy={vi.fn().mockResolvedValue('Exact saved prompt')} onCopied={onCopied} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }))
+  await waitFor(() => expect(writeText).toHaveBeenCalledWith('Exact saved prompt'))
+  expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Exact saved prompt')
+  expect(onCopied).not.toHaveBeenCalled()
+})

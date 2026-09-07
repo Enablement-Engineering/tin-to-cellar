@@ -1,4 +1,3 @@
-export type ConfiguratorState = { tobaccos: string; artDirection: string }
 export type PrintSettings = { page: number; firstSlot: number; offset: { x: number; y: number } }
 export type PrintLabel = {
   id: string

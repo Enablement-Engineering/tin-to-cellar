@@ -39,6 +39,6 @@ export function GalleryBlendSearch({ onChange }: { onChange: (catalogIds: string
     </div>
     <span className="field-hint" id={`${id}-hint`}>Start typing to filter the labels. Choose a suggestion to see one blend, or clear the search to see everything.</span>
     <span className="field-hint" role="status">{showOptions && !matches.length ? 'No matching blends. Try another name.' : ''}</span>
-    {query && <button className="clear-tobaccos" type="button" onClick={() => { setQuery(''); setOpen(false); setActive(-1); onChange(null, false); input.current?.focus() }}>Clear search</button>}
+    {query && <button className="gallery-search-clear" type="button" onMouseDown={event => event.preventDefault()} onClick={() => { setQuery(''); setOpen(false); setActive(-1); onChange(null, false); input.current?.focus() }}>Clear search</button>}
   </div>
 }

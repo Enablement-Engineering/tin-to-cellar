@@ -16,7 +16,7 @@ Adaptations made for the application:
 
 - Add a home page while keeping direct links to every existing tool.
 - Keep multiline tobacco paste in the picker and PDF or screenshot order reading behind a disclosure.
-- Request print-guide access automatically in Make a prompt and keep a complete-prompt fallback. Collapse the prompt preview until requested.
+- Keep one saved preparation workspace for community and created artwork. Collapse the complete-prompt preview until requested; new prompts include the local proof program without hosted guide access.
 - Host the three font families with the site instead of loading Google Fonts at runtime.
 - Use readable text colors for small metadata and hints. The source's faint ink swatch remains a palette value, not permission to use low-contrast body text.
 - Use the existing photograph, brand files, and inline icons. No new generated imagery is needed.
@@ -26,16 +26,23 @@ Adaptations made for the application:
 
 | Destination | Entry | Content |
 | --- | --- | --- |
-| Home | `/` | Site introduction and entry to Labels |
-| Labels | `/labels` | Product introduction, workbench photograph, prompt action, workflow steps, print specifications |
-| Make a prompt | `/labels/create` | Optional tobacco list, special requests, complete prompt handoff, automatic print-guide access, and advanced input |
-| Print labels | `/labels/print` | Local ZIP import, validation results, quantities, sheet preview, printing and alignment |
+| Home | `/` | Redirects to Labels |
+| Labels | `/labels` | Product introduction, existing/community artwork, Choose labels action and print specifications |
+| Choose labels | `/labels/create` | Confirmed blend rows, community choices, optional scoped creation, one saved handoff |
+| Community labels | `/gallery` | Discovery that adds to the same saved labels, without a separate basket |
+| Print labels | `/labels/print` | Reviewed additive ZIP import, original import reports, quantities, download, sheet preview, printing and alignment |
 | How it works | `/labels/help` | AI handoff instructions, portable instructions, file handling, local review guide explanation, printing guidance |
 | About | `/about`, footer | Dylan Isaac’s introduction, the reason for the app, and a short Enablement Engineering description |
 | Inspiration | `/inspiration`, footer | Credit and a direct link to Hobbiton Piper’s original jar-label guide |
 | Privacy | `/privacy`, footer | Local processing and limited contribution collection |
 
 The wordmark returns to the site root. Navigation must remain usable with the keyboard and browser history. Moving between site pages does not clear the current request or print job. Direct path navigation loads the app through the static-assets SPA fallback; legacy hash routes have no compatibility layer.
+
+The preparation workspace is a vertical sequence of committed blend rows, not a required wizard. Existing thumbnails and their editions appear before the optional Create my own action. A saved design remains printable while its replacement is requested. A compact count separates ready designs, creation requests and unresolved choices. Do not imply that copying starts a remote job.
+
+Use the same field-label size and spacing for blend search and label shape. Helper text explains the next action without documenting every keyboard behavior inline. Lookup failures, failed saves and import conflicts stay visible and actionable; routine save success does not need a notice.
+
+Import review displays the returned artwork beside explicit add, replace, keep-current and keep-both decisions. It is the confirmation step; do not add another confirmation dialog. Background lookup must not move focus. After committing an import, focus moves to the quantities heading. Saved browser work survives reload and new tabs, subject to browser storage availability. The explicit Clear saved labels action requires confirmation; downloaded packs remain separate.
 
 The footer contains About and Inspiration links, `© {new Date().getFullYear()} Enablement Engineering`, and “Made with ❤️ by Enablement Engineering.” The company name in the maker credit links to [Enablement Engineering](https://www.enablement.engineering/). The year comes from the browser’s clock at render time, so it does not require an annual source edit. Keep format-version labels and file-handling explanations out of this footer; relevant guidance belongs with the tools and in How it works.
 

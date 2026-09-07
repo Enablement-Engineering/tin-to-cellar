@@ -1,49 +1,55 @@
 # Tin to Cellar workflow
 
-The website keeps hosting inexpensive by using the user's existing AI subscription for research, artwork, and packaging. It supplies instructions and handles local printing.
+Start with [Choose labels](https://tintocellar.com/labels/create). Assemble one set of labels from community artwork and new designs made in your own AI chat. The site saves this work in your browser and prints the ready designs together.
 
-Start at [tintocellar.com](https://tintocellar.com/). The root introduces the site; [Labels](https://tintocellar.com/labels) introduces the label workflow. Use [Make a prompt](https://tintocellar.com/labels/create) to begin or [Print labels](https://tintocellar.com/labels/print) to import an existing pack. [How it works](https://tintocellar.com/labels/help) explains the handoff and printing. The wordmark returns to the site root. See the [design system](design-system.md) for the interface's visual rules and asset choices. Routes use browser history and support direct navigation and reload; legacy hash routes are not supported.
+## Choose artwork
 
-## Create labels
+Add a blend by selecting a catalog suggestion, entering a custom name, pasting a list, or reviewing an imported order. A confirmed catalog identity checks for existing community designs. Choose a thumbnail with **Use this design**, or select **Create my own**. A matching blend does not choose an edition or design for you.
 
-Tobacco names and special requests are optional. If no tobacco request is supplied, the AI asks which blends to label before researching or generating. It must not infer an inventory from account memory or unrelated chats. Label dimensions, bleed, and paper profile have supported defaults: 2.5-inch circles, 0.125-inch bleed, and Avery 94502. Generated artwork owns the entire blank writing surface, with no words or writing line added by the website.
+Community browsing at `/gallery` adds to the same saved work. Artwork only counts as ready after its full pack downloads, passes the existing CellarPack and Avery checks, and saves. Library unavailability is distinct from a successful lookup with no designs. Ready rows can print while others wait for artwork.
 
-Expand Import order to read text PDFs up to 20 pages, PNG/JPEG/WebP screenshots up to 20 million pixels, or pasted text up to 100,000 characters. Files are limited to 10 MiB. Extraction and English OCR run locally; scanned PDFs are not supported. Common price, weight, promotional, and accessory noise is filtered before catalog matching. Rows with one suggestion are preselected; ambiguous rows need a choice. Review and confirm with Add selected tobaccos. File imports show matches without a raw OCR editor. Purchase quantities do not determine label quantities.
+Order reading remains local. Supported input includes text PDFs up to 20 pages, PNG/JPEG/WebP screenshots up to 20 million pixels, and pasted text up to 100,000 characters. Files are limited to 10 MiB. Scanned PDFs are not supported. Review the extracted identities before adding them. Purchase quantities never determine print quantities. Original order files and raw OCR are not saved in the label workspace.
 
-The primary Copy prompt button includes the complete bundled protocol, schemas, proof program and project request. It does not ask the AI to retrieve instructions. The optional instructions download lives in How it works.
+## Create only what you need
 
-Instructions include the current origin's `/labels/print` destination and manual ZIP import directions. Opening it displays Print labels without uploading or fetching a file. The model must not fetch the destination, which may be a local development address. The reusable Markdown file is a portable instruction document, not an automatically installed provider skill. Label APIs live under `/api/labels/`. Hosted proof processing and proof-access issuance have been retired; the protocol supplies a local proof program instead.
+The creation prompt lists only rows explicitly marked **Create my own**. Selected artwork remains on the website. A ready row may request another design without losing its current printable artwork.
 
-The primary prompt consists of a short task, protocol retrieval and verification requirements, and the supplied project input. The hosted protocol and complete-copy fallback contain the full schemas and local proof program. It does not prescribe a personality. Research must inspect an actual package image, use that image as a generation reference when supported, and preserve the package identity while adapting its layout for the label and writing area.
+The website saves one exact handoff before copying it, including its target identities, row revisions, source leads and protocol revision. Later source responses do not change that copy. Changing a target prepares a new request. Copying does not prove that the AI is running.
 
-One AI conversation handles missing information, package-image research, generation, visual inspection, revisions, ZIP packaging, and any import repairs. Reference photographs can be attached in that conversation. The AI should ask only questions needed to proceed and must distinguish checks it ran from checks it could not run.
+When no rows need creation, the collection does not show a generation prompt. **Choose blends in my AI chat** is a separate, deliberate entrance from an empty preparation workspace. It lets the AI ask for the blend list, without inferring an inventory from account memory or unrelated chats.
 
-The chat needs research/image inspection, image generation and ZIP creation capabilities. Read prompt starts collapsed and shows the request; Full copied text reveals the complete payload. Copy prompt always copies everything, regardless of preview state.
+The complete copied prompt includes the protocol, schemas and local proof program. It instructs the AI to research actual packaging, generate artwork, review a separate proof, and return a CellarPack ZIP. The AI needs research, image inspection, image generation and file creation tools. There is no provider API integration or automatic file transfer.
 
-Review the output against the inspected source. Circular reflow may rearrange rectangular packaging, but must preserve defining illustration style, character details, logo, palette, and lettering. Shared subjects or colors are insufficient. Use a saved browser capture as generator input when a direct image download fails and the provider supports it. If no actual package can be inspected, request a reference attachment.
+The AI return destination remains `/labels/print`. It is a human-facing import page, not an endpoint for the model to fetch. Reusable instructions are available in How it works. Protocol 0.0.22 describes additive import; older immutable instructions remain unchanged.
 
-The protocol includes a tested Python script for the AI to run locally in its chat, creating a separate image with trim, safe-area, and bleed guides. No upload or access token is required. The AI opens the proof and visually checks the artwork before packaging. Keep annotated proofs out of the final ZIP. Geometry checks and model self-review do not establish packaging fidelity.
+## Add returned artwork
 
-## Print labels
+Importing validates the original ZIP before showing additions and conflicts. Review the proposal and choose **Add labels**. Exact unchanged pending targets can be proposed for filling. Replacements are visible choices; ambiguous or changed names can be mapped manually, kept as separate labels, or skipped.
 
-The user opens the returned ZIP, chooses quantities, previews automatically arranged sheets, and prints. A quantity of zero excludes a label. Labels retain their artwork geometry; the website does not crop or resize incompatible art to force a fit.
+A repeated design does not add copies or reset quantities. Valid labels from a partial pack can be accepted while failed labels retain their original repair report. Rejected imports and failed saves preserve committed labels. Repair prompts belong to the original import and its protocol, never to a synthetic combined AI job.
 
-Paper and alignment contains optional printer adjustments and starts collapsed. The proof and artwork use the same page geometry and offsets. Users print on US Letter at actual size, without browser headers or footers. A physical ruler measurement and test sheet remain necessary to establish printer accuracy.
+Import reports retain their original bounded structured diagnostics. New accepted local imports, and readable rejected imports, can send the existing allowlisted contribution. Restoration, navigation and printing do not replay it. Optional freeform process notes remain transient and require explicit sharing. Imported artwork and provenance URLs are not uploaded or automatically fetched.
 
-The preview clips the image at the circular trim boundary. Printed output includes the supplied outer bleed circle: 2.75 inches for the default 2.5-inch trim with 0.125-inch bleed on each side. Keep the entire trim and bleed opaque, with transparency only outside the outer bleed circle. Essential content and every writing-panel corner belong inside the circular safe inset.
+## Save and print
 
-Avery 94502 supports nine labels per sheet. Quantities continue across additional sheets automatically. Importing a different pack replaces the current pack rather than merging jobs; keep your downloaded ZIPs for later use. Save as PDF is available in the browser print dialog.
+Your labels, encoded artwork, quantities, printer settings, creation requests and current handoff are saved in IndexedDB on this browser. Other tabs use revision checks to prevent silent overwrites. A stale import review must be reviewed again. Storage failures leave the previous saved state available and show an actionable error.
 
-Validation runs during import. Problems produce a concise explanation and a copyable repair request for the existing conversation. Invalid replacement files must preserve the current usable job. Provenance remains in the pack without becoming an always-visible settings panel or causing automatic network requests.
+**Download labels** produces one validated CellarPack of the ready selected designs. It preserves original artwork bytes and valid geometry/research, but does not preserve quantities or unfinished requests. Keep downloaded ZIPs if you move to another browser or clear browser data. Browser storage is not a permanent backup. **Clear saved labels** requires confirmation and clears the browser workspace; it does not delete downloaded ZIPs.
 
-## Deferred
+The current workspace permits up to 100 rows and selected designs, 45 MiB of unique encoded artwork, 250 million unique image pixels, and 2 MiB of metadata. Existing per-image and archive checks still apply. Quantities run from 0 to 99 per row, with at most 450 ready copies. These bounds are enforced in the domain, not only in controls.
 
-Custom paper, editable label geometry, crop and zoom controls, manual slot arrangement, alternate date modes, inventory features, and extra export formats are outside this UI. Format-level support does not imply a control belongs on the website.
+Print labels uses Avery 94502, nine 2.5-inch circles on US Letter. A zero quantity omits that row. Pending rows do not insert empty slots. Paper and alignment contains printer offsets, starting position and calibration controls.
 
-Cloud OCR, automatic ZIP transfer, and a shared package-image cache are not implemented.
+Print at Actual Size / 100%, with browser headers and footers disabled. Test alignment on plain paper and measure it with a ruler. Browser tests do not establish physical printer accuracy.
 
-The optional tobacco autocomplete searches a static catalog of 1,482 entries across 146 maker/brand names, with local alias and typo matching. Users explicitly select a result, enter arbitrary names, or paste a list. Typed text is included in the prompt even before selection. The [selector plan](tobacco-selector-plan.md) records scope and future catalog expansion; live web search and automatic file handoff remain future options.
+Artwork geometry remains separate from printer sheet geometry. The preview clips at the circular trim boundary; printing includes the original supplied bleed. Generated artwork owns the entire light, blank date-writing surface. The website adds no words, lines, overlays or replacement geometry.
 
-## Shared sources and feedback
+## Implementation boundaries
 
-ZIP import with a readable manifests submit a limited contribution separately from local printing. Validated feedback and eligible public source observations for known catalog blends improve subsequent prompts. The raw ZIP, artwork, and order files remain local. Source links are never fetched during import. See [collection details](contributions.md) and the website Privacy page.
+`src/lib/collection/` owns typed commands, merge plans, validation, atomic storage and export. `src/hooks/useCollection.ts` serializes this tab's writes and refreshes after cross-tab changes. `src/PublicApp.tsx` connects the preparation, original-import diagnostics, handoff and printing views. PrintStudio receives an object-URL display projection, not a second authoritative collection.
+
+Exact per-blend gallery lookup has a shared maximum of four active requests, per-blend pagination and cancellation. Its serving flag distinguishes a closed library from no matches. There is no new bulk API or backend collection store.
+
+The old gallery session selection can be restored explicitly. Its value is retained until every selected publication has downloaded and saved, making retries idempotent. Other tabs' sessionStorage is not discoverable.
+
+Accounts, cloud synchronization, named collections, an inventory, editing a selected community design in AI, loose-image import, provider generation, multiple handoff dashboards, a second backup format and new paper formats are deferred.

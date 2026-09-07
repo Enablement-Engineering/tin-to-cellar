@@ -279,7 +279,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
         }
         if (path === '/labels' && method === 'GET') {
             if (!switches.serving)
-                return json({ labels: [], nextCursor: null });
+                return json({ labels: [], nextCursor: null, serving: false });
             const cursor = url.searchParams.get('cursor') ?? '';
             const catalog = url.searchParams.get('catalogId') ?? '';
             const edition = url.searchParams.get('edition') ?? '';
@@ -287,9 +287,9 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
             if ((cursor && !uuid(cursor)) || catalog.length > 200 || edition.length > 120)
                 return json({ error: 'invalid_filter' }, 400);
             if (geometry && geometry !== 'circle-2.5')
-                return json({ labels: [], nextCursor: null });
+                return json({ labels: [], nextCursor: null, serving: true });
             const rows = (await db.prepare("SELECT * FROM gallery_submissions WHERE state='published' AND id>? AND (?='' OR catalog_id=?) AND (?='' OR json_extract(metadata_json,'$.edition')=?) ORDER BY id LIMIT 25").bind(cursor, catalog, catalog, edition, edition).all<Row>()).results;
-            return json({ labels: await Promise.all(rows.slice(0, 24).map(r => publicProjection(r))), nextCursor: rows.length > 24 ? rows[23].id : null });
+            return json({ labels: await Promise.all(rows.slice(0, 24).map(r => publicProjection(r))), nextCursor: rows.length > 24 ? rows[23].id : null, serving: true });
         }
         const label = path.match(/^\/labels\/([a-f0-9-]+)(?:\/(artwork|thumbnail|pack))?$/);
         if (label && uuid(label[1]) && method === 'GET') {

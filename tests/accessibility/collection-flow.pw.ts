@@ -1,0 +1,127 @@
+import { test, expect, type BrowserContext, type Page } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+import JSZip from 'jszip'
+import { readFile, readFileSync } from 'node:fs'
+import { promisify } from 'node:util'
+import { fixture } from '../gallery/fixtures'
+import { buildGalleryPack } from '../../src/lib/gallery/pack'
+import type { CellarPackManifest } from '../../src/lib/cellarpack/types'
+
+const read = promisify(readFile)
+const catalog = JSON.parse(readFileSync(new URL('../../src/lib/tobacco-catalog/catalog.json', import.meta.url), 'utf8')) as Array<{ id: string; maker: string; blend: string }>
+const known = ['Westminster', 'Autumn Evening', 'Nightcap'].map(blend => catalog.find(entry => entry.blend === blend && (blend !== 'Nightcap' || entry.maker === 'Peterson'))!)
+
+async function installLibrary(context: BrowserContext) {
+  const source = await fixture(825)
+  const labels = known.slice(0, 2).map((entry, index) => ({ ...entry, catalogId: entry.id, id: `43649b43-8094-4a32-b5ee-8be75208fb6${index + 3}`, edition: 'Synthetic test', description: 'Green label with a blank cream writing area', geometry: 'circle-2.5' }))
+  const packs = await Promise.all(labels.map(label => buildGalleryPack({ metadata: { ...source.draft, catalogId: label.catalogId }, ...label, packId: label.id, createdAt: '2026-09-06T00:00:00Z' }, source.png)))
+  const contributions: unknown[] = []
+  const requests: string[] = []
+  context.on('request', request => requests.push(request.url()))
+  await context.route('**/api/gallery/v1/**', async route => {
+    const url = new URL(route.request().url())
+    if (url.pathname.endsWith('/config')) return route.fulfill({ json: { serving: true, intake: false, noticeVersion: 'fixture', turnstileSiteKey: '' } })
+    if (url.pathname.endsWith('/labels')) {
+      const catalogId = url.searchParams.get('catalogId')
+      return route.fulfill({ json: { serving: true, labels: catalogId ? labels.filter(label => label.catalogId === catalogId) : labels, nextCursor: null } })
+    }
+    if (url.pathname.endsWith('/pack')) return route.fulfill({ contentType: 'application/zip', body: Buffer.from(packs[labels.findIndex(label => url.pathname.includes(label.id))]) })
+    return route.fulfill({ contentType: 'image/png', body: source.png })
+  })
+  await context.route('**/api/labels/sources?*', route => route.fulfill({ json: { catalogId: new URL(route.request().url()).searchParams.get('catalogId'), sources: [] } }))
+  await context.route('**/api/labels/contributions', route => {
+    contributions.push(route.request().postDataJSON())
+    return route.fulfill({ json: { status: 'collected' } })
+  })
+  return { source, contributions, requests }
+}
+
+async function selectExisting(page: Page, count = 2) {
+  await page.goto('/gallery')
+  for (let index = 0; index < count; index++) {
+    await page.getByRole('button', { name: 'Add to your labels', exact: true }).first().click()
+    await expect(page.getByRole('button', { name: 'Added to your labels', exact: true })).toHaveCount(index + 1)
+  }
+  await page.getByRole('button', { name: 'View your labels', exact: true }).click()
+  await expect(page.getByRole('spinbutton', { name: /^Quantity for / })).toHaveCount(count)
+}
+
+for (const width of [1280, 320]) test(`existing community labels survive reload and print without generation at ${width}px`, async ({ context, page }) => {
+  const { source, contributions } = await installLibrary(context)
+  await page.setViewportSize({ width, height: 900 })
+  await selectExisting(page)
+  await page.getByRole('spinbutton', { name: `Quantity for ${known[0].blend}`, exact: true }).fill('3')
+  await expect(page.getByRole('button', { name: 'Print 4 labels', exact: true })).toBeEnabled()
+  await page.reload()
+  await expect(page.getByRole('spinbutton', { name: `Quantity for ${known[0].blend}`, exact: true })).toHaveValue('3')
+  await page.getByRole('button', { name: 'Add more labels', exact: true }).click()
+  await expect(page.getByRole('status').filter({ hasText: /^2 labels ready$/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Copy prompt/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Print 2 ready labels', exact: true })).toBeEnabled()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([])
+  await page.getByRole('button', { name: 'Print 2 ready labels', exact: true }).click()
+  const downloading = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download labels', exact: true }).click()
+  const download = await downloading
+  const zip = await JSZip.loadAsync(await read((await download.path())!))
+  const manifest = JSON.parse(await zip.file('manifest.json')!.async('string')) as CellarPackManifest
+  expect(manifest.labels.map(label => label.blend)).toEqual(known.slice(0, 2).map(entry => entry.blend))
+  for (const asset of Object.values(manifest.assets)) expect(await zip.file(asset.path)!.async('nodebuffer')).toEqual(source.png)
+  expect(contributions).toHaveLength(0)
+})
+
+test('mixed collection freezes only requested artwork and merges a returned ZIP across tabs without replay', async ({ context, page }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  const { source, contributions, requests } = await installLibrary(context)
+  await selectExisting(page)
+  await page.getByRole('spinbutton', { name: `Quantity for ${known[0].blend}`, exact: true }).fill('3')
+  await expect(page.getByRole('button', { name: 'Print 4 labels', exact: true })).toBeEnabled()
+  await page.getByRole('button', { name: 'Add more labels', exact: true }).click()
+  const third = known[2]
+  await page.getByRole('combobox', { name: 'Add a blend', exact: true }).fill(`${third.maker} ${third.blend}`)
+  await page.getByRole('option', { name: `${third.blend} by ${third.maker}`, exact: true }).click()
+  const row = page.getByRole('article', { name: third.blend, exact: true })
+  await expect(row.getByText('No community designs for this blend yet.', { exact: true })).toBeVisible()
+  await row.getByRole('button', { name: 'Create my own', exact: true }).click()
+  await page.getByRole('button', { name: 'Copy prompt for 1 label', exact: true }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Prompt and all instructions copied.' })).toBeVisible()
+  const copied = await page.evaluate(() => navigator.clipboard.readText())
+  const request = copied.slice(copied.lastIndexOf('# Project input'))
+  expect(request).toContain(`${third.maker} — ${third.blend}`)
+  for (const entry of known.slice(0, 2)) expect(request).not.toContain(entry.blend)
+  await page.reload()
+  await page.getByRole('button', { name: 'Copy prompt for 1 label', exact: true }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Prompt and all instructions copied.' })).toBeVisible()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(copied)
+
+  const returnedManifest = structuredClone(source.manifest)
+  returnedManifest.packId = 'urn:uuid:43649b43-8094-4a32-b5ee-8be75208fb69'
+  returnedManifest.labels[0].maker = third.maker
+  returnedManifest.labels[0].blend = third.blend
+  returnedManifest.labels[0].research.sources = [{ id: 'reference', type: 'web', role: 'package-appearance', url: 'https://example.com/DO-NOT-FETCH', title: 'Fixture package reference', retrievedAt: returnedManifest.createdAt }]
+  const returnedZip = await new JSZip().file('manifest.json', JSON.stringify(returnedManifest)).file('artwork/fixture-blend.png', source.png).generateAsync({ type: 'nodebuffer' })
+  const returned = { name: 'new-artwork.cellarpack.zip', mimeType: 'application/zip', buffer: returnedZip }
+  const returnTab = await context.newPage()
+  await returnTab.goto('/labels/print')
+  await expect(returnTab.getByRole('spinbutton', { name: /^Quantity for / })).toHaveCount(2)
+  await returnTab.locator('input[type=file]').first().setInputFiles(returned)
+  await expect(returnTab.getByRole('heading', { name: 'Add your new labels', exact: true })).toBeVisible()
+  await expect(returnTab.getByRole('spinbutton', { name: /^Quantity for / })).toHaveCount(2)
+  await returnTab.getByRole('button', { name: 'Add 1 label', exact: true }).click()
+  await expect(returnTab.getByRole('spinbutton', { name: /^Quantity for / })).toHaveCount(3)
+  await expect(returnTab.getByRole('spinbutton', { name: `Quantity for ${known[0].blend}`, exact: true })).toHaveValue('3')
+  await expect.poll(() => contributions.length).toBe(1)
+  expect(JSON.stringify(contributions[0])).not.toContain('PRIVATE_')
+  await returnTab.reload()
+  await expect(returnTab.getByRole('spinbutton', { name: /^Quantity for / })).toHaveCount(3)
+  await returnTab.locator('input[type=file]').first().setInputFiles(returned)
+  await expect(returnTab.getByText('Already in your labels. No extra copy will be added.', { exact: true })).toBeVisible()
+  await returnTab.getByRole('button', { name: 'Keep current labels', exact: true }).click()
+  await expect(returnTab.getByRole('spinbutton', { name: /^Quantity for / })).toHaveCount(3)
+  await expect(returnTab.getByRole('button', { name: 'Print 5 labels', exact: true })).toBeEnabled()
+  await page.bringToFront()
+  await expect(page.getByRole('status').filter({ hasText: /^3 labels ready$/ })).toBeVisible()
+  expect(contributions).toHaveLength(1)
+  expect(requests.some(url => url.includes('example.com/DO-NOT-FETCH'))).toBe(false)
+})

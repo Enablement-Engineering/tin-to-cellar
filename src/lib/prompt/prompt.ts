@@ -1,7 +1,7 @@
 import { formatTobacco } from '../tobacco-catalog'
 import { parseSource } from '../contributions'
 import { requestedCatalogEntries } from './saved-sources'
-import { protocolInstructions, protocolReleases, resolveProtocolContext } from '../protocol'
+import { PROTOCOL_REVISION, protocolInstructions, protocolReleases, resolveProtocolContext } from '../protocol'
 import { assessPromptInput, normalizeTobaccos } from './assessment'
 import {
   CHATGPT_PROMPT_URL,
@@ -11,6 +11,7 @@ import type {
   PromptInspiration,
   PromptLabelGeometry,
   PromptProjectInput,
+  PromptTobacco,
 } from './types'
 
 
@@ -100,7 +101,7 @@ function returnGuidance(websiteUrl?: string): string {
     } catch { /* Invalid URLs use generic instructions. */ }
   }
   return `# Return to printing
-After returning the .cellarpack.zip, tell the user to download it and open ${destination}. Alongside the ZIP download, provide a clickable "Print your labels" link to that website destination when its URL is supplied. In Print labels, choose the downloaded ZIP, set quantities, review the sheet preview, and print at Actual Size (100%). Files do not transfer automatically. This address is a destination for the user's browser, not a specification or image source: never fetch it as part of this task, including when it is localhost. If it is unavailable, ask the user to reopen their Tin to Cellar app.`
+After returning the .cellarpack.zip, tell the user to download it and open ${destination}. Alongside the ZIP download, provide a clickable "Print your labels" link to that website destination when its URL is supplied. In Print labels, choose the downloaded ZIP and review the proposed additions or replacements. The website keeps existing selected labels on this browser; importing does not replace them automatically. Add the chosen artwork, set quantities, review the sheet preview, and print at Actual Size (100%). Files do not transfer automatically. This address is a destination for the user's browser, not a specification or image source: never fetch it as part of this task, including when it is localhost. If it is unavailable, ask the user to reopen their Tin to Cellar app.`
 }
 
 export function buildTinToCellarInstructions(websiteUrl?: string): string {
@@ -122,6 +123,20 @@ export function buildCompleteTinToCellarPrompt(input: PromptProjectInput): strin
 
 export function buildTinToCellarPrompt(input: PromptProjectInput): string {
   return buildCompleteTinToCellarPrompt(input)
+}
+
+export type PreparedPromptHandoff = { prompt: string; request: string; protocolRevision: typeof PROTOCOL_REVISION }
+
+/** The caller persists this exact snapshot with the corresponding local row revisions. */
+export function buildCollectionHandoff(input: PromptProjectInput & { tobaccos: readonly PromptTobacco[] }): PreparedPromptHandoff {
+  if (!Array.isArray(input.tobaccos) || !input.tobaccos.length || input.tobaccos.some(item => !item || typeof item.blend !== 'string' || !item.blend.trim())) throw new Error('Choose at least one label to create before preparing a prompt.')
+  const request = `${buildTinToCellarRequest(input)}\n\n# Requested additions\nCreate artwork only for the explicitly listed tobaccos in this request. Keep their maker and blend names unchanged in the manifest unless the user corrects them. Other labels are already selected on the website and are outside this request: do not recreate them, retrieve them, or include them in this ZIP. Return the validated successful subset if some requested labels cannot be completed. The user will review and add this ZIP to their saved labels on the website.`
+  return { request, prompt: `${buildTinToCellarInstructions()}\n\n${request}`, protocolRevision: PROTOCOL_REVISION }
+}
+
+/** Explicit alternate entrance: the blend list may live in the user's AI chat. */
+export function buildGenericChatHandoff(input: PromptProjectInput = {}): PreparedPromptHandoff {
+  return { request: buildTinToCellarRequest(input), prompt: buildTinToCellarPrompt(input), protocolRevision: PROTOCOL_REVISION }
 }
 
 export function buildChatGPTLaunchPrompt(input: PromptProjectInput): string {

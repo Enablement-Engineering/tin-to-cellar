@@ -3,7 +3,7 @@ import { encode } from 'fast-png'
 import { buildGalleryPack } from '../../lib/gallery/pack'
 import { importCellarPack } from '../../lib/cellarpack/importer'
 import type { GalleryLabelDraftV1 } from '../../lib/gallery/types'
-import { buildSelectedPack } from './pack-builder'
+import { buildSelectedPack, downloadPublishedPack } from './pack-builder'
 const choices = [
   { id: '43649b43-8094-4a32-b5ee-8be75208fb63', maker: 'Maker', blend: 'One' },
   { id: '43649b43-8094-4a32-b5ee-8be75208fb64', maker: 'Maker', blend: 'Two' },
@@ -14,6 +14,11 @@ it('combines exports with colliding IDs into an importable pack with exact artwo
 
   const exports = await Promise.all(choices.map(choice => buildGalleryPack({metadata, ...choice, packId: choice.id, createdAt: '2026-09-06T00:00:00Z'}, artwork)))
   const fetcher = vi.fn(async (url: RequestInfo | URL) => new Response(Uint8Array.from(exports[choices.findIndex(c => String(url).includes(c.id))]).buffer))
+  const publication = await downloadPublishedPack(choices[0], { fetcher })
+  expect(await publication.file.arrayBuffer()).toEqual(Uint8Array.from(exports[0]).buffer)
+  expect(publication.result.manifest?.labels[0].id).toBe('shared-label')
+  expect(publication.result.labels[0].artwork.data).toEqual(Uint8Array.from(artwork).buffer)
+  fetcher.mockClear()
   const file = await buildSelectedPack(choices, fetcher)
   const result = await importCellarPack(await file.arrayBuffer())
   expect(result.status).toBe('ready')
@@ -28,8 +33,14 @@ it('combines exports with colliding IDs into an importable pack with exact artwo
   expect(fetcher).toHaveBeenCalledTimes(2)
   expect(fetcher.mock.calls[0][0]).toContain(choices[0].id)
 })
+it('cancels an oversized single-publication stream before importing its bytes', async () => {
+  const cancel = vi.fn()
+  const stream = new ReadableStream<Uint8Array>({ start(controller) { controller.enqueue(new Uint8Array(20 * 1024 * 1024)) }, cancel })
+  await expect(downloadPublishedPack(choices[0], { fetcher: vi.fn(async () => new Response(stream)) })).rejects.toThrow('too large')
+  expect(cancel).toHaveBeenCalledOnce()
+})
 it('rejects unavailable or invalid publications instead of returning a partial pack', async () => {
-  await expect(buildSelectedPack(choices, vi.fn(async () => new Response('', {status: 404})))).rejects.toThrow('Your selection is saved')
+  await expect(buildSelectedPack(choices, vi.fn(async () => new Response('', {status: 404})))).rejects.toThrow('could not be downloaded')
   await expect(buildSelectedPack(choices, vi.fn(async () => new Response('invalid zip')))).rejects.toThrow()
 })
 it('rejects empty, duplicated, oversized and malformed selections before fetching', async () => {

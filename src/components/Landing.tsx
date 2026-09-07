@@ -4,9 +4,9 @@ import { ExamplePack } from './ExamplePack'
 type LandingProps = { onNavigate: (view: 'create' | 'print' | 'help') => void; busy: boolean; onFile: (file: File) => Promise<void> }
 
 const steps = [
-  { number: '01', icon: 'copy' as const, title: 'Copy the prompt', description: 'Add your blend names, or leave them blank and let your AI ask.' },
-  { number: '02', icon: 'research' as const, title: 'Create the artwork', description: 'Your AI uses the original tin artwork to make round labels.' },
-  { number: '03', icon: 'print' as const, title: 'Print at actual size', description: 'Bring the ZIP back here. Nine circles fit a US Letter sheet.' },
+  { number: '01', icon: 'research' as const, title: 'Choose your labels', description: 'Add your blends and choose from community designs.' },
+  { number: '02', icon: 'spark' as const, title: 'Create what you need', description: 'Want another design? Use your AI chat and add its finished ZIP here.' },
+  { number: '03', icon: 'print' as const, title: 'Print them together', description: 'Choose quantities and print at actual size. Nine circles fit a US Letter sheet.' },
 ]
 
 export function Landing({ onNavigate, busy, onFile }: LandingProps) {
@@ -15,10 +15,11 @@ export function Landing({ onNavigate, busy, onFile }: LandingProps) {
       <div className="landing-hero-copy">
         <p className="eyebrow landing-eyebrow">Jar labels from tin art</p>
         <h1 id="landing-title">Make the jar look like the tin.</h1>
-        <p>Choose your blends, copy a prompt into your AI chat, then bring the finished labels back here to lay out and print.</p>
+        <p>Choose community designs or create your own in your AI chat. Bring your labels together, choose quantities, and print.</p>
         <div className="landing-actions">
-          <button className="button primary" type="button" onClick={() => onNavigate('create')}><Icon name="spark" />Make a prompt</button>
-          <button className="button secondary" type="button" onClick={() => onNavigate('help')}>How it works</button>
+          <button className="button primary" type="button" onClick={() => onNavigate('create')}><Icon name="research" />Choose labels</button>
+          <button className="button secondary" type="button" onClick={() => onNavigate('print')}>Import labels</button>
+          <button className="button quiet" type="button" onClick={() => onNavigate('help')}>How it works</button>
         </div>
         <p className="landing-privacy"><Icon name="lock" size={16} />No Tin to Cellar account needed. Imported files stay on your device.</p>
       </div>
@@ -28,7 +29,7 @@ export function Landing({ onNavigate, busy, onFile }: LandingProps) {
     </section>
 
     <section className="landing-process" aria-labelledby="landing-steps-title">
-      <h2 className="landing-steps-heading" id="landing-steps-title">Three steps, one chat</h2>
+      <h2 className="landing-steps-heading" id="landing-steps-title">From choosing to printing</h2>
       <div className="landing-steps">
         {steps.map((step) => <article className="landing-step panel" key={step.number}>
           <span className="landing-step-icon"><Icon name={step.icon} size={20} /></span>

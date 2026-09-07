@@ -6,7 +6,7 @@ export {
   DEFAULT_SPEC_PATH,
   PROMPT_DEFAULTS,
 } from './defaults'
-export { buildCompleteTinToCellarPrompt, buildTinToCellarInstructions, buildTinToCellarRequest, buildCellarPackRepairPrompt, buildChatGPTLaunchPrompt, buildTinToCellarPrompt, createChatGPTUrl } from './prompt'
+export { buildCollectionHandoff, buildGenericChatHandoff, buildCompleteTinToCellarPrompt, buildTinToCellarInstructions, buildTinToCellarRequest, buildCellarPackRepairPrompt, buildChatGPTLaunchPrompt, buildTinToCellarPrompt, createChatGPTUrl } from './prompt'
 export type {
   DimensionUnit,
   InspirationRole,
@@ -19,4 +19,4 @@ export type {
   PromptTobacco,
 } from './types'
 
-export type { PackRepairIssue } from './prompt'
+export type { PackRepairIssue, PreparedPromptHandoff } from './prompt'

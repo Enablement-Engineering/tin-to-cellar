@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { OrderImporter } from './OrderImporter'
 import { readOrderImage } from '../lib/order-import/ocr'
@@ -17,9 +17,23 @@ it('preselects a unique match but waits for Add before importing', () => {
   expect(onAdd).not.toHaveBeenCalled()
   fireEvent.change(screen.getByRole('combobox'), { target: { value: 'G. L. Pease — Quiet Nights' } })
   fireEvent.click(screen.getByRole('button', { name: 'Add selected tobaccos' }))
-  expect(onAdd).toHaveBeenCalledWith(['G. L. Pease — Quiet Nights'])
+  expect(onAdd).toHaveBeenCalledWith([{ catalogId: expect.any(String), maker: 'G. L. Pease', blend: 'Quiet Nights' }])
   fireEvent.click(screen.getByRole('button', { name: 'Import order' }))
   expect(screen.getByLabelText('Order text')).toHaveValue('')
+})
+
+it('retains reviewed order matches until saving succeeds', async () => {
+  const onAdd = vi.fn().mockRejectedValueOnce(new Error('Storage is full')).mockResolvedValue(undefined)
+  render(<OrderImporter onAdd={onAdd} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Import order' }))
+  fireEvent.change(screen.getByLabelText('Order text'), { target: { value: 'G. L. Pease\nQuiet Nights 2oz' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Find tobaccos' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Add selected tobaccos' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Storage is full')
+  expect(screen.getByRole('combobox')).toHaveValue('G. L. Pease — Quiet Nights')
+  fireEvent.click(screen.getByRole('button', { name: 'Add selected tobaccos' }))
+  await waitFor(() => expect(screen.queryByRole('combobox')).not.toBeInTheDocument())
+  expect(onAdd.mock.calls[1]).toEqual(onAdd.mock.calls[0])
 })
 
 it('reads a screenshot and requires review before importing its names', async () => {
@@ -34,7 +48,7 @@ it('reads a screenshot and requires review before importing its names', async ()
   expect(screen.queryByLabelText('Order text')).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Find tobaccos' })).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Add selected tobaccos' }))
-  expect(onAdd).toHaveBeenCalledWith(['Cornell & Diehl — Autumn Evening'])
+  expect(onAdd).toHaveBeenCalledWith([{ catalogId: expect.any(String), maker: 'Cornell & Diehl', blend: 'Autumn Evening' }])
 })
 
 it('discards late OCR results after cancellation', async () => {

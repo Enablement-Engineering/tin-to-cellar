@@ -10,11 +10,11 @@ export function HowItWorks({ instructions }: { instructions: string }) {
   }, [instructions])
   return <div className="help-page how-it-works screen-only">
     <section aria-labelledby="how-title">
-    <div className="page-heading"><h1 id="how-title">How it works</h1><p>One prompt, your own AI chat, and a sheet of labels.</p></div>
+    <div className="page-heading"><h1 id="how-title">How it works</h1><p>Choose existing designs, create your own, and print them together.</p></div>
     <ol className="workflow-steps">
-      <li><span className="workflow-step-number" aria-hidden="true">01</span><div><h2>Make a prompt</h2><p>Add your blend names and any special requests, or leave them blank and let your AI ask. Choose Copy prompt, paste it into your chat, and send it. Attach reference photos there if you have them.</p></div></li>
-      <li><span className="workflow-step-number" aria-hidden="true">02</span><div><h2>Create the labels in your chat</h2><p>Your AI uses the original packaging to make round labels with a blank space for the date. Ask for changes in the same chat, then download the label ZIP.</p></div></li>
-      <li><span className="workflow-step-number" aria-hidden="true">03</span><div><h2>Bring the ZIP back and print</h2><p>Open Print labels, choose your ZIP, and set quantities. Print at actual size or 100% scale with headers and footers off. You can also choose Save as PDF.</p><p className="spec-line">Avery 94502 · 2.5 in circles · 9 per US Letter sheet</p></div></li>
+      <li><span className="workflow-step-number" aria-hidden="true">01</span><div><h2>Choose your labels</h2><p>Add blend names or import an order, then choose community designs you like. You can also browse Community labels or import a label ZIP you already have. If you have everything you need, continue straight to printing.</p></div></li>
+      <li><span className="workflow-step-number" aria-hidden="true">02</span><div><h2>Create any new designs</h2><p>Choose Create my own for the blends you want new artwork for. Copy their prompt into your AI chat and send it. Your existing selections stay saved in this browser while the AI makes the new labels. Attach reference photos in the chat if you have them, and download the finished ZIP.</p></div></li>
+      <li><span className="workflow-step-number" aria-hidden="true">03</span><div><h2>Add the artwork and print</h2><p>Open Print labels and import the new ZIP. Review additions and choose whether to replace an existing design or keep both. Choose quantities, then print at actual size or 100% scale with headers and footers off. You can also choose Save as PDF.</p><p className="spec-line">Avery 94502 · 2.5 in circles · 9 per US Letter sheet</p></div></li>
     </ol>
     </section>
     <section className="help-reuse panel" aria-labelledby="reuse-title">
@@ -41,7 +41,7 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     <h2>What stays in my browser?</h2>
     <p>This app checks your ZIP and places each label at its physical size. Imported files stay in your browser, and research links are never opened automatically.</p>
     <p>Importing automatically shares valid AI feedback, ZIP-check results, and eligible package-source links. Choose View shared diagnostics to inspect the shared fields, or Report a failed AI run for a separate failure report. This collection does not upload your ZIP or artwork. Gallery sharing requires a separate selection and submission. See Privacy for details.</p>
-    <p>Switching views keeps your work; reloading or closing the page clears the print job. Keep the ZIP so you can import it again.</p>
+    <p>Your selected artwork, quantities, and current creation request are saved in this browser, including when you reload or return in another tab. Another device starts separately. Clearing site data removes this saved work. Download labels to keep the finished artwork; that ZIP does not preserve quantities or unfinished requests.</p>
     </article>
     <article>
     <h2>Does the return link bring my labels?</h2>

@@ -167,7 +167,7 @@ Record this release in manifest.extensions["tin-to-cellar:protocol"] as {"revisi
 
 Write-in x/y/width/height use the finished trim bounding box, not the bleed canvas. Measure the actual surface; keep it unrotated and inside the safe area. Set overlay.mode to blank. The overlay object contains only mode; the website does not render overlays.
 
-Include only manifest, PNG artwork, and optional preview image. No scripts, HTML, executables, or nested archives. Stay within 50 MiB compressed, 200 MiB uncompressed, and 500 entries. Split larger batches into separate packs; import and print each separately because importing replaces the current pack.
+Include only manifest, PNG artwork, and optional preview image. No scripts, HTML, executables, or nested archives. Stay within 50 MiB compressed, 200 MiB uncompressed, and 500 entries. Split larger batches into separate packs; the user can review and add each pack to their saved labels on the website, within its collection limits. Importing does not automatically replace existing selected artwork. When the request lists labels to add, generate only that list; existing selected community artwork stays on the website and does not need to be retrieved or returned by the AI.
 
 ZIP paths must be relative to the staging directory containing manifest.json, never include that enclosing folder. In Python use `archive.write(file, arcname=file.relative_to(staging).as_posix())`. Reopen the exact delivered ZIP: assert `"manifest.json" in archive.namelist()`, parse that root manifest and assert every asset's path is present. Reject an enclosing `cellarpack/` folder even if ZIP integrity passes.
 

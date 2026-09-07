@@ -1,12 +1,12 @@
 # Bundled protocol operation
 
-Protocol 0.0.20 uses semantic versions and keeps Copy prompt self-contained. It includes the project request, complete instructions, both schemas and unchanged canonical proof program. Read prompt shows a request preview; Full copied text reveals exactly what is copied. There is no separate retrieval step or Copy complete prompt action.
+Protocol 0.0.22 keeps Copy prompt self-contained and describes reviewed additive imports. A collection request contains only explicitly requested new designs; selected community artwork remains on the website. The saved handoff includes the exact project request, complete instructions, schemas and canonical proof program. Read prompt shows a request preview; Full copied text reveals exactly what is copied.
 
 The protocol API under `/api/labels/protocol/` is retired and returns 404. Versioned instruction snapshots and hashes remain in the local registry for provenance and same-chat repairs. Known repairs embed the recorded bundle; unknown revisions require the original instructions rather than guessing. Optional instruction downloads remain in How it works. Site deployment updates the protocol used for new prompts; existing chats keep their pinned revision.
 
 ## Pre-release versions
 
-Current new-run versions are protocol `0.0.20`, CellarPack `0.1.0`, and feedback `0.2.0`. Protocol version strings are stored in the existing `revision` and `protocolRevision` fields. Numeric entries in the release registry are historical snapshots, not the current version scheme. New releases use `major.minor.patch` strings and remain immutable. Bump protocol patch for instruction edits; use a new minor version for incompatible pre-release schema changes. Existing CellarPack 1.x imports remain readable, but new prompts emit 0.1.0.
+Current new-run versions are protocol `0.0.22`, CellarPack `0.1.0`, and feedback `0.2.0`. This migration adds no schema, sidecar or correlation-ID extension. Protocol version strings use the existing `revision` and `protocolRevision` fields. Numeric registry entries are historical snapshots. New releases use immutable semantic versions. Bump the patch for instruction edits and use a new minor version for incompatible pre-release schema changes. Existing CellarPack 1.x imports remain readable; new prompts emit 0.1.0.
 
 The protocol includes example opening, repair, resume, missing-reference, successful-delivery and incomplete-delivery messages. Routine chat omits versions, hashes and proof coordinates; required checks still run, and unresolved problems remain visible. Technical details are available on request.
 

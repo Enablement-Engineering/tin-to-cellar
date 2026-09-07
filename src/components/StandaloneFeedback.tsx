@@ -33,6 +33,6 @@ export function StandaloneFeedback() {
     <label>Open failure report <input type="file" accept=".json,application/json" onChange={event => { void open(event.target.files?.[0]); event.target.value = '' }} /></label>
     <p className="field-hint" role="status">{message}</p>
     {prepared && !shared && <><pre className="standalone-preview" tabIndex={0} aria-label="Failure report submission">{JSON.stringify(prepared, null, 2)}</pre><button className="button secondary" type="button" onClick={() => setShared(true)}>Share failure report</button></>}
-    {prepared && shared && <ContributionStatus key={prepared.submissionId} contribution={prepared} retrospective={notes} />}
+    {prepared && shared && <ContributionStatus key={prepared.submissionId} contribution={prepared} retrospective={notes} autoSend />}
   </details>
 }

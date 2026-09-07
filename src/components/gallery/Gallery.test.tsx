@@ -18,9 +18,9 @@ const config = { intake: true, serving: true, turnstileSiteKey: 'test', noticeVe
 it('searches blends with keyboard suggestions and clears the catalog filter without an edition field', async () => {
   const fetcher = vi.fn(async (url: string) => ({ ok: true, json: async () => url.endsWith('/config') ? config : { labels: [], nextCursor: null } }))
   vi.stubGlobal('fetch', fetcher)
-  render(<GalleryBrowse onUse={vi.fn()} />)
+  render(<GalleryBrowse onAdd={vi.fn()} />)
   const input = await screen.findByRole('combobox', { name: 'Maker or blend' })
-  expect(screen.getByText('Browse labels shared by the community. Add several to a pack, or print one right away.')).toBeInTheDocument()
+  expect(screen.getByText('Choose designs shared by the community. Add them to your labels and print them alongside your own artwork.')).toBeInTheDocument()
   expect(screen.getByText('Available format')).toBeInTheDocument()
   expect(screen.queryByRole('combobox', { name: 'Label shape' })).toBeNull()
   expect(screen.queryByLabelText('Edition')).toBeNull()
@@ -96,7 +96,7 @@ it('caps each selection at five while preserving local rendering', async () => {
 })
 it('closed serving does not fetch listings or artwork', async () => {
   const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...config, serving: false }) }); vi.stubGlobal('fetch', fetcher)
-  render(<GalleryBrowse onUse={vi.fn()} />)
+  render(<GalleryBrowse onAdd={vi.fn()} />)
   await screen.findByText(/community library is closed/)
   expect(fetcher).toHaveBeenCalledOnce(); expect(screen.queryByRole('img')).toBeNull()
 })
