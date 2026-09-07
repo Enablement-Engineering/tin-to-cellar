@@ -1,5 +1,5 @@
-import identities from "./identities.json"
-import catalog from './catalog.json'
+import identities from './identities.json' with { type: 'json' }
+import catalog from './catalog.json' with { type: 'json' }
 
 export type TobaccoEntry = { id: string; maker: string; blend: string; sourceUrl: string; aliases?: string[] }
 

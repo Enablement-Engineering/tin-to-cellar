@@ -15,7 +15,7 @@ function setup(database?: DiagnosticsDatabase, config = {}) {
     async list<T>({ prefix, limit }: { prefix: string; limit: number }) { return new Map([...data].filter(([key]) => key.startsWith(prefix)).slice(0, limit)) as Map<string, T> },
     async getAlarm() { return alarm },
     async setAlarm(time: number) { alarm = time },
-    transaction<T>(callback: (s: typeof storage) => Promise<T>): Promise<T> { const result = serial.then(() => callback(storage)); serial = result.catch(() => {}); return result },
+    transaction<T>(callback: (s: typeof storage) => Promise<T>): Promise<T> { const result = serial.then(async () => { const snapshot = structuredClone(data); try { return await callback(storage) } catch (error) { data.clear(); for (const [key, value] of snapshot) data.set(key, value); throw error } }); serial = result.catch(() => {}); return result },
   }
   const object = new CatalogContributions({ storage }, { DIAGNOSTICS: database, ...config })
   return { object, data, storage, binding: { getByName: () => object } }
@@ -45,7 +45,7 @@ it('excludes expired sources and cleans records without postponing the alarm on 
   vi.setSystemTime(new Date('2027-01-01'))
   expect((await (await state.object.fetch(get())).json()).sources).toEqual([])
   await state.object.alarm()
-  expect(state.data.size).toBe(0)
+  expect(state.data).toEqual(new Map([['report-count-v1', 0]]))
 })
 it('guards collection size, origin, schema, rate limits, and private exports', async () => {
   const state = setup()
@@ -88,15 +88,20 @@ it('migrates retained legacy records before new collection and only marks comple
   state.data.set('report:one', { receivedAt: '2026-08-01T00:00:00.000Z', contribution })
   state.data.set('report:two', { receivedAt: '2026-08-02T00:00:00.000Z', contribution: { ...contribution, submissionId: 'b'.repeat(64), sources: [{ ...source, catalogId: 'retired-catalog-entry' }], feedback: { format: 'tin-to-cellar/feedback', schemaVersion: '2.0.0', protocolRevision: 12, request: { labelCount: 1, shape: 'circle' }, outcome: 'complete', steps: [], issues: [] } } })
   state.data.set('report:expired', { receivedAt: '2025-01-01T00:00:00.000Z', contribution: { ...contribution, submissionId: 'c'.repeat(64) } })
+  state.data.set('report-count-v1', 3)
   const migrate = () => state.object.fetch(new Request('https://catalog/migrate', { method: 'POST' }))
   await expect(migrate()).rejects.toThrow('Interrupted')
   expect(state.data.has('diagnostics-migrated-v1')).toBe(false)
+  expect(state.data.get('report-count-v1')).toBe(3)
   fail = false
   expect(await (await migrate()).json()).toEqual({ status: 'migrated', copied: 2 })
   expect(rows.size).toBe(2)
   expect(JSON.parse(String(rows.get('b'.repeat(64))?.[4])).protocolRevision).toBe(12)
   expect(rows.get(contribution.submissionId)?.slice(1,4)).toEqual(['2026-08-01T00:00:00.000Z', '2026-10-30T00:00:00.000Z', 'legacy'])
   expect(await (await migrate()).json()).toEqual({ status: 'already-migrated' })
+  expect(state.data.get('report-count-v1')).toBe(3)
+  await state.object.alarm()
+  expect(state.data.get('report-count-v1')).toBe(2)
 })
 
 it('identifies an unconfigured collection service separately from transient failure', async () => {
@@ -185,4 +190,102 @@ it('fails closed rather than resetting corrupt allowance state or exposing store
   const broken = { getByName: () => ({ fetch: async (): Promise<Response> => { throw new Error('Offline') } }) }
   expect((await admitDiagnostics(broken))?.status).toBe(503)
   expect((await admitDiagnostics())?.status).toBe(503)
+})
+
+it('initializes the retained count from legacy storage once and performs no warm admission scans', async () => {
+  const state = setup()
+  state.data.set('report:' + 'b'.repeat(64), { receivedAt: new Date().toISOString(), contribution: { ...contribution, submissionId: 'b'.repeat(64) } })
+  const list = vi.spyOn(state.storage, 'list')
+  expect((await state.object.fetch(post())).status).toBe(200)
+  expect(state.data.get('report-count-v1')).toBe(2)
+  expect(list).toHaveBeenCalledExactlyOnceWith({ prefix: 'report:', limit: 1001 })
+  list.mockClear()
+  await state.object.fetch(post())
+  await new CatalogContributions({ storage: state.storage }).fetch(post({ ...contribution, submissionId: 'c'.repeat(64) }))
+  expect(state.data.get('report-count-v1')).toBe(3)
+  expect(list).not.toHaveBeenCalled()
+})
+it('enforces retained capacity under concurrent insertion without counting duplicates', async () => {
+  const state = setup()
+  for (let n = 0; n < 999; n++) state.data.set(`report:${n.toString(16).padStart(64, '0')}`, { receivedAt: new Date().toISOString(), contribution })
+  const responses = await Promise.all(['a', 'b', 'c'].map(letter => state.object.fetch(post({ ...contribution, submissionId: letter.repeat(64) }))))
+  expect(responses.filter(response => response.ok)).toHaveLength(1)
+  expect(responses.filter(response => response.status === 503)).toHaveLength(2)
+  expect(state.data.get('report-count-v1')).toBe(1000)
+  expect([...state.data.keys()].filter(key => key.startsWith('report:'))).toHaveLength(1000)
+  expect(await (await state.object.fetch(post())).json()).toEqual({ status: 'duplicate' })
+  expect(state.data.get('report-count-v1')).toBe(1000)
+})
+it('keeps expiry and inserts atomic and repeated alarms do not decrement twice', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-09-06'))
+  const state = setup()
+  await state.object.fetch(post())
+  vi.setSystemTime(new Date('2027-01-01'))
+  await Promise.all([state.object.alarm(), state.object.fetch(post({ ...contribution, submissionId: 'b'.repeat(64) }))])
+  expect(state.data.get('report-count-v1')).toBe(1)
+  expect(state.data.has('report:' + contribution.submissionId)).toBe(false)
+  expect(state.data.has('report:' + 'b'.repeat(64))).toBe(true)
+  expect((await (await state.object.fetch(get())).json()).sources).toHaveLength(1)
+  await state.object.alarm()
+  expect(state.data.get('report-count-v1')).toBe(1)
+})
+it('rolls back report and count together when persistence is interrupted', async () => {
+  const state = setup()
+  await state.object.fetch(post())
+  const originalPut = state.storage.put.bind(state.storage)
+  vi.spyOn(state.storage, 'put').mockImplementation(async (key, value) => {
+    if (key.startsWith('sources:')) throw new Error('Interrupted source write')
+    await originalPut(key, value)
+  })
+  await expect(state.object.fetch(post({ ...contribution, submissionId: 'b'.repeat(64) }))).rejects.toThrow('Interrupted source write')
+  expect(state.data.get('report-count-v1')).toBe(1)
+  expect(state.data.has('report:' + 'b'.repeat(64))).toBe(false)
+})
+it('fails closed for invalid retained counters and unexpected oversized legacy storage', async () => {
+  for (const count of [null, '1', -1, 1.5, 1001]) {
+    const state = setup()
+    state.data.set('report-count-v1', count)
+    await expect(state.object.fetch(post())).rejects.toThrow('Invalid retained report count')
+    expect(state.data.has('report:' + contribution.submissionId)).toBe(false)
+  }
+  const state = setup()
+  for (let n = 0; n < 1001; n++) state.data.set(`report:${n}`, { receivedAt: new Date().toISOString(), contribution })
+  await expect(state.object.fetch(post())).rejects.toThrow('Retained report capacity exceeded')
+  expect(state.data.has('report-count-v1')).toBe(false)
+})
+it('detects counter drift during retention without deleting reports', async () => {
+  const state = setup()
+  state.data.set('report-count-v1', 0)
+  state.data.set('report:legacy', { receivedAt: '2020-01-01T00:00:00.000Z', contribution })
+  await expect(state.object.alarm()).rejects.toThrow('Invalid retained report count')
+  expect(state.data.has('report:legacy')).toBe(true)
+})
+it('preserves a source refreshed after the alarm snapshot', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-09-06'))
+  const state = setup()
+  await state.object.fetch(post())
+  vi.setSystemTime(new Date('2027-01-01'))
+  const originalList = state.storage.list.bind(state.storage)
+  vi.spyOn(state.storage, 'list').mockImplementation(async options => {
+    const snapshot = await originalList(options)
+    if (options.prefix === 'sources:') await state.object.fetch(post({ ...contribution, submissionId: 'b'.repeat(64) }))
+    return snapshot
+  })
+  await state.object.alarm()
+  expect(state.data.get('report-count-v1')).toBe(1)
+  expect((await (await state.object.fetch(get())).json()).sources).toEqual([{ ...source, checkedAt: '2027-01-01T00:00:00.000Z' }])
+})
+it('rolls back expired deletions if updating their count fails', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-09-06'))
+  const state = setup()
+  await state.object.fetch(post())
+  vi.setSystemTime(new Date('2027-01-01'))
+  const originalPut = state.storage.put.bind(state.storage)
+  vi.spyOn(state.storage, 'put').mockImplementation(async (key, value) => {
+    if (key === 'report-count-v1') throw new Error('Interrupted count write')
+    await originalPut(key, value)
+  })
+  await expect(state.object.alarm()).rejects.toThrow('Interrupted count write')
+  expect(state.data.get('report-count-v1')).toBe(1)
+  expect(state.data.has('report:' + contribution.submissionId)).toBe(true)
 })

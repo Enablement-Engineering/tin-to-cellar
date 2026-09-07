@@ -4,8 +4,30 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, expect, it, vi } from 'vitest'
 import { OrderImporter } from './OrderImporter'
 import { readOrderImage } from '../lib/order-import/ocr'
+import * as orderImport from '../lib/order-import'
 vi.mock('../lib/order-import/ocr', () => ({ readOrderImage: vi.fn() }))
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers() })
+it.each(['cancel', 'close', 'unmount', 'timeout'])('aborts the PDF operation on %s and ignores late results', async action => {
+  vi.useFakeTimers()
+  let finish!: (value: string) => void
+  const read = vi.spyOn(orderImport, 'readOrderPdf').mockImplementation(() => new Promise(resolve => { finish = resolve }))
+  const view = render(<OrderImporter onAdd={vi.fn()} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Import order' }))
+  fireEvent.change(screen.getByLabelText('Order file'), { target: { files: [new File(['pdf'], 'order.pdf', { type: 'application/pdf' })] } })
+  const signal = read.mock.calls[0][1]!
+  expect(signal.aborted).toBe(false)
+  if (action === 'cancel') {
+    const cancel = screen.getByRole('button', { name: 'Cancel reading' })
+    cancel.focus(); fireEvent.click(cancel)
+    expect(screen.getByRole('button', { name: 'Close order import' })).toHaveFocus()
+  } else if (action === 'close') fireEvent.click(screen.getByRole('button', { name: 'Close order import' }))
+  else if (action === 'unmount') view.unmount()
+  else await act(async () => { vi.advanceTimersByTime(90000) })
+  expect(signal.aborted).toBe(true)
+  await act(async () => { finish('Orlik\nGolden Sliced') })
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+  if (action === 'timeout') expect(screen.getByRole('status')).toHaveTextContent('Reading timed out.')
+})
 it('preselects a unique match but waits for Add before importing', () => {
   const onAdd = vi.fn()
   render(<OrderImporter onAdd={onAdd} />)

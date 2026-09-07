@@ -2,9 +2,9 @@
 
 ## Current status after reconciliation
 
-Not all findings are complete in one integrated version. Use the [review reconciliation and implementation plan](codebase-review-work-plan.md) for current status, settled decisions, ownership, acceptance criteria and preserved work.
+All applicable review fixes and both performance improvements are now integrated in the current release branch. Use the [review implementation and release status](codebase-review-work-plan.md) for current verification, production status and preserved work.
 
-Original main at `7d46502` contains the R-01 through R-09 fixes. The newer application plus cost controls at `6773c75` contains R-03, R-04, R-05, R-07, R-09 and the local R-10 implementation. R-01, R-06 and R-08 still need porting or adaptation there. R-02's secured research receiver is preserved on main and absent from the newer application. Both R-11 performance optimizations remain open.
+R-01, R-06 and R-08 have been adapted to the newer application; the existing cost, privacy and focus fixes are retained. R-02's secured research receiver remains preserved on main and absent from the newer application. R-11 now defers archived instructions/admin code and avoids repeated source-report counting scans.
 
 The user has settled the privacy and budget policy: known catalog URLs only, pause diagnostics at the allowance, preserve local labels, and target the existing $5 monthly plan. The implemented starting allowance is 1,000 attempts per UTC day, with a daily Codex monitor. Production pausing and alert delivery are not verified. No further product decision is needed to begin the remaining local work.
 

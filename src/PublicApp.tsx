@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSavedSources } from './lib/prompt/use-saved-sources'
-import { buildCollectionHandoff, buildGenericChatHandoff, buildTinToCellarInstructions, buildCellarPackRepairPrompt } from './lib/prompt'
 import { ContributionStatus } from './components/ContributionStatus'
-import { contributionFromManifest } from './lib/contributions'
+import { contributionFromManifest, parseContribution, type Contribution } from './lib/contributions'
 import { checkAvery94502Compatibility } from './lib/sheets'
 import { HowItWorks } from './components/HowItWorks'
 import { Landing } from './components/Landing'
@@ -24,12 +23,14 @@ import { PreparationWorkspace } from './components/PreparationWorkspace'
 import { CollectionImportReview } from './components/CollectionImportReview'
 import type { ImportSummary } from './components/ui-model'
 import type { CellarPackImportResult } from './lib/cellarpack'
-import { GalleryBrowse, GallerySubmission, GalleryAdmin } from './components/gallery'
-import { downloadPublishedPack } from './components/gallery/pack-builder'
+import { GalleryBrowse, GallerySubmission, GalleryAdmin } from './components/gallery/deferred'
+import { DeferredPanel } from './components/DeferredPanel'
+import { buildFallbackRepairPrompt } from './components/repairFallback'
 import { validChoice, MAX_PACK_LABELS, type PackChoice } from './components/gallery/pack-selection'
 import { addRequests, updateRow, removeRow, setPrintSettings, setHandoff, setReceiptDelivery, prepareImport, planImport, applyImport, exportCollection, type Collection, type CollectionOrigin, type ImportCandidate, type ImportDecisions, type ImportPlan } from './lib/collection'
 import { useCollection } from './hooks/useCollection'
 import { usePrintLabels } from './hooks/usePrintLabels'
+import { usePromptModule } from './hooks/usePromptModule'
 import { formatTobacco } from './lib/tobacco-catalog'
 
 const viewPaths = { home: '/', labels: '/labels', create: '/labels/create', print: '/labels/print', help: '/labels/help', about: '/about', inspiration: '/inspiration', privacy: '/privacy', gallery: '/gallery', 'gallery-admin': '/admin/gallery' } as const
@@ -49,11 +50,20 @@ const importReviewKey = (collection: Collection, candidate: ImportCandidate) => 
 
 export default function PublicApp() {
   const { collection, ready, saving, error: storageError, commit } = useCollection()
-  const labels = usePrintLabels(collection)
+  const { labels, error: previewError } = usePrintLabels(collection)
   const [view, setView] = useState<View | 'not-found'>(viewFromPath)
+  const promptModule = usePromptModule(view === 'create' || view === 'help')
   const main = useRef<HTMLElement>(null)
   const focusAfterImport = useRef(false)
   const previousView = useRef(view)
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('tin-to-cellar:instructions-reload-focus') === '1') {
+        sessionStorage.removeItem('tin-to-cellar:instructions-reload-focus')
+        main.current?.focus({ preventScroll: true })
+      }
+    } catch { /* Browser storage may be unavailable; loading can still recover. */ }
+  }, [])
   const navigate = (next: View) => {
     if (next === 'home') next = 'labels'
     setView(next)
@@ -86,6 +96,7 @@ export default function PublicApp() {
   const [receiptId, setReceiptId] = useState<string | null>(null)
   const [freshReceipts, setFreshReceipts] = useState<Set<string>>(() => new Set())
   const [notes, setNotes] = useState<Record<string, Retrospective>>({})
+  const [diagnosticWarnings, setDiagnosticWarnings] = useState<Record<string, boolean>>({})
   const [repairStatus, setRepairStatus] = useState('')
   const [showRepair, setShowRepair] = useState(false)
   const [genericChat, setGenericChat] = useState(false)
@@ -122,6 +133,7 @@ export default function PublicApp() {
   const frozen = collection.handoff && targetKey(collection.handoff.targets) === requestedKey && (targets.length > 0 || genericChat && collection.handoff.targets.length === 0) ? collection.handoff : null
   const handoffDraft = useMemo(() => {
     if (frozen) return frozen
+    if (!promptModule.module) return null
     const input = {
       tobaccos: creationRows.map(row => ({ maker: row.maker || undefined, blend: row.blend, notes: [row.edition, row.notes].filter(Boolean).join('; ') })),
       savedSources,
@@ -130,9 +142,9 @@ export default function PublicApp() {
       printPreference: 'tin-to-cellar:avery-94502@1',
       artDirection: 'Use 0.125 inch bleed on every side and integrate a blank, light date-writing surface into the artwork, with no words or writing line.',
     }
-    return creationRows.length ? buildCollectionHandoff(input) : genericChat ? buildGenericChatHandoff(input) : null
-  }, [frozen, creationRows, savedSources, genericChat])
-  const instructions = useMemo(() => buildTinToCellarInstructions(window.location.href), [])
+    return creationRows.length ? promptModule.module.buildCollectionHandoff(input) : genericChat ? promptModule.module.buildGenericChatHandoff(input) : null
+  }, [frozen, creationRows, savedSources, genericChat, promptModule.module])
+  const instructions = useMemo(() => view === 'help' && promptModule.module ? promptModule.module.buildTinToCellarInstructions(window.location.href) : null, [view, promptModule.module])
   const copyHandoff = async () => {
     if (!handoffDraft) throw new Error('Choose at least one label to create first.')
     const saved = await commit(current => {
@@ -164,13 +176,34 @@ export default function PublicApp() {
     })
     const status = usable.length ? (quarantinedLabels.length || result.status !== 'ready' || issues.some(issue => ['fatal', 'error'].includes(issue.severity)) ? 'partial' : 'ready') : 'rejected'
     const repairIssues = [...issues, ...quarantinedLabels.flatMap(item => item.issues)]
-    const contribution = origin === 'local' && result.manifest ? await contributionFromManifest(result.manifest, websiteValidation(status, repairIssues)) : null
-    const incoming = await prepareImport({ ...result, labels: usable, quarantinedLabels, issues, status }, { origin, publicationId, protocolContext: context, repairPrompt: status !== 'ready' ? buildCellarPackRepairPrompt(repairIssues, context) : '', contribution })
-    incoming.receipt.title = (result.manifest?.title ?? title).slice(0, 300)
-    if (contribution?.feedback && 'protocolRevision' in contribution.feedback) {
-      const retrospective = parseRetrospective(result.manifest?.extensions?.[RETROSPECTIVE_KEY])
-      if (retrospective && retrospective.protocolRevision === contribution.feedback.protocolRevision) setNotes(previous => ({ ...previous, [incoming.receipt.id]: retrospective }))
+    let contribution: Contribution | null = null
+    let retrospective: Retrospective | null = null
+    let diagnosticWarning = false
+    if (origin === 'local' && result.manifest) {
+      try {
+        const prepared = await contributionFromManifest(result.manifest, websiteValidation(status, repairIssues))
+        contribution = prepared ? parseContribution(prepared) : null
+        if (prepared && !contribution) diagnosticWarning = true
+      } catch { diagnosticWarning = true }
+      if (contribution?.feedback && 'protocolRevision' in contribution.feedback) {
+        try {
+          const parsed = parseRetrospective(result.manifest.extensions?.[RETROSPECTIVE_KEY])
+          if (parsed && parsed.protocolRevision === contribution.feedback.protocolRevision) retrospective = parsed
+        } catch { diagnosticWarning = true }
+      }
     }
+    let repairPrompt = ''
+    if (status !== 'ready') {
+      try { repairPrompt = (await import('./lib/prompt')).buildCellarPackRepairPrompt(repairIssues, context) }
+      catch {
+        // Instruction delivery is optional to importing already validated artwork.
+        repairPrompt = buildFallbackRepairPrompt(repairIssues)
+      }
+    }
+    const incoming = await prepareImport({ ...result, labels: usable, quarantinedLabels, issues, status }, { origin, publicationId, protocolContext: context, repairPrompt, contribution })
+    incoming.receipt.title = (result.manifest?.title ?? title).slice(0, 300)
+    if (retrospective) setNotes(previous => ({ ...previous, [incoming.receipt.id]: retrospective }))
+    setDiagnosticWarnings(previous => ({ ...previous, [incoming.receipt.id]: diagnosticWarning }))
     const plan = planImport(collection, incoming)
     if (origin === 'gallery' && usable.length === 1) {
       const choices = defaultDecisions(plan)
@@ -196,13 +229,14 @@ export default function PublicApp() {
   const chooseCommunity = async (choice: PackChoice, rowId?: string) => {
     if (importBusy.current || !ready) throw new Error('Wait for the current label to finish saving, then try again.')
     importBusy.current = true; setImporting(true); setImportError('')
-    try { const { file, result } = await downloadPublishedPack(choice); await processResult(result, file.name, 'gallery', choice.id, rowId) }
+    try { const { downloadPublishedPack } = await import('./components/gallery/pack-builder'); const { file, result } = await downloadPublishedPack(choice); await processResult(result, file.name, 'gallery', choice.id, rowId) }
     finally { importBusy.current = false; setImporting(false) }
   }
   const restoreLegacy = async () => {
     if (legacyRestoring) return
     setLegacyRestoring(true)
     try {
+      const { downloadPublishedPack } = await import('./components/gallery/pack-builder')
       for (const choice of legacyChoices) {
         const { file, result } = await downloadPublishedPack(choice)
         const incoming = await prepareImport(result, { origin: 'gallery', publicationId: choice.id })
@@ -250,6 +284,15 @@ export default function PublicApp() {
     {collection.handoff && !frozen && <p role="status">Your creation choices changed. Copy the updated prompt before starting a new chat.</p>}
     <PromptHandoff prompt={handoffDraft.prompt} request={handoffDraft.request} copyLabel={targets.length ? `Copy prompt for ${targets.length} ${targets.length === 1 ? 'label' : 'labels'}` : 'Copy prompt for my AI chat'} busy={busy} onCopy={copyHandoff} onCopied={() => { void commit(current => current.handoff?.prompt === handoffDraft.prompt ? setHandoff(current, { ...current.handoff, copied: true }) : current).catch(ignoreHandledError) }} onPrint={() => navigate('print')} />
   </>
+  const promptLoading = <section className="panel screen-only" aria-label="Instructions">
+    <p role="status">{promptModule.failed ? 'Instructions could not load. Reload to try again. Your saved labels remain available.' : 'Loading instructions…'}</p>
+    {promptModule.failed && <button type="button" className="button secondary" onClick={event => {
+      if (document.activeElement === event.currentTarget) {
+        try { sessionStorage.setItem('tin-to-cellar:instructions-reload-focus', '1') } catch { /* Recovery does not require focus storage. */ }
+      }
+      window.location.reload()
+    }}>Reload instructions</button>}
+  </section>
   const titles: Record<View | 'not-found', string> = { home: 'Tin to Cellar', labels: 'Labels for your tobacco jars', 'not-found': 'Page not found', create: 'Choose labels', print: 'Print labels', help: 'How it works', about: 'About', inspiration: 'Inspiration', privacy: 'Privacy', gallery: 'Community labels', 'gallery-admin': 'Review submissions' }
   const routeClick = (next: View) => (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
@@ -275,21 +318,23 @@ export default function PublicApp() {
     </div></header>
     <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
       {(storageError || importError) && <p className="panel screen-only" role="alert">{storageError || importError}</p>}
+      {previewError && <p className="panel screen-only" role="alert">{previewError}</p>}
+      {view === 'print' && currentReceipt && diagnosticWarnings[currentReceipt.id] && <p className="field-hint screen-only" role="status">Some diagnostics could not be prepared. Your label import can continue.</p>}
       {storageError && !ready && <button className="button secondary screen-only" type="button" onClick={() => window.location.reload()}>Reload saved labels</button>}
       <p className="visually-hidden screen-only" role="status">{importing ? 'Checking your labels…' : notice}</p>
       {legacyChoices.length > 0 && <section className="panel screen-only"><h2>Your previous community selection</h2><p>{legacyChoices.length} selected designs can be saved in Your labels. A design only becomes ready after its artwork downloads.</p><button type="button" className="button secondary" disabled={busy} onClick={() => void restoreLegacy()}>Restore selected labels</button></section>}
-      {view === 'not-found' ? <div className="landing-page screen-only"><h1>Page not found</h1><p>This page doesn’t exist.</p><a href="/labels" onClick={routeClick('labels')}>Go to Labels</a></div> : view === 'labels' || view === 'home' ? <Landing onNavigate={navigate} busy={busy} onFile={file => handlePack(file, 'example')} /> : view === 'gallery' ? <GalleryBrowse onAdd={label => chooseCommunity(label)} selectedIds={Object.values(collection.designs).flatMap(design => design.publicationId ? [design.publicationId] : [])} onPrint={() => navigate('print')} /> : view === 'gallery-admin' ? <GalleryAdmin /> : view === 'create' ? <PreparationWorkspace rows={collection.rows.map(row => ({ ...row, artwork: labels.find(label => label.id === row.id) }))} busy={busy}
+      {view === 'not-found' ? <div className="landing-page screen-only"><h1>Page not found</h1><p>This page doesn’t exist.</p><a href="/labels" onClick={routeClick('labels')}>Go to Labels</a></div> : view === 'labels' || view === 'home' ? <Landing onNavigate={navigate} busy={busy} onFile={file => handlePack(file, 'example')} /> : view === 'gallery' ? <DeferredPanel><GalleryBrowse onAdd={label => chooseCommunity(label)} selectedIds={Object.values(collection.designs).flatMap(design => design.publicationId ? [design.publicationId] : [])} onPrint={() => navigate('print')} /></DeferredPanel> : view === 'gallery-admin' ? <DeferredPanel><GalleryAdmin /></DeferredPanel> : view === 'create' ? <PreparationWorkspace rows={collection.rows.map(row => ({ ...row, artwork: labels.find(label => label.id === row.id) }))} busy={busy}
         onAdd={identities => commit(current => addRequests(current, identities)).then(() => undefined)}
         onRemove={id => { void commit(current => removeRow(current, id)).catch(ignoreHandledError) }}
         onCreate={(id, requested) => { setGenericChat(false); void commit(current => updateRow(current, id, { createRequested: requested })).catch(ignoreHandledError) }}
         onNotes={(id, value) => commit(current => updateRow(current, id, { notes: value })).then(() => undefined)}
         onResolve={(id, identity) => { void commit(current => updateRow(current, id, identity)).catch(ignoreHandledError) }}
-        onChooseCommunity={(id, label) => chooseCommunity(label, id)} onPrint={() => navigate('print')} onBrowse={() => navigate('gallery')} onImport={() => navigate('print')} onGenericChat={() => setGenericChat(true)} handoff={handoff} /> : view === 'help' ? <><HowItWorks instructions={instructions} /><StandaloneFeedback /></> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
+        onChooseCommunity={(id, label) => chooseCommunity(label, id)} onPrint={() => navigate('print')} onBrowse={() => navigate('gallery')} onImport={() => navigate('print')} onGenericChat={() => setGenericChat(true)} handoff={handoff ?? ((creationRows.length > 0 || genericChat) ? promptLoading : null)} /> : view === 'help' ? <>{instructions !== null ? <HowItWorks instructions={instructions} /> : promptLoading}<StandaloneFeedback /></> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
         <div className="page-heading screen-only"><h1>Print labels</h1><p className="spec-line">Avery 94502 · 2.5 in circles · US Letter</p></div>
         <div className="handoff-actions screen-only"><button className="button secondary" type="button" onClick={() => navigate('create')}>Add more labels</button>{labels.length > 0 && <button type="button" className="button secondary" disabled={downloading} onClick={() => void download()}>{downloading ? 'Preparing download…' : 'Download labels'}</button>}</div>
         {collection.rows.some(row => !row.designId) && <p className="field-hint screen-only">{collection.rows.filter(row => !row.designId).length} labels still need artwork. You can print the ready labels now.</p>}
         {labels.length > 0 ? <PrintStudio intake={intake} labels={labels} quantities={quantities} onQuantityChange={(id, quantity) => { void commit(current => updateRow(current, id, { quantity })).catch(ignoreHandledError) }} settings={collection.printSettings} onSettingsChange={settings => { void commit(current => setPrintSettings(current, settings)).catch(ignoreHandledError) }} /> : <div className="print-intake screen-only">{intake}<ExamplePack busy={busy} onFile={file => handlePack(file, 'example')} /></div>}
-        {shareableLabels.length > 0 && <GallerySubmission labels={shareableLabels} />}
+        {shareableLabels.length > 0 && <DeferredPanel><GallerySubmission labels={shareableLabels} /></DeferredPanel>}
       </>}
       {view === 'create' && (collection.rows.length > 0 || collection.receipts.length > 0) && <div className="preparation-storage screen-only"><button type="button" className="button quiet" disabled={busy} onClick={() => {
         if (!window.confirm('Clear all labels, requests, print settings and import reports saved in this browser? Download your ready labels first. This cannot be undone.')) return

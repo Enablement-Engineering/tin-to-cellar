@@ -9,6 +9,8 @@ import App, { GalleryAdminShell } from './App'
 import { collectionFixture } from './lib/collection/test-fixtures'
 import { createCollectionStore, updateRow } from './lib/collection'
 import type { CellarPackImportResult } from './lib/cellarpack/types'
+import * as contributions from './lib/contributions'
+import * as retrospectives from './lib/feedback/retrospective'
 const { importer } = vi.hoisted(() => ({ importer: vi.fn() }))
 vi.mock('./lib/cellarpack', () => ({ importCellarPack: importer }))
 let fixture: CellarPackImportResult
@@ -64,6 +66,52 @@ beforeEach(async () => {
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } })
 })
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
+it.each(['throws', 'invalid'])('saves printable artwork when optional diagnostics preparation %s', async mode => {
+  window.history.replaceState({}, '', '/labels/print')
+  const prepare = vi.spyOn(contributions, 'contributionFromManifest')
+  if (mode === 'throws') prepare.mockRejectedValue(new Error('Optional diagnostic digest failed'))
+  else prepare.mockResolvedValue({ version: 99 } as unknown as contributions.Contribution)
+  importer.mockResolvedValue(ready())
+  const first = render(<App />)
+  await upload(true)
+  const add = await screen.findByRole('button', { name: 'Add 1 label' })
+  expect(await savedCollection()).toBeNull()
+  expect(screen.getByText('Some diagnostics could not be prepared. Your label import can continue.')).toBeVisible()
+  fireEvent.click(add)
+  expect(await screen.findByRole('button', { name: 'Print 1 label' })).toBeEnabled()
+  expect(screen.queryByRole('button', { name: 'Copy repair request' })).not.toBeInTheDocument()
+  expect((await savedCollection())?.receipts[0]).toMatchObject({ contribution: null, delivery: 'none' })
+  expect(vi.mocked(fetch).mock.calls.some(([url]) => url === '/api/labels/contributions')).toBe(false)
+  first.unmount()
+  render(<App />)
+  expect(await screen.findByRole('button', { name: 'Print 1 label' })).toBeEnabled()
+})
+
+it('keeps valid diagnostics and artwork when optional retrospective parsing throws', async () => {
+  window.history.replaceState({}, '', '/labels/print')
+  const result = ready()
+  result.manifest.extensions = { ...result.manifest.extensions, 'tin-to-cellar:feedback': { format: 'tin-to-cellar/feedback', schemaVersion: '0.2.0', protocolRevision: '0.0.17', request: { labelCount: 1, shape: 'circle' }, outcome: 'complete', steps: [], issues: [] }, 'tin-to-cellar:protocol': { revision: '0.0.17', cellarpackVersion: '0.1.0', feedbackVersion: '0.2.0' } }
+  vi.spyOn(retrospectives, 'parseRetrospective').mockImplementation(() => { throw new Error('Optional notes failed') })
+  importer.mockResolvedValue(result)
+  render(<App />)
+  await upload()
+  expect(await screen.findByRole('button', { name: 'Print 1 label' })).toBeEnabled()
+  await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url]) => url === '/api/labels/contributions')).toBe(true))
+  expect(screen.getByText('Some diagnostics could not be prepared. Your label import can continue.')).toBeVisible()
+})
+it('preserves valid artwork with a bounded original-instructions repair fallback if full repair preparation fails', async () => {
+  window.history.replaceState({}, '', '/labels/print')
+  const prompts = await import('./lib/prompt')
+  vi.spyOn(prompts, 'buildCellarPackRepairPrompt').mockImplementation(() => { throw new Error('Instruction module unavailable') })
+  importer.mockResolvedValue(ready([imported('Good label'), imported('Needs repair', 'square')]))
+  render(<App />)
+  await upload()
+  expect(await screen.findByRole('button', { name: 'Print 1 label' })).toBeEnabled()
+  const receipt = (await savedCollection())!.receipts[0]
+  expect(receipt.repairPrompt).toContain('Ask me to supply the original complete instructions before repairing.')
+  expect(receipt.repairPrompt).toContain('Do not substitute current instructions')
+  expect(receipt.quarantined).toHaveLength(1)
+})
 describe('home, prompt, print, and help navigation', () => {
   it('starts on the landing page and keeps committed labels when returning through home', async () => {
     window.history.replaceState({}, '', '/labels')
@@ -169,7 +217,7 @@ describe('home, prompt, print, and help navigation', () => {
   it('downloads complete reusable instructions with a local return link', async () => {
     render(<App />)
     fireEvent.click(screen.getByRole('link', { name: 'How it works' }))
-    const download = screen.getByRole('link', { name: 'Download instructions' })
+    const download = await screen.findByRole('link', { name: 'Download instructions' })
     expect(download).toHaveAttribute('download', 'tin-to-cellar-instructions.md')
     expect(download).toHaveAttribute('href', 'blob:label')
     const blob = vi.mocked(URL.createObjectURL).mock.calls[0][0] as Blob

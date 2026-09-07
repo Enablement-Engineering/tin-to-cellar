@@ -1,7 +1,6 @@
 export function Privacy() {
   return <article className="editorial-page screen-only">
     <header className="editorial-header">
-      <p className="eyebrow">Your files and data</p>
       <h1>Privacy</h1>
       <p className="editorial-lede">Your orders and label packs are read in your browser. Your AI chat makes the artwork. Importing a pack shares AI feedback and public package source observations to improve future labels.</p>
       <p>Updated September 6, 2026</p>

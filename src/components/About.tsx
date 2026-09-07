@@ -1,7 +1,6 @@
 export function About() {
   return <article className="editorial-page screen-only">
     <header className="editorial-header">
-      <p className="eyebrow">Behind the app</p>
       <h1>About Tin to Cellar</h1>
       <p className="editorial-lede">Keep the look of your favorite tins when the tobacco moves into jars.</p>
     </header>

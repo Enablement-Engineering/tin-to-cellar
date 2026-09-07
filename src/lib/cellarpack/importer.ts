@@ -374,7 +374,7 @@ async function importArtwork(
   issues: ValidationIssue[],
   remainingPixels: number,
 ) {
-  const asset = assets[label.artworkAssetId]
+  const asset = Object.hasOwn(assets, label.artworkAssetId) ? assets[label.artworkAssetId] : undefined
   if (!asset) {
     issues.push(blocking('MISSING_ARTWORK', label.id, `Asset ${label.artworkAssetId} is not declared.`))
     return null

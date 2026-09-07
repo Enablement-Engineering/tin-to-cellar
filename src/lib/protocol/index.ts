@@ -1,13 +1,9 @@
-import registry from './releases.json'
+import metadata from './metadata.json'
 
-export const PROTOCOL_REVISION = registry.current
+export const PROTOCOL_REVISION = metadata.current
 export const PROTOCOL_KEY = 'tin-to-cellar:protocol'
 export type ProtocolRelease = { revision: number | string; cellarpackVersion: string; feedbackVersion: string; files: Record<string, string>; hashes: Record<string, string> }
-export const protocolReleases = registry.releases as Record<string, ProtocolRelease>
-export const isKnownProtocolRevision = (revision: number | string): boolean => Object.hasOwn(protocolReleases, String(revision))
-export function protocolInstructions(): string {
-  return protocolReleases[String(PROTOCOL_REVISION)]?.files['instructions.md'] ?? ''
-}
+export const isKnownProtocolRevision = (revision: number | string): boolean => metadata.revisions.includes(String(revision))
 export type ProtocolContext = { status: 'known' | 'unknown' | 'legacy' | 'invalid' | 'conflict'; revision?: number | string }
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
 const validRevision = (value: unknown): value is number | string => typeof value === 'string' ? /^(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})$/.test(value) : typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 1_000_000

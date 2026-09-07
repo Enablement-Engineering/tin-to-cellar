@@ -1,7 +1,6 @@
 export function Inspiration() {
   return <article className="editorial-page screen-only">
     <header className="editorial-header">
-      <p className="eyebrow">Where it started</p>
       <h1>Inspired by Hobbiton Piper</h1>
       <p className="editorial-lede">His guide to making labels for pipe tobacco jars was the starting point for Tin to Cellar.</p>
     </header>
@@ -18,7 +17,6 @@ export function Inspiration() {
         allowFullScreen
       />
       <a className="inspiration-source" href="https://www.youtube.com/watch?v=2zPQSh5kHHQ">
-        <span className="eyebrow">The original guide</span>
         <strong>How To Make Cellar Labels For Pipe Tobacco Jars (Step By Step Guide)</strong>
         <span>Hobbiton Piper · Watch on YouTube <span aria-hidden="true">↗</span></span>
       </a>
