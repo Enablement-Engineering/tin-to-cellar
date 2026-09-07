@@ -15,7 +15,9 @@ export interface ContributionBinding { getByName(name: string): { fetch(request:
 type Stored = { receivedAt: string; contribution: Contribution }
 const retention = 90 * 86400000
 const reportCapacity = 1000
-const reportCountKey = 'report-count-v1'
+const reportCountKey = 'report-count-v2'
+// Rebuild once after the September 7 older-writer deployment. Its writes did
+// not update v1; trusting that saved count could undercount retained records.
 // Called only inside a transaction. Existing objects initialize once; warm
 // submissions read the counter without deserializing retained reports.
 async function reportCount(storage: Storage, scannedCount?: number): Promise<number> {

@@ -7,6 +7,7 @@
 - Generated artwork owns the entire blank date-writing surface. The website must not add words, lines, or date overlays.
 - Do not commit generated build output or dependency directories.
 - Run the most relevant tests, typecheck/build, and lint for changed areas.
+- Deploy production through the current `origin/main` release workflow. Older worktrees and generated release configurations can overwrite newer privacy and budget controls. Integrate changes onto current main before release; after deployment verify the protected budget endpoint as well as health. Coordinate concurrent release tasks.
 
 ## Shared module ownership during the initial parallel build
 

@@ -83,3 +83,7 @@ jobs:
           curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 https://tintocellar.com/labels --output /dev/null
           curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 https://www.tintocellar.com/labels --output /dev/null
           curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 https://tintocellar.com/api/health
+          # A healthy older Worker can still be missing diagnostic controls.
+          # This read requires no secret and must reach the protected route.
+          budget_status=$(curl --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 --output /dev/null --write-out '%{http_code}' https://tintocellar.com/api/labels/diagnostics/budget)
+          test "$budget_status" = 403 || { echo "::error::Budget endpoint missing or unprotected (HTTP $budget_status)"; exit 1; }

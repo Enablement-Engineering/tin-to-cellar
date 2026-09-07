@@ -62,6 +62,8 @@ No generated artwork, build output, dependencies, private diagnostics, credentia
 
 ## Release and recovery
 
+September 7 follow-up: later direct deployments replaced the reviewed Worker; version `5c72b83d-a7d3-49f4-90c4-4ac4a391b3a8` lacked the budget route, allowance settings and source-read limiter. The recovery restores current main and advances the retained source-report counter to `report-count-v2`, rebuilding atomically from bounded retained records rather than trusting a potentially stale v1 count. Both understated and overstated old counts have regression coverage. Diagnostic attempts during the older deployment were not counted by the allowance; restored status cannot reconstruct that interval. CI now requires the unauthenticated budget route to return 403, and repository deployment instructions require current-main integration and coordination. This detects a missing route; authenticated aggregate status remains a separate live verification.
+
 The production release used the existing repository deployment workflow and existing Cloudflare resources:
 
 - Source: `51476e2d024757290347731f3b54af3169ef4659`, merged through PR #9.
