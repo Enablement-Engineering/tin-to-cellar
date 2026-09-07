@@ -1,6 +1,7 @@
 import { getSheetProfile, isSheetProfile } from '../sheets'
 import type { SheetProfile } from '../sheets'
 import type { CellarPackManifest, ValidationIssue } from './types'
+import { parseArchiveJson } from './json'
 
 export function importCustomSheetProfiles(
   manifest: CellarPackManifest,
@@ -20,9 +21,7 @@ export function importCustomSheetProfiles(
       continue
     }
     try {
-      const bytes = entry
-      const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
-      const value: unknown = JSON.parse(text)
+      const value = parseArchiveJson(entry)
       if (!isSheetProfile(value) || value.id !== reference.id) throw new TypeError('Invalid profile')
       profiles.push(value)
     } catch {

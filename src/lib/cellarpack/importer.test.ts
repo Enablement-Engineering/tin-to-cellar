@@ -277,3 +277,38 @@ it('enforces the pack pixel budget before decoding the next image', async () => 
     expect(decoder).toHaveBeenCalledTimes(3)
   } finally { decoder.mockRestore() }
 })
+
+describe('artifact trust boundaries', () => {
+  it('rejects duplicate manifest keys before schema validation', async () => {
+    const manifest = JSON.stringify(await makeTestManifest())
+    const result = await importCellarPack(await makeCellarPack({
+      manifestText: manifest.replace('"schemaVersion":', '"schemaVersion":"2.0.0","schemaVersion":'),
+    }))
+    expect(result.status).toBe('rejected')
+    expect(result.manifest).toBeNull()
+    expect(result.labels).toEqual([])
+    expect(result.issues).toContainEqual(expect.objectContaining({ code: 'INVALID_MANIFEST_JSON', severity: 'fatal' }))
+  })
+
+  it.each(['0.1.0', '0.1.9', '1.0.0', '1.2.0'])('preserves supported version family %s', async (schemaVersion) => {
+    const result = await importCellarPack(await makeCellarPack({ mutateManifest: manifest => { manifest.schemaVersion = schemaVersion } }))
+    expect(result.status).toBe('ready')
+  })
+
+  it.each(['0.2.0', '2.0.0', 'latest', '1.0'])('rejects unsupported or malformed version %s', async (schemaVersion) => {
+    const result = await importCellarPack(await makeCellarPack({ mutateManifest: manifest => { manifest.schemaVersion = schemaVersion } }))
+    expect(result.status).toBe('rejected')
+    expect(result.labels).toEqual([])
+  })
+
+  it('keeps agent claims and schema-valid metadata from bypassing integrity checks', async () => {
+    const result = await importCellarPack(await makeCellarPack({ mutateManifest: manifest => {
+      manifest.assets['asset-fixture'].sha256 = '0'.repeat(64)
+      manifest.extensions = { 'tin-to-cellar:feedback': { outcome: 'success', validation: 'passed' } }
+    } }))
+    expect(result.manifest?.labels).toHaveLength(1)
+    expect(result.labels).toEqual([])
+    expect(result.quarantinedLabels).toHaveLength(1)
+    expect(result.issues).toContainEqual(expect.objectContaining({ code: 'ASSET_HASH_MISMATCH' }))
+  })
+})

@@ -206,6 +206,7 @@ export interface ValidationIssue {
 
 export interface ManifestValidationResult {
   valid: boolean
+  /** Schema-checked metadata only; does not establish artwork integrity or geometry validity. */
   manifest: CellarPackManifest | null
   issues: ValidationIssue[]
 }
@@ -239,7 +240,9 @@ export interface CellarPackConformance {
 
 export interface CellarPackImportResult {
   status: 'rejected' | 'partial' | 'ready'
+  /** Schema-checked metadata, including quarantined labels. Never use as the printable label list. */
   manifest: CellarPackManifest | null
+  /** Labels that passed local schema, integrity, image, and geometry checks. */
   labels: ImportedCellarLabel[]
   quarantinedLabels: QuarantinedLabel[]
   customSheetProfiles: SheetProfile[]

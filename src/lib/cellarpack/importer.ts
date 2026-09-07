@@ -15,6 +15,7 @@ import { importArtwork, MAX_PIXELS_PER_PACK } from './artwork'
 import { importCustomSheetProfiles } from './sheet-profiles'
 import { inspectEntryContents } from './archive-contents'
 import { hasFatal, isBlocking, deduplicateIssues } from './issues'
+import { parseArchiveJson } from './json'
 import type {
   ArtworkAsset,
   CellarLabel,
@@ -64,10 +65,7 @@ export async function importCellarPack(data: ArrayBuffer): Promise<CellarPackImp
 
   let manifestValue: unknown
   try {
-    const manifestBytes = manifestEntry
-    const manifestText = new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes)
-    manifestValue = JSON.parse(manifestText)
-    if (jsonDepth(manifestValue) > 32) throw new TypeError('JSON depth exceeds limit')
+    manifestValue = parseArchiveJson(manifestEntry)
   } catch {
     return rejected([
       ...initialIssues,
@@ -75,8 +73,8 @@ export async function importCellarPack(data: ArrayBuffer): Promise<CellarPackImp
         severity: 'fatal',
         code: 'INVALID_MANIFEST_JSON',
         path: 'manifest.json',
-        message: 'manifest.json is not valid UTF-8 JSON within the supported depth limit.',
-        recovery: 'Regenerate the manifest as UTF-8 JSON with nesting depth at most 32.',
+        message: 'manifest.json must be valid UTF-8 JSON with unique object keys and nesting depth at most 32.',
+        recovery: 'Regenerate the manifest with unique object keys and nesting depth at most 32.',
       },
     ])
   }
@@ -320,13 +318,6 @@ function duplicateValues(values: string[]): Set<string> {
     seen.add(value)
   }
   return duplicates
-}
-
-function jsonDepth(value: unknown, depth = 0): number {
-  if (!value || typeof value !== 'object') return depth
-  if (depth > 32) return depth
-  const values = Array.isArray(value) ? value : Object.values(value)
-  return values.reduce((maximum, child) => Math.max(maximum, jsonDepth(child, depth + 1)), depth)
 }
 
 function labelIdForRaw(value: unknown, index: number): string {
