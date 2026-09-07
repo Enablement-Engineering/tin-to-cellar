@@ -5,5 +5,5 @@ export default defineConfig({
   testMatch: '**/*.pw.ts',
   fullyParallel: true,
   use: { baseURL: 'http://127.0.0.1:43927', browserName: 'chromium', channel: 'chrome', trace: 'retain-on-failure' },
-  webServer: { command: 'npm run dev -- --ip 127.0.0.1 --port 43927', url: 'http://127.0.0.1:43927', reuseExistingServer: false },
+  webServer: { command: 'npm run diagnostics:migrate:local && npm run dev -- --ip 127.0.0.1 --port 43927', url: 'http://127.0.0.1:43927', reuseExistingServer: false },
 })

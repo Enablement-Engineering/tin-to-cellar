@@ -69,3 +69,21 @@ it('preserves public static behavior and local harness routing without a dedicat
  const response=await worker.fetch(new Request('http://127.0.0.1:43928/api/gallery/v1/agent/submissions'),{ASSETS:env.ASSETS})
  expect(await response.json()).toEqual({local:true});expect(gallery).toHaveBeenCalledOnce()
 })
+
+it('authenticates aggregate budget reads before calling storage', async () => {
+  const fetch = vi.fn(async () => Response.json({ used: 0, limit: 1000, paused: false }))
+  const env = { ASSETS: { fetch: vi.fn() }, DIAGNOSTICS_READ_TOKEN: 'read-token', CATALOG_CONTRIBUTIONS: { getByName: () => ({ fetch }) } }
+  expect((await worker.fetch(new Request('https://site.com/api/labels/diagnostics/budget'), env)).status).toBe(403)
+  expect(fetch).not.toHaveBeenCalled()
+  const response = await worker.fetch(new Request('https://site.com/api/labels/diagnostics/budget', { headers: { Authorization: 'Bearer read-token' } }), env)
+  expect(response.status).toBe(200)
+  expect(fetch).toHaveBeenCalledOnce()
+})
+it('still cleans expired diagnostics when migration fails', async () => {
+  const batch = vi.fn(async () => [])
+  const statement = { bind: () => statement, run: vi.fn(), first: vi.fn(), all: vi.fn() }
+  vi.spyOn(galleryRoutes, 'cleanGallery').mockResolvedValue({ failures: 0 } as Awaited<ReturnType<typeof galleryRoutes.cleanGallery>>)
+  const env = { ASSETS: { fetch: vi.fn() }, DIAGNOSTICS: { prepare: () => statement, batch }, CATALOG_CONTRIBUTIONS: { getByName: () => ({ fetch: async () => new Response(null, { status: 503 }) }) } }
+  await expect(worker.scheduled(null, env)).rejects.toThrow('Scheduled cleanup incomplete')
+  expect(batch).toHaveBeenCalledOnce()
+})

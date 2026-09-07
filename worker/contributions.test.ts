@@ -2,9 +2,9 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { CatalogContributions, contributionsResponse, type Storage } from './contributions'
 import { TOBACCO_CATALOG } from '../src/lib/tobacco-catalog'
 import type { DiagnosticsDatabase } from './diagnostics'
-const source = { catalogId: TOBACCO_CATALOG[0].id, url: 'https://retailer.com/tin.png', status: 'valid', package: 'tin', variant: 'current' }
+const source = { catalogId: TOBACCO_CATALOG[0].id, url: TOBACCO_CATALOG[0].sourceUrl, status: 'valid', package: 'tin', variant: 'current' }
 const contribution = { version: 1, submissionId: 'a'.repeat(64), feedback: null, sources: [source] }
-function setup(database?: DiagnosticsDatabase) {
+function setup(database?: DiagnosticsDatabase, config = {}) {
   const data = new Map<string, unknown>()
   let alarm: number | null = null
   let serial = Promise.resolve<unknown>(undefined)
@@ -17,7 +17,7 @@ function setup(database?: DiagnosticsDatabase) {
     async setAlarm(time: number) { alarm = time },
     transaction<T>(callback: (s: typeof storage) => Promise<T>): Promise<T> { const result = serial.then(() => callback(storage)); serial = result.catch(() => {}); return result },
   }
-  const object = new CatalogContributions({ storage }, { DIAGNOSTICS: database })
+  const object = new CatalogContributions({ storage }, { DIAGNOSTICS: database, ...config })
   return { object, data, storage, binding: { getByName: () => object } }
 }
 const post = (body = contribution) => new Request('https://catalog/collect', { method: 'POST', body: JSON.stringify(body) })
@@ -103,4 +103,86 @@ it('identifies an unconfigured collection service separately from transient fail
   const response = await contributionsResponse(new Request('https://site.com/api/labels/contributions', { method: 'POST' }))
   expect(response.status).toBe(503)
   expect(await response.json()).toEqual({ error: 'Collection is unavailable', code: 'collection_unconfigured' })
+})
+
+it('admits only the daily allowance under concurrent requests and retains the exhaustion event after UTC rollover', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-09-07T23:59:00Z'))
+  const state = setup(undefined, { DIAGNOSTIC_DAILY_ALLOWANCE: '2' })
+  const admit = () => state.object.fetch(new Request('https://catalog/budget', { method: 'POST' }))
+  const results = await Promise.all(Array.from({ length: 10 }, admit))
+  expect(results.filter(result => result.ok)).toHaveLength(2)
+  const denied = results.find(result => !result.ok)!
+  expect(denied.status).toBe(429)
+  expect(denied.headers.get('Retry-After')).toBe('60')
+  expect(await denied.json()).toEqual({ code: 'collection_paused', error: 'Diagnostic sharing is paused for today.', resetAt: '2026-09-08T00:00:00.000Z' })
+  vi.setSystemTime(new Date('2026-09-08T00:01:00Z'))
+  expect((await admit()).status).toBe(200)
+  const status = await (await state.object.fetch(new Request('https://catalog/budget'))).json()
+  expect(status).toEqual({ version: 1, day: '2026-09-08', used: 1, limit: 2, paused: false, resetAt: '2026-09-09T00:00:00.000Z', lastPausedAt: '2026-09-07T23:59:00.000Z' })
+  expect(state.data.size).toBe(1)
+})
+it('fails closed for disabled and invalid diagnostic allowances without reservations', async () => {
+  for (const config of [{ DIAGNOSTIC_COLLECTION_ENABLED: 'false' }, { DIAGNOSTIC_DAILY_ALLOWANCE: '0' }, { DIAGNOSTIC_DAILY_ALLOWANCE: 'garbage' }, { DIAGNOSTIC_COLLECTION_ENABLED: 'yes' }]) {
+    const state = setup(undefined, config)
+    const response = await state.object.fetch(new Request('https://catalog/budget', { method: 'POST' }))
+    expect(response.status).toBe(503)
+    expect(state.data.size).toBe(0)
+  }
+})
+it('validates contributions before reserving allowance and blocks persistence after exhaustion', async () => {
+  const state = setup(undefined, { DIAGNOSTIC_DAILY_ALLOWANCE: '1' })
+  const limiter = { limit: async () => ({ success: true }) }
+  const request = (body: unknown, origin = 'https://site.com') => new Request('https://site.com/api/labels/contributions', { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  expect((await contributionsResponse(request(contribution, 'https://other.com'), state.binding, limiter)).status).toBe(403)
+  expect((await contributionsResponse(request({ invalid: true }), state.binding, limiter)).status).toBe(400)
+  expect(state.data.size).toBe(0)
+  expect((await contributionsResponse(request(contribution), state.binding, limiter)).status).toBe(200)
+  expect((await contributionsResponse(request({ ...contribution, submissionId: 'b'.repeat(64) }), state.binding, limiter)).status).toBe(429)
+  expect(state.data.has('report:' + 'b'.repeat(64))).toBe(false)
+})
+it('prevalidates and separately rate-limits public source reads before storage', async () => {
+  const fetch = vi.fn(async () => Response.json({ sources: [] }))
+  const binding = { getByName: () => ({ fetch }) }
+  const denied = { limit: vi.fn(async () => ({ success: false })) }
+  expect((await contributionsResponse(new Request('https://site.com/api/labels/sources?catalogId=invalid'), binding, undefined, undefined, undefined, denied)).status).toBe(404)
+  expect(denied.limit).not.toHaveBeenCalled()
+  expect((await contributionsResponse(new Request(`https://site.com/api/labels/sources?catalogId=${source.catalogId}`), binding, undefined, undefined, undefined, denied)).status).toBe(429)
+  expect(fetch).not.toHaveBeenCalled()
+})
+it('rejects unfamiliar shared URLs before allowance and suppresses previously stored private paths', async () => {
+  const state = setup()
+  const body = { ...contribution, sources: [{ ...source, url: 'https://retailer.com/customer/alice/tin.png' }] }
+  const response = await contributionsResponse(new Request('https://site.com/api/labels/contributions', { method: 'POST', headers: { Origin: 'https://site.com', 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), state.binding, { limit: async () => ({ success: true }) })
+  expect(response.status).toBe(400)
+  expect(state.data.size).toBe(0)
+  state.data.set(`sources:${source.catalogId}`, [{ ...body.sources[0], checkedAt: new Date().toISOString() }, { ...source, checkedAt: new Date().toISOString() }])
+  expect((await (await state.object.fetch(get())).json()).sources).toEqual([{ ...source, checkedAt: expect.any(String) }])
+})
+it('shares the same daily pool between reports and optional notes', async () => {
+  const { shareNotes } = await import('./diagnostics')
+  const state = setup(undefined, { DIAGNOSTIC_DAILY_ALLOWANCE: '1' })
+  const limiter = { limit: async () => ({ success: true }) }
+  expect((await contributionsResponse(new Request('https://site.com/api/labels/contributions', { method: 'POST', headers: { Origin: 'https://site.com', 'Content-Type': 'application/json' }, body: JSON.stringify(contribution) }), state.binding, limiter)).status).toBe(200)
+  const write = vi.fn(async () => ({ meta: { changes: 1 } }))
+  const statement = { bind: () => statement, run: write, async first<T>() { return { feedback: JSON.stringify({ protocolRevision: '0.0.16' }) } as T }, async all<T>() { return { results: [] as T[] } } }
+  const db = { prepare: () => statement, batch: async () => [] }
+  const notes = { format: 'tin-to-cellar/retrospective', schemaVersion: '0.1.0', protocolRevision: '0.0.16', capabilities: { browsing: 'available' }, tools: [], observations: [{ stage: 'packaging', kind: 'helped', explanation: 'The builder produced the archive successfully.' }] }
+  const request = new Request('https://site.com/api/labels/process-notes', { method: 'POST', headers: { Origin: 'https://site.com', 'Content-Type': 'application/json' }, body: JSON.stringify({ submissionId: contribution.submissionId, retrospective: notes }) })
+  expect((await shareNotes(request, db, limiter, state.binding)).status).toBe(429)
+  expect(write).not.toHaveBeenCalled()
+})
+it('fails closed rather than resetting corrupt allowance state or exposing stored metadata', async () => {
+  const { admitDiagnostics, budgetStatus } = await import('./diagnostic-budget')
+  for (const saved of [null, false, { day: 'invalid', used: 1 }, { day: '2026-02-30', used: 1 }, { day: '2999-01-01', used: 1 }, { day: '2026-01-01', used: -1 }, { day: '2026-01-01', used: 1, lastPausedAt: 'private data' }]) {
+    const state = setup()
+    state.data.set('diagnostic-budget-v1', saved)
+    expect((await admitDiagnostics(state.binding))?.status).toBe(503)
+    const status = await budgetStatus(new Request('https://site.com/api/labels/diagnostics/budget', { headers: { Authorization: 'Bearer read-token' } }), state.binding, 'read-token')
+    expect(status.status).toBe(503)
+    expect(await status.text()).not.toContain('private data')
+    expect(state.data.get('diagnostic-budget-v1')).toEqual(saved)
+  }
+  const broken = { getByName: () => ({ fetch: async (): Promise<Response> => { throw new Error('Offline') } }) }
+  expect((await admitDiagnostics(broken))?.status).toBe(503)
+  expect((await admitDiagnostics())?.status).toBe(503)
 })

@@ -5,6 +5,8 @@
   "workers_dev": false,
   "preview_urls": false,
   "vars": {
+    "DIAGNOSTIC_COLLECTION_ENABLED": "true",
+    "DIAGNOSTIC_DAILY_ALLOWANCE": "1000",
     "GALLERY_INTAKE": "true",
     "GALLERY_SERVING": "true",
     "GALLERY_PUBLICATION": "true",
@@ -64,6 +66,7 @@
     }
   ],
   "ratelimits": [
+    { "name": "SOURCES_RATE_LIMITER", "namespace_id": "1006", "simple": { "limit": 60, "period": 60 } },
     {
       "name": "CONTRIBUTION_RATE_LIMITER",
       "namespace_id": "1004",

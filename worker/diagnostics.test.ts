@@ -18,6 +18,7 @@ function database(): DiagnosticsDatabase {
 }
 const exportRequest = (query = '') => new Request('https://site.com/api/labels/diagnostics' + query, { headers: { Authorization: 'Bearer read-token' } })
 const notesRequest = (value: unknown = notes) => new Request('https://site.com/api/labels/process-notes', { method: 'POST', headers: { Origin: 'https://site.com', 'Content-Type': 'application/json' }, body: JSON.stringify({ submissionId: contribution.submissionId, retrospective: value }) })
+const budget = { getByName: () => ({ fetch: async () => Response.json({}) }) }
 const limiter = { limit: async () => ({ success: true }) }
 afterEach(() => vi.useRealTimers())
 it('retains new structured data for a year, keeps legacy expiry, and does not extend expiry on retry', async () => {
@@ -35,20 +36,20 @@ it('retains new structured data for a year, keeps legacy expiry, and does not ex
 })
 it('requires explicit same-origin notes submission, matches revisions, and rejects replacement notes', async () => {
   const db = database()
-  expect((await shareNotes(notesRequest(), db, limiter)).status).toBe(409)
+  expect((await shareNotes(notesRequest(), db, limiter, budget)).status).toBe(409)
   await storeDiagnostics(db, contribution)
-  expect((await shareNotes(notesRequest({ ...notes, protocolRevision: '0.0.17' }), db, limiter)).status).toBe(409)
-  expect(await (await shareNotes(notesRequest(), db, limiter)).json()).toEqual({ status: 'collected' })
-  expect(await (await shareNotes(notesRequest(), db, limiter)).json()).toEqual({ status: 'duplicate' })
-  expect((await shareNotes(notesRequest({ ...notes, observations: [{ ...notes.observations[0], explanation: 'Replacement' }] }), db, limiter)).status).toBe(409)
+  expect((await shareNotes(notesRequest({ ...notes, protocolRevision: '0.0.17' }), db, limiter, budget)).status).toBe(409)
+  expect(await (await shareNotes(notesRequest(), db, limiter, budget)).json()).toEqual({ status: 'collected' })
+  expect(await (await shareNotes(notesRequest(), db, limiter, budget)).json()).toEqual({ status: 'duplicate' })
+  expect((await shareNotes(notesRequest({ ...notes, observations: [{ ...notes.observations[0], explanation: 'Replacement' }] }), db, limiter, budget)).status).toBe(409)
   const bad = new Request(notesRequest(), { headers: { Origin: 'https://other.com', 'Content-Type': 'application/json' } })
-  expect((await shareNotes(bad, db, limiter)).status).toBe(403)
+  expect((await shareNotes(bad, db, limiter, budget)).status).toBe(403)
 })
 it('expires notes independently and enforces private exports', async () => {
   vi.useFakeTimers(); vi.setSystemTime(new Date('2026-09-06'))
   const db = database()
   await storeDiagnostics(db, contribution)
-  await shareNotes(notesRequest(), db, limiter)
+  await shareNotes(notesRequest(), db, limiter, budget)
   expect((await diagnosticsExport(exportRequest(), db, 'different')).status).toBe(403)
   vi.setSystemTime(new Date('2027-01-01'))
   const page = await (await diagnosticsExport(exportRequest(), db, 'read-token')).json()
@@ -69,4 +70,17 @@ it('keeps narrative out of automatic contributions and rejects arbitrary validat
   expect(parseContribution({ ...contribution, retrospective: notes })).toBeNull()
   expect(parseContribution({ ...contribution, validation: { version: '0.1.0', outcome: 'ready', issues: [{ code: 'PRIVATE', count: 1 }] } })).toBeNull()
   expect(parseContribution({ ...contribution, origin: 'standalone', sources: [], validation: null })).toBeTruthy()
+})
+
+it('pauses notes before persistence and never reserves allowance for invalid notes or foreign origins', async () => {
+  const db = database()
+  await storeDiagnostics(db, contribution)
+  const reserve = vi.fn(async () => Response.json({ code: 'collection_paused', resetAt: '2026-09-08T00:00:00.000Z' }, { status: 429 }))
+  const binding = { getByName: () => ({ fetch: reserve }) }
+  expect((await shareNotes(notesRequest({ invalid: true }), db, limiter, binding)).status).toBe(400)
+  expect(reserve).not.toHaveBeenCalled()
+  expect((await shareNotes(notesRequest(), db, limiter, binding)).status).toBe(429)
+  expect(reserve).toHaveBeenCalledOnce()
+  expect((await db.prepare('SELECT * FROM diagnostic_notes').all()).results).toHaveLength(0)
+  expect((await shareNotes(notesRequest(), db, limiter)).status).toBe(503)
 })

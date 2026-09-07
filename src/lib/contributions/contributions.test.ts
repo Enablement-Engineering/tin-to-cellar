@@ -10,13 +10,13 @@ it('collects only fixed feedback and catalog-matched source observations', async
   const tobacco = TOBACCO_CATALOG[0]
   manifest.extensions = { 'tin-to-cellar:feedback': feedback, 'tin-to-cellar:protocol': { revision: '0.0.14' } }
   Object.assign(manifest.labels[0], { maker: tobacco.maker, blend: tobacco.blend, extensions: { [SOURCE_KEY]: [
-    { url: 'https://retailer.com/tin.png', status: 'valid', package: 'tin', variant: 'current' },
+    { url: tobacco.sourceUrl, status: 'valid', package: 'tin', variant: 'current' },
     { url: 'https://retailer.com/private.png?token=secret', status: 'valid', package: 'tin', variant: 'current' },
   ] } })
   manifest.labels[0].research.sources = [{ id: 'private', type: 'user-provided', role: 'package-appearance', receivedAt: 'today', description: 'Private address', originalFilename: 'private.png' }]
   manifest.labels[0].research.adaptationSummary = 'Private free text'
   const result = (await contributionFromManifest(manifest))!
-  expect(result.sources).toEqual([{ catalogId: tobacco.id, url: 'https://retailer.com/tin.png', status: 'valid', package: 'tin', variant: 'current' }])
+  expect(result.sources).toEqual([{ catalogId: tobacco.id, url: tobacco.sourceUrl, status: 'valid', package: 'tin', variant: 'current' }])
   expect(result.feedback).toEqual(feedback)
   expect(JSON.stringify(result)).not.toMatch(/Private|private|secret|artwork|packId|generator/)
   expect(parseContribution(result)).toEqual(result)
@@ -25,6 +25,7 @@ it('keeps old provenance unverified and skips custom names and conflicting feedb
   const manifest = await makeTestManifest()
   expect(await contributionFromManifest(manifest)).toBeNull()
   Object.assign(manifest.labels[0], TOBACCO_CATALOG[0])
+  manifest.labels[0].research.sources = [{ id: 'known', type: 'web', role: 'package-appearance', url: TOBACCO_CATALOG[0].sourceUrl, title: 'Catalog reference', retrievedAt: '2026-09-01' }]
   manifest.extensions = { 'tin-to-cellar:feedback': feedback, 'tin-to-cellar:protocol': { revision: '0.0.15' } }
   const result = (await contributionFromManifest(manifest))!
   expect(result.feedback).toBeNull()
