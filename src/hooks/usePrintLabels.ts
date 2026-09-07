@@ -18,7 +18,7 @@ export function usePrintLabels(collection: Collection): { labels: PrintLabel[]; 
       urls.push(imageUrl)
       const surface = item.label.surface
       const ratio = (value: number, dimension: number) => (value * (surface.bleed.unit === 'mm' ? 1 / 25.4 : 1)) / (dimension * (surface.finishedSize.unit === 'mm' ? 1 / 25.4 : 1))
-      return [{ id: row.id, maker: item.label.maker, blend: item.label.displayName ?? item.label.blend, imageUrl, imageFrame: {
+      return [{ id: row.id, maker: item.label.maker, blend: item.label.blend, imageUrl, imageFrame: {
         left: -ratio(surface.bleed.left, surface.finishedSize.width) * 100,
         top: -ratio(surface.bleed.top, surface.finishedSize.height) * 100,
         width: (1 + ratio(surface.bleed.left + surface.bleed.right, surface.finishedSize.width)) * 100,

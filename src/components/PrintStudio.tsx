@@ -5,20 +5,23 @@ import type { PrintLabel, PrintSettings } from './ui-model'
 import { AVERY_94502_PROFILE } from '../lib/sheets/profiles'
 import { fixedSlotPosition, paginateFixedSheet } from '../lib/sheets/fixed-layout'
 
+export type PrintSettingsPatch = Partial<Omit<PrintSettings, 'offset'>> & { offset?: Partial<PrintSettings['offset']> }
+
 type PrintStudioProps = {
   labels: PrintLabel[]
   quantities: Record<string, number>
-  onQuantityChange: (id: string, value: number) => void
+  onQuantityChange: (id: string, value: number | { delta: number }) => void
   settings: PrintSettings
-  onSettingsChange: (settings: PrintSettings) => void
+  onSettingsChange: (settings: PrintSettingsPatch) => void
+  saving?: boolean
   intake?: ReactNode
 }
 
-export function PrintStudio({ labels, quantities, onQuantityChange, settings, onSettingsChange, intake }: PrintStudioProps) {
+export function PrintStudio({ labels, quantities, onQuantityChange, settings, onSettingsChange, saving = false, intake }: PrintStudioProps) {
   const { page, firstSlot, offset } = settings
-  const setPage = (page: number) => onSettingsChange({ ...settings, page })
-  const setFirstSlot = (firstSlot: number) => onSettingsChange({ ...settings, firstSlot })
-  const setOffset = (offset: PrintSettings['offset']) => onSettingsChange({ ...settings, offset })
+  const setPage = (page: number) => onSettingsChange({ page })
+  const setFirstSlot = (firstSlot: number) => onSettingsChange({ firstSlot })
+  const setOffset = (offset: Partial<PrintSettings['offset']>) => onSettingsChange({ offset })
   const copies = labels.flatMap((label) => Array.from({ length: quantities[label.id] ?? 1 }, () => label))
   const maxFor = (id: string) => Math.min(99, Math.max(0, 450 - copies.length + (quantities[id] ?? 1)))
   const profile = AVERY_94502_PROFILE
@@ -29,6 +32,7 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
   const offsetStyle = { '--offset-x': `${offset.x}in`, '--offset-y': `${offset.y}in` } as CSSProperties
   useEffect(() => {
     const prepare = () => {
+      if (saving) { document.body.dataset.printMode = 'pending'; return }
       if (!document.body.dataset.printMode && copies.length > 0) document.body.dataset.printMode = 'labels'
     }
     const reset = () => { delete document.body.dataset.printMode }
@@ -39,8 +43,9 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
       window.removeEventListener('afterprint', reset)
       reset()
     }
-  }, [copies.length])
+  }, [copies.length, saving])
   const print = (mode: 'labels' | 'calibration') => {
+    if (saving) return
     document.body.dataset.printMode = mode
     window.print()
   }
@@ -48,6 +53,11 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
     fixedSlotPosition(profile, slot, preview ? offset : undefined)
   return (
     <section className="simple-print" aria-label="Print labels">
+      <div className="print-job-actions screen-only" aria-label="Print job actions">
+        <p role="status">{saving ? 'Saving print changes…' : `${copies.length} ${copies.length === 1 ? 'label' : 'labels'} · ${copies.length ? pageCount : 0} ${pageCount === 1 && copies.length ? 'sheet' : 'sheets'}`}</p>
+        <button className="button primary" disabled={saving || !copies.length} type="button" onClick={() => print('labels')}><Icon name="print" />Print {copies.length} {copies.length === 1 ? 'label' : 'labels'}</button>
+      </div>
+      <p className="pending-print-notice">Print changes are still saving. Close this dialog and print again when saving finishes.</p>
       <div className="print-job screen-only">
         <div className="print-sidebar">
         {intake}
@@ -57,9 +67,9 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
             <div className="label-thumbnail"><LabelArtwork label={label} /></div>
             <div><strong>{label.blend}</strong><small>{label.maker}</small></div>
             <div className="quantity-control">
-              <button type="button" aria-label={`Fewer ${label.blend}`} disabled={(quantities[label.id] ?? 1) === 0} onClick={() => onQuantityChange(label.id, (quantities[label.id] ?? 1) - 1)}>−</button>
+              <button type="button" aria-label={`Fewer ${label.blend}`} disabled={(quantities[label.id] ?? 1) === 0} onClick={() => onQuantityChange(label.id, { delta: -1 })}>−</button>
               <input aria-label={`Quantity for ${label.blend}`} type="number" min="0" max={maxFor(label.id)} value={quantities[label.id] ?? 1} onChange={(event) => onQuantityChange(label.id, Math.max(0, Math.min(maxFor(label.id), Math.floor(Number(event.target.value) || 0))))} />
-              <button type="button" aria-label={`More ${label.blend}`} disabled={(quantities[label.id] ?? 1) >= maxFor(label.id)} onClick={() => onQuantityChange(label.id, (quantities[label.id] ?? 1) + 1)}>+</button>
+              <button type="button" aria-label={`More ${label.blend}`} disabled={(quantities[label.id] ?? 1) >= maxFor(label.id)} onClick={() => onQuantityChange(label.id, { delta: 1 })}>+</button>
             </div>
           </div>)}
           {copies.length >= 450 && <p className="field-hint">This batch has 450 labels, the limit for one print job. Reduce some quantities to add others.</p>}
@@ -67,12 +77,12 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
             <p>Avery 94502 · US Letter · 2.5-inch circles</p>
             <label>Start at slot <select aria-describedby="slot-hint" aria-label="Start at slot" value={firstSlot} onChange={(event) => setFirstSlot(Number(event.target.value))}>{Array.from({ length: profile.slots.length }, (_, index) => <option key={index} value={index + 1}>{index + 1}</option>)}</select></label>
             <p className="field-hint" id="slot-hint">Slots run left to right, then down. Use this for a partly used first sheet.</p>
-            <div className="offset-grid">{(['x', 'y'] as const).map((axis) => <label key={axis}>{axis === 'x' ? 'Horizontal' : 'Vertical'} adjustment (in)<input aria-describedby="offset-hint" aria-label={`${axis === 'x' ? 'Horizontal' : 'Vertical'} adjustment`} type="number" min="-0.25" max="0.25" step="0.01" value={offset[axis]} onChange={(event) => setOffset({ ...offset, [axis]: Math.max(-0.25, Math.min(0.25, Number(event.target.value) || 0)) })} /></label>)}</div>
+            <div className="offset-grid">{(['x', 'y'] as const).map((axis) => <label key={axis}>{axis === 'x' ? 'Horizontal' : 'Vertical'} adjustment (in)<input aria-describedby="offset-hint" aria-label={`${axis === 'x' ? 'Horizontal' : 'Vertical'} adjustment`} type="number" min="-0.25" max="0.25" step="0.01" value={offset[axis]} onChange={(event) => setOffset({ [axis]: Math.max(-0.25, Math.min(0.25, Number(event.target.value) || 0)) })} /></label>)}</div>
             <p className="field-hint" id="offset-hint">Positive values move labels right or down. Negative values move them left or up.</p>
-            <button className="button secondary" type="button" onClick={() => print('calibration')}><Icon name="guide" size={17} />Print alignment sheet</button>
+            <button className="button secondary" type="button" disabled={saving} onClick={() => print('calibration')}><Icon name="guide" size={17} />Print alignment sheet</button>
             <p className="field-hint">Print on plain paper at Actual Size. The ruler should measure two inches. Hold it behind your label stock to check the nine circles.</p>
           </details>
-          <div className="print-action"><button className="button primary" disabled={!copies.length} type="button" onClick={() => print('labels')}><Icon name="print" />Print {copies.length} {copies.length === 1 ? 'label' : 'labels'}</button><p>Prints 2.5-inch circles on Avery 94502. Choose US Letter, no margins, and Actual Size or 100% scale. Turn off headers and footers. First print an alignment sheet on plain paper using Paper and alignment above. To save a PDF, choose Save as PDF.</p></div>
+          <p className="field-hint">Choose US Letter, no margins, and Actual Size / 100%. Turn off headers and footers. Use Paper and alignment to check a plain-paper sheet first. To save a PDF, choose Save as PDF.</p>
         </div>
         </div>
         <div className="sheet-stage">

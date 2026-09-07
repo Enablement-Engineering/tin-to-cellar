@@ -155,3 +155,17 @@ describe('saved label collection', () => {
     for (const asset of Object.values(result.manifest!.assets)) expect(zip.file(asset.path)).not.toBe(null)
   })
 })
+
+it('fills a canonical requested row from an explicitly declared blend alias', async () => {
+  const catalog = TOBACCO_CATALOG.find(entry => entry.id === 'a-and-c-petersen-escudo-navy-deluxe')!
+  const current = addRequests(createCollection(), [{ catalogId: catalog.id, maker: catalog.maker, blend: catalog.blend }])
+  const candidate = await prepareImport(await collectionFixture(manifest => {
+    manifest.labels[0].maker = 'A&C Petersen'
+    manifest.labels[0].blend = 'Escudo Navy De Luxe'
+  }), { origin: 'local' })
+  const plan = planImport(current, candidate)
+  expect(plan.entries[0].kind).toBe('fill')
+  const saved = applyImport(current, plan)
+  expect(saved.rows).toHaveLength(1)
+  expect(saved.rows[0]).toMatchObject({ catalogId: catalog.id, blend: 'Escudo Navy Deluxe', designId: candidate.designs[0].id })
+})

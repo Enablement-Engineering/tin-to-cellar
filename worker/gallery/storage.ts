@@ -30,6 +30,7 @@ export interface GalleryRateLimiter {
 export interface GalleryEnv {
     GALLERY_READ_RATE_LIMITER?: GalleryRateLimiter;
     GALLERY_UPLOAD_RATE_LIMITER?: GalleryRateLimiter;
+    GALLERY_MUTATION_RATE_LIMITER?: GalleryRateLimiter;
     GALLERY_AGENT_ACCESS_AUD?: string;
     GALLERY_AGENT_ENABLED?: string;
     GALLERY?: GalleryDatabase;

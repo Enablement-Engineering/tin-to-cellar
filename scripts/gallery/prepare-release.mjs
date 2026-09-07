@@ -63,6 +63,7 @@ export function createReleaseConfig(base, options, root) {
     { name: 'GALLERY_RATE_LIMITER', namespace_id: target === 'staging' ? '2005' : '1005', simple: { limit: 5, period: 60 } },
     { name: 'GALLERY_READ_RATE_LIMITER', namespace_id: target === 'staging' ? '2007' : '1007', simple: { limit: 120, period: 60 } },
     { name: 'GALLERY_UPLOAD_RATE_LIMITER', namespace_id: target === 'staging' ? '2008' : '1008', simple: { limit: 5, period: 60 } },
+    { name: 'GALLERY_MUTATION_RATE_LIMITER', namespace_id: target === 'staging' ? '2009' : '1009', simple: { limit: 20, period: 60 } },
   ]
   config.ratelimits = [...(config.ratelimits ?? []).filter(limit => !galleryLimits.some(gallery => gallery.name === limit.name)), ...galleryLimits]
   if (options['paid-workers-confirmed'] === true) config.limits = { ...(config.limits ?? {}), cpu_ms: 2000 }

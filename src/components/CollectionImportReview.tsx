@@ -8,6 +8,7 @@ export function CollectionImportReview({ collection, plan, decisions, onChange, 
   const [urls, setUrls] = useState<Record<string, string>>({})
   const [previewError, setPreviewError] = useState(false)
   const [previewAttempt, setPreviewAttempt] = useState(0)
+  const [showNew, setShowNew] = useState(false)
   const title = useRef<HTMLHeadingElement>(null)
   useEffect(() => {
     const allocated: string[] = []
@@ -30,10 +31,15 @@ export function CollectionImportReview({ collection, plan, decisions, onChange, 
     return () => allocated.forEach(url => URL.revokeObjectURL(url))
   }, [plan.candidate, previewAttempt])
   useEffect(() => { title.current?.focus() }, [plan.candidate.receipt.id])
+  const newCount = plan.entries.filter(entry => entry.kind === 'add').length
+  const attentionCount = plan.entries.length - newCount
   const added = Object.values(decisions).filter(decision => decision.action !== 'skip').length
   return <section className="panel import-review" aria-labelledby="import-review-title">
     <h2 ref={title} tabIndex={-1} id="import-review-title">Add your new labels</h2>
     <p>Review {plan.candidate.receipt.title}. Your existing labels and quantities stay unless you choose a replacement.</p>
+    <p className="import-review-summary">{newCount} new {newCount === 1 ? 'design' : 'designs'}{attentionCount > 0 ? ` · ${attentionCount} ${attentionCount === 1 ? 'match' : 'matches'} to review` : ''}. Additions will appear in your print sheet.</p>
+    <div className="import-review-actions"><button type="button" className="button primary" disabled={busy || invalidated} onClick={onAccept}>{added ? `Add ${added} ${added === 1 ? 'label' : 'labels'}` : 'Keep current labels'}</button><button type="button" className="button quiet" disabled={busy} onClick={onCancel}>Cancel import</button></div>
+    {newCount > 0 && <button type="button" className="button quiet" aria-expanded={showNew} onClick={() => setShowNew(value => !value)}>{showNew ? 'Hide new designs' : `Review ${newCount} new ${newCount === 1 ? 'design' : 'designs'}`}</button>}
     {previewError && <div role="alert"><p>Artwork previews could not be opened. Your import and choices are still available.</p><button type="button" className="button secondary" disabled={busy} onClick={event => {
       if (document.activeElement === event.currentTarget) title.current?.focus()
       setPreviewAttempt(value => value + 1)
@@ -42,7 +48,7 @@ export function CollectionImportReview({ collection, plan, decisions, onChange, 
     <div className="import-review-grid">{plan.entries.map((entry, index) => {
       const design = plan.candidate.designs.find(item => item.id === entry.designId)!
       const decision = decisions[entry.designId] ?? { action: 'skip' }
-      return <article key={`${entry.designId}-${index}`} className="import-review-label">
+      return <article key={`${entry.designId}-${index}`} className="import-review-label" hidden={entry.kind === 'add' && !showNew}>
         {urls[entry.designId] && <img src={urls[entry.designId]} alt={`${design.item.label.maker} ${design.item.label.blend} returned artwork`} width={160} height={160} />}
         <h3>{design.item.label.maker} {design.item.label.blend}</h3>
         {entry.kind === 'duplicate' ? <p>Already in your labels. No extra copy will be added.</p> : <>
@@ -58,9 +64,6 @@ export function CollectionImportReview({ collection, plan, decisions, onChange, 
         </>}
       </article>
     })}</div>
-    <div className="handoff-actions">
-      <button type="button" className="button primary" disabled={busy || invalidated} onClick={onAccept}>{busy ? 'Saving labels…' : added ? `Add ${added} ${added === 1 ? 'label' : 'labels'}` : 'Keep current labels'}</button>
-      <button type="button" className="button quiet" disabled={busy} onClick={onCancel}>Cancel import</button>
-    </div>
+
   </section>
 }

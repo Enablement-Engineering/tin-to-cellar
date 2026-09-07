@@ -43,9 +43,9 @@ it('distinguishes a serving library with no matches from disabled listing respon
   env.GALLERY_SERVING = 'false';
   expect(await (await call('/labels?catalogId=test-blend')).json()).toEqual({ serving: false, labels: [], nextCursor: null });
 });
-beforeEach(async () => { db = new DB(); bucket = new Bucket(); env = { GALLERY: db, GALLERY_ART: bucket, GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'fixture', GALLERY_READ_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_UPLOAD_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_RATE_LIMITER: { limit: async () => ({ success: true }) } }; png = encode({ width: 825, height: 825, channels: 3, depth: 8, data: new Uint8Array(825 * 825 * 3).fill(255) }); const inset = { top: .125, right: .125, bottom: .125, left: .125, unit: 'in' as const }; draft = { version: 1, submissionId: crypto.randomUUID(), catalogId: 'test-blend', proposedIdentity: null, package: 'tin', variant: 'current', edition: '', description: 'Synthetic test label', surface: { shape: 'circle', finishedSize: { width: 2.5, height: 2.5, unit: 'in' }, bleed: inset, safeInset: inset }, writeInArea: { id: 'date', purpose: 'jarred-date', geometry: { shape: 'rectangle', x: .35, y: .6, width: .3, height: .1 }, background: { integratedInArtwork: true }, overlay: { mode: 'blank' } }, references: [], image: { sha256: await sha256(png), bytes: png.length, width: 825, height: 825 }, acknowledgement: { version: '2026-09-06-v2', accepted: true } }; });
+beforeEach(async () => { db = new DB(); bucket = new Bucket(); env = { GALLERY: db, GALLERY_ART: bucket, GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'fixture', GALLERY_MUTATION_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_READ_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_UPLOAD_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_RATE_LIMITER: { limit: async () => ({ success: true }) } }; png = encode({ width: 825, height: 825, channels: 3, depth: 8, data: new Uint8Array(825 * 825 * 3).fill(255) }); const inset = { top: .125, right: .125, bottom: .125, left: .125, unit: 'in' as const }; draft = { version: 1, submissionId: crypto.randomUUID(), catalogId: 'test-blend', proposedIdentity: null, package: 'tin', variant: 'current', edition: '', description: 'Synthetic test label', surface: { shape: 'circle', finishedSize: { width: 2.5, height: 2.5, unit: 'in' }, bleed: inset, safeInset: inset }, writeInArea: { id: 'date', purpose: 'jarred-date', geometry: { shape: 'rectangle', x: .35, y: .6, width: .3, height: .1 }, background: { integratedInArtwork: true }, overlay: { mode: 'blank' } }, references: [], image: { sha256: await sha256(png), bytes: png.length, width: 825, height: 825 }, acknowledgement: { version: '2026-09-06-v2', accepted: true } }; });
 
-it.each(['/config', '/labels', '/labels/missing', '/labels/missing/artwork', '/labels/missing/thumbnail', '/labels/missing/pack'])('limits public read %s before database or object access', async path => {
+it.each(['/config', '/labels', ...['', '/artwork', '/thumbnail', '/pack'].map(suffix => '/labels/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' + suffix)])('limits public read %s before database or object access', async path => {
   const limit = vi.fn(async () => ({ success: false }));
   env.GALLERY_READ_RATE_LIMITER = { limit };
   const query = vi.spyOn(db, 'prepare');
@@ -129,4 +129,75 @@ it('fails public reads closed when salt is absent or the limiter fails', async (
   env.GALLERY_READ_RATE_LIMITER = { limit: async () => { throw Error('unavailable'); } };
   expect((await call('/labels')).status).toBe(503);
   expect(query).not.toHaveBeenCalled();
+});
+
+it.each(['GET', 'HEAD', 'OPTIONS', 'POST', 'DELETE', 'PATCH', 'PUT'])('rejects unsupported public %s routes before storage or body access', async method => {
+  const query = vi.spyOn(db, 'prepare');
+  const read = vi.spyOn(bucket, 'get');
+  for (const path of ['/unknown', '/labels/not-a-uuid', '/submissions/not-a-uuid/artwork']) {
+    const request = new Request('https://site.example/api/gallery/v1' + path, { method, headers: { Origin: 'https://site.example' }, ...(!['GET', 'HEAD'].includes(method) ? { body: '{}' } : {}) });
+    const reader = request.body ? vi.spyOn(request.body, 'getReader') : null;
+    expect((await galleryResponse(request, env, deps)).status).toBe(404);
+    if (reader) expect(reader).not.toHaveBeenCalled();
+  }
+  expect(query).not.toHaveBeenCalled();
+  expect(read).not.toHaveBeenCalled();
+});
+
+it.each(['HEAD', 'OPTIONS', 'POST', 'DELETE', 'PATCH', 'PUT'])('rejects unsupported %s on a known read route before storage', async method => {
+  const query = vi.spyOn(db, 'prepare');
+  expect((await call('/labels', method)).status).toBe(404);
+  expect(query).not.toHaveBeenCalled();
+});
+
+it.each(['denied', 'missing', 'failed', 'salt-missing'] as const)('fails submission admission closed when %s before body, queries, or challenge verification', async mode => {
+  if (mode === 'missing') env.GALLERY_MUTATION_RATE_LIMITER = undefined;
+  else env.GALLERY_MUTATION_RATE_LIMITER = { limit: async () => { if (mode === 'failed') throw Error('unavailable'); return { success: mode === 'salt-missing' }; } };
+  if (mode === 'salt-missing') env.GALLERY_IP_SALT = undefined;
+  const query = vi.spyOn(db, 'prepare');
+  const challenge = vi.fn(async () => false);
+  const reservation = vi.spyOn(env.GALLERY_RATE_LIMITER!, 'limit');
+  const request = new Request('https://site.example/api/gallery/v1/submissions', { method: 'POST', headers: { Origin: 'https://site.example', Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(draft) });
+  const reader = vi.spyOn(request.body!, 'getReader');
+  const response = await galleryResponse(request, env, { ...deps, verifyTurnstile: challenge });
+  expect(response.status).toBe(mode === 'denied' ? 429 : 503);
+  if (mode === 'denied') expect(response.headers.get('Retry-After')).toBe('60');
+  expect(query).not.toHaveBeenCalled();
+  expect(reader).not.toHaveBeenCalled();
+  expect(challenge).not.toHaveBeenCalled();
+  expect(reservation).not.toHaveBeenCalled();
+});
+
+it('charges failed challenges without using the reservation quota and blocks subsequent work when exhausted', async () => {
+  const limit = vi.fn().mockResolvedValueOnce({ success: true }).mockResolvedValue({ success: false });
+  env.GALLERY_MUTATION_RATE_LIMITER = { limit };
+  const challenge = vi.fn(async () => false);
+  const reservation = vi.spyOn(env.GALLERY_RATE_LIMITER!, 'limit');
+  const send = () => galleryResponse(new Request('https://site.example/api/gallery/v1/submissions', { method: 'POST', headers: { Origin: 'https://site.example', Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(draft) }), env, { ...deps, verifyTurnstile: challenge });
+  expect((await send()).status).toBe(403);
+  const query = vi.spyOn(db, 'prepare');
+  expect((await send()).status).toBe(429);
+  expect(query).not.toHaveBeenCalled();
+  expect(challenge).toHaveBeenCalledOnce();
+  expect(limit).toHaveBeenCalledTimes(2);
+  expect(reservation).not.toHaveBeenCalled();
+});
+
+it('charges idempotent reservation replays separately and preserves replay once request admission resumes', async () => {
+  await call('/submissions', 'POST', draft);
+  const reservation = vi.spyOn(env.GALLERY_RATE_LIMITER!, 'limit');
+  const query = vi.spyOn(db, 'prepare');
+  env.GALLERY_MUTATION_RATE_LIMITER = { limit: async () => ({ success: false }) };
+  expect((await call('/submissions', 'POST', draft)).status).toBe(429);
+  expect(query).not.toHaveBeenCalled();
+  env.GALLERY_MUTATION_RATE_LIMITER = { limit: async () => ({ success: true }) };
+  expect((await call('/submissions', 'POST', draft)).status).toBe(200);
+  expect(reservation).not.toHaveBeenCalled();
+});
+
+it('disables advertised intake when public mutation admission is unavailable', async () => {
+  env.GALLERY_TURNSTILE_SITE_KEY = 'fixture';
+  expect(await (await call('/config')).json()).toMatchObject({ intake: true });
+  env.GALLERY_MUTATION_RATE_LIMITER = undefined;
+  expect(await (await call('/config')).json()).toMatchObject({ intake: false });
 });

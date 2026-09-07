@@ -76,7 +76,7 @@ for (const [index, path] of paths.entries()) test(`local Downloads submission: $
   await search.fill(`${tobacco.maker} ${tobacco.blend}`); await search.press('ArrowDown'); await search.press('Enter')
   await publicPage.getByRole('button', { name: 'Add to your labels' }).first().click()
   await expect(publicPage.getByRole('button', { name: 'Added to your labels' })).toBeVisible()
-  await publicPage.getByRole('button', { name: 'View your labels' }).click()
+  await publicPage.getByRole('button', { name: 'Review & print' }).click()
   await expect(publicPage.getByRole('button', { name: 'Print 1 label', exact: true })).toBeVisible()
   await expect(publicPage.getByRole('heading', { name: 'Share your labels' })).toHaveCount(0)
   await publicPage.screenshot({ path: `output/gallery/download-${index + 1}-print-preview.png`, fullPage: true })

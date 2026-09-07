@@ -105,7 +105,7 @@ test('browser selects artwork, submits privately, reviewer publishes, public use
   const previous = writes.length
   await publicPage.getByRole('button', { name: 'Add to your labels' }).first().click()
   await expect(publicPage.getByRole('button', { name: 'Added to your labels' })).toBeVisible()
-  await publicPage.getByRole('button', { name: 'View your labels' }).click()
+  await publicPage.getByRole('button', { name: 'Review & print' }).click()
   await expect(publicPage.getByRole('heading', { name: 'Your labels' })).toBeVisible()
   await expect(publicPage.getByRole('heading', { name: 'Share your labels' })).toHaveCount(0)
   expect(writes.slice(previous)).toEqual([])

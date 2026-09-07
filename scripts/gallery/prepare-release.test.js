@@ -13,7 +13,7 @@ describe('local gallery release preparation', () => {
   expect(JSON.stringify(result)).not.toContain('10c1a5a7-9884-46ad-86d0-2eedf5d8426a');expect(result.vars.PRIVATE_PRODUCTION_SETTING).toBeUndefined()
   expect(result.routes).toEqual([{pattern:'staging.tintocellar.com',custom_domain:true},{pattern:'admin-staging.tintocellar.com',custom_domain:true}]);expect(result.limits).toBeUndefined()
   expect(result.main).toBe('/tmp/checkout/worker/index.ts');expect(result.d1_databases[0].migrations_dir).toBe('/tmp/checkout/migrations/gallery')
-  expect(result.ratelimits.map(limit=>limit.namespace_id)).toEqual(['2005','2007','2008'])
+  expect(result.ratelimits.map(limit=>limit.namespace_id)).toEqual(['2005','2007','2008','2009'])
   expect(result.ratelimits.map(limit=>limit.namespace_id).some(id=>base.ratelimits.some(limit=>limit.namespace_id===id))).toBe(false)
  })
  it('preserves production diagnostics, DO history and routes, while keeping gallery off', () => {
@@ -28,6 +28,7 @@ describe('local gallery release preparation', () => {
    ...base.ratelimits.filter(limit=>!limit.name.startsWith('GALLERY_')),
    {name:'GALLERY_READ_RATE_LIMITER',namespace_id:'1007',simple:{limit:120,period:60}},
    {name:'GALLERY_UPLOAD_RATE_LIMITER',namespace_id:'1008',simple:{limit:5,period:60}},
+   {name:'GALLERY_MUTATION_RATE_LIMITER',namespace_id:'1009',simple:{limit:20,period:60}},
   ]))
   expect(new Set(result.ratelimits.map(limit=>limit.namespace_id)).size).toBe(result.ratelimits.length)
  })

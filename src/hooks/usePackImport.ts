@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { planImport, applyImport, type Collection, type CollectionOrigin, type ImportCandidate, type ImportDecisions, type ImportPlan } from '../lib/collection'
+import { CollectionError, planImport, applyImport, type Collection, type CollectionOrigin, type ImportCandidate, type ImportDecisions, type ImportPlan } from '../lib/collection'
 import type { CellarPackImportResult } from '../lib/cellarpack'
 import type { Retrospective } from '../lib/feedback/retrospective'
 import type { PackChoice } from '../components/gallery/pack-selection'
@@ -38,26 +38,30 @@ export function usePackImport({ collection, ready, commit, onStart, onImported }
   const [freshReceipts, setFreshReceipts] = useState<Set<string>>(() => new Set())
   const [notes, setNotes] = useState<Record<string, Retrospective>>({})
   const [diagnosticWarnings, setDiagnosticWarnings] = useState<Record<string, boolean>>({})
-  const saveCandidate = async (incoming: ImportCandidate, plan: ImportPlan, choices: ImportDecisions) => {
-    const saved = await commit(current => applyImport(current, plan, choices))
+  const saveIncoming = async (incoming: ImportCandidate, change: (current: Collection) => Collection) => {
+    const saved = await commit(change)
     if (incoming.receipt.contribution && !collection.receipts.some(receipt => receipt.id === incoming.receipt.id || receipt.contribution?.submissionId === incoming.receipt.contribution?.submissionId)) setFreshReceipts(previous => new Set(previous).add(incoming.receipt.id))
     setReceiptId(incoming.receipt.id); setCandidate(null)
     const count = saved.rows.filter(row => row.designId).length
     setNotice(`${incoming.receipt.repairPrompt ? incoming.designs.length ? 'Some labels need repair. ' : 'ZIP needs repair. ' : ''}${count} ${count === 1 ? 'label' : 'labels'} ready.`)
     return saved
   }
-  const processResult = async (result: CellarPackImportResult, title: string, origin: CollectionOrigin, publicationId?: string, rowId?: string) => {
+  const saveCandidate = (incoming: ImportCandidate, plan: ImportPlan, choices: ImportDecisions) => saveIncoming(incoming, current => applyImport(current, plan, choices))
+  const processResult = async (result: CellarPackImportResult, title: string, origin: CollectionOrigin, publicationId?: string, target?: { id: string; revision: number }) => {
     const { incoming, retrospective, diagnosticWarning } = await preparePackImport(result, title, origin, publicationId)
     if (retrospective) setNotes(previous => ({ ...previous, [incoming.receipt.id]: retrospective }))
     setDiagnosticWarnings(previous => ({ ...previous, [incoming.receipt.id]: diagnosticWarning }))
-    const plan = planImport(collection, incoming)
     if (origin === 'gallery' && incoming.designs.length === 1) {
-      const choices = defaultDecisions(plan)
-      const entry = plan.entries[0]
-      if (entry && (rowId || entry.kind !== 'duplicate')) choices[entry.designId] = rowId ? { action: 'replace', rowId } : { action: 'add' }
-      await saveCandidate(incoming, plan, choices)
-    } else if (!incoming.designs.length) await saveCandidate(incoming, plan, {})
-    else { setCandidate(incoming); setReviewChoices({ key: importReviewKey(collection, incoming), values: defaultDecisions(plan) }) }
+      await saveIncoming(incoming, current => {
+        if (current.id !== collection.id || target && !current.rows.some(row => row.id === target.id && row.revision === target.revision)) throw new CollectionError('conflict', 'The requested label changed while its design downloaded. Review the label and choose a design again.')
+        const plan = planImport(current, incoming)
+        const choices = defaultDecisions(plan)
+        const entry = plan.entries[0]
+        if (entry && (target || entry.kind !== 'duplicate')) choices[entry.designId] = target ? { action: 'replace', rowId: target.id } : { action: 'add' }
+        return applyImport(current, plan, choices)
+      })
+    } else if (!incoming.designs.length) await saveIncoming(incoming, current => applyImport(current, planImport(current, incoming), {}))
+    else { setCandidate(incoming); setReviewChoices({ key: importReviewKey(collection, incoming), values: defaultDecisions(planImport(collection, incoming)) }) }
   }
   const handlePack = async (file: File, origin: CollectionOrigin = 'local') => {
     if (importBusy.current || !ready) return
@@ -74,8 +78,10 @@ export function usePackImport({ collection, ready, commit, onStart, onImported }
   }
   const chooseCommunity = async (choice: PackChoice, rowId?: string) => {
     if (importBusy.current || !ready) throw new Error('Wait for the current label to finish saving, then try again.')
+    const target = rowId ? collection.rows.find(row => row.id === rowId) : undefined
+    if (rowId && !target) throw new CollectionError('conflict', 'The requested label is no longer available. Review your labels and try again.')
     importBusy.current = true; setImporting(true); setImportError('')
-    try { const { downloadPublishedPack } = await import('../components/gallery/pack-builder'); const { file, result } = await downloadPublishedPack(choice); await processResult(result, file.name, 'gallery', choice.id, rowId) }
+    try { const { downloadPublishedPack } = await import('../components/gallery/pack-builder'); const { file, result } = await downloadPublishedPack(choice); await processResult(result, file.name, 'gallery', choice.id, target ? { id: target.id, revision: target.revision } : undefined) }
     finally { importBusy.current = false; setImporting(false) }
   }
   const refreshDecisions = () => { if (review) setDecisions(defaultDecisions(review)) }

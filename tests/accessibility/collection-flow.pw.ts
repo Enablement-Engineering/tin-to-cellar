@@ -1,4 +1,4 @@
-import { test, expect, type BrowserContext, type Page } from '@playwright/test'
+import { test, expect, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import JSZip from 'jszip'
 import { readFile, readFileSync } from 'node:fs'
@@ -36,13 +36,33 @@ async function installLibrary(context: BrowserContext) {
   return { source, contributions, requests }
 }
 
+async function expectPersistentMobileAction(page: Page, action: Locator) {
+  if ((page.viewportSize()?.width ?? 1280) > 680) return
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+  await expect.poll(() => action.evaluate(button => {
+    const bounds = button.getBoundingClientRect()
+    const x = bounds.left + bounds.width / 2, y = bounds.top + bounds.height / 2
+    return bounds.top >= 0 && bounds.bottom <= innerHeight && button.contains(document.elementFromPoint(x, y))
+  })).toBe(true)
+  // The reserved space belongs after the footer, so its final copy stays above
+  // the fixed actions when the user reaches the bottom of the document.
+  await expect.poll(async () => {
+    const notice = await page.locator('.site-footer .footer-notice').boundingBox()
+    const actions = await action.locator('..').boundingBox()
+    return !!notice && !!actions && notice.y + notice.height <= actions.y
+  }).toBe(true)
+  await action.click({ trial: true })
+}
+
 async function selectExisting(page: Page, count = 2) {
   await page.goto('/gallery')
   for (let index = 0; index < count; index++) {
     await page.getByRole('button', { name: 'Add to your labels', exact: true }).first().click()
     await expect(page.getByRole('button', { name: 'Added to your labels', exact: true })).toHaveCount(index + 1)
   }
-  await page.getByRole('button', { name: 'View your labels', exact: true }).click()
+  const review = page.getByRole('button', { name: 'Review & print', exact: true })
+  await expectPersistentMobileAction(page, review)
+  await review.click()
   await expect(page.getByRole('spinbutton', { name: /^Quantity for / })).toHaveCount(count)
 }
 
@@ -52,15 +72,17 @@ for (const width of [1280, 320]) test(`existing community labels survive reload 
   await selectExisting(page)
   await page.getByRole('spinbutton', { name: `Quantity for ${known[0].blend}`, exact: true }).fill('3')
   await expect(page.getByRole('button', { name: 'Print 4 labels', exact: true })).toBeEnabled()
+  await expectPersistentMobileAction(page, page.getByRole('button', { name: 'Print 4 labels', exact: true }))
   await page.reload()
   await expect(page.getByRole('spinbutton', { name: `Quantity for ${known[0].blend}`, exact: true })).toHaveValue('3')
   await page.getByRole('button', { name: 'Add more labels', exact: true }).click()
   await expect(page.getByRole('status').filter({ hasText: /^2 labels ready$/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /^Copy prompt/ })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Print 2 ready labels', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Review & print', exact: true })).toBeEnabled()
+  await expectPersistentMobileAction(page, page.getByRole('button', { name: 'Review & print', exact: true }))
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([])
-  await page.getByRole('button', { name: 'Print 2 ready labels', exact: true }).click()
+  await page.getByRole('button', { name: 'Review & print', exact: true }).click()
   const downloading = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Download labels', exact: true }).click()
   const download = await downloading

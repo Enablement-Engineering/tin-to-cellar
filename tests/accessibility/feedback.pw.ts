@@ -9,7 +9,7 @@ for (const width of [1280, 320]) {
     await page.route('**/api/**', route => {
       if (new URL(route.request().url()).pathname === '/api/gallery/v1/config') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ intake: false, serving: false, noticeVersion: '2026-09-06-v1', turnstileSiteKey: '' }) })
       if (route.request().method() === 'POST') sent.push({ url: route.request().url(), body: route.request().postDataJSON() })
-      return route.fulfill({ status: 200, contentType: 'application/json', body: '{"status":"collected"}' })
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{"status":"collected","notesAllowed":true}' })
     })
     await page.route('https://**/*', route => route.abort())
     const zip = await JSZip.loadAsync(await printablePack())
@@ -82,15 +82,22 @@ test('paused standalone diagnostics preserve keyboard focus and do not retry aut
 test('local Worker accepts diagnostics and notes without a ZIP upload', async ({ request }) => {
   const origin = 'http://127.0.0.1:43927'
   const submissionId = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('')
+  const capability = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('')
+  const ownerHeaders = { Origin: origin, 'X-Diagnostic-Capability': capability }
   const feedback = { format: 'tin-to-cellar/feedback', schemaVersion: '0.2.0', protocolRevision: '0.0.17', request: { labelCount: 1, shape: 'circle' }, outcome: 'failed', steps: [], issues: [] }
   const contribution = { version: 2, submissionId, origin: 'standalone', feedback, sources: [], validation: null }
-  const first = await request.post('/api/labels/contributions', { headers: { Origin: origin }, data: contribution })
+  const first = await request.post('/api/labels/contributions', { headers: ownerHeaders, data: contribution })
   expect(first.status()).toBe(200)
-  expect(await first.json()).toEqual({ status: 'collected' })
-  const repeated = await request.post('/api/labels/contributions', { headers: { Origin: origin }, data: contribution })
-  expect(await repeated.json()).toEqual({ status: 'duplicate' })
+  expect(await first.json()).toEqual({ status: 'collected', notesAllowed: true })
+  const repeated = await request.post('/api/labels/contributions', { headers: ownerHeaders, data: contribution })
+  expect(await repeated.json()).toEqual({ status: 'duplicate', notesAllowed: true })
   const retrospective = { format: 'tin-to-cellar/retrospective', schemaVersion: '0.1.0', protocolRevision: '0.0.17', capabilities: {}, tools: [], observations: [{ stage: 'generation', kind: 'friction', explanation: 'No image generator was available in this fixture run.' }] }
-  const notes = await request.post('/api/labels/process-notes', { headers: { Origin: origin }, data: { submissionId, retrospective } })
+  // A distinct synthetic IP keeps this unauthorized request out of the owner's
+  // three-request local rate allowance. These fixtures only run against localhost.
+  const intruder = await request.post('/api/labels/process-notes', { headers: { Origin: origin, 'X-Diagnostic-Capability': 'b'.repeat(64), 'CF-Connecting-IP': '198.51.100.22' }, data: { submissionId, retrospective } })
+  expect(intruder.status()).toBe(403)
+  expect(await intruder.json()).toMatchObject({ code: 'notes_unauthorized' })
+  const notes = await request.post('/api/labels/process-notes', { headers: ownerHeaders, data: { submissionId, retrospective } })
   expect(notes.status()).toBe(200)
   expect(await notes.json()).toEqual({ status: 'collected' })
   expect((await request.get('/api/labels/diagnostics')).status()).toBe(403)

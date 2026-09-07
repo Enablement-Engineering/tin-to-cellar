@@ -22,7 +22,7 @@ it('adds through the shared collection callback and displays only committed sele
   expect(screen.queryByText('Added to your labels')).not.toBeInTheDocument()
   view.rerender(<GalleryBrowse onAdd={onAdd} onPrint={onPrint} selectedIds={[labels[0].id]} />)
   expect(screen.getByRole('button', { name: 'Added to your labels' })).toBeDisabled()
-  fireEvent.click(screen.getByRole('button', { name: 'View your labels' })); expect(onPrint).toHaveBeenCalledOnce()
+  fireEvent.click(screen.getByRole('button', { name: 'Review & print' })); expect(onPrint).toHaveBeenCalledOnce()
 })
 
 it('retains committed selections after a failed add and allows retry', async () => {

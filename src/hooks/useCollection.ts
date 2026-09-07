@@ -11,6 +11,7 @@ export function useCollection() {
   const store = useRef<ReturnType<typeof createCollectionStore> | null>(null)
   const channel = useRef<BroadcastChannel | null>(null)
   const queue = useRef<Promise<unknown>>(Promise.resolve())
+  const pending = useRef(0)
   const readyRef = useRef(false)
   const mounted = useRef(true)
   const accept = useCallback((next: Collection) => {
@@ -50,10 +51,12 @@ export function useCollection() {
   }, [accept, refresh])
 
   const commit = useCallback((change: (current: Collection) => Collection): Promise<Collection> => {
+    pending.current++
+    if (mounted.current) setSaving(true)
     const operation = queue.current.catch(() => undefined).then(async () => {
-      if (!readyRef.current || !store.current) throw new CollectionError('unavailable', 'Wait for your saved labels to open before making changes.')
-      if (mounted.current) { setSaving(true); setError('') }
       try {
+        if (!readyRef.current || !store.current) throw new CollectionError('unavailable', 'Wait for your saved labels to open before making changes.')
+        if (mounted.current) setError('')
         const previous = current.current
         const next = change(previous)
         const saved = await store.current.save(previous.revision, next)
@@ -65,7 +68,10 @@ export function useCollection() {
         const message = failure instanceof Error ? failure.message : 'The change could not be saved. Your previous labels are still available.'
         if (mounted.current) setError(message)
         throw failure
-      } finally { if (mounted.current) setSaving(false) }
+      } finally {
+        pending.current--
+        if (mounted.current && pending.current === 0) setSaving(false)
+      }
     })
     queue.current = operation
     return operation

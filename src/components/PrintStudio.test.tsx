@@ -8,10 +8,10 @@ import type { PrintLabel, PrintSettings } from './ui-model'
 import { AVERY_94502_PROFILE } from '../lib/sheets/profiles'
 function Studio(props: Omit<ComponentProps<typeof PrintStudio>, 'settings' | 'onSettingsChange'>) {
   const [settings, setSettings] = useState<PrintSettings>({ page: 0, firstSlot: 1, offset: { x: 0, y: 0 } })
-  return <PrintStudio {...props} settings={settings} onSettingsChange={setSettings} />
+  return <PrintStudio {...props} settings={settings} onSettingsChange={patch => setSettings(current => ({ ...current, ...patch, offset: { ...current.offset, ...patch.offset } }))} />
 }
 const label: PrintLabel = { id: 'a', maker: 'Maker', blend: 'Blend', imageUrl: 'blob:a', imageFrame: { left: -5, top: -5, width: 110, height: 110 } }
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.restoreAllMocks() })
 describe('PrintStudio', () => {
   it('prepares label pages for browser printing and clears mode after printing or unmount', () => {
     const { unmount } = render(<Studio labels={[label]} quantities={{ a: 1 }} onQuantityChange={() => undefined} />)
@@ -76,4 +76,31 @@ describe('PrintStudio', () => {
     expect(screen.queryByRole('slider')).not.toBeInTheDocument()
     expect(screen.queryByRole('radio')).not.toBeInTheDocument()
   })
+})
+
+it('uses delta commands and narrow settings patches while persistence is pending', () => {
+  const onQuantityChange = vi.fn(), onSettingsChange = vi.fn()
+  render(<PrintStudio labels={[label]} quantities={{ a: 1 }} onQuantityChange={onQuantityChange} settings={{ page: 0, firstSlot: 1, offset: { x: 0, y: 0 } }} onSettingsChange={onSettingsChange} saving />)
+  fireEvent.click(screen.getByRole('button', { name: 'More Blend' }))
+  fireEvent.click(screen.getByRole('button', { name: 'More Blend' }))
+  expect(onQuantityChange.mock.calls).toEqual([['a', { delta: 1 }], ['a', { delta: 1 }]])
+  fireEvent.change(screen.getByLabelText('Start at slot'), { target: { value: '2' } })
+  fireEvent.change(screen.getByLabelText('Horizontal adjustment'), { target: { value: '.1' } })
+  expect(onSettingsChange.mock.calls).toEqual([[{ firstSlot: 2 }], [{ offset: { x: .1 } }]])
+  expect(screen.getByRole('button', { name: 'Print 1 label' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Print alignment sheet' })).toBeDisabled()
+  window.dispatchEvent(new Event('beforeprint'))
+  expect(document.body.dataset.printMode).toBe('pending')
+})
+
+it('enables printing the updated job after saving finishes', () => {
+  const print = vi.spyOn(window, 'print').mockImplementation(() => {})
+  const props = { labels: [label], quantities: { a: 1 }, onQuantityChange: vi.fn(), settings: { page: 0, firstSlot: 1, offset: { x: 0, y: 0 } }, onSettingsChange: vi.fn() }
+  const view = render(<PrintStudio {...props} saving />)
+  fireEvent.click(screen.getByRole('button', { name: 'Print 1 label' }))
+  expect(print).not.toHaveBeenCalled()
+  view.rerender(<PrintStudio {...props} quantities={{ a: 3 }} saving={false} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Print 3 labels' }))
+  expect(print).toHaveBeenCalledOnce()
+  expect(view.container.querySelectorAll('.production-slot img')).toHaveLength(3)
 })

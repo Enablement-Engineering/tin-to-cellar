@@ -82,21 +82,29 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
     const url = new URL(request.url);
     const path = url.pathname.slice('/api/gallery/v1'.length);
     const method = request.method;
+    const own = path.match(/^\/submissions\/([a-f0-9-]+)\/(artwork)$/);
+    const label = path.match(/^\/labels\/([a-f0-9-]+)(?:\/(artwork|thumbnail|pack))?$/);
+    const publicRead = method === 'GET' && (path === '/config' || path === '/labels' || !!(label && uuid(label[1])));
+    const publicSubmission = method === 'POST' && path === '/submissions';
+    const publicUpload = method === 'PUT' && !!(own && uuid(own[1]));
     try {
         if (method !== 'GET' && request.headers.get('Origin') !== url.origin)
             return json({ error: 'forbidden' }, 403);
+        // Unsupported public routes cannot consume database or body-read work.
+        if (!path.startsWith('/admin/') && !publicRead && !publicSubmission && !publicUpload)
+            return json({ error: 'not_found' }, 404);
         if (!env.GALLERY || !env.GALLERY_ART) {
             if (path === '/config' && method === 'GET')
                 return json({ intake: false, serving: false, noticeVersion: GALLERY_NOTICE_VERSION, turnstileSiteKey: '' });
             return json({ error: 'storage_unavailable' }, 503);
         }
-        // Admit public reads before any D1 query or R2 access. Intake and browsing
-        // use separate allowances so ordinary browsing cannot starve submissions.
-        const limiter = method === 'GET' && !path.startsWith('/admin/')
+        // Admit every supported public request before body reads, D1, or Turnstile.
+        // Reservation quotas and durable upload attempts remain separate limits.
+        const limiter = publicRead
             ? env.GALLERY_READ_RATE_LIMITER
-            : method === 'PUT' && /^\/submissions\/[a-f0-9-]+\/artwork$/.test(path)
-                ? env.GALLERY_UPLOAD_RATE_LIMITER : null;
-        const limited = (method === 'GET' && !path.startsWith('/admin/')) || (method === 'PUT' && /^\/submissions\/[a-f0-9-]+\/artwork$/.test(path));
+            : publicUpload ? env.GALLERY_UPLOAD_RATE_LIMITER
+                : publicSubmission ? env.GALLERY_MUTATION_RATE_LIMITER : null;
+        const limited = publicRead || publicUpload || publicSubmission;
         if (limited) {
             if (!limiter || !env.GALLERY_IP_SALT) return json({ error: 'rate_limit_unavailable' }, 503);
             const key = await sha256(`${env.GALLERY_IP_SALT}:${now.toISOString().slice(0, 10)}:${request.headers.get('CF-Connecting-IP') ?? 'unknown'}`);
@@ -105,7 +113,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
         const db = database(env);
         const switches = await flags(db, env);
         if (path === '/config' && method === 'GET')
-            return json({ ...switches, intake: switches.intake && !!env.GALLERY_TURNSTILE_SITE_KEY && !!env.GALLERY_IP_SALT && !!env.GALLERY_RATE_LIMITER && !!env.GALLERY_UPLOAD_RATE_LIMITER && (!!env.GALLERY_TURNSTILE_SECRET || !!deps.verifyTurnstile), noticeVersion: GALLERY_NOTICE_VERSION, turnstileSiteKey: env.GALLERY_TURNSTILE_SITE_KEY ?? '' });
+            return json({ ...switches, intake: switches.intake && !!env.GALLERY_TURNSTILE_SITE_KEY && !!env.GALLERY_IP_SALT && !!env.GALLERY_RATE_LIMITER && !!env.GALLERY_UPLOAD_RATE_LIMITER && !!env.GALLERY_MUTATION_RATE_LIMITER && (!!env.GALLERY_TURNSTILE_SECRET || !!deps.verifyTurnstile), noticeVersion: GALLERY_NOTICE_VERSION, turnstileSiteKey: env.GALLERY_TURNSTILE_SITE_KEY ?? '' });
         if (path === '/submissions' && method === 'POST') {
             const token = capability(request);
             if (!token)
@@ -131,7 +139,6 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
             await reserveGallery(db, env, request, draft, capHash, hash, metadata, now);
             return json(receipt((await get(db, draft.submissionId))!,now), 201);
         }
-        const own = path.match(/^\/submissions\/([a-f0-9-]+)\/(artwork)$/);
         if (own && uuid(own[1]) && method === 'PUT') {
             const token = capability(request);
             const row = await get(db, own[1]);
@@ -473,7 +480,6 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
             const rows = (await db.prepare("SELECT * FROM gallery_submissions WHERE state='published' AND id>? AND (?='' OR catalog_id=?) AND (?='' OR json_extract(metadata_json,'$.edition')=?) ORDER BY id LIMIT 25").bind(cursor, catalog, catalog, edition, edition).all<Row>()).results;
             return json({ labels: await Promise.all(rows.slice(0, 24).map(r => publicProjection(r))), nextCursor: rows.length > 24 ? rows[23].id : null, serving: true });
         }
-        const label = path.match(/^\/labels\/([a-f0-9-]+)(?:\/(artwork|thumbnail|pack))?$/);
         if (label && uuid(label[1]) && method === 'GET') {
             if (!switches.serving)
                 return json({ error: 'not_found' }, 404);

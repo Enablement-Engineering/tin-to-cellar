@@ -25,6 +25,7 @@ it('releases partial preview allocations and retries without losing import choic
   retry.focus(); fireEvent.click(retry)
   expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   expect(screen.getByRole('heading', { name: 'Add your new labels' })).toHaveFocus()
+  fireEvent.click(screen.getByRole('button', { name: 'Review 2 new designs' }))
   expect(screen.getAllByRole('img')).toHaveLength(2)
   expect(screen.getAllByRole('combobox').map(input => (input as HTMLSelectElement).value)).toEqual(['add', 'skip'])
   fireEvent.click(screen.getByRole('button', { name: 'Add 1 label' }))

@@ -20,6 +20,7 @@ writeFileSync(config, JSON.stringify({
     { name: 'GALLERY_RATE_LIMITER', namespace_id: '9001', simple: { limit: 5, period: 60 } },
     { name: 'GALLERY_READ_RATE_LIMITER', namespace_id: '9002', simple: { limit: 120, period: 60 } },
     { name: 'GALLERY_UPLOAD_RATE_LIMITER', namespace_id: '9003', simple: { limit: 5, period: 60 } },
+    { name: 'GALLERY_MUTATION_RATE_LIMITER', namespace_id: '9004', simple: { limit: 20, period: 60 } },
   ],
   vars: { GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'local-test-only-no-production-value', GALLERY_TURNSTILE_SITE_KEY: testMode ? 'local-test-widget' : '' },
   observability: { enabled: false },

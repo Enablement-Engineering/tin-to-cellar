@@ -63,7 +63,18 @@ const catalogById = new Map(TOBACCO_CATALOG.map(entry => [entry.id, entry]))
 const historicalIds = new Map((identities.idAliases as {aliasId: string; catalogId: string}[]).map(alias => [alias.aliasId, alias.catalogId]))
 export function resolveTobaccoId(id: string): TobaccoEntry | undefined { return catalogById.get(historicalIds.get(id) ?? id) }
 const exactNames = new Map(identities.entries.flatMap(entry => [entry, ...(entry.previousNames as {maker: string; blend: string}[])].map(name => [normalize(name.maker) + "|" + normalize(name.blend), entry.id] as const)))
+// Explicit aliases can resolve an imported spelling only within the same maker.
+// A shared alias is a search suggestion, never an automatic identity choice.
+const aliasNames = new Map<string, Set<string>>()
+for (const entry of TOBACCO_CATALOG) for (const alias of entry.aliases ?? []) {
+  const key = normalize(entry.maker) + '|' + normalize(alias)
+  const ids = aliasNames.get(key) ?? new Set<string>()
+  ids.add(entry.id)
+  aliasNames.set(key, ids)
+}
 export function findExactTobacco(maker: string, blend: string): TobaccoEntry | undefined {
-  const id = exactNames.get(normalize(maker) + "|" + normalize(blend))
+  const key = normalize(maker) + '|' + normalize(blend)
+  const aliases = aliasNames.get(key)
+  const id = exactNames.get(key) ?? (aliases?.size === 1 ? aliases.values().next().value : undefined)
   return id ? catalogById.get(id) : undefined
 }

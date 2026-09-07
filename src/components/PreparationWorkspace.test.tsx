@@ -45,7 +45,7 @@ it('keeps ready artwork printable while another row is requested and no generic 
     { id: 'pending', catalogId: null, maker: '', blend: 'New', createRequested: true },
   ]} />)
   expect(screen.getByRole('status')).toHaveTextContent('1 label ready · 1 to create')
-  fireEvent.click(screen.getByRole('button', { name: 'Print 1 ready label' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Review & print' }))
   expect(callbacks.onPrint).toHaveBeenCalledOnce()
   expect(screen.queryByRole('button', { name: 'Choose blends in my AI chat' })).not.toBeInTheDocument()
 })
@@ -92,4 +92,17 @@ it('retains entered text and catalog identity when saving fails so retry does no
   await waitFor(() => expect(input).toHaveValue(''))
   expect(onAdd.mock.calls[1]).toEqual(onAdd.mock.calls[0])
   expect(onAdd.mock.calls[1][0][0].catalogId).toBeTruthy()
+})
+
+it('requires an explicit choice for ambiguous search and selects a sole result with Enter', () => {
+  const callbacks = props()
+  render(<PreparationWorkspace {...callbacks} />)
+  const input = screen.getByRole('combobox', { name: 'Add a blend' })
+  fireEvent.change(input, { target: { value: 'Nightcap' } })
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(callbacks.onAdd).not.toHaveBeenCalled()
+  expect(screen.getByRole('alert')).toHaveTextContent('Choose a catalog match')
+  fireEvent.change(input, { target: { value: 'Escudo' } })
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(callbacks.onAdd).toHaveBeenCalledWith([expect.objectContaining({ maker: 'A&C Petersen', blend: 'Escudo Navy Deluxe' })])
 })

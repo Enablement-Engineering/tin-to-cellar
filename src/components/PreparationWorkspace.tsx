@@ -41,6 +41,12 @@ function BlendIntake({ busy, onAdd }: Pick<PreparationWorkspaceProps, 'busy' | '
     } catch (failure) { setAddError(errorText(failure)) }
     finally { setAdding(false) }
   }
+  const selected = active >= 0 ? active : matches.length === 1 ? 0 : -1
+  const submit = () => {
+    if (selected >= 0) add(matches[selected])
+    else if (!matches.length) add()
+    else { setOpen(true); setAddError('Choose a catalog match below, or use this name without a catalog match.') }
+  }
   const add = (entry?: TobaccoEntry) => {
     if (busy || adding) return
     if (!entry && !draft.trim()) return
@@ -51,10 +57,10 @@ function BlendIntake({ busy, onAdd }: Pick<PreparationWorkspaceProps, 'busy' | '
       <label htmlFor={id}>Add a blend</label>
       <p id={`${id}-hint`} className="field-hint">Search by maker or blend, or add a name of your own.</p>
       <div className="preparation-add-line"><div className="tobacco-editor">
-        <input id={id} ref={input} type="text" role="combobox" aria-autocomplete="list" aria-expanded={visible} aria-controls={visible ? `${id}-options` : undefined} aria-activedescendant={visible && active >= 0 ? `${id}-${active}` : undefined} aria-describedby={`${id}-hint`} autoComplete="off" value={draft} readOnly={busy || adding} placeholder="Search or type a blend…" onFocus={() => setOpen(true)} onBlur={() => { setOpen(false); setActive(-1) }} onChange={event => { setDraft(event.target.value); setRetryIdentities(null); setOpen(true); setActive(-1) }} onKeyDown={event => {
+        <input id={id} ref={input} type="text" role="combobox" aria-autocomplete="list" aria-expanded={visible} aria-controls={visible ? `${id}-options` : undefined} aria-activedescendant={visible && selected >= 0 ? `${id}-${selected}` : undefined} aria-describedby={`${id}-hint`} autoComplete="off" value={draft} readOnly={busy || adding} placeholder="Search or type a blend…" onFocus={() => setOpen(true)} onBlur={() => { setOpen(false); setActive(-1) }} onChange={event => { setDraft(event.target.value); setRetryIdentities(null); setOpen(true); setActive(-1) }} onKeyDown={event => {
           if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && draft.trim()) { event.preventDefault(); setOpen(true); setActive(value => event.key === 'ArrowDown' ? Math.min(value + 1, matches.length) : value < 0 ? matches.length : Math.max(0, value - 1)) }
           else if (event.key === 'Escape') { setOpen(false); setActive(-1) }
-          else if (event.key === 'Enter' && draft.trim()) { event.preventDefault(); add(visible && active >= 0 ? matches[active] : undefined) }
+          else if (event.key === 'Enter' && draft.trim()) { event.preventDefault(); submit() }
         }} onPaste={event => {
           if (busy || adding) { event.preventDefault(); return }
           const pasted = event.clipboardData.getData('text')
@@ -65,10 +71,10 @@ function BlendIntake({ busy, onAdd }: Pick<PreparationWorkspaceProps, 'busy' | '
           void addIdentities(names.map(blend => ({ catalogId: null, maker: '', blend })))
         }} />
         {visible && <ul id={`${id}-options`} className="tobacco-suggestions" role="listbox" aria-label="Blend suggestions">
-          {matches.map((entry, index) => <li id={`${id}-${index}`} key={entry.id} role="option" aria-selected={active === index} aria-label={`${entry.blend} by ${entry.maker}`} onMouseDown={event => event.preventDefault()} onClick={() => add(entry)}><strong>{entry.blend}</strong><span>{entry.maker}</span></li>)}
-          <li id={`${id}-${matches.length}`} role="option" aria-selected={active === matches.length} onMouseDown={event => event.preventDefault()} onClick={() => add()}>Use “{draft.trim()}” as written</li>
+          {matches.map((entry, index) => <li id={`${id}-${index}`} key={entry.id} role="option" aria-selected={selected === index} aria-label={`${entry.blend} by ${entry.maker}`} onMouseDown={event => event.preventDefault()} onClick={() => add(entry)}><strong>{entry.blend}</strong><span>{entry.maker}</span></li>)}
+          <li id={`${id}-${matches.length}`} role="option" aria-selected={selected === matches.length} onMouseDown={event => event.preventDefault()} onClick={() => add()}>Use “{draft.trim()}” without a catalog match</li>
         </ul>}
-      </div><button type="button" className="button secondary" disabled={busy || adding || !draft.trim()} onClick={() => add()}>{adding ? 'Adding…' : 'Add blend'}</button></div>
+      </div><button type="button" className="button secondary" disabled={busy || adding || !draft.trim()} onClick={submit}>{adding ? 'Adding…' : 'Add blend'}</button></div>
       {addError && <p role="alert">{addError} Your entered names are still here. Try adding them again.</p>}
     </div>
     <OrderImporter onAdd={onAdd} />
@@ -142,13 +148,13 @@ export function PreparationWorkspace({ rows, busy, onAdd, onRemove, onCreate, on
       <div className="preparation-entry-actions"><button type="button" className="button quiet" onClick={onBrowse}>Browse community labels</button><button type="button" className="button quiet" onClick={onImport}>Import a label ZIP</button></div>
     </section>
     {rows.length > 0 && <>
-      <div className="preparation-summary"><div><h2>Your labels</h2><p role="status">{ready} {ready === 1 ? 'label' : 'labels'} ready{toCreate ? ` · ${toCreate} to create` : ''}{rows.some(row => !row.artwork && !row.createRequested) ? ` · ${rows.filter(row => !row.artwork && !row.createRequested).length} to choose` : ''}</p></div>{ready > 0 && <button type="button" className="button primary" onClick={onPrint}>Print {ready} ready {ready === 1 ? 'label' : 'labels'}</button>}</div>
+      <div className={`preparation-summary${ready > 0 ? ' review-navigation' : ''}`}><div><h2>Your labels</h2><p role="status">{ready} {ready === 1 ? 'label' : 'labels'} ready{toCreate ? ` · ${toCreate} to create` : ''}{rows.some(row => !row.artwork && !row.createRequested) ? ` · ${rows.filter(row => !row.artwork && !row.createRequested).length} to choose` : ''}</p></div>{ready > 0 && <button type="button" className="button primary" onClick={onPrint}>Review &amp; print</button>}</div>
       <div className="preparation-rows">{rows.map(row => <article className="panel preparation-row" key={row.id} aria-labelledby={`row-${row.id}`}>
         <div className="preparation-row-heading">{row.artwork && <div className="label-thumbnail"><LabelArtwork label={row.artwork} /></div>}<div><h3 id={`row-${row.id}`}>{row.blend}</h3>{row.maker && <p>{row.maker}{row.edition ? ` · ${row.edition}` : ''}</p>}<span className="field-hint">{row.artwork ? row.createRequested ? 'Ready to print · new design requested' : 'Ready to print' : row.createRequested ? 'Included in your creation request' : 'Choose a design below'}</span></div><button type="button" className="button quiet" disabled={busy} aria-label={`Remove ${formatTobacco(row)}`} onClick={() => { onRemove(row.id); heading.current?.focus({ preventScroll: true }) }}>Remove</button></div>
         <div className="preparation-row-content"><div className="preparation-artwork-options">
         {!row.catalogId && !row.artwork && onResolve && searchTobaccos(row.blend, 3).length > 0 && <div className="preparation-identity-options"><p className="field-hint">Match a catalog blend to check its community designs:</p>{searchTobaccos(row.blend, 3).map(entry => <button type="button" className="button quiet" disabled={busy} key={entry.id} onClick={() => onResolve(row.id, identity(entry))}>Match to {formatTobacco(entry)}</button>)}</div>}
         {row.artwork ? <ChangeArtwork row={row} busy={busy} onChooseCommunity={onChooseCommunity} /> : <ArtworkChoices key={row.catalogId} row={row} busy={busy} onChooseCommunity={onChooseCommunity} />}
-        </div><div className="preparation-create-choice"><p className="field-hint">{row.createRequested ? 'New artwork requested' : 'Prefer a different design?'}</p><button type="button" className="button secondary" aria-pressed={row.createRequested} disabled={busy} onClick={() => onCreate(row.id, !row.createRequested)}>{row.createRequested ? 'Remove from creation request' : 'Create my own'}</button>{row.createRequested && onNotes && <RowNotes row={row} onNotes={onNotes} />}</div></div>
+        </div><div className="preparation-create-choice"><p className="field-hint">{row.createRequested ? 'New artwork requested' : row.artwork ? 'Prefer a different design?' : 'Create artwork for this label'}</p><button type="button" className="button secondary" aria-pressed={row.createRequested} disabled={busy} onClick={() => onCreate(row.id, !row.createRequested)}>{row.createRequested ? 'Remove from creation request' : 'Create my own'}</button>{row.createRequested && onNotes && <RowNotes row={row} onNotes={onNotes} />}</div></div>
       </article>)}</div>
     </>}
     {handoff}

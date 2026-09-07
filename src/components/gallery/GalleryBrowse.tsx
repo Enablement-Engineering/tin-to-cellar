@@ -5,7 +5,7 @@ import { GalleryThumbnail } from './GalleryThumbnail'
 import { searchLabels } from './search-labels'
 import { API, errorText, useConfig } from './client'
 
-export function GalleryBrowse({ onAdd, selectedIds = [], onPrint }: { onAdd: (label: GalleryPublicLabel) => Promise<void>; selectedIds?: string[]; onPrint?: () => void }) {
+export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedIds.length, onPrint }: { onAdd: (label: GalleryPublicLabel) => Promise<void>; selectedIds?: string[]; readyCount?: number; onPrint?: () => void }) {
   const { config, error: configError } = useConfig()
   const [labels, setLabels] = useState<GalleryPublicLabel[]>([]), [filter, setFilter] = useState<{ ids: string[] | null; typing: boolean }>({ ids: null, typing: false })
   const [cursor, setCursor] = useState<string | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false)
@@ -54,7 +54,7 @@ export function GalleryBrowse({ onAdd, selectedIds = [], onPrint }: { onAdd: (la
     {(configError || error) && <p role="alert">{configError || error}</p>}
     {!config && !configError && <p role="status">Loading library…</p>}
     {config && !config.serving && <p>The community library is closed for now. You can still create your own designs or import and print a label ZIP.</p>}
-    {selectedIds.length > 0 && <div className="preparation-summary"><p role="status">{selectedIds.length} community {selectedIds.length === 1 ? 'design' : 'designs'} in your labels</p>{onPrint && <button className="button primary" type="button" onClick={onPrint}>View your labels</button>}</div>}
+    {readyCount > 0 && <div className="preparation-summary review-navigation"><p role="status">Your labels · {readyCount} ready</p>{onPrint && <button className="button primary" type="button" onClick={onPrint}>Review &amp; print</button>}</div>}
     {config?.serving && <>
       <section className="gallery-browser" aria-labelledby="gallery-browser-title"><div className="gallery-browser-heading"><div><h2 id="gallery-browser-title">Find a label</h2><p>Search by maker or blend, or browse everything below.</p></div><p className="gallery-format"><span>Available format</span><strong>2.5-inch circle</strong></p></div><GalleryBlendSearch onChange={changeFilter} /></section>
       <p className="gallery-result-count" role="status" aria-atomic="true">{busy ? 'Loading labels…' : error ? '' : !labels.length ? 'No labels match your search. Try another maker or blend, or create your own design.' : `Showing ${labels.length} ${labels.length === 1 ? 'label' : 'labels'}${cursor ? '. More are available.' : '.'}`}</p>
