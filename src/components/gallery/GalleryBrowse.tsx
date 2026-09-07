@@ -24,7 +24,7 @@ export function GalleryBrowse({ onUse }: { onUse: (file: File) => Promise<void> 
     {cursor && <button className="button secondary" disabled={busy} onClick={() => void load(cursor)}>More labels</button>}</>}
     <footer className="gallery-disclaimer">
       <p className="field-hint">Community-contributed labels for personal cellaring. Tin to Cellar is an independent project.</p>
-      <p className="field-hint">Questions about a label or source link? Email <a href="mailto:dylan@enablement.engineering">dylan@enablement.engineering</a> with a link and a short note.</p>
+      <p className="field-hint">Questions about a label or source link? <a href="mailto:dylan@enablement.engineering">Email this address</a> with a link and a short note.</p>
     </footer>
   </section>
 }
