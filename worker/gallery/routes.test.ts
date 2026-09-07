@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { encode } from 'fast-png';
+import JSZip from 'jszip';
 import { galleryResponse } from './routes';
 import { cleanGallery } from './cleanup';
 import { sha256, type GalleryBucket, type GalleryDatabase, type GalleryEnv } from './storage';
@@ -48,6 +49,23 @@ it('distinguishes a serving library with no matches from disabled listing respon
 });
 beforeEach(async () => { db = new DB(); bucket = new Bucket(); env = { GALLERY: db, GALLERY_ART: bucket, GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'fixture', GALLERY_RATE_LIMITER: { limit: async () => ({ success: true }) } }; png = encode({ width: 825, height: 825, channels: 3, depth: 8, data: new Uint8Array(825 * 825 * 3).fill(255) }); const inset = { top: .125, right: .125, bottom: .125, left: .125, unit: 'in' as const }; draft = { version: 1, submissionId: crypto.randomUUID(), catalogId: 'test-blend', proposedIdentity: null, package: 'tin', variant: 'current', edition: '', description: 'Synthetic test label', surface: { shape: 'circle', finishedSize: { width: 2.5, height: 2.5, unit: 'in' }, bleed: inset, safeInset: inset }, writeInArea: { id: 'date', purpose: 'jarred-date', geometry: { shape: 'rectangle', x: .35, y: .6, width: .3, height: .1 }, background: { integratedInArtwork: true }, overlay: { mode: 'blank' } }, references: [], image: { sha256: await sha256(png), bytes: png.length, width: 825, height: 825 }, acknowledgement: { version: '2026-09-06-v2', accepted: true } }; });
 describe('private gallery workflow', () => {
+    it('admits proofed operator artwork without a public challenge while preserving human publication review', async () => {
+        env.GALLERY_RATE_LIMITER = { limit: async () => ({ success: false }) };
+        const create = await call('/admin/intake', 'POST', draft, { 'X-Test-Admin': 'yes' });
+        expect(create.status).toBe(201);
+        expect((await create.json()).state).toBe('reserved');
+        expect((await call('/admin/intake', 'POST', draft, { 'X-Test-Admin': 'yes' })).status).toBe(200);
+        expect((await call(`/admin/intake/${draft.submissionId}/artwork`, 'PUT', png)).status).toBe(403);
+        const uploaded = await call(`/admin/intake/${draft.submissionId}/artwork`, 'PUT', png, { 'X-Test-Admin': 'yes' });
+        expect(uploaded.status).toBe(200);
+        const pending = await uploaded.json();
+        expect(pending.state).toBe('pending');
+        expect((await call(`/labels/${draft.submissionId}`)).status).toBe(404);
+        expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_review_events WHERE submission_id=? AND action='curated-intake'").get(draft.submissionId)!.n).toBe(1);
+        const published = await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: pending.version, digest: pending.digest }, { 'X-Test-Admin': 'yes' });
+        expect(published.status).toBe(200);
+        expect((await published.json()).state).toBe('published');
+    });
     it('gates exact reviewed bytes and every direct URL after human unpublish', async () => { const pending = await submit(); expect((await call(`/labels/${draft.submissionId}/artwork`)).status).toBe(404); expect((await call(`/submissions/${draft.submissionId}/preview`, 'GET', undefined, { Authorization: 'Bearer ' + 'b'.repeat(64) })).status).toBe(404); expect((await call(`/admin/submissions/${draft.submissionId}/artwork`)).status).toBe(403); const r = await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: pending.version, digest: pending.digest }, { 'X-Test-Admin': 'yes' }); expect(r.status).toBe(200); const published = await r.json(); for (const kind of ['artwork', 'thumbnail', 'pack']) {
         const a = await call(`/labels/${draft.submissionId}/${kind}`);
         expect(a.status).toBe(200);
@@ -67,6 +85,47 @@ describe('private gallery workflow', () => {
     it('rejects cross-origin changes and forged production admin', async () => { expect((await call('/submissions', 'POST', draft, { Origin: 'https://evil.example' })).status).toBe(403); expect(await verifyGalleryAdmin(new Request('https://site.example', { headers: { 'Cf-Access-Jwt-Assertion': 'forged' } }), { GALLERY_ACCESS_ISSUER: 'https://test.cloudflareaccess.com', GALLERY_ACCESS_AUD: 'aud', GALLERY_ADMIN_SUBJECT: 'admin' })).toBeNull(); });
     it('rejects private manifest fields and unsafe reference URLs', () => { expect(() => parseGalleryDraft({ ...draft, notes: 'secret' })).toThrow(); expect(() => parseGalleryDraft({ ...draft, references: [{ role: 'package-appearance', url: 'https://shop.example/a%40b.com' }] })).toThrow(); expect(() => parseGalleryDraft({ ...draft, references: [{ role: 'package-appearance', url: 'http://127.0.0.1/' }] })).toThrow(); });
     it('binds publication identity to review and resolves public duplicates only', async () => { const original = await approve(); const oldId = draft.submissionId; db.db.exec("UPDATE gallery_tobaccos SET maker='Renamed' WHERE id='test-blend'"); expect((await (await call(`/labels/${oldId}`)).json()).maker).toBe('Test'); draft.submissionId = crypto.randomUUID(); const pending = await submit(); expect(pending.publicationId).toBeNull(); const duplicate = await (await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: pending.version, digest: pending.digest }, { 'X-Test-Admin': 'yes' })).json(); expect(duplicate.state).toBe('rejected'); expect(duplicate.publicationId).toBe(original.id); expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_submissions WHERE state='published'").get()!.n).toBe(1); });
+    it('refreshes a published identity and downloadable pack after a catalog correction', async () => {
+        const published = await approve();
+        db.db.exec("UPDATE gallery_tobaccos SET maker='Test',blend='Blend: Corrected' WHERE id='test-blend'");
+        const refreshed = await call(`/admin/publications/${draft.submissionId}/refresh`, 'POST', { expectedVersion: published.version }, { 'X-Test-Admin': 'yes' });
+        expect(refreshed.status).toBe(200);
+        expect((await refreshed.json()).publishedIdentity).toEqual({ maker: 'Test', blend: 'Blend: Corrected' });
+        const projection = await (await call(`/labels/${draft.submissionId}`)).json();
+        expect(projection.blend).toBe('Blend: Corrected');
+        const archive = await (await call(`/labels/${draft.submissionId}/pack`)).arrayBuffer();
+        const zip = await JSZip.loadAsync(archive);
+        const manifest = JSON.parse(await zip.file('manifest.json')!.async('text'));
+        expect(manifest.labels[0].blend).toBe('Blend: Corrected');
+        expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_review_events WHERE submission_id=? AND action='refresh'").get(draft.submissionId)!.n).toBe(1);
+    });
+    it('reconciles a matching published resource in place from an approved CellarPack', async () => {
+        const published = await approve();
+        const originalId = published.id;
+        const replacement = encode({ width: 825, height: 825, channels: 3, depth: 8, data: new Uint8Array(825 * 825 * 3).fill(64) });
+        const reference = 'https://www.smokingpipes.com/pipe-tobacco/test/blend/product_id/1';
+        const revised = { ...draft, submissionId: crypto.randomUUID(), references: [{ role: 'package-appearance' as const, url: reference }], image: { ...draft.image, sha256: await sha256(replacement), bytes: replacement.length } };
+        const form = new FormData();
+        form.set('metadata', JSON.stringify(revised));
+        form.set('artwork', new Blob([replacement as Uint8Array<ArrayBuffer>], { type: 'image/png' }), 'label.png');
+        const response = await galleryResponse(new Request('https://site.example/api/gallery/v1/admin/reconcile', { method: 'POST', headers: { Origin: 'https://site.example', 'X-Test-Admin': 'yes' }, body: form }), env, deps);
+        expect(response.status).toBe(200);
+        const reconciled = await response.json() as GalleryReceipt;
+        expect(reconciled.id).toBe(originalId);
+        expect(reconciled.state).toBe('published');
+        expect(reconciled.version).toBe(published.version + 1);
+        const projection = await (await call(`/labels/${originalId}`)).json();
+        expect(projection.metadata.references).toEqual([{ role: 'package-appearance', url: reference }]);
+        expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_submissions WHERE state='published' AND catalog_id='test-blend'").get()!.n).toBe(1);
+        expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_review_events WHERE submission_id=? AND action='reconcile'").get(originalId)!.n).toBe(1);
+        const archive = await (await call(`/labels/${originalId}/pack`)).arrayBuffer();
+        const zip = await JSZip.loadAsync(archive);
+        const manifest = JSON.parse(await zip.file('manifest.json')!.async('text'));
+        expect(manifest.labels[0].research.sources[0].description).toContain(reference);
+        const asset = manifest.assets[manifest.labels[0].artworkAssetId];
+        const publicArtwork = new Uint8Array(await (await call(`/labels/${originalId}/artwork`)).arrayBuffer());
+        expect(asset.sha256).toBe(await sha256(publicArtwork));
+    });
     it('serializes concurrent upload leases and cancels approval after a terminal retention transition', async () => { await call('/submissions', 'POST', draft); const uploads = await Promise.all([call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png), call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png)]); expect(uploads.filter(r => r.status === 200)).toHaveLength(1); expect(uploads.filter(r => r.status === 409)).toHaveLength(1); const pending = await (await call(`/admin/submissions/${draft.submissionId}`,'GET',undefined,{'X-Test-Admin':'yes'})).json(); const originalPut = bucket.put.bind(bucket); bucket.put = async (k, b) => { await originalPut(k, b); if (k.includes('/pack-'))
         db.db.prepare("UPDATE gallery_submissions SET state='expired',row_version=row_version+1 WHERE id=?").run(draft.submissionId); }; expect((await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: pending.version, digest: pending.digest }, { 'X-Test-Admin': 'yes' })).status).not.toBe(200); expect((await call(`/labels/${draft.submissionId}/pack`)).status).toBe(404); expect((await (await call(`/admin/submissions/${draft.submissionId}`,'GET',undefined,{'X-Test-Admin':'yes'})).json()).state).toBe('expired'); });
     it('rejects alternate API versions and stops new bytes when intake closes', async () => { await call('/submissions', 'POST', draft); env.GALLERY_INTAKE = 'false'; expect((await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png)).status).toBe(503); expect((await galleryResponse(new Request('https://site.example/api/gallery/v2/config'), env, deps)).status).toBe(404); });
@@ -232,4 +291,202 @@ it('requires v2 for new intake while preserving historical v1 retries, correctio
     expect((await call(`${path}/approve`, 'POST', { expectedVersion: corrected.version, digest: corrected.digest }, headers)).status).toBe(200);
     expect((await call(`/labels/${legacy.submissionId}/pack`)).status).toBe(200);
     expect(JSON.parse(db.db.prepare('SELECT metadata_json FROM gallery_submissions WHERE id=?').get(legacy.submissionId)!.metadata_json as string).acknowledgement).toEqual(legacy.acknowledgement);
+});
+
+// Replacement failures must leave the previously published resource usable.
+async function replacement(shade = 64) {
+    const bytes = encode({ width: 825, height: 825, channels: 3, depth: 8, data: new Uint8Array(825 * 825 * 3).fill(shade) });
+    const metadata = { ...draft, submissionId: crypto.randomUUID(), description: `Replacement ${shade}`, image: { ...draft.image, bytes: bytes.length, sha256: await sha256(bytes) } };
+    return { bytes, metadata };
+}
+function reconcile(input: Awaited<ReturnType<typeof replacement>>, headers: Record<string, string> = {}) {
+    const form = new FormData();
+    form.set('metadata', JSON.stringify(input.metadata));
+    form.set('artwork', new Blob([Uint8Array.from(input.bytes)], { type: 'image/png' }), 'label.png');
+    return galleryResponse(new Request('https://site.example/api/gallery/v1/admin/reconcile', { method: 'POST', headers: { Origin: 'https://site.example', 'X-Test-Admin': 'yes', ...headers }, body: form }), env, deps);
+}
+async function publicationSnapshot() {
+    return {
+        row: db.db.prepare('SELECT * FROM gallery_submissions WHERE id=?').get(draft.submissionId),
+        assets: db.db.prepare('SELECT * FROM gallery_assets WHERE submission_id=? ORDER BY kind').all(draft.submissionId),
+        pack: await sha256(new Uint8Array(await (await call(`/labels/${draft.submissionId}/pack`)).arrayBuffer())),
+        artwork: await sha256(new Uint8Array(await (await call(`/labels/${draft.submissionId}/artwork`)).arrayBuffer())),
+        projection: await (await call(`/labels/${draft.submissionId}`)).json(),
+    };
+}
+describe('curated publication replacement integrity', () => {
+    it('rejects missing or foreign origins and unauthenticated curated requests', async () => {
+        const input = await replacement();
+        for (const headers of [{ Origin: 'https://evil.example' }, { Origin: '' }, { 'X-Test-Admin': '' }] as Record<string, string>[]) {
+            expect((await reconcile(input, headers)).status).toBe(403);
+        }
+        expect(bucket.objects.size).toBe(0);
+        expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_submissions').get()!.n).toBe(0);
+    });
+    it('distinguishes absent publications from missing routes and ambiguous catalog matches', async () => {
+        const input = await replacement();
+        const absent = await reconcile(input);
+        expect(absent.status).toBe(404);
+        expect(await absent.json()).toEqual({ error: 'publication_not_found' });
+        await approve();
+        const original = draft.submissionId;
+        draft.submissionId = crypto.randomUUID();
+        png = input.bytes;
+        draft.image = input.metadata.image;
+        await approve();
+        draft.submissionId = original;
+        const before = await publicationSnapshot();
+        expect((await reconcile(input)).status).toBe(409);
+        expect(await publicationSnapshot()).toEqual(before);
+    });
+    it('rejects oversized multipart uploads before storing any objects', async () => {
+        await approve();
+        const before = await publicationSnapshot();
+        const form = new FormData();
+        form.set('metadata', JSON.stringify(draft));
+        form.set('artwork', new Blob([new Uint8Array(9 * 1024 * 1024)], { type: 'image/png' }), 'large.png');
+        // Materialize this fixture before cancellation: Node 24's multipart
+        // producer can enqueue after cancellation. Stream cancellation itself
+        // is exercised below with an explicit controllable ReadableStream.
+        const encoded = new Response(form);
+        const bytes = await encoded.arrayBuffer();
+        const response = await galleryResponse(new Request('https://site.example/api/gallery/v1/admin/reconcile', { method: 'POST', headers: { Origin: 'https://site.example', 'X-Test-Admin': 'yes', 'Content-Type': encoded.headers.get('Content-Type')! }, body: bytes }), env, deps);
+        expect(response.status).toBeGreaterThanOrEqual(400);
+        expect(response.status).toBeLessThan(500);
+        expect(await publicationSnapshot()).toEqual(before);
+        expect(bucket.objects.size).toBe(3);
+    });
+    it('allows only one simultaneous replacement and keeps its metadata and assets together', async () => {
+        const published = await approve();
+        const inputs = await Promise.all([replacement(64), replacement(128)]);
+        const put = bucket.put.bind(bucket);
+        let arrivals = 0;
+        let release!: () => void;
+        const bothStaged = new Promise<void>(resolve => { release = resolve; });
+        bucket.put = async (k, bytes) => {
+            await put(k, bytes);
+            if (k.includes('/artwork-')) {
+                if (++arrivals === 2) release();
+                await bothStaged;
+            }
+        };
+        const responses = await Promise.all(inputs.map(input => reconcile(input)));
+        expect(responses.map(r => r.status).sort()).toEqual([200, 409]);
+        const winning = inputs[responses.findIndex(r => r.status === 200)];
+        const snapshot = await publicationSnapshot();
+        expect(snapshot.projection.metadata.description).toBe(winning.metadata.description);
+        expect(snapshot.row!.row_version).toBe(published.version + 1);
+        const { normalizeGalleryImage } = await import('../../src/lib/gallery/image');
+        expect(snapshot.artwork).toBe((await normalizeGalleryImage(winning.bytes)).sha256);
+        const zip = await JSZip.loadAsync(await (await call(`/labels/${draft.submissionId}/pack`)).arrayBuffer());
+        const manifest = JSON.parse(await zip.file('manifest.json')!.async('text'));
+        expect(manifest.assets.artwork.sha256).toBe(snapshot.artwork);
+        expect(await sha256(await zip.file('artwork/label.png')!.async('uint8array'))).toBe(snapshot.artwork);
+        expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_review_events WHERE action='reconcile'").get()!.n).toBe(1);
+    });
+    for (const failure of ['put', 'head', 'audit'] as const) {
+        it(`preserves published metadata and bytes when reconciliation ${failure} fails`, async () => {
+            await approve();
+            const before = await publicationSnapshot();
+            if (failure === 'put') bucket.failPut = true;
+            if (failure === 'head') bucket.head = async () => null;
+            if (failure === 'audit') db.db.exec("CREATE TRIGGER fail_reconcile_audit BEFORE INSERT ON gallery_review_events WHEN NEW.action='reconcile' BEGIN SELECT RAISE(ABORT,'injected'); END");
+            expect((await reconcile(await replacement())).status).not.toBe(200);
+            expect(await publicationSnapshot()).toEqual(before);
+            expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_review_events WHERE action='reconcile'").get()!.n).toBe(0);
+        });
+        it(`preserves published identity and pack when refresh ${failure} fails`, async () => {
+            const published = await approve();
+            const before = await publicationSnapshot();
+            db.db.exec("UPDATE gallery_tobaccos SET blend='Corrected' WHERE id='test-blend'");
+            if (failure === 'put') bucket.failPut = true;
+            if (failure === 'head') bucket.head = async () => null;
+            if (failure === 'audit') db.db.exec("CREATE TRIGGER fail_refresh_audit BEFORE INSERT ON gallery_review_events WHEN NEW.action='refresh' BEGIN SELECT RAISE(ABORT,'injected'); END");
+            expect((await call(`/admin/publications/${draft.submissionId}/refresh`, 'POST', { expectedVersion: published.version }, { 'X-Test-Admin': 'yes' })).status).not.toBe(200);
+            expect(await publicationSnapshot()).toEqual(before);
+        });
+    }
+    for (const action of ['shutdown', 'unpublish'] as const) {
+        it(`does not publish a reconciliation after ${action} during staging`, async () => {
+            const published = await approve();
+            const before = await publicationSnapshot();
+            const put = bucket.put.bind(bucket);
+            let interrupted = false;
+            bucket.put = async (k, bytes) => {
+                await put(k, bytes);
+                if (!interrupted) {
+                    interrupted = true;
+                    if (action === 'shutdown') db.db.exec('UPDATE gallery_settings SET publication=0');
+                    else expect((await call(`/admin/submissions/${draft.submissionId}/unpublish`, 'POST', { expectedVersion: published.version }, { 'X-Test-Admin': 'yes' })).status).toBe(200);
+                }
+            };
+            expect((await reconcile(await replacement())).status).not.toBe(200);
+            expect(db.db.prepare('SELECT * FROM gallery_assets WHERE submission_id=? ORDER BY kind').all(draft.submissionId)).toEqual(before.assets);
+            if (action === 'shutdown') expect(await publicationSnapshot()).toEqual(before);
+            else {
+                expect(db.db.prepare('SELECT state FROM gallery_submissions WHERE id=?').get(draft.submissionId)!.state).toBe('unpublished');
+                expect((await call(`/labels/${draft.submissionId}/pack`)).status).toBe(404);
+            }
+        });
+    }
+    it('keeps the old publication visible while staging a refreshed pack', async () => {
+        const published = await approve();
+        const before = await publicationSnapshot();
+        db.db.exec("UPDATE gallery_tobaccos SET blend='Corrected' WHERE id='test-blend'");
+        const put = bucket.put.bind(bucket);
+        bucket.put = async (k, bytes) => {
+            expect(await publicationSnapshot()).toEqual(before);
+            await put(k, bytes);
+        };
+        expect((await call(`/admin/publications/${draft.submissionId}/refresh`, 'POST', { expectedVersion: published.version }, { 'X-Test-Admin': 'yes' })).status).toBe(200);
+    });
+});
+
+describe('curated streaming limits and refresh interruptions', () => {
+    it('cancels oversized multipart streams without consuming the remaining request', async () => {
+        await approve();
+        const before = await publicationSnapshot();
+        let chunks = 0;
+        let cancelled = false;
+        const stream = new ReadableStream<Uint8Array>({
+            pull(controller) {
+                chunks++;
+                controller.enqueue(new Uint8Array(1024 * 1024));
+                if (chunks === 32) controller.close();
+            },
+            cancel() { cancelled = true; },
+        });
+        const init = { method: 'POST', headers: { Origin: 'https://site.example', 'X-Test-Admin': 'yes', 'Content-Type': 'multipart/form-data; boundary=fixture' }, body: stream, duplex: 'half' };
+        const response = await galleryResponse(new Request('https://site.example/api/gallery/v1/admin/reconcile', init), env, deps);
+        expect(response.status).toBeGreaterThanOrEqual(400);
+        expect(response.status).toBeLessThan(500);
+        expect(cancelled).toBe(true);
+        expect(chunks).toBeLessThan(32);
+        expect(await publicationSnapshot()).toEqual(before);
+        expect(bucket.objects.size).toBe(3);
+    });
+    for (const action of ['shutdown', 'unpublish'] as const) {
+        it(`does not publish refreshed bytes after ${action} during staging`, async () => {
+            const published = await approve();
+            const before = await publicationSnapshot();
+            db.db.exec("UPDATE gallery_tobaccos SET blend='Corrected' WHERE id='test-blend'");
+            const put = bucket.put.bind(bucket);
+            let interrupted = false;
+            bucket.put = async (k, bytes) => {
+                await put(k, bytes);
+                if (!interrupted) {
+                    interrupted = true;
+                    if (action === 'shutdown') db.db.exec('UPDATE gallery_settings SET publication=0');
+                    else expect((await call(`/admin/submissions/${draft.submissionId}/unpublish`, 'POST', { expectedVersion: published.version }, { 'X-Test-Admin': 'yes' })).status).toBe(200);
+                }
+            };
+            expect((await call(`/admin/publications/${draft.submissionId}/refresh`, 'POST', { expectedVersion: published.version }, { 'X-Test-Admin': 'yes' })).status).not.toBe(200);
+            expect(db.db.prepare('SELECT * FROM gallery_assets WHERE submission_id=? ORDER BY kind').all(draft.submissionId)).toEqual(before.assets);
+            if (action === 'shutdown') expect(await publicationSnapshot()).toEqual(before);
+            else {
+                expect(db.db.prepare('SELECT state FROM gallery_submissions WHERE id=?').get(draft.submissionId)!.state).toBe('unpublished');
+                expect((await call(`/labels/${draft.submissionId}/pack`)).status).toBe(404);
+            }
+        });
+    }
 });

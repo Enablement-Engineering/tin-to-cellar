@@ -92,3 +92,11 @@ jobs:
             test "$attempt" = 6 || sleep 5
           done
           test "$budget_status" = 403 || { echo "::error::Budget endpoint missing or unprotected (HTTP $budget_status)"; exit 1; }
+          for attempt in 1 2 3 4 5 6; do
+            if curl --fail --silent --show-error --max-time 15 https://tintocellar.com/api/health | jq -e '.status == "ok" and (.capabilities | index("diagnostic-budget-v1") != null and index("curated-intake-v1") != null and index("curated-reconcile-v1") != null)' >/dev/null; then
+              capabilities_ready=true
+              break
+            fi
+            test "$attempt" = 6 || sleep 5
+          done
+          test "${capabilities_ready:-false}" = true || { echo '::error::Combined budget and curated-intake release is not serving'; exit 1; }

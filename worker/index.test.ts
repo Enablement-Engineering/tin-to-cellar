@@ -19,7 +19,7 @@ it('exposes status and fails closed for OCR without reading or storing uploads',
   expect(response.headers.get('Cache-Control')).toBe('no-store')
   expect(env.ASSETS.fetch).not.toHaveBeenCalled()
   const health = await worker.fetch(new Request('https://example.com/api/health'), env)
-  expect(await health.json()).toEqual({ status: 'ok', cloudOcrEnabled: false })
+  expect(await health.json()).toEqual({ status: 'ok', cloudOcrEnabled: false, capabilities: ['diagnostic-budget-v1', 'curated-intake-v1', 'curated-reconcile-v1'] })
 })
 
 it('rejects retired proof operations before consuming image bytes or calling services', async () => {
