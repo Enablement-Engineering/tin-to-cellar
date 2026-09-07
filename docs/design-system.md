@@ -195,7 +195,7 @@ Use real headings in order, preserve the skip link, label form controls, and ret
 | Slot top positions | 1, 4.25, 7.5in |
 | Printer offsets | X and Y each limited to -0.25 through +0.25in |
 
-The preview clips at finished trim. Production printing includes the supplied bleed and uses inch-based page and placement dimensions. Incompatible artwork is quarantined rather than stretched to fit. The generated image owns its entire blank writing area. The website adds no date words, lines, or other artwork overlays.
+The preview and production printing both clip at the 2.5-inch finished circle. The supplied artwork frame keeps its trim mapping and scale; its outer bleed is cropped, not squeezed into the label. Printing uses inch-based page and placement dimensions. Exposing the default 2.75-inch bleed circle would overlap neighboring labels because column centers are only 2.625 inches apart. Incompatible artwork is quarantined rather than stretched to fit. The generated image owns its entire blank writing area. The website adds no date words, lines, or other artwork overlays.
 
 The UI's typography, grain, shadows, navigation, and cards do not appear on label output. Calibration guides remain a separate print mode. Physical printer accuracy still requires a plain-paper test at Actual Size / 100%; browser screenshots and passing code checks cannot establish that accuracy.
 
