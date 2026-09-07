@@ -69,7 +69,18 @@ export function usePackImport({ collection, ready, commit, onStart, onImported }
         return applyImport(current, plan, choices)
       })
     } else if (!incoming.designs.length) await saveIncoming(incoming, current => applyImport(current, planImport(current, incoming), {}))
-    else { setCandidate(incoming); setReviewChoices({ key: importReviewKey(collection, incoming), values: defaultDecisions(planImport(collection, incoming)) }) }
+    else {
+      setCandidate(incoming)
+      setReviewChoices({ key: importReviewKey(collection, incoming), values: defaultDecisions(planImport(collection, incoming)) })
+      // Trying the bundled template is already an explicit selection. An empty
+      // collection needs no merge decision; validate and save before previewing.
+      if (origin === 'example' && result.status === 'ready' && collection.rows.length === 0) {
+        await saveIncoming(incoming, current => {
+          if (current.id !== collection.id || current.rows.length > 0) throw new CollectionError('conflict', 'Your saved selection changed while the template loaded. Review this pack before adding or replacing labels.')
+          return applyImport(current, planImport(current, incoming))
+        })
+      }
+    }
   }
   const handlePack = async (file: File, origin: CollectionOrigin = 'local') => {
     if (importBusy.current || !ready) return

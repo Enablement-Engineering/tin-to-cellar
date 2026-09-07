@@ -185,3 +185,22 @@ test('home example pack can replace an existing selection, and print reset requi
   await expect(page.getByRole('button', { name: 'Choose ZIP', exact: true })).toBeEnabled()
   await expect(page.getByRole('spinbutton', { name: /^Quantity for / })).toHaveCount(0)
 })
+
+
+test('an empty collection opens the home template directly in print preview with reset available', async ({ page }) => {
+  test.setTimeout(60000)
+  await page.goto('/labels')
+  await page.getByRole('button', { name: 'Try the example pack', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Print 10 labels', exact: true })).toBeEnabled()
+  await expect(page.locator('.sheet-stage')).toBeVisible()
+  await expect(page.getByRole('spinbutton', { name: /^Quantity for / })).toHaveCount(10)
+  await expect(page.getByRole('button', { name: 'Add 10 labels', exact: true })).toHaveCount(0)
+  page.once('dialog', dialog => dialog.accept())
+  await page.getByRole('button', { name: 'Reset labels', exact: true }).click()
+  await expect(page.getByRole('spinbutton', { name: /^Quantity for / })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Import preview pack with ten labels', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Print 10 labels', exact: true })).toBeEnabled()
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Print 10 labels', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Reset labels', exact: true })).toBeEnabled()
+})
