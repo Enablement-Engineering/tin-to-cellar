@@ -362,12 +362,14 @@ All slot positions are physical page coordinates from the page's upper-left. The
 
 - `schemaVersion` follows SemVer.
 - Major changes may break parsing or semantics. An importer supporting major 1 MUST reject major 2 with `UNSUPPORTED_SCHEMA_MAJOR`.
-- Minor changes only add optional fields or enum values with documented fallback. Importers MUST ignore unknown object properties and preserve them on lossless re-export when feasible.
+- Minor changes may add optional fields. Importers MUST ignore unknown object properties and preserve them on lossless re-export when feasible. Adding values to an existing closed enum is not backward compatible with this schema and MUST NOT rely on minor-version acceptance.
 - Patch changes clarify validation and do not alter document shape.
 - Required fields are never added in a minor version.
-- Unknown enum values in optional features produce a warning and feature fallback. Unknown values in required geometry or asset fields are fatal for that label.
+- Enum values are closed sets wherever the schema declares `enum` or `const`, including optional fields. Optional means the field may be omitted; it does not permit unknown values. Unknown values follow normal schema-error handling: root metadata rejects the pack, while invalid label or asset metadata quarantines the affected labels. There is no generic enum fallback.
 - `extensions` keys MUST be reverse-DNS or URL-like namespaces, for example `engineering.enablement.tintocellar/foo`. Importers ignore unknown extensions.
 - A pack can be partially usable: invalid labels are quarantined while valid labels remain importable, unless the root manifest/archive itself is unsafe.
+
+For example, `defaultPrintIntent.labelQuantityMode` may be omitted or set to `one-each` or `fill-sheet`. Any other value rejects the manifest with `INVALID_MANIFEST_SCHEMA`, including in an otherwise supported newer minor version. An unavailable but schema-valid `sheetProfileId` instead produces `UNKNOWN_PRINT_PRESET` and leaves the labels available for the user to select another profile. These are separate cases.
 
 ## 13. Conformance levels
 

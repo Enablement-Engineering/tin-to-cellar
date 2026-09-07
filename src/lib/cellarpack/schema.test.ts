@@ -4,6 +4,22 @@ import { validateManifest } from './schema'
 import { makeTestManifest } from './test-fixtures'
 
 describe('validateManifest', () => {
+  it.each([undefined, 'one-each', 'fill-sheet'] as const)('accepts an omitted or supported quantity mode: %s', async mode => {
+    const manifest = await makeTestManifest()
+    manifest.defaultPrintIntent = { sheetProfileId: 'tin-to-cellar:avery-94502@1', ...(mode ? { labelQuantityMode: mode } : {}) }
+    expect(validateManifest(manifest).valid).toBe(true)
+  })
+
+  it.each(['0.1.0', '1.2.0'])('rejects unknown optional enum values in supported version %s', async schemaVersion => {
+    const manifest = await makeTestManifest()
+    manifest.schemaVersion = schemaVersion
+    Object.assign(manifest, { defaultPrintIntent: { sheetProfileId: 'tin-to-cellar:avery-94502@1', labelQuantityMode: 'future-mode' } })
+    const result = validateManifest(manifest)
+    expect(result.valid).toBe(false)
+    expect(result.manifest).toBeNull()
+    expect(result.issues).toContainEqual(expect.objectContaining({ severity: 'fatal', code: 'INVALID_MANIFEST_SCHEMA', path: 'defaultPrintIntent.labelQuantityMode' }))
+  })
+
   it('keeps the runtime schema identical to the published schema', () => {
     const runtimeSchema = readFileSync(new URL('./cellarpack-v1.schema.json', import.meta.url), 'utf8')
     const publishedSchema = readFileSync(new URL('../../../public/spec/cellarpack-v1.schema.json', import.meta.url), 'utf8')

@@ -279,6 +279,25 @@ it('enforces the pack pixel budget before decoding the next image', async () => 
 })
 
 describe('artifact trust boundaries', () => {
+  it('rejects an unknown optional enum instead of silently applying a print default', async () => {
+    const result = await importCellarPack(await makeCellarPack({ mutateManifest: manifest => {
+      Object.assign(manifest, { defaultPrintIntent: { sheetProfileId: 'tin-to-cellar:avery-94502@1', labelQuantityMode: 'future-mode' } })
+    } }))
+    expect(result.status).toBe('rejected')
+    expect(result.manifest).toBeNull()
+    expect(result.labels).toEqual([])
+    expect(result.issues).toContainEqual(expect.objectContaining({ severity: 'fatal', code: 'INVALID_MANIFEST_SCHEMA', path: 'defaultPrintIntent.labelQuantityMode' }))
+  })
+
+  it('warns about an unavailable schema-valid print profile while retaining usable labels', async () => {
+    const result = await importCellarPack(await makeCellarPack({ mutateManifest: manifest => {
+      manifest.defaultPrintIntent = { sheetProfileId: 'future:unavailable@1', labelQuantityMode: 'one-each' }
+    } }))
+    expect(result.status).toBe('ready')
+    expect(result.labels).toHaveLength(1)
+    expect(result.issues).toContainEqual(expect.objectContaining({ severity: 'warning', code: 'UNKNOWN_PRINT_PRESET' }))
+  })
+
   it('rejects duplicate manifest keys before schema validation', async () => {
     const manifest = JSON.stringify(await makeTestManifest())
     const result = await importCellarPack(await makeCellarPack({
