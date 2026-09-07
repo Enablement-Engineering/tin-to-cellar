@@ -69,7 +69,7 @@
 
 /* Reserve space even before selection so the gallery never shifts on Add. */
 .gallery-page { padding-bottom: 6rem; }
-.gallery-pack-floating { position: fixed; z-index: 30; right: max(1rem, env(safe-area-inset-right)); bottom: max(1rem, env(safe-area-inset-bottom)); width: min(26rem, calc(100vw - 2rem)); }
+.gallery-pack-floating { display: flex; flex-direction: column-reverse; position: fixed; z-index: 30; right: max(1rem, env(safe-area-inset-right)); bottom: max(1rem, env(safe-area-inset-bottom)); width: min(26rem, calc(100vw - 2rem)); }
 .gallery-pack-floating .gallery-pack-tray { margin: 0 0 .5rem; max-height: 65dvh; overflow-y: auto; box-shadow: 0 4px 24px #0002; }
 .gallery-pack-floating .gallery-pack-tray[hidden] { display: none; }
 .gallery-pack-floating .gallery-pack-heading h2 { font-size: 1.15rem; }

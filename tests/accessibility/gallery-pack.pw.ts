@@ -34,6 +34,8 @@ for (const width of [1280, 320]) test(`gallery selection downloads and prints a 
   await expect(page.getByRole('button', {name: 'Your pack · 2 labels'})).toBeFocused()
   await expect(page.getByRole('button', {name: 'Your pack · 2 labels'})).toHaveAttribute('aria-expanded', 'false')
   await page.getByRole('button', {name: 'Your pack · 2 labels'}).click()
+  await page.getByRole('button', {name: 'Your pack · 2 labels'}).press('Tab')
+  await expect(page.getByRole('button', {name: 'Clear pack'})).toBeFocused()
   const downloading = page.waitForEvent('download')
   await page.getByRole('button', {name: 'Download pack', exact: true}).click()
   const download = await downloading
