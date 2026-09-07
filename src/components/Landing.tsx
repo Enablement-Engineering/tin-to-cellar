@@ -13,7 +13,6 @@ export function Landing({ onNavigate, busy, onFile }: LandingProps) {
   return <div className="landing-page screen-only">
     <section className="landing-hero" aria-labelledby="landing-title">
       <div className="landing-hero-copy">
-        <p className="eyebrow landing-eyebrow">Jar labels from tin art</p>
         <h1 id="landing-title">Make the jar look like the tin.</h1>
         <p>Start with community designs for your blends. If you want something different, create it in your AI chat. Keep both in one set of labels and print them together.</p>
         <div className="landing-actions">

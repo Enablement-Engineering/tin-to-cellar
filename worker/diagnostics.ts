@@ -1,3 +1,5 @@
+import { admitDiagnostics } from './diagnostic-budget'
+import type { ContributionBinding } from './contributions'
 import type { Contribution } from '../src/lib/contributions'
 import { parseRetrospective } from '../src/lib/feedback/retrospective'
 
@@ -42,7 +44,7 @@ export async function diagnosticsExport(request: Request, db: DiagnosticsDatabas
   const page = result.results.slice(0, 200)
   return Response.json({ version: 1, until, reports: page.map(row => ({ ...row, feedback: row.feedback ? JSON.parse(String(row.feedback)) : null, validation: row.validation ? JSON.parse(String(row.validation)) : null, retrospective: row.retrospective ? JSON.parse(String(row.retrospective)) : null })), nextCursor: result.results.length > 200 ? page.at(-1)!.id : null }, { headers })
 }
-export async function shareNotes(request: Request, db?: DiagnosticsDatabase, limiter?: { limit(options: { key: string }): Promise<{ success: boolean }> }) {
+export async function shareNotes(request: Request, db?: DiagnosticsDatabase, limiter?: { limit(options: { key: string }): Promise<{ success: boolean }> }, binding?: ContributionBinding) {
   if (!db) return Response.json({ error: 'Diagnostics storage is unavailable' }, { status: 503, headers })
   if (request.method !== 'POST') return new Response(null, { status: 405, headers })
   if (request.headers.get('Origin') !== new URL(request.url).origin) return new Response(null, { status: 403, headers })
@@ -58,6 +60,8 @@ export async function shareNotes(request: Request, db?: DiagnosticsDatabase, lim
     const parent = await db.prepare('SELECT feedback FROM diagnostic_reports WHERE id = ? AND expires_at > ?').bind(submissionId, now.toISOString()).first<{ feedback: string | null }>()
     if (!parent) return Response.json({ error: 'Import or submit the report first' }, { status: 409, headers })
     if (!parent.feedback || JSON.parse(parent.feedback).protocolRevision !== notes.protocolRevision) return Response.json({ error: 'Instructions do not match' }, { status: 409, headers })
+    const paused = await admitDiagnostics(binding)
+    if (paused) return paused
     const result = await db.prepare('INSERT OR IGNORE INTO diagnostic_notes (report_id, received_at, expires_at, body) VALUES (?, ?, ?, ?)').bind(submissionId, now.toISOString(), days(now, 90), JSON.stringify(notes)).run()
     if (!result.meta.changes) {
       const existing = await db.prepare('SELECT body FROM diagnostic_notes WHERE report_id = ?').bind(submissionId).first<{ body: string }>()

@@ -37,6 +37,7 @@ for (const width of [1280, 320]) {
     await page.screenshot({ path: `test-results/diagnostics-${width}.png`, fullPage: true })
     await page.getByRole('button', { name: 'Share process notes' }).click()
     await expect(page.getByRole('button', { name: 'Process notes shared' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Close', exact: true })).toBeFocused()
     expect(sent).toHaveLength(2)
     expect(sent[1].body).toHaveProperty('retrospective', notes)
     await page.keyboard.press('Escape')
@@ -47,6 +48,37 @@ for (const width of [1280, 320]) {
     expect(sent).toHaveLength(2)
   })
 }
+
+test('paused standalone diagnostics preserve keyboard focus and do not retry automatically', async ({ page }) => {
+  let submissions = 0
+  await page.route('**/api/**', route => {
+    if (new URL(route.request().url()).pathname === '/api/labels/contributions') {
+      submissions++
+      return route.fulfill({ status: 429, contentType: 'application/json', headers: { 'Retry-After': '86400' }, body: JSON.stringify({ code: 'collection_paused', resetAt: new Date(Date.now() + 86400000).toISOString() }) })
+    }
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ intake: false, serving: false, noticeVersion: '2026-09-06-v1', turnstileSiteKey: '' }) })
+  })
+  await page.route('https://**/*', route => route.abort())
+  await page.goto('/labels/help')
+  await page.getByText('Report a failed AI run', { exact: true }).click()
+  const report = { format: 'tin-to-cellar/feedback', schemaVersion: '0.2.0', protocolRevision: '0.0.17', request: { labelCount: 1, shape: 'circle' }, outcome: 'failed', steps: [], issues: [] }
+  await page.getByLabel('Open failure report').setInputFiles({ name: 'failure.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(report)) })
+  const share = page.getByRole('button', { name: 'Share failure report' })
+  await share.focus()
+  await share.press('Enter')
+  const receipt = page.getByRole('button', { name: 'View prepared diagnostics' })
+  await expect(receipt).toBeFocused()
+  await expect(page.getByRole('button', { name: 'Retry contribution' })).toBeDisabled()
+  await expect(page.getByText('Diagnostic sharing is paused.', { exact: false })).toContainText('Your labels remain available locally, including printing.')
+  await receipt.press('Enter')
+  const dialog = page.getByRole('dialog', { name: 'Prepared diagnostics' })
+  await expect(dialog).toContainText('Collection is paused; receipt has not been confirmed.')
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([])
+  await page.keyboard.press('Escape')
+  await expect(receipt).toBeFocused()
+  expect(submissions).toBe(1)
+})
+
 test('local Worker accepts diagnostics and notes without a ZIP upload', async ({ request }) => {
   const origin = 'http://127.0.0.1:43927'
   const submissionId = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('')

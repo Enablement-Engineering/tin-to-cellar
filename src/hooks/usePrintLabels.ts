@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react'
 import type { Collection } from '../lib/collection'
 import type { PrintLabel } from '../components/ui-model'
 
-export function usePrintLabels(collection: Collection): PrintLabel[] {
+export function usePrintLabels(collection: Collection): { labels: PrintLabel[]; error: string } {
   const [labels, setLabels] = useState<PrintLabel[]>([])
+  const [error, setError] = useState('')
   // Keep URLs stable across quantity/settings/receipt changes and navigation.
   const selected = collection.rows.map(row => `${row.id}:${row.designId ?? ''}`).join('|')
   useEffect(() => {
     const urls: string[] = []
-    const next = collection.rows.flatMap(row => {
+    try {
+      const next = collection.rows.flatMap(row => {
       const design = row.designId ? collection.designs[row.designId] : undefined
       if (!design) return []
       const item = design.item
@@ -23,10 +25,18 @@ export function usePrintLabels(collection: Collection): PrintLabel[] {
         height: (1 + ratio(surface.bleed.top + surface.bleed.bottom, surface.finishedSize.height)) * 100,
       } }]
     })
-    setLabels(next)
+      setLabels(next)
+      setError('')
+    } catch {
+      // A partial projection has no registered effect cleanup yet.
+      urls.forEach(url => URL.revokeObjectURL(url))
+      urls.length = 0
+      setLabels([])
+      setError('Label previews could not be opened. Your saved labels are unchanged. Reload to try again.')
+    }
     return () => urls.forEach(url => URL.revokeObjectURL(url))
     // Geometry is immutable for a design ID; quantities do not recreate artwork.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected])
-  return labels
+  return { labels, error }
 }

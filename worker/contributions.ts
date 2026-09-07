@@ -1,4 +1,5 @@
-import { storedFeedback, parseContribution, type Contribution, type SuggestedSource } from '../src/lib/contributions'
+import { admitDiagnostics, budgetResponse, type DiagnosticBudgetConfig } from './diagnostic-budget'
+import { storedFeedback, parseContribution, parseSharedContribution, parseSharedSource, type Contribution, type SuggestedSource } from '../src/lib/contributions'
 import { resolveTobaccoId } from '../src/lib/tobacco-catalog'
 import { diagnosticInsert, storeDiagnostics, type DiagnosticsDatabase, type Statement } from './diagnostics'
 export interface Storage {
@@ -13,22 +14,52 @@ export interface Storage {
 export interface ContributionBinding { getByName(name: string): { fetch(request: Request): Promise<Response> } }
 type Stored = { receivedAt: string; contribution: Contribution }
 const retention = 90 * 86400000
+const reportCapacity = 1000
+const reportCountKey = 'report-count-v1'
+// Called only inside a transaction. Existing objects initialize once; warm
+// submissions read the counter without deserializing retained reports.
+async function reportCount(storage: Storage, scannedCount?: number): Promise<number> {
+  const saved = await storage.get<number>(reportCountKey)
+  if (saved !== undefined) {
+    if (!Number.isInteger(saved) || saved < 0 || saved > reportCapacity || (scannedCount !== undefined && scannedCount !== saved)) throw new Error('Invalid retained report count')
+    return saved
+  }
+  const count = scannedCount ?? (await storage.list<Stored>({ prefix: 'report:', limit: reportCapacity + 1 })).size
+  if (count > reportCapacity) throw new Error('Retained report capacity exceeded')
+  await storage.put(reportCountKey, count)
+  return count
+}
 const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
 export class CatalogContributions {
   private ctx: { storage: Storage }
   private database?: DiagnosticsDatabase
-  constructor(ctx: { storage: Storage }, env?: { DIAGNOSTICS?: DiagnosticsDatabase }) { this.ctx = ctx; this.database = env?.DIAGNOSTICS }
+  private budgetConfig: DiagnosticBudgetConfig
+  constructor(ctx: { storage: Storage }, env?: { DIAGNOSTICS?: DiagnosticsDatabase } & DiagnosticBudgetConfig) { this.ctx = ctx; this.database = env?.DIAGNOSTICS; this.budgetConfig = env ?? {} }
   async alarm() {
     const storage = this.ctx.storage
-    for (const [key, item] of await storage.list<Stored>({ prefix: 'report:', limit: 1000 })) if (Date.parse(item.receivedAt) <= Date.now() - retention) await storage.delete(key)
-    for (const [key, items] of await storage.list<SuggestedSource[]>({ prefix: 'sources:', limit: 10000 })) {
-      const fresh = items.filter(item => Date.parse(item.checkedAt) > Date.now() - retention)
-      if (fresh.length) await storage.put(key, fresh); else await storage.delete(key)
+    await storage.transaction(async transaction => {
+      const reports = await transaction.list<Stored>({ prefix: 'report:', limit: reportCapacity + 1 })
+      const count = await reportCount(transaction, reports.size)
+      let removed = 0
+      for (const [key, item] of reports) if (Date.parse(item.receivedAt) <= Date.now() - retention && await transaction.delete(key)) removed++
+      if (removed) await transaction.put(reportCountKey, count - removed)
+    })
+    for (const key of (await storage.list<SuggestedSource[]>({ prefix: 'sources:', limit: 10000 })).keys()) {
+      // Re-read under the same transaction as the write: an import may have
+      // refreshed this source since the alarm's list operation.
+      await storage.transaction(async transaction => {
+        const items = await transaction.get<SuggestedSource[]>(key)
+        if (!items) return
+        const fresh = items.filter(item => Date.parse(item.checkedAt) > Date.now() - retention)
+        if (fresh.length === items.length) return
+        if (fresh.length) await transaction.put(key, fresh); else await transaction.delete(key)
+      })
     }
     await storage.setAlarm(Date.now() + 86400000)
   }
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
+    if (url.pathname === '/budget' && ['GET', 'POST'].includes(request.method)) return budgetResponse(this.ctx.storage, this.budgetConfig, request.method === 'POST')
     if (url.pathname === '/migrate' && request.method === 'POST') {
       if (!this.database) return Response.json({ error: 'Diagnostics storage unavailable' }, { status: 503, headers })
       if (await this.ctx.storage.get('diagnostics-migrated-v1')) return Response.json({ status: 'already-migrated' }, { headers })
@@ -63,7 +94,11 @@ export class CatalogContributions {
       if (!entry) return Response.json({ error: 'Unknown catalog entry' }, { status: 404, headers })
       const catalogId = entry.id
       const sources = await this.ctx.storage.get<SuggestedSource[]>(`sources:${catalogId}`) ?? []
-      return Response.json({ catalogId, sources: sources.filter(item => ['valid', 'unverified'].includes(item.status) && Date.parse(item.checkedAt) > Date.now() - retention).slice(0, 5) }, { headers })
+      return Response.json({ catalogId, sources: sources.filter(item => {
+        const { checkedAt, ...source } = item
+        const shared = parseSharedSource(source)
+        return shared?.catalogId === catalogId && ['valid', 'unverified'].includes(shared.status) && Date.parse(checkedAt) > Date.now() - retention
+      }).slice(0, 5) }, { headers })
     }
     const contribution = parseContribution(await request.json())
     if (!contribution) return Response.json({ error: 'Invalid contribution' }, { status: 400, headers })
@@ -71,9 +106,10 @@ export class CatalogContributions {
     const now = new Date().toISOString()
     const result = await this.ctx.storage.transaction(async storage => {
       if (await storage.get(`report:${digest}`)) return 'duplicate'
-      const reports = await storage.list<Stored>({ prefix: 'report:', limit: 1000 })
-      if (reports.size >= 1000) return 'capacity'
+      const count = await reportCount(storage)
+      if (count >= reportCapacity) return 'capacity'
       await storage.put(`report:${digest}`, { receivedAt: now, contribution })
+      await storage.put(reportCountKey, count + 1)
       for (const source of contribution.sources) {
         const key = `sources:${source.catalogId}`
         const prior = await storage.get<SuggestedSource[]>(key) ?? []
@@ -86,12 +122,17 @@ export class CatalogContributions {
     return Response.json({ status: result }, { status: result === 'capacity' ? 503 : 200, headers })
   }
 }
-export async function contributionsResponse(request: Request, binding?: ContributionBinding, limiter?: { limit(options: { key: string }): Promise<{ success: boolean }> }, adminToken?: string, db?: DiagnosticsDatabase): Promise<Response> {
+export async function contributionsResponse(request: Request, binding?: ContributionBinding, limiter?: { limit(options: { key: string }): Promise<{ success: boolean }> }, adminToken?: string, db?: DiagnosticsDatabase, sourceLimiter?: { limit(options: { key: string }): Promise<{ success: boolean }> }): Promise<Response> {
   if (!binding) return Response.json({ error: 'Collection is unavailable', code: 'collection_unconfigured' }, { status: 503, headers })
   const url = new URL(request.url)
   const target = binding.getByName('catalog-contributions-v1')
   try {
-    if (request.method === 'GET' && url.pathname === '/api/labels/sources') return target.fetch(new Request(`https://catalog/sources?${url.searchParams}`))
+    if (request.method === 'GET' && url.pathname === '/api/labels/sources') {
+      const entry = resolveTobaccoId(url.searchParams.get('catalogId') ?? '')
+      if (!entry) return Response.json({ error: 'Unknown catalog entry' }, { status: 404, headers })
+      if (!sourceLimiter || !(await sourceLimiter.limit({ key: request.headers.get('CF-Connecting-IP') ?? 'unknown' })).success) return new Response(null, { status: 429, headers })
+      return target.fetch(new Request(`https://catalog/sources?catalogId=${encodeURIComponent(entry.id)}`))
+    }
     if (request.method === 'GET' && url.pathname === '/api/labels/contributions') {
       if (!adminToken || request.headers.get('Authorization') !== `Bearer ${adminToken}`) return new Response(null, { status: 403, headers })
       return target.fetch(new Request('https://catalog/export'))
@@ -117,8 +158,10 @@ export async function contributionsResponse(request: Request, binding?: Contribu
     const bytes = new Uint8Array(size)
     let offset = 0
     for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length }
-    const contribution = parseContribution(JSON.parse(new TextDecoder().decode(bytes)))
+    const contribution = parseSharedContribution(JSON.parse(new TextDecoder().decode(bytes)))
     if (!contribution) return Response.json({ error: 'Invalid contribution' }, { status: 400, headers })
+    const paused = await admitDiagnostics(binding)
+    if (paused) return paused
     if (db) {
       const migration = await target.fetch(new Request('https://catalog/migrate', { method: 'POST' }))
       if (!migration.ok) return Response.json({ error: 'Diagnostics migration is incomplete' }, { status: 503, headers })

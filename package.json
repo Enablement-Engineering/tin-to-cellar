@@ -13,6 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "diagnostics:fetch": "node --env-file-if-exists=.env.diagnostics scripts/diagnostics/review.mjs fetch",
+    "diagnostics:budget": "node --env-file-if-exists=.env.diagnostics scripts/diagnostics/budget.mjs",
+    "diagnostics:smoke": "node scripts/diagnostics/budget-smoke.mjs",
     "diagnostics:demo": "node scripts/diagnostics/demo.mjs",
     "diagnostics:analyze": "node scripts/diagnostics/review.mjs analyze",
     "diagnostics:complete": "node scripts/diagnostics/review.mjs complete",

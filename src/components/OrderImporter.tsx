@@ -39,7 +39,7 @@ export function OrderImporter({ onAdd }: { onAdd: (identities: PreparationIdenti
       if (file.size > 10 * 1024 * 1024) throw new Error('Choose a file smaller than 10 MB.')
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
       setMessage(isPdf ? 'Reading PDF on your device…' : 'Loading screenshot reader…')
-      const value = isPdf ? await readOrderPdf(file) : await (await import('../lib/order-import/ocr')).readOrderImage(file, (progress) => { if (ticket === request.current) setMessage(`Reading screenshot… ${progress}%`) }, abort.signal)
+      const value = isPdf ? await readOrderPdf(file, abort.signal) : await (await import('../lib/order-import/ocr')).readOrderImage(file, (progress) => { if (ticket === request.current) setMessage(`Reading screenshot… ${progress}%`) }, abort.signal)
       if (ticket !== request.current) return
       if (abort.signal.aborted) throw new Error('Reading timed out. Try a smaller image cropped to the product list.')
       review(value)

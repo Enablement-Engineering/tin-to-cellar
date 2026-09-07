@@ -59,6 +59,15 @@ export function parseSource(value: unknown): SourceObservation | null {
     typeof value.variant !== 'string' || !['current', 'historical', 'unknown'].includes(value.variant)) return null
   return { catalogId: resolveTobaccoId(value.catalogId as string)!.id, url: value.url, status: value.status, package: value.package, variant: value.variant } as SourceObservation
 }
+// Local source parsing also defines saved artwork fingerprints. Keep sharing
+// policy separate so catalog changes cannot invalidate a saved collection.
+export function knownCatalogSourceUrl(catalogId: string, value: unknown): value is string {
+  return publicSourceUrl(value) && resolveTobaccoId(catalogId)?.sourceUrl === value
+}
+export function parseSharedSource(value: unknown): SourceObservation | null {
+  const source = parseSource(value)
+  return source && knownCatalogSourceUrl(source.catalogId, source.url) ? source : null
+}
 export function parseContribution(value: unknown): Contribution | null {
   if (!record(value) || ![1, 2].includes(Number(value.version)) || !exact(value, value.version === 1 ? ['version', 'submissionId', 'feedback', 'sources'] : ['version', 'submissionId', 'feedback', 'sources', 'origin', 'validation']) || typeof value.submissionId !== 'string' || !/^[a-f0-9]{64}$/.test(value.submissionId) || !Array.isArray(value.sources) || value.sources.length > 100) return null
   if (value.version !== 1 && value.version !== 2) return null
@@ -70,6 +79,16 @@ export function parseContribution(value: unknown): Contribution | null {
   if (sources.some(v => !v) || (!feedback && !sources.length && !validation)) return null
   return { version: value.version, submissionId: value.submissionId, feedback, sources: sources as SourceObservation[], ...(value.version === 2 ? { origin: value.origin as 'pack' | 'standalone', validation } : {}) }
 }
+export function parseSharedContribution(value: unknown): Contribution | null {
+  const contribution = parseContribution(value)
+  return contribution && contribution.sources.every(source => parseSharedSource(source)) ? contribution : null
+}
+/** Recheck persisted retry payloads without altering their local receipt or ID. */
+export function toSharedContribution(value: unknown): Contribution | null {
+  const contribution = parseContribution(value)
+  if (!contribution) return null
+  return parseSharedContribution({ ...contribution, sources: contribution.sources.filter(source => parseSharedSource(source)) })
+}
 export async function contributionFromManifest(manifest: CellarPackManifest, validation?: WebsiteValidation): Promise<Contribution | null> {
   const feedback = collectionFeedback(manifest.extensions?.['tin-to-cellar:feedback'])
   const protocol = manifest.extensions?.['tin-to-cellar:protocol']
@@ -80,11 +99,11 @@ export async function contributionFromManifest(manifest: CellarPackManifest, val
     if (!entry) continue
     const observations = label.extensions?.[SOURCE_KEY]
     if (Array.isArray(observations)) for (const item of observations.slice(0, 10)) {
-      const source = record(item) ? parseSource({ ...item, catalogId: entry.id }) : null
+      const source = record(item) ? parseSharedSource({ ...item, catalogId: entry.id }) : null
       if (source) sources.push(source)
     }
     // Older packs have no link-check report. Preserve provenance without inventing verification.
-    for (const source of label.research.sources) if (source.type === 'web' && source.role === 'package-appearance' && publicSourceUrl(source.url) && !sources.some(v => v.catalogId === entry.id && v.url === source.url)) {
+    for (const source of label.research.sources) if (source.type === 'web' && source.role === 'package-appearance' && knownCatalogSourceUrl(entry.id, source.url) && !sources.some(v => v.catalogId === entry.id && v.url === source.url)) {
       sources.push({ catalogId: entry.id, url: source.url, status: 'unverified', package: 'unknown', variant: 'unknown' })
     }
   }

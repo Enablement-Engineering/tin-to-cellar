@@ -1,7 +1,8 @@
 import { formatTobacco } from '../tobacco-catalog'
 import { parseSource } from '../contributions'
 import { requestedCatalogEntries } from './saved-sources'
-import { PROTOCOL_REVISION, protocolInstructions, protocolReleases, resolveProtocolContext } from '../protocol'
+import { PROTOCOL_REVISION, resolveProtocolContext } from '../protocol'
+import { protocolInstructions, protocolReleases } from '../protocol/archive'
 import { assessPromptInput, normalizeTobaccos } from './assessment'
 import {
   CHATGPT_PROMPT_URL,

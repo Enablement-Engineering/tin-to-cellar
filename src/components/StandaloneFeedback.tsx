@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { collectionFeedback, type Contribution } from '../lib/contributions'
 import { ContributionStatus } from './ContributionStatus'
 import { parseRetrospective, type Retrospective } from '../lib/feedback/retrospective'
@@ -9,6 +9,14 @@ export function StandaloneFeedback() {
   const [shared, setShared] = useState(false)
   const [message, setMessage] = useState('')
   const sequence = useRef(0)
+  const receipt = useRef<HTMLDivElement>(null)
+  const restoreShareFocus = useRef(false)
+  useEffect(() => {
+    if (shared && restoreShareFocus.current) {
+      restoreShareFocus.current = false
+      receipt.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    }
+  }, [shared])
   const open = async (file?: File) => {
     if (!file) return
     const token = ++sequence.current
@@ -32,7 +40,7 @@ export function StandaloneFeedback() {
     <p className="field-hint">If the AI could not create a ZIP, open its feedback JSON. Review the fields before sharing.</p>
     <label>Open failure report <input type="file" accept=".json,application/json" onChange={event => { void open(event.target.files?.[0]); event.target.value = '' }} /></label>
     <p className="field-hint" role="status">{message}</p>
-    {prepared && !shared && <><pre className="standalone-preview" tabIndex={0} aria-label="Failure report submission">{JSON.stringify(prepared, null, 2)}</pre><button className="button secondary" type="button" onClick={() => setShared(true)}>Share failure report</button></>}
-    {prepared && shared && <ContributionStatus key={prepared.submissionId} contribution={prepared} retrospective={notes} autoSend />}
+    {prepared && !shared && <><pre className="standalone-preview" tabIndex={0} aria-label="Failure report submission">{JSON.stringify(prepared, null, 2)}</pre><button className="button secondary" type="button" onClick={event => { restoreShareFocus.current = document.activeElement === event.currentTarget; setShared(true) }}>Share failure report</button></>}
+    {prepared && shared && <div ref={receipt}><ContributionStatus key={prepared.submissionId} contribution={prepared} retrospective={notes} autoSend /></div>}
   </details>
 }

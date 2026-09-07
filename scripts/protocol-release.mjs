@@ -35,4 +35,10 @@ if (process.argv.includes('--create')) {
   }
   if (await read('public/agent/tin-to-cellar-prompt.md') !== completeInstructions) throw new Error('Portable public instructions differ from selected release')
 }
+const metadata = JSON.stringify({ current: registry.current, revisions: Object.keys(registry.releases) }, null, 2) + '\n'
+if (process.argv.includes('--create') || process.argv.includes('--refresh-metadata')) {
+  await write('src/lib/protocol/metadata.json', metadata)
+} else if (await read('src/lib/protocol/metadata.json') !== metadata) {
+  throw new Error('Protocol metadata differs from immutable releases; run npm run protocol:release -- --refresh-metadata')
+}
 console.log(`Protocol release ${revision} verified`)

@@ -47,19 +47,32 @@ export function matchOrder(text: string): OrderMatch[] {
   return result
 }
 
-export async function readOrderPdf(file: File): Promise<string> {
+export async function readOrderPdf(file: File, signal?: AbortSignal): Promise<string> {
   if (file.size > 10 * 1024 * 1024) throw new Error('Choose a PDF smaller than 10 MB.')
-  const pdfjs = await import('pdfjs-dist')
-  const { default: workerUrl } = await import('pdfjs-dist/build/pdf.worker.min.mjs?url')
-  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
-  const task = pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) })
+  signal?.throwIfAborted()
+  let onAbort: () => void = () => {}
+  const cancelled = new Promise<never>((_, reject) => {
+    onAbort = () => reject(signal?.reason ?? new DOMException('Import cancelled', 'AbortError'))
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
+  const run = <T>(operation: () => Promise<T>): Promise<T> => {
+    signal?.throwIfAborted()
+    return Promise.race([operation(), cancelled])
+  }
+  let task: import('pdfjs-dist').PDFDocumentLoadingTask | undefined
   try {
-    const document = await task.promise
+    const pdfjs = await run(() => import('pdfjs-dist'))
+    const { default: workerUrl } = await run(() => import('pdfjs-dist/build/pdf.worker.min.mjs?url'))
+    pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
+    const bytes = await run(() => file.arrayBuffer())
+    signal?.throwIfAborted()
+    task = pdfjs.getDocument({ data: new Uint8Array(bytes) })
+    const document = await run(() => task!.promise)
     if (document.numPages > 20) throw new Error('Choose an order with 20 pages or fewer.')
     let text = ''
     for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber++) {
-      const page = await document.getPage(pageNumber)
-      const content = await page.getTextContent()
+      const page = await run(() => document.getPage(pageNumber))
+      const content = await run(() => page.getTextContent())
       // Preserve visual rows, including maker/name lines split across PDF text runs.
       const rows = new Map<number, { x: number; text: string }[]>()
       for (const item of content.items) {
@@ -74,5 +87,11 @@ export async function readOrderPdf(file: File): Promise<string> {
     }
     if (!text.trim()) throw new Error('This PDF appears to be scanned. Choose a screenshot of the product list, or paste the names.')
     return text
-  } finally { await task.destroy() }
+  } finally {
+    try {
+      // Cancellation must settle even when PDF.js teardown is waiting on a stuck worker.
+      // The race also observes late teardown failures after cancellation.
+      if (task) await Promise.race([task.destroy(), cancelled])
+    } finally { signal?.removeEventListener('abort', onAbort) }
+  }
 }

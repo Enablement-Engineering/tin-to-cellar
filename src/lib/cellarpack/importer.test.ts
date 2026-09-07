@@ -7,6 +7,17 @@ import { sha256Hex } from './image'
 import type { CellarPackManifest } from './types'
 
 describe('importCellarPack', () => {
+  it('quarantines an undeclared prototype-named asset while preserving valid siblings', async () => {
+    const result = await importCellarPack(await makeCellarPack({
+      mutateManifest: (manifest) => {
+        manifest.labels.push({ ...structuredClone(manifest.labels[0]), id: 'bad-asset', artworkAssetId: 'constructor' })
+      },
+    }))
+    expect(result.status).toBe('partial')
+    expect(result.labels.map(label => label.id)).toEqual(['fixture-blend'])
+    expect(result.quarantinedLabels[0].issues.map(issue => issue.code)).toContain('MISSING_ARTWORK')
+  })
+
   it('imports a conforming browser-local pack', async () => {
     const result = await importCellarPack(await makeCellarPack())
 

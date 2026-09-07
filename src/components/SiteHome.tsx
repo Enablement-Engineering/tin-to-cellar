@@ -6,7 +6,6 @@ export function SiteHome({ onNavigate }: SiteHomeProps) {
   return <div className="landing-page screen-only">
     <section className="landing-hero" aria-labelledby="site-home-title">
       <div className="landing-hero-copy">
-        <p className="eyebrow">Tin to Cellar</p>
         <h1 id="site-home-title">For the jars in your cellar.</h1>
         <p>Choose community labels or create your own designs inspired by the original tin artwork, then print them together.</p>
         <a className="button primary" href="/labels" onClick={(event) => {

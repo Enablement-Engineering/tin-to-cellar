@@ -1,16 +1,18 @@
+import { budgetStatus, type DiagnosticBudgetConfig } from './diagnostic-budget'
 import { contributionsResponse, type ContributionBinding } from './contributions'
 import { cleanDiagnostics, diagnosticsExport, shareNotes, type DiagnosticsDatabase } from './diagnostics'
 import { galleryResponse, cleanGallery } from './gallery/routes'
 import { verifyGalleryAdmin } from './gallery/auth'
 import type { GalleryEnv } from './gallery/storage'
 export { CatalogContributions } from './contributions'
-export interface Env extends GalleryEnv {
+export interface Env extends GalleryEnv, DiagnosticBudgetConfig {
   GALLERY_ADMIN_HOST?: string
   DIAGNOSTICS?: DiagnosticsDatabase
   DIAGNOSTICS_READ_TOKEN?: string
   CATALOG_CONTRIBUTIONS?: ContributionBinding
   CONTRIBUTION_ADMIN_TOKEN?: string
   CONTRIBUTION_RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> }
+  SOURCES_RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> }
   ASSETS: { fetch(request: Request): Promise<Response> }
 }
 export default {
@@ -20,8 +22,7 @@ export default {
         const result = await env.CATALOG_CONTRIBUTIONS.getByName('catalog-contributions-v1').fetch(new Request('https://catalog/migrate', { method: 'POST' }))
         if (!result.ok) throw new Error('Diagnostics migration is incomplete')
       }
-      await cleanDiagnostics(env.DIAGNOSTICS)
-    } })(), (async () => {
+    } })(), (async () => { if (env.DIAGNOSTICS) await cleanDiagnostics(env.DIAGNOSTICS) })(), (async () => {
       const result = await cleanGallery(env)
       if (result.failures) throw new Error(`Gallery cleanup has ${result.failures} failed operations`)
     })()])
@@ -70,6 +71,7 @@ export default {
       headers.set('Referrer-Policy', 'no-referrer')
       return new Response(response.body, { status: response.status, headers })
     }
+    if (path === '/api/labels/diagnostics/budget') return budgetStatus(request, env.CATALOG_CONTRIBUTIONS, env.DIAGNOSTICS_READ_TOKEN)
     if (path === '/api/labels/diagnostics' && request.method === 'GET') {
       if (!env.DIAGNOSTICS) return Response.json({ error: 'Diagnostics storage is unavailable' }, { status: 503 })
       if (env.DIAGNOSTICS_READ_TOKEN && request.headers.get('Authorization') === `Bearer ${env.DIAGNOSTICS_READ_TOKEN}` && env.CATALOG_CONTRIBUTIONS) {
@@ -78,8 +80,8 @@ export default {
       }
       return diagnosticsExport(request, env.DIAGNOSTICS, env.DIAGNOSTICS_READ_TOKEN)
     }
-    if (path === '/api/labels/process-notes') return shareNotes(request, env.DIAGNOSTICS, env.CONTRIBUTION_RATE_LIMITER)
-    if (path === '/api/labels/contributions' || path === '/api/labels/sources') return contributionsResponse(request, env.CATALOG_CONTRIBUTIONS, env.CONTRIBUTION_RATE_LIMITER, env.CONTRIBUTION_ADMIN_TOKEN, env.DIAGNOSTICS)
+    if (path === '/api/labels/process-notes') return shareNotes(request, env.DIAGNOSTICS, env.CONTRIBUTION_RATE_LIMITER, env.CATALOG_CONTRIBUTIONS)
+    if (path === '/api/labels/contributions' || path === '/api/labels/sources') return contributionsResponse(request, env.CATALOG_CONTRIBUTIONS, env.CONTRIBUTION_RATE_LIMITER, env.CONTRIBUTION_ADMIN_TOKEN, env.DIAGNOSTICS, env.SOURCES_RATE_LIMITER)
     const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
     if (path === '/api/health' && request.method === 'GET') return Response.json({ status: 'ok', cloudOcrEnabled: false }, { headers })
     if (path === '/api/labels/ocr') return Response.json({ error: 'Cloud OCR is not enabled. Use a text PDF or paste your order.' }, { status: 503, headers })

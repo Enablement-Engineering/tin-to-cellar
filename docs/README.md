@@ -1,5 +1,7 @@
 # Documentation
 
+For the September 7 security, cost, quality and accessibility work, use the [reconciled review work plan](codebase-review-work-plan.md). It distinguishes original fixes, current-branch integration gaps, settled decisions and remaining verification.
+
 Use [the live site](https://tintocellar.com/) to create a prompt or print a CellarPack. Start with the [user workflow](simplified-workflow.md) for supported inputs and instructions. The [design system](design-system.md) documents the home page, tool layouts, tokens, fonts, assets, and print boundaries.
 
 ## How the application works
