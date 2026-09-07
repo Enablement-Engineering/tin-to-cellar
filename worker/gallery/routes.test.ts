@@ -345,7 +345,12 @@ describe('curated publication replacement integrity', () => {
         const form = new FormData();
         form.set('metadata', JSON.stringify(draft));
         form.set('artwork', new Blob([new Uint8Array(9 * 1024 * 1024)], { type: 'image/png' }), 'large.png');
-        const response = await galleryResponse(new Request('https://site.example/api/gallery/v1/admin/reconcile', { method: 'POST', headers: { Origin: 'https://site.example', 'X-Test-Admin': 'yes' }, body: form }), env, deps);
+        // Materialize this fixture before cancellation: Node 24's multipart
+        // producer can enqueue after cancellation. Stream cancellation itself
+        // is exercised below with an explicit controllable ReadableStream.
+        const encoded = new Response(form);
+        const bytes = await encoded.arrayBuffer();
+        const response = await galleryResponse(new Request('https://site.example/api/gallery/v1/admin/reconcile', { method: 'POST', headers: { Origin: 'https://site.example', 'X-Test-Admin': 'yes', 'Content-Type': encoded.headers.get('Content-Type')! }, body: bytes }), env, deps);
         expect(response.status).toBeGreaterThanOrEqual(400);
         expect(response.status).toBeLessThan(500);
         expect(await publicationSnapshot()).toEqual(before);
