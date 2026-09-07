@@ -13,7 +13,7 @@ import { Wordmark } from './components/Wordmark'
 import { ProtocolWarning } from './components/ProtocolWarning'
 import { StandaloneFeedback } from './components/StandaloneFeedback'
 import { ExamplePack } from './components/ExamplePack'
-import { PackImporter } from './components/PackImporter'
+import { PackImporter, ImportReport } from './components/PackImporter'
 import { PrintStudio } from './components/PrintStudio'
 import { PromptHandoff } from './components/PromptHandoff'
 import { PreparationWorkspace } from './components/PreparationWorkspace'
@@ -43,7 +43,7 @@ export default function PublicApp() {
   const [showRepair, setShowRepair] = useState(false)
   const { importing, candidate, setCandidate, review, decisions, setDecisions, reviewInvalidated, refreshDecisions,
     notice, setNotice, importError, setImportError, importLoadError, receiptId, setReceiptId,
-    freshReceipts, setFreshReceipts, notes, setNotes, diagnosticWarnings, saveCandidate, handlePack, chooseCommunity } = usePackImport({
+    freshReceipts, setFreshReceipts, notes, setNotes, diagnosticWarnings, saveCandidate, replaceCandidate, handlePack, chooseCommunity } = usePackImport({
     collection, ready, commit,
     onStart: () => { setRepairStatus(''); setShowRepair(false) },
     onImported: () => navigate('print'),
@@ -140,13 +140,37 @@ export default function PublicApp() {
     try { await saveCandidate(candidate, review, decisions) }
     catch (failure) { focusAfterImport.current = false; setImportError(failure instanceof Error ? failure.message : 'Your labels could not be saved. Review the selection and try again.') }
   }
+  const replaceImport = async () => {
+    if (!candidate || !review || reviewInvalidated) return
+    focusAfterImport.current = true
+    try { await replaceCandidate(candidate, review) }
+    catch (failure) { focusAfterImport.current = false; setImportError(failure instanceof Error ? failure.message : 'Your labels could not be replaced. Your saved selection is unchanged.') }
+  }
+  const resetLabels = () => {
+    if (!window.confirm('Reset all labels, requests, print settings and import history saved in this browser? Download your ready labels first. This cannot be undone.')) return
+    void commit(current => ({ ...current, rows: [], designs: {}, receipts: [], handoff: null, printSettings: { page: 0, firstSlot: 1, offset: { x: 0, y: 0 } } })).then(() => {
+      setCandidate(null); setReceiptId(null); setNotes({}); setFreshReceipts(new Set()); setImportError(''); setRepairStatus(''); setShowRepair(false); setGenericChat(false)
+      setNotice('Saved labels and requests reset. Downloaded ZIPs are unchanged.')
+      main.current?.focus()
+    }).catch(ignoreHandledError)
+  }
+  const receiptName = (id: string, title: string, index: number) => {
+    const blends = [...new Set(Object.values(collection.designs).filter(design => design.receiptId === id).map(design => formatTobacco(design.item.label)))]
+    return `${index + 1}. ${blends.length ? blends.slice(0, 2).join(', ') + (blends.length > 2 ? ` + ${blends.length - 2} more` : '') : title}`
+  }
   const quantities = Object.fromEntries(collection.rows.map(row => [row.id, row.quantity]))
   const communityHashes = new Set(collection.receipts.flatMap(receipt => receipt.knownGalleryHashes ?? []))
   const shareableLabels = Object.values(collection.designs).filter(design => design.origin === 'local' && !communityHashes.has(design.item.artwork.asset.sha256)).map(design => ({ ...design.item, id: design.id, label: { ...design.item.label, id: design.id } }))
   const intake = <div className="import-section screen-only">
-    <PackImporter busy={busy} summary={summary} onFile={handlePack} />
-    {review && candidate && <CollectionImportReview collection={collection} plan={review} decisions={decisions} onChange={setDecisions} onAccept={() => void acceptImport()} onCancel={() => { setCandidate(null) }} busy={busy} invalidated={reviewInvalidated} onRefresh={refreshDecisions} />}
-    {collection.receipts.length > 1 && <label>Import report<select value={currentReceipt?.id ?? ''} onChange={event => { setCandidate(null); setReceiptId(event.target.value); setRepairStatus(''); setShowRepair(false) }}>{collection.receipts.map(receipt => <option key={receipt.id} value={receipt.id}>{receipt.title}</option>)}</select></label>}
+    <PackImporter busy={busy} summary={candidate ? summary : null} onFile={handlePack} />
+    {review && candidate && <CollectionImportReview collection={collection} plan={review} decisions={decisions} onChange={setDecisions} onAccept={() => void acceptImport()} onReplace={() => void replaceImport()} onCancel={() => { setCandidate(null) }} busy={busy} invalidated={reviewInvalidated} onRefresh={refreshDecisions} />}
+    {!candidate && currentReceipt && <details className="panel import-history" open={!!currentReceipt.repairPrompt || summary?.status !== 'ready'}>
+      <summary>Import history and checks</summary>
+      <p>These reports describe past imports. Choosing a report does not change your labels or print sheet.</p>
+      <label>Previous import<select value={currentReceipt.id} onChange={event => { setReceiptId(event.target.value); setRepairStatus(''); setShowRepair(false) }}>{collection.receipts.map((receipt, index) => <option key={receipt.id} value={receipt.id}>{receiptName(receipt.id, receipt.title, index)}</option>)}</select></label>
+      <p className="field-hint">Imported {new Date(currentReceipt.createdAt).toLocaleString()}. Ready counts below refer only to labels from this import still in your collection.</p>
+      <ImportReport summary={summary} showReady />
+    </details>}
     {currentReceipt && <ProtocolWarning context={currentReceipt.protocolContext} feedback={currentReceipt.contribution?.feedback} />}
     {summary?.status === 'rejected' && <StandaloneFeedback />}
     {importLoadError && <div className="panel" role="alert"><h3>The label reader couldn’t load</h3><p>The app may have updated, or the connection was interrupted. Reload the page, then choose the same ZIP again. Your saved labels will remain.</p><button className="button secondary" type="button" onClick={() => window.location.reload()}>Reload app</button></div>}
@@ -203,7 +227,7 @@ export default function PublicApp() {
         onResolve={(id, identity) => { void commit(current => updateRow(current, id, identity)).catch(ignoreHandledError) }}
         onChooseCommunity={(id, label) => chooseCommunity(label, id)} onPrint={() => navigate('print')} onBrowse={() => navigate('gallery')} onImport={() => navigate('print')} onGenericChat={() => setGenericChat(true)} handoff={handoff ?? ((creationRows.length > 0 || genericChat) ? promptLoading : null)} /> : view === 'help' ? <>{instructions !== null ? <HowItWorks instructions={instructions} /> : promptLoading}<StandaloneFeedback /></> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
         <div className="page-heading screen-only"><h1>Print labels</h1><p className="spec-line">Avery 94502 · 2.5 in circles · US Letter</p></div>
-        <div className="handoff-actions screen-only"><button className="button secondary" type="button" onClick={() => navigate('create')}>Add more labels</button>{labels.length > 0 && <button type="button" className="button secondary" disabled={downloading} onClick={() => void download()}>{downloading ? 'Preparing download…' : 'Download labels'}</button>}</div>
+        <div className="handoff-actions screen-only"><button className="button secondary" type="button" onClick={() => navigate('create')}>Add more labels</button>{labels.length > 0 && <button type="button" className="button secondary" disabled={downloading} onClick={() => void download()}>{downloading ? 'Preparing download…' : 'Download labels'}</button>}{(collection.rows.length > 0 || collection.receipts.length > 0) && <button type="button" className="button quiet" disabled={busy} onClick={resetLabels}>Reset labels</button>}</div>
         {collection.rows.some(row => !row.designId) && <p className="field-hint screen-only">{collection.rows.filter(row => !row.designId).length} labels still need artwork. {labels.length > 0 ? 'You can print the ready labels now.' : 'Choose a design or import a finished ZIP to start printing.'}</p>}
         {labels.length > 0 ? <PrintStudio saving={saving} intake={candidate || importing || importError || currentReceipt?.repairPrompt ? intake : <details className="print-add-labels"><summary>Add labels from a ZIP</summary>{intake}</details>} labels={labels} quantities={quantities} onQuantityChange={(id, change) => { void commit(current => {
           const row = current.rows.find(row => row.id === id)
@@ -214,10 +238,7 @@ export default function PublicApp() {
         }).catch(ignoreHandledError) }} settings={collection.printSettings} onSettingsChange={settings => { void commit(current => setPrintSettings(current, { ...current.printSettings, ...settings, offset: { ...current.printSettings.offset, ...settings.offset } })).catch(ignoreHandledError) }} /> : <div className="print-intake screen-only">{intake}{!candidate && <ExamplePack busy={busy} onFile={file => handlePack(file, 'example')} />}</div>}
         {shareableLabels.length > 0 && <DeferredPanel><GallerySubmission labels={shareableLabels} /></DeferredPanel>}
       </>}
-      {view === 'create' && (collection.rows.length > 0 || collection.receipts.length > 0) && <div className="preparation-storage screen-only"><button type="button" className="button quiet" disabled={busy} onClick={() => {
-        if (!window.confirm('Clear all labels, requests, print settings and import reports saved in this browser? Download your ready labels first. This cannot be undone.')) return
-        void commit(current => ({ ...current, rows: [], designs: {}, receipts: [], handoff: null, printSettings: { page: 0, firstSlot: 1, offset: { x: 0, y: 0 } } })).then(() => { setCandidate(null); setNotes({}); setFreshReceipts(new Set()); setNotice('Saved labels and requests cleared. Downloaded ZIPs are unchanged.') }).catch(ignoreHandledError)
-      }}>Clear saved labels</button></div>}
+      {view === 'create' && (collection.rows.length > 0 || collection.receipts.length > 0) && <div className="preparation-storage screen-only"><button type="button" className="button quiet" disabled={busy} onClick={resetLabels}>Clear saved labels</button></div>}
       {collection.receipts.map(receipt => <ContributionStatus key={receipt.id} contribution={receipt.contribution} retrospective={notes[receipt.id] ?? null} hidden={view !== 'print' || currentReceipt?.id !== receipt.id} autoSend={freshReceipts.has(receipt.id)} delivery={receipt.delivery} onDelivery={delivery => { void commit(current => setReceiptDelivery(current, receipt.id, delivery)).catch(ignoreHandledError) }} />)}
     </main>
     <SiteFooter currentView={view} onNavigate={navigate} />

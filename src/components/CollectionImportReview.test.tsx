@@ -35,3 +35,22 @@ it('releases partial preview allocations and retries without losing import choic
   expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:first')
   expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:second')
 })
+
+it('offers replacement for an existing collection and requires affirmative confirmation', () => {
+  const collection = createCollection()
+  collection.rows = [{ id: 'old', blend: 'Old blend', maker: 'Maker' }] as typeof collection.rows
+  const plan = { candidate: { receipt: { id: 'receipt', title: 'Example pack' }, designs: [{ id: 'first', item: { label: { maker: 'Maker', blend: 'New' }, artwork: { data: new ArrayBuffer(1), mediaType: 'image/png' } } }] }, entries: [{ designId: 'first', kind: 'add', matchRowIds: [] }] } as unknown as ImportPlan
+  const onReplace = vi.fn(), onAccept = vi.fn()
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+  const { rerender } = render(<CollectionImportReview collection={collection} plan={plan} decisions={{ first: { action: 'add' } }} onChange={vi.fn()} onAccept={onAccept} onCancel={vi.fn()} onReplace={onReplace} busy={false} />)
+  const replace = screen.getByRole('button', { name: 'Replace saved labels with this pack' })
+  fireEvent.click(replace)
+  expect(onReplace).not.toHaveBeenCalled()
+  expect(confirm).toHaveBeenCalledWith(expect.stringContaining('Quantities and print settings will reset. Import reports will stay.'))
+  confirm.mockReturnValue(true)
+  fireEvent.click(replace)
+  expect(onReplace).toHaveBeenCalledOnce()
+  expect(onAccept).not.toHaveBeenCalled()
+  rerender(<CollectionImportReview collection={collection} plan={plan} decisions={{}} onChange={vi.fn()} onAccept={onAccept} onCancel={vi.fn()} onReplace={onReplace} busy={false} invalidated />)
+  expect(replace).toBeDisabled()
+})

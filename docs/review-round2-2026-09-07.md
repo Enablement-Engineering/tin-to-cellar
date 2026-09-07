@@ -84,3 +84,9 @@ Implemented small changes on shared main without changing the application archit
 Regression tests cover queued saves, deferred imports, print gating and geometry, catalog ambiguity, aliases, request admission, capability ownership, and mobile action reachability. Existing research files are excluded from this change.
 
 Validation: 505 tests across 72 files passed; lint and typecheck/build passed. All 56 accessibility/workflow browser tests and all five local gallery end-to-end tests passed. Manual browser inspection covered the populated desktop print page and 320px mobile layout. Physical printer output remains untested.
+
+## Selection and history follow-up
+
+Existing selections can now be replaced from an imported pack review after an explicit confirmation. Replacement is one atomic save after local validation; it resets quantities and print settings, preserves report ownership/history, and retains existing work on failure. This also supports packs that fit on their own but exceed storage limits when combined with existing artwork.
+
+Print Labels now includes Reset labels, with confirmation and the same full local reset available from Choose labels. Import history is a separate disclosure: entries identify their saved blend names and sequence, and explain that viewing a report does not alter the sheet. Pending import review cannot be discarded by switching history entries. Validation reports with no issues still show an explicit ready count when opened.

@@ -47,6 +47,14 @@ export function usePackImport({ collection, ready, commit, onStart, onImported }
     return saved
   }
   const saveCandidate = (incoming: ImportCandidate, plan: ImportPlan, choices: ImportDecisions) => saveIncoming(incoming, current => applyImport(current, plan, choices))
+  const replaceCandidate = (incoming: ImportCandidate, plan: ImportPlan) => saveIncoming(incoming, current => {
+    if (plan.candidate !== incoming || !incoming.designs.length) throw new CollectionError('invalid', 'This pack has no reviewed artwork to replace your labels with.')
+    if (current.id !== plan.collectionId || current.revision !== plan.baseRevision) throw new CollectionError('conflict', 'Your saved labels changed while this pack was being reviewed. Review the updated pack before replacing anything.')
+    // Build the entire replacement before the single storage transaction. Receipts
+    // retain their history and diagnostic ownership even when artwork is replaced.
+    const empty: Collection = { ...current, rows: [], designs: {}, handoff: null, printSettings: { page: 0, firstSlot: 1, offset: { x: 0, y: 0 } } }
+    return applyImport(empty, planImport(empty, incoming))
+  })
   const processResult = async (result: CellarPackImportResult, title: string, origin: CollectionOrigin, publicationId?: string, target?: { id: string; revision: number }) => {
     const { incoming, retrospective, diagnosticWarning } = await preparePackImport(result, title, origin, publicationId)
     if (retrospective) setNotes(previous => ({ ...previous, [incoming.receipt.id]: retrospective }))
@@ -87,5 +95,5 @@ export function usePackImport({ collection, ready, commit, onStart, onImported }
   const refreshDecisions = () => { if (review) setDecisions(defaultDecisions(review)) }
   return { importing, candidate, setCandidate, review, decisions, setDecisions, reviewInvalidated, refreshDecisions,
     notice, setNotice, importError, setImportError, importLoadError, receiptId, setReceiptId,
-    freshReceipts, setFreshReceipts, notes, setNotes, diagnosticWarnings, saveCandidate, handlePack, chooseCommunity }
+    freshReceipts, setFreshReceipts, notes, setNotes, diagnosticWarnings, saveCandidate, replaceCandidate, handlePack, chooseCommunity }
 }

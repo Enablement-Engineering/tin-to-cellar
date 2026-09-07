@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Collection, ImportDecisions, ImportPlan } from '../lib/collection'
 
-export function CollectionImportReview({ collection, plan, decisions, onChange, onAccept, onCancel, busy, invalidated = false, onRefresh }: {
+export function CollectionImportReview({ collection, plan, decisions, onChange, onAccept, onCancel, onReplace, busy, invalidated = false, onRefresh }: {
   collection: Collection; plan: ImportPlan; decisions: ImportDecisions; onChange: (next: ImportDecisions) => void; onAccept: () => void; onCancel: () => void; busy: boolean;
-  invalidated?: boolean; onRefresh?: () => void;
+  invalidated?: boolean; onRefresh?: () => void; onReplace?: () => void;
 }) {
   const [urls, setUrls] = useState<Record<string, string>>({})
   const [previewError, setPreviewError] = useState(false)
@@ -39,6 +39,13 @@ export function CollectionImportReview({ collection, plan, decisions, onChange, 
     <p>Review {plan.candidate.receipt.title}. Your existing labels and quantities stay unless you choose a replacement.</p>
     <p className="import-review-summary">{newCount} new {newCount === 1 ? 'design' : 'designs'}{attentionCount > 0 ? ` · ${attentionCount} ${attentionCount === 1 ? 'match' : 'matches'} to review` : ''}. Additions will appear in your print sheet.</p>
     <div className="import-review-actions"><button type="button" className="button primary" disabled={busy || invalidated} onClick={onAccept}>{added ? `Add ${added} ${added === 1 ? 'label' : 'labels'}` : 'Keep current labels'}</button><button type="button" className="button quiet" disabled={busy} onClick={onCancel}>Cancel import</button></div>
+    {onReplace && collection.rows.length > 0 && plan.candidate.designs.length > 0 && <div className="import-replace-option">
+      <button type="button" className="button secondary" disabled={busy || invalidated} onClick={() => {
+        const count = plan.candidate.designs.length
+        if (window.confirm(`Replace all saved labels and requests with the ${count} checked ${count === 1 ? 'design' : 'designs'} in this pack? Quantities and print settings will reset. Import reports will stay. Download your current labels first if you want to keep their artwork. This cannot be undone.`)) onReplace()
+      }}>Replace saved labels with this pack</button>
+      <p className="field-hint">Start with only this pack’s checked artwork, one of each design. Your current labels and requests will be removed; import reports will stay.</p>
+    </div>}
     {newCount > 0 && <button type="button" className="button quiet" aria-expanded={showNew} onClick={() => setShowNew(value => !value)}>{showNew ? 'Hide new designs' : `Review ${newCount} new ${newCount === 1 ? 'design' : 'designs'}`}</button>}
     {previewError && <div role="alert"><p>Artwork previews could not be opened. Your import and choices are still available.</p><button type="button" className="button secondary" disabled={busy} onClick={event => {
       if (document.activeElement === event.currentTarget) title.current?.focus()

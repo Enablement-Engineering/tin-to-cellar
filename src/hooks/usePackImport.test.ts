@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { Blob as NodeBlob } from 'node:buffer'
+import { encode } from 'fast-png'
 import { afterEach, expect, it, vi } from 'vitest'
 import { usePackImport } from './usePackImport'
 import { createCollection, addRequests, updateRow, removeRow } from '../lib/collection/commands'
-import { prepareImport } from '../lib/collection/import'
+import { applyImport, planImport, prepareImport } from '../lib/collection/import'
 import { collectionFixture } from '../lib/collection/test-fixtures'
 import type { Collection } from '../lib/collection/types'
+import { COLLECTION_LIMITS } from '../lib/collection/types'
+import { sha256 } from '../lib/collection/validation'
 const mocks = vi.hoisted(() => ({ download: vi.fn(), prepare: vi.fn() }))
 vi.mock('../components/gallery/pack-builder', () => ({ downloadPublishedPack: mocks.download }))
 vi.mock('../lib/import-workflow/prepare', () => ({ preparePackImport: mocks.prepare }))
@@ -53,4 +56,70 @@ it.each(['identity', 'notes', 'removed'] as const)('rejects a replacement when i
   const { outcome, current } = await run.complete()
   expect(outcome).toMatchObject({ code: 'conflict' })
   expect(Object.keys(current.designs)).toHaveLength(0)
+})
+
+async function replacementSetup(failSave = false) {
+  vi.stubGlobal('Blob', NodeBlob)
+  const oldPack = await collectionFixture(manifest => { manifest.labels[0].blend = 'Old blend' })
+  const oldArtwork = oldPack.labels[0].artwork
+  oldArtwork.data = Uint8Array.from(encode({ width: 825, height: 825, channels: 3, data: new Uint8Array(825 * 825 * 3).fill(220) })).buffer
+  oldArtwork.asset.sha256 = await sha256(oldArtwork.data)
+  const oldCandidate = await prepareImport(oldPack, { origin: 'local' })
+  const empty = createCollection()
+  let current = applyImport(empty, planImport(empty, oldCandidate))
+  current = updateRow(current, current.rows[0].id, { quantity: 7 })
+  current = addRequests(current, [{ catalogId: null, maker: 'Maker', blend: 'Pending request' }])
+  current.printSettings = { page: 1, firstSlot: 3, offset: { x: .1, y: 0 } }
+  const pack = await collectionFixture()
+  const candidate = await prepareImport(pack, { origin: 'example' })
+  const before = current
+  const hook = renderHook(({ collection }) => usePackImport({ collection, ready: true, commit: async change => {
+    const next = change(current)
+    if (failSave) throw new Error('Storage full')
+    return current = { ...next, revision: current.revision + 1 }
+  }, onStart: () => {}, onImported: () => {} }), { initialProps: { collection: current } })
+  act(() => hook.result.current.setCandidate(candidate))
+  return { hook, candidate, before, current: () => current, change: () => { current = { ...current, revision: current.revision + 1 } } }
+}
+it('atomically replaces saved artwork and pending requests, resetting quantities while keeping reports', async () => {
+  const run = await replacementSetup()
+  await act(async () => { await run.hook.result.current.replaceCandidate(run.candidate, run.hook.result.current.review!) })
+  const saved = run.current()
+  expect(saved.rows).toHaveLength(1)
+  expect(saved.rows[0]).toMatchObject({ blend: 'Fixture Blend', quantity: 1 })
+  expect(saved.printSettings).toEqual({ page: 0, firstSlot: 1, offset: { x: 0, y: 0 } })
+  expect(saved.receipts).toHaveLength(2)
+  expect(run.hook.result.current.candidate).toBeNull()
+  expect(run.before.rows).toHaveLength(2)
+  expect(run.before.rows[0].quantity).toBe(7)
+})
+it('keeps the original saved collection and replacement review when saving fails', async () => {
+  const run = await replacementSetup(true)
+  await act(async () => { await expect(run.hook.result.current.replaceCandidate(run.candidate, run.hook.result.current.review!)).rejects.toThrow('Storage full') })
+  expect(run.current()).toBe(run.before)
+  expect(run.hook.result.current.candidate).toBe(run.candidate)
+})
+it('refuses a replacement if saved work changed since the reviewed plan', async () => {
+  const run = await replacementSetup()
+  run.change()
+  await act(async () => { await expect(run.hook.result.current.replaceCandidate(run.candidate, run.hook.result.current.review!)).rejects.toMatchObject({ code: 'conflict' }) })
+  expect(run.current().rows).toEqual(run.before.rows)
+  expect(run.hook.result.current.candidate).toBe(run.candidate)
+})
+it('can replace artwork when retaining both collections would exceed the storage budget', async () => {
+  const run = await replacementSetup()
+  const limits = COLLECTION_LIMITS as { artworkBytes: number }
+  const originalBudget = limits.artworkBytes
+  const oldBytes = Object.values(run.before.designs)[0].item.artwork.data.byteLength
+  const newBytes = run.candidate.designs[0].item.artwork.data.byteLength
+  // Scale only the resource limit, keeping both real, different PNGs valid.
+  limits.artworkBytes = Math.max(oldBytes, newBytes)
+  try {
+    const plan = run.hook.result.current.review!
+    await act(async () => { await expect(run.hook.result.current.saveCandidate(run.candidate, plan, { [run.candidate.designs[0].id]: { action: 'add' } })).rejects.toMatchObject({ code: 'capacity' }) })
+    expect(run.current()).toBe(run.before)
+    await act(async () => { await run.hook.result.current.replaceCandidate(run.candidate, plan) })
+    expect(run.current().rows).toHaveLength(1)
+    expect(run.current().rows[0].blend).toBe('Fixture Blend')
+  } finally { limits.artworkBytes = originalBudget }
 })

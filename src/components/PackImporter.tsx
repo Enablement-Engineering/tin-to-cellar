@@ -61,7 +61,15 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
       <p className="import-privacy"><Icon name="lock" size={15} />Importing automatically shares structured AI feedback, ZIP-check results, and eligible package-source links. Those links may appear in public source suggestions. This does not share your artwork. Process notes require a separate sharing action. <a href="/privacy">Privacy details</a></p>
 
 
-      {summary && (summary.status !== 'ready' || summary.issues.length > 0 || summary.quarantined.length > 0) && (
+      <ImportReport summary={summary} />
+
+    </section>
+  )
+}
+
+export function ImportReport({ summary, showReady = false }: { summary: ImportSummary | null; showReady?: boolean }) {
+  return <>
+      {summary && (showReady || summary.status !== 'ready' || summary.issues.length > 0 || summary.quarantined.length > 0) && (
         <div className={`import-report status-${summary.status}`}>
           <div className="report-topline">
             <div>
@@ -88,6 +96,5 @@ export function PackImporter({ busy, summary, onFile }: PackImporterProps) {
           )}
         </div>
       )}
-    </section>
-  )
+  </>
 }
