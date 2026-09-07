@@ -73,7 +73,7 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
             <button className="button secondary" type="button" onClick={() => print('calibration')}><Icon name="guide" size={17} />Print alignment sheet</button>
             <p className="field-hint">Print on plain paper at Actual Size. The ruler should measure two inches. Hold it behind your label stock to check the nine circles.</p>
           </details>
-          <div className="print-action"><button className="button primary" disabled={!copies.length} type="button" onClick={() => print('labels')}><Icon name="print" />Print {copies.length} {copies.length === 1 ? 'label' : 'labels'}</button><p>Choose US Letter and Actual Size or 100% scale. Turn off headers and footers. To save a PDF, choose Save as PDF.</p></div>
+          <div className="print-action"><button className="button primary" disabled={!copies.length} type="button" onClick={() => print('labels')}><Icon name="print" />Print {copies.length} {copies.length === 1 ? 'label' : 'labels'}</button><p>Prints 2.5-inch circles on Avery 94502. Choose US Letter, no margins, and Actual Size or 100% scale. Turn off headers and footers. First print an alignment sheet on plain paper using Paper and alignment above. To save a PDF, choose Save as PDF.</p></div>
         </div>
         </div>
         <div className="sheet-stage">

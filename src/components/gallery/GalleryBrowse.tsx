@@ -11,7 +11,10 @@ export function GalleryBrowse({ onAdd, selectedIds = [], onPrint }: { onAdd: (la
   const [cursor, setCursor] = useState<string | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false)
   const [adding, setAdding] = useState<string | null>(null), [addError, setAddError] = useState('')
   const requestVersion = useRef(0), controller = useRef<AbortController | null>(null)
+  const loadMore = useRef<HTMLButtonElement>(null), loading = useRef(false)
   const load = useCallback(async (next?: string) => {
+    if (next && loading.current) return
+    loading.current = true
     const version = ++requestVersion.current
     controller.current?.abort()
     const current = new AbortController(); controller.current = current
@@ -22,13 +25,23 @@ export function GalleryBrowse({ onAdd, selectedIds = [], onPrint }: { onAdd: (la
       if (version !== requestVersion.current) return
       setLabels(old => next ? [...old, ...result.labels] : result.labels); setCursor(result.nextCursor)
     } catch (failure) { if (version === requestVersion.current) setError(errorText(failure)) }
-    finally { if (version === requestVersion.current) setBusy(false) }
+    finally { if (version === requestVersion.current) { loading.current = false; setBusy(false) } }
   }, [filter])
   useEffect(() => {
     const version = requestVersion, requests = controller
     const timer = config?.serving ? setTimeout(() => void load(), filter.typing ? 100 : 0) : undefined
     return () => { clearTimeout(timer); version.current++; requests.current?.abort() }
   }, [config?.serving, filter.typing, load])
+  useEffect(() => {
+    if (!config?.serving || !cursor || busy || error || !loadMore.current || typeof IntersectionObserver === 'undefined') return
+    const version = requestVersion.current
+    let active = true
+    const observer = new IntersectionObserver(entries => {
+      if (active && version === requestVersion.current && entries.some(entry => entry.isIntersecting)) void load(cursor)
+    }, { rootMargin: '400px 0px' })
+    observer.observe(loadMore.current)
+    return () => { active = false; observer.disconnect() }
+  }, [config?.serving, cursor, busy, error, load])
   const changeFilter = (ids: string[] | null, typing: boolean) => {
     requestVersion.current++; controller.current?.abort(); setBusy(true); setError(''); setLabels([]); setCursor(null); setFilter({ ids, typing })
   }
@@ -53,7 +66,7 @@ export function GalleryBrowse({ onAdd, selectedIds = [], onPrint }: { onAdd: (la
         <div className="gallery-actions"><button type="button" className="button primary" disabled={adding !== null || selectedIds.includes(label.id)} onClick={() => void add(label)}>{selectedIds.includes(label.id) ? 'Added to your labels' : adding === label.id ? 'Adding design…' : 'Add to your labels'}</button></div>
       </article>)}</div>
       {adding && <p role="status">Downloading and checking the selected design…</p>}
-      {cursor && <button type="button" className="button secondary" disabled={busy} onClick={() => void load(cursor)}>Show more labels</button>}
+      {cursor && <button ref={loadMore} type="button" className="button secondary" disabled={busy} onClick={() => void load(cursor)}>{busy ? 'Loading more labels…' : error ? 'Retry loading labels' : 'Show more labels'}</button>}
     </>}
     <footer className="gallery-disclaimer"><p className="field-hint">Shared by community members for personal cellaring. Tin to Cellar is independent of tobacco brands.</p><p className="field-hint">Questions about a label or source link? <a href="mailto:dylan@enablement.engineering">Email this address</a> with a link and a short note.</p></footer>
   </section>

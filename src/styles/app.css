@@ -397,6 +397,9 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 @media print {
   :root, body { margin: 0 !important; padding: 0 !important; background: white !important; }
   .screen-only, .site-footer, .skip-link { display: none !important; }
+  /* Optional panels can render loading/error fallbacks outside PrintStudio.
+     Only the sheet workspace belongs in a label print job. */
+  .view-print > :not(.simple-print) { display: none !important; }
   .app-shell { min-height: 0; background: white; overflow: visible; }
   .app-shell::after { display: none; }
   .site-main, .simple-print { display: block; min-height: 0; max-width: none; margin: 0; padding: 0; outline: none; }
@@ -415,9 +418,9 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
   .print-coordinate-layer { position: absolute; inset: 0; transform: translate(var(--offset-x), var(--offset-y)); }
   .production-slot { position: absolute; transform: none; overflow: visible; }
   .proof-slot { position: absolute; border: .5pt solid black; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 10pt var(--font-mono); }
-  /* Preview at trim; print the supplied artwork through its outer bleed circle. */
-  .production-slot .label-art { overflow: visible; contain: none; border-radius: 0; background: transparent; }
-  .production-slot .label-art > img { border-radius: 50%; }
+  /* Match the preview's finished circle. The image frame already maps the
+     supplied trim to this slot; exposing its bleed overlaps adjacent labels. */
+  .production-slot .label-art { overflow: hidden; border-radius: 50%; background: transparent; clip-path: circle(50%); }
 }
 
 /* Keep keyboard focus visible in high contrast modes, which suppress shadows. */
