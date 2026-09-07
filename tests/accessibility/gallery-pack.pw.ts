@@ -1,0 +1,41 @@
+import { test, expect } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+import JSZip from 'jszip'
+import { readFile } from 'node:fs/promises'
+import { fixture } from '../gallery/fixtures'
+import { buildGalleryPack } from '../../src/lib/gallery/pack'
+for (const width of [1280, 320]) test(`gallery selection downloads and prints a combined pack at ${width}px`, async ({ page }) => {
+  const source = await fixture(825)
+  const labels = ['One', 'Two'].map((blend, index) => ({ id: `43649b43-8094-4a32-b5ee-8be75208fb6${index + 3}`, maker: 'Test Maker', blend, description: 'Cream writing area on a green label' }))
+  const packs = await Promise.all(labels.map(label => buildGalleryPack({ metadata: source.draft, ...label, packId: label.id, createdAt: '2026-09-06T00:00:00Z' }, source.png)))
+  await page.route('**/api/gallery/v1/**', async route => {
+    const url = new URL(route.request().url())
+    if (url.pathname.endsWith('/config')) return route.fulfill({json: {serving: true}})
+    if (url.pathname.endsWith('/labels')) return route.fulfill({json: {labels, nextCursor: null}})
+    if (url.pathname.endsWith('/pack')) return route.fulfill({contentType: 'application/zip', body: Buffer.from(packs[labels.findIndex(label => url.pathname.includes(label.id))])})
+    return route.fulfill({contentType: 'image/png', body: source.png})
+  })
+  await page.setViewportSize({width, height: 900})
+  await page.goto('/gallery')
+  await page.getByRole('button', {name: 'Add to pack', exact: true}).first().click()
+  await page.getByRole('button', {name: 'Add to pack', exact: true}).click()
+  await expect(page.getByRole('heading', {name: 'Your pack · 2 labels'})).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  expect((await new AxeBuilder({page}).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([])
+  const downloading = page.waitForEvent('download')
+  await page.getByRole('button', {name: 'Download pack', exact: true}).click()
+  const download = await downloading
+  expect(download.suggestedFilename()).toBe('community-labels.cellarpack.zip')
+  const zip = await JSZip.loadAsync(await readFile((await download.path())!))
+  const manifest = JSON.parse(await zip.file('manifest.json')!.async('string'))
+  expect(manifest.labels.map((label: {blend: string}) => label.blend)).toEqual(['One', 'Two'])
+  for (const asset of Object.values(manifest.assets) as {path: string}[]) expect(await zip.file(asset.path)!.async('nodebuffer')).toEqual(source.png)
+  await page.getByRole('button', {name: 'Print selected labels'}).click()
+  await expect(page).toHaveURL(/\/labels\/print$/)
+  await expect(page.getByRole('heading', {name: 'Your labels'})).toBeVisible()
+  await expect(page.getByRole('spinbutton')).toHaveCount(2)
+  await page.goBack()
+  await expect(page.getByRole('heading', {name: 'Your pack · 2 labels'})).toBeVisible()
+  await page.getByRole('button', {name: 'Remove Test Maker One from pack'}).click()
+  await expect(page.getByRole('heading', {name: 'Your pack · 1 label'})).toBeVisible()
+})

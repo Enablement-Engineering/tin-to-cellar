@@ -15,7 +15,7 @@ export function About() {
       <section>
         <h2>Personal cellaring</h2>
         <p>Tin to Cellar is an independent tool, not affiliated with or endorsed by tobacco brands. It adapts recognizable packaging for personal jar labels. Brand names and original packaging artwork belong to their respective owners. Using the tool does not grant permission to reuse those designs.</p>
-        <p className="field-hint">Questions about a label or source link? Email <a href="mailto:dylan@enablement.engineering">dylan@enablement.engineering</a> with a link and a short note.</p>
+        <p className="field-hint">Questions about a label or source link? <a href="mailto:dylan@enablement.engineering">Email this address</a> with a link and a short note.</p>
       </section>
       <section>
         <h2>Enablement Engineering</h2>

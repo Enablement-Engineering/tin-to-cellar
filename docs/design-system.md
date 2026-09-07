@@ -203,3 +203,15 @@ Browser review used the built application at `http://127.0.0.1:4173` and confirm
 | Browser errors | The browser error log was empty. |
 
 Print evidence consists of source review, existing geometry tests, and browser inspection of placement and calibration structure. This review did not produce a new PDF or use a physical printer. It did not exercise the hosted proof service or deploy the redesign.
+
+### Community pack selection
+
+Gallery cards lead with **Add to pack**, followed by **Use label** for immediate printing. The selected-pack tray shows the count and each design, with Remove and Clear pack controls. **Print selected labels** opens the existing print workspace, where quantities are chosen; **Download pack** creates one reusable CellarPack ZIP. Avoid cart, checkout, and individual ZIP actions on gallery cards.
+
+Selection persists in this browser tab's session through filtering and navigation. It contains only public label identifiers and display names. Pack assembly fetches current public exports and validates them locally, preserves artwork bytes and geometry, and uses distinct label and asset identifiers. An unavailable or invalid design stops assembly with an actionable error and preserves the selection. Limits are 20 designs and 45 MiB of source downloads; no partial pack is silently returned. Importing a downloaded pack retains the normal local-first workflow.
+
+### Automatic gallery filtering
+
+The Blend combobox filters suggestions while typing. Selecting with Enter or a click applies the catalog filter immediately; exploring with arrow keys, focusing, or dismissing with Escape does not apply it. Instructions describe this behavior before selection. Focus stays in the input, and Clear blend returns focus there before its button disappears. Composition keystrokes do not commit a suggestion.
+
+A persistent, polite status region announces loading, the number of labels shown, and empty results. The results region exposes its busy state without making every card a live announcement. New filter requests invalidate older responses so delayed results cannot replace the current selection. Do not move focus or navigate when the filter changes.

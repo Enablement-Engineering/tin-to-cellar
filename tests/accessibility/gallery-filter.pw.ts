@@ -1,0 +1,51 @@
+import { test, expect } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+
+for (const width of [1280, 320]) test(`automatic blend filtering preserves focus and announces results at ${width}px`, async ({ page }) => {
+  const queries: string[] = []
+  await page.route('**/api/gallery/v1/**', async route => {
+    const url = new URL(route.request().url())
+    if (url.pathname.endsWith('/config')) return route.fulfill({ json: { serving: true } })
+    if (url.pathname.endsWith('/labels')) {
+      const catalog = url.searchParams.get('catalogId') ?? ''
+      queries.push(catalog)
+      return route.fulfill({ json: { labels: catalog ? [{ id: 'nightcap', maker: 'Peterson', blend: 'Nightcap', description: 'A cream label with a blank writing area.' }] : [], nextCursor: null } })
+    }
+    return route.fulfill({ status: 204 })
+  })
+  await page.setViewportSize({ width, height: 900 })
+  await page.goto('/gallery')
+  const input = page.getByRole('combobox', { name: 'Blend' })
+  const results = page.getByRole('region', { name: 'Label results' })
+  await expect(page.getByRole('status').filter({ hasText: 'No labels match yet.' })).toBeVisible()
+  await input.fill('Peterson Nightcap')
+  await input.press('ArrowDown')
+  await expect(input).toBeFocused()
+  const active = await input.getAttribute('aria-activedescendant')
+  expect(active).toBeTruthy()
+  await expect(page.locator(`[id="${active}"]`)).toHaveAttribute('aria-selected', 'true')
+  expect(queries).toEqual([''])
+  await input.press('Escape')
+  await expect(input).toHaveAttribute('aria-expanded', 'false')
+  expect(queries).toEqual([''])
+  await input.press('ArrowDown')
+  await input.press('Enter')
+  await expect(page.getByRole('status').filter({ hasText: '1 label shown.' })).toBeVisible()
+  await expect(results).toHaveAttribute('aria-busy', 'false')
+  await expect(input).toBeFocused()
+  await expect(input).toHaveAttribute('aria-expanded', 'false')
+  await expect(input).not.toHaveAttribute('aria-activedescendant')
+  await input.press('Tab')
+  await expect(page.getByRole('button', { name: 'Clear blend' })).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(input).toBeFocused()
+  await expect(input).toHaveValue('')
+  await expect(page.getByRole('status').filter({ hasText: 'No labels match yet.' })).toBeVisible()
+  expect(queries).toHaveLength(3)
+  await input.fill('Peterson Nightcap')
+  await input.press('ArrowDown')
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([])
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await input.fill('zzzzzzzzzz')
+  await expect(page.getByRole('status').filter({ hasText: 'No matching blends.' })).toBeVisible()
+})
