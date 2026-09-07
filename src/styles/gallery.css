@@ -90,5 +90,6 @@
   .gallery-thumbnail--loaded img { animation: none; }
 }
 
-.gallery-pack-floating .gallery-pack-tray, .button.gallery-pack-toggle { background: rgb(245 240 232 / 88%); color: var(--text-strong); border-color: var(--line-strong); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.gallery-pack-floating .gallery-pack-tray { background: rgb(245 240 232); color: var(--text-strong); border-color: var(--line-strong); }
+.button.gallery-pack-toggle { background: rgb(245 240 232 / 88%); color: var(--text-strong); border-color: var(--line-strong); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .button.gallery-pack-toggle:hover { background: rgb(245 240 232 / 96%); }
