@@ -21,7 +21,7 @@ it('keeps selection through browsing and remount, removes entries and prints the
   fireEvent.click(screen.getByRole('button', { name: 'Add to pack' }))
   expect(screen.getByRole('button', { name: 'Your pack · 2 labels' })).toBeInTheDocument()
   expect(screen.queryByRole('link', {name: 'Download ZIP'})).toBeNull()
-  const blend = screen.getByRole('combobox', {name: 'Blend'})
+  const blend = screen.getByRole('combobox', {name: 'Maker or blend'})
   fireEvent.change(blend, {target: {value: 'Peterson Nightcap'}})
   fireEvent.keyDown(blend, {key: 'ArrowDown'})
   fireEvent.keyDown(blend, {key: 'Enter'})

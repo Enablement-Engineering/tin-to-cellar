@@ -1,4 +1,16 @@
 .gallery-page { max-width: 1180px; margin: 0 auto; padding: 2rem 1rem; }
+.page-heading.gallery-heading { display: grid; justify-content: start; align-items: start; gap: .5rem; }
+.gallery-heading h1, .gallery-heading p { margin: 0; }
+.gallery-heading p { max-width: 54ch; }
+.gallery-browser { margin: 0 0 1.25rem; padding: 1.25rem; border: 1px solid var(--line-rule-brass); border-radius: .5rem; background: var(--surface-card); }
+.gallery-browser-heading { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 1rem 2rem; }
+.gallery-browser-heading h2, .gallery-browser-heading p { margin: 0; }
+.gallery-browser-heading h2 { font-size: 1.35rem; }
+.gallery-browser-heading > div > p { margin-top: .25rem; color: var(--text-muted); }
+.gallery-format { display: grid; gap: .2rem; min-width: 11rem; }
+.gallery-format span { color: var(--text-muted); font-size: var(--size-12); }
+.gallery-format strong { font-weight: 600; }
+.gallery-result-count { margin: 0 0 1rem; }
 .gallery-disclaimer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line-rule-brass); }
 .gallery-disclaimer .field-hint { max-width: 80ch; font-size: var(--size-12); }
 .gallery-disclaimer a { overflow-wrap: anywhere; }
@@ -27,7 +39,7 @@
 .gallery-admin-layout { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(0, 3fr); gap: 2rem; }
 .gallery-queue-item { display: grid; text-align: left; gap: .4rem; width: 100%; padding: 1rem; margin-bottom: .5rem; font: inherit; cursor: pointer; }
 .gallery-digest { font-family: monospace; font-size: .85rem; }
-@media (max-width: 680px) { .gallery-admin-layout { grid-template-columns: 1fr; } .gallery-filters { display: grid; } }
+@media (max-width: 680px) { .gallery-admin-layout { grid-template-columns: 1fr; } .gallery-filters { display: grid; } .gallery-browser-heading { display: grid; } }
 @media print { .gallery-page, .gallery-submission { display: none !important; } }
 
 .gallery-page input:focus-visible, .gallery-page select:focus-visible, .gallery-submission input:focus-visible, .gallery-submission select:focus-visible, .gallery-queue-item:focus-visible { outline: 3px solid var(--line-focus); outline-offset: 3px; }
