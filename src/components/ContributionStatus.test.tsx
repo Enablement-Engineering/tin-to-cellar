@@ -181,3 +181,32 @@ it('does not send an empty source-only saved retry after filtering unfamiliar UR
   expect(screen.queryByRole('button', { name: 'Retry contribution' })).not.toBeInTheDocument()
   expect(fetcher).not.toHaveBeenCalled()
 })
+
+it('keeps the receipt outside diagnostic text and reuses it for explicit notes and retries', async () => {
+  const fetcher = vi.fn().mockRejectedValueOnce(new Error('Lost response')).mockImplementation(() => Promise.resolve(Response.json({ status: 'duplicate', notesAllowed: true })))
+  vi.stubGlobal('fetch', fetcher)
+  const notes = { format: 'tin-to-cellar/retrospective' as const, schemaVersion: '0.1.0' as const, protocolRevision: '0.0.14', capabilities: {}, tools: [], observations: [] }
+  render(<ContributionStatus autoSend contribution={contribution} retrospective={notes} />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry contribution' }))
+  await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
+  fireEvent.click(screen.getByRole('button', { name: 'View shared diagnostics' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Share process notes' }))
+  await screen.findByRole('button', { name: 'Process notes shared' })
+  const token = fetcher.mock.calls[0][1].headers['X-Diagnostic-Capability']
+  expect(token).toMatch(/^[a-f0-9]{64}$/)
+  for (const [, init] of fetcher.mock.calls) {
+    expect(init.headers['X-Diagnostic-Capability']).toBe(token)
+    expect(init.body).not.toContain(token)
+  }
+  expect(screen.getByRole('dialog')).not.toHaveTextContent(token)
+})
+
+it('explains missing ownership without offering an impossible note retry', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ status: 'duplicate', notesAllowed: false })))
+  const notes = { format: 'tin-to-cellar/retrospective' as const, schemaVersion: '0.1.0' as const, protocolRevision: '0.0.14', capabilities: {}, tools: [], observations: [] }
+  render(<ContributionStatus autoSend contribution={contribution} retrospective={notes} />)
+  await waitFor(() => expect(screen.getByRole('button', { name: 'View shared diagnostics' })).toBeInTheDocument())
+  fireEvent.click(screen.getByRole('button', { name: 'View shared diagnostics' }))
+  await screen.findByText(/does not have the original receipt/)
+  expect(screen.getByRole('button', { name: 'Share process notes' })).toBeDisabled()
+})

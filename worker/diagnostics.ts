@@ -12,14 +12,22 @@ export interface Statement {
 }
 export interface DiagnosticsDatabase { prepare(sql: string): Statement; batch(statements: Statement[]): Promise<unknown[]> }
 const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
-const days = (date: Date, count: number) => new Date(date.getTime() + count * 86400000).toISOString()
-export function diagnosticInsert(db: DiagnosticsDatabase, contribution: Pick<Contribution, 'submissionId' | 'origin' | 'validation'> & { feedback: unknown }, receipt = new Date(), legacy = false) {
-  const expiry = legacy ? days(receipt, 90) : (() => { const end = new Date(receipt); end.setUTCFullYear(end.getUTCFullYear() + 1); return end.toISOString() })()
-  return db.prepare('INSERT OR IGNORE INTO diagnostic_reports (id, received_at, expires_at, origin, feedback, validation) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(contribution.submissionId, receipt.toISOString(), expiry, legacy ? 'legacy' : contribution.origin ?? 'pack', contribution.feedback ? JSON.stringify(contribution.feedback) : null, contribution.validation ? JSON.stringify(contribution.validation) : null)
+export async function diagnosticCapabilityHash(request: Request): Promise<string | null> {
+  const capability = request.headers.get('X-Diagnostic-Capability')
+  if (!capability || !/^[a-f0-9]{64}$/.test(capability)) return null
+  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(capability))), byte => byte.toString(16).padStart(2, '0')).join('')
 }
-export async function storeDiagnostics(db: DiagnosticsDatabase, contribution: Contribution, receipt = new Date(), legacy = false) {
-  const result = await diagnosticInsert(db, contribution, receipt, legacy).run()
+export async function diagnosticRecord(db: DiagnosticsDatabase, id: string) {
+  return db.prepare('SELECT origin, feedback, validation, capability_hash FROM diagnostic_reports WHERE id = ?').bind(id).first<{ origin: string; feedback: string | null; validation: string | null; capability_hash: string | null }>()
+}
+const days = (date: Date, count: number) => new Date(date.getTime() + count * 86400000).toISOString()
+export function diagnosticInsert(db: DiagnosticsDatabase, contribution: Pick<Contribution, 'submissionId' | 'origin' | 'validation'> & { feedback: unknown }, receipt = new Date(), legacy = false, capabilityHash: string | null = null) {
+  const expiry = legacy ? days(receipt, 90) : (() => { const end = new Date(receipt); end.setUTCFullYear(end.getUTCFullYear() + 1); return end.toISOString() })()
+  return db.prepare('INSERT OR IGNORE INTO diagnostic_reports (id, received_at, expires_at, origin, feedback, validation, capability_hash) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .bind(contribution.submissionId, receipt.toISOString(), expiry, legacy ? 'legacy' : contribution.origin ?? 'pack', contribution.feedback ? JSON.stringify(contribution.feedback) : null, contribution.validation ? JSON.stringify(contribution.validation) : null, capabilityHash)
+}
+export async function storeDiagnostics(db: DiagnosticsDatabase, contribution: Contribution, receipt = new Date(), legacy = false, capabilityHash: string | null = null) {
+  const result = await diagnosticInsert(db, contribution, receipt, legacy, capabilityHash).run()
   return result.meta.changes ? 'collected' : 'duplicate'
 }
 export async function cleanDiagnostics(db: DiagnosticsDatabase, now = new Date()) {
@@ -57,14 +65,28 @@ export async function shareNotes(request: Request, db?: DiagnosticsDatabase, lim
     const { retrospective, submissionId } = body as Record<string, unknown>
     const notes = parseRetrospective(retrospective)
     if (!notes || typeof submissionId !== 'string' || !/^[a-f0-9]{64}$/.test(submissionId)) return new Response(null, { status: 400, headers })
+    const capabilityHash = await diagnosticCapabilityHash(request)
+    if (!capabilityHash) return Response.json({ error: 'This tab does not have permission to attach notes', code: 'notes_unauthorized' }, { status: 403, headers })
     const now = new Date()
-    const parent = await db.prepare('SELECT feedback FROM diagnostic_reports WHERE id = ? AND expires_at > ?').bind(submissionId, now.toISOString()).first<{ feedback: string | null }>()
+    const parent = await db.prepare('SELECT feedback, capability_hash FROM diagnostic_reports WHERE id = ? AND expires_at > ?').bind(submissionId, now.toISOString()).first<{ feedback: string | null; capability_hash: string | null }>()
     if (!parent) return Response.json({ error: 'Import or submit the report first' }, { status: 409, headers })
+    if (parent.capability_hash !== capabilityHash) return Response.json({ error: 'This tab does not have permission to attach notes', code: 'notes_unauthorized' }, { status: 403, headers })
     if (!parent.feedback || JSON.parse(parent.feedback).protocolRevision !== notes.protocolRevision) return Response.json({ error: 'Instructions do not match' }, { status: 409, headers })
-    const paused = await admitDiagnostics(binding)
+    const existing = await db.prepare('SELECT body FROM diagnostic_notes WHERE report_id = ?').bind(submissionId).first<{ body: string }>()
+    if (existing) return existing.body === JSON.stringify(notes) ? Response.json({ status: 'duplicate' }, { headers }) : Response.json({ error: 'Different notes were already shared for this report' }, { status: 409, headers })
+    const paused = await admitDiagnostics(binding, `notes:${submissionId}`)
     if (paused) return paused
-    const result = await db.prepare('INSERT OR IGNORE INTO diagnostic_notes (report_id, received_at, expires_at, body) VALUES (?, ?, ?, ?)').bind(submissionId, now.toISOString(), days(now, 90), JSON.stringify(notes)).run()
+    const writeTime = new Date()
+    // Admission crosses a network boundary. Recheck ownership, expiry, and the
+    // report contents in the INSERT itself in case cleanup/reimport replaced it.
+    const result = await db.prepare(`INSERT OR IGNORE INTO diagnostic_notes (report_id, received_at, expires_at, body)
+      SELECT ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM diagnostic_reports WHERE id = ? AND capability_hash = ? AND expires_at > ? AND feedback = ?)`)
+      .bind(submissionId, writeTime.toISOString(), days(writeTime, 90), JSON.stringify(notes), submissionId, capabilityHash, writeTime.toISOString(), parent.feedback).run()
     if (!result.meta.changes) {
+      const current = await db.prepare('SELECT feedback, capability_hash FROM diagnostic_reports WHERE id = ? AND expires_at > ?').bind(submissionId, new Date().toISOString()).first<{ feedback: string | null; capability_hash: string | null }>()
+      if (!current) return Response.json({ error: 'Import or submit the report first' }, { status: 409, headers })
+      if (current.capability_hash !== capabilityHash) return Response.json({ error: 'This tab does not have permission to attach notes', code: 'notes_unauthorized' }, { status: 403, headers })
+      if (current.feedback !== parent.feedback) return Response.json({ error: 'Instructions do not match' }, { status: 409, headers })
       const existing = await db.prepare('SELECT body FROM diagnostic_notes WHERE report_id = ?').bind(submissionId).first<{ body: string }>()
       if (existing?.body !== JSON.stringify(notes)) return Response.json({ error: 'Different notes were already shared for this report' }, { status: 409, headers })
     }

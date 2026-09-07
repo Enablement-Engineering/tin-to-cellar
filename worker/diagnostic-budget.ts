@@ -17,9 +17,19 @@ export function pausedResponse(resetAt?: string) {
     headers: { ...headers, ...(resetAt ? { 'Retry-After': String(Math.max(1, Math.ceil((Date.parse(resetAt) - Date.now()) / 1000))) } : {}) },
   })
 }
-// One fixed-size counter, shared by reports and notes. Reservations are not refunded:
-// retries and interrupted persistence also consume allowance, conservatively.
-export async function budgetResponse(storage: Storage, config: DiagnosticBudgetConfig, admit: boolean) {
+// Atomic resource reservations share one counter. A failed/uncertain write keeps its
+// reservation so retries cannot double-charge or refund another concurrent write.
+export async function cleanDiagnosticAdmissions(storage: Storage, now = new Date()) {
+  const day = now.toISOString().slice(0, 10)
+  while (true) {
+    const page = await storage.list({ prefix: 'diagnostic-admission:', limit: 1000 })
+    const expired = [...page.keys()].filter(key => key.slice('diagnostic-admission:'.length, 'diagnostic-admission:'.length + 10) < day)
+    for (const key of expired) await storage.delete(key)
+    if (expired.length < 1000) return
+  }
+}
+export async function budgetResponse(storage: Storage, config: DiagnosticBudgetConfig, admit: boolean, resource?: string) {
+  if (resource !== undefined && !/^(report|notes):[a-f0-9]{64}$/.test(resource)) return new Response(null, { status: 400, headers })
   const setting = policy(config)
   if (!setting) return Response.json({ code: 'collection_unconfigured', error: 'Diagnostic allowance is unavailable' }, { status: 503, headers })
   return storage.transaction(async transaction => {
@@ -36,7 +46,10 @@ export async function budgetResponse(storage: Storage, config: DiagnosticBudgetC
     let lastPausedAt = saved?.lastPausedAt
     const paused = !setting.enabled || used >= setting.limit
     if (admit) {
+      const key = resource ? `diagnostic-admission:${day}:${resource}` : null
+      if (setting.enabled && key && await transaction.get(key)) return Response.json({ status: 'reserved' }, { headers })
       if (paused) return pausedResponse(setting.enabled ? resetAt : undefined)
+      if (key) await transaction.put(key, true)
       used++
       if (used >= setting.limit) lastPausedAt = now.toISOString()
       await transaction.put('diagnostic-budget-v1', { day, used, ...(lastPausedAt ? { lastPausedAt } : {}) })
@@ -44,10 +57,10 @@ export async function budgetResponse(storage: Storage, config: DiagnosticBudgetC
     return Response.json({ version: 1, day, lastPausedAt: lastPausedAt ?? null, used, limit: setting.limit, paused: !setting.enabled || used >= setting.limit, resetAt }, { headers })
   })
 }
-export async function admitDiagnostics(binding?: ContributionBinding): Promise<Response | null> {
+export async function admitDiagnostics(binding?: ContributionBinding, resource?: string): Promise<Response | null> {
   if (!binding) return Response.json({ code: 'collection_unconfigured', error: 'Diagnostic allowance is unavailable' }, { status: 503, headers })
   try {
-    const result = await binding.getByName('catalog-contributions-v1').fetch(new Request('https://catalog/budget', { method: 'POST' }))
+    const result = await binding.getByName('catalog-contributions-v1').fetch(new Request('https://catalog/budget', { method: 'POST', ...(resource ? { body: JSON.stringify({ resource }) } : {}) }))
     return result.ok ? null : result
   } catch { return Response.json({ code: 'collection_unconfigured', error: 'Diagnostic allowance is unavailable' }, { status: 503, headers }) }
 }

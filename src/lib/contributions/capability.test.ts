@@ -1,0 +1,27 @@
+// @vitest-environment jsdom
+import { afterEach, expect, it, vi } from 'vitest'
+afterEach(() => { sessionStorage.clear(); vi.resetModules(); vi.useRealTimers() })
+it('restores a receipt after reload and keeps the cache bounded without embedding report data', async () => {
+  const { diagnosticCapability } = await import('./capability')
+  const id = 'a'.repeat(64)
+  const token = diagnosticCapability(id)
+  vi.resetModules()
+  expect((await import('./capability')).diagnosticCapability(id)).toBe(token)
+  for (let n = 0; n < 110; n++) diagnosticCapability(n.toString(16).padStart(64, '0'))
+  const saved = JSON.parse(sessionStorage.getItem('tin-to-cellar:diagnostic-receipts-v1')!)
+  expect(saved).toHaveLength(100)
+  expect(Object.keys(saved[0]).sort()).toEqual(['createdAt', 'id', 'token'])
+})
+it('expires old receipts and tolerates unavailable browser storage during retries', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-09-07'))
+  const { diagnosticCapability } = await import('./capability')
+  const id = 'b'.repeat(64)
+  const old = diagnosticCapability(id)
+  vi.setSystemTime(new Date('2027-09-09'))
+  const next = diagnosticCapability(id)
+  expect(next).not.toBe(old)
+  const get = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('Disabled') })
+  const set = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('Disabled') })
+  expect(diagnosticCapability(id)).toBe(next)
+  get.mockRestore(); set.mockRestore()
+})

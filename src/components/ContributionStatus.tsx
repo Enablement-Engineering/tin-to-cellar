@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { toSharedContribution, type Contribution } from '../lib/contributions'
+import { diagnosticCapability } from '../lib/contributions/capability'
 import type { Retrospective } from '../lib/feedback/retrospective'
 
 function usePause() {
@@ -37,6 +38,7 @@ export function ContributionStatus({ contribution, retrospective = null, hidden 
   useEffect(() => { contributionRef.current = contribution; deliveryCallback.current = onDelivery }, [contribution, onDelivery])
   const submissionId = contribution?.submissionId
   const [notesStatus, setNotesStatus] = useState<'idle' | 'sending' | 'collected' | 'failed' | 'paused'>('idle')
+  const [notesAllowed, setNotesAllowed] = useState(true)
   const receiptButton = useRef<HTMLButtonElement>(null)
   const closeButton = useRef<HTMLButtonElement>(null)
   const dialog = useRef<HTMLDialogElement>(null)
@@ -49,10 +51,10 @@ export function ContributionStatus({ contribution, retrospective = null, hidden 
     setStatus('sending')
     const controller = new AbortController()
     void fetch('/api/labels/contributions', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Diagnostic-Capability': diagnosticCapability(payload.submissionId) }, body: JSON.stringify(payload),
       signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
     }).then(async response => {
-      const result = await response.json() as { status?: string; code?: string; resetAt?: string }
+      const result = await response.json() as { status?: string; code?: string; resetAt?: string; notesAllowed?: boolean }
       if ([429, 503].includes(response.status) && result.code === 'collection_paused') {
         if (!controller.signal.aborted) { pauseCollection(result.resetAt); setStatus('paused'); deliveryCallback.current?.('failed') }
         return
@@ -62,6 +64,7 @@ export function ContributionStatus({ contribution, retrospective = null, hidden 
         return
       }
       if (!response.ok) throw new Error('Unavailable')
+      if (!controller.signal.aborted) setNotesAllowed(result.notesAllowed !== false)
       if (!['collected', 'duplicate', 'partial'].includes(result.status ?? '')) throw new Error('Unexpected response')
       if (!controller.signal.aborted) { setStatus(result.status === 'partial' ? 'partial' : 'collected'); deliveryCallback.current?.(result.status === 'partial' ? 'failed' : 'sent') }
     }).catch(() => { if (!controller.signal.aborted) { setStatus('failed'); deliveryCallback.current?.('failed') } })
@@ -73,12 +76,13 @@ export function ContributionStatus({ contribution, retrospective = null, hidden 
     notesController.current = controller
     setNotesStatus('sending')
     try {
-      const response = await fetch('/api/labels/process-notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ submissionId: contribution.submissionId, retrospective }), signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]) })
+      const response = await fetch('/api/labels/process-notes', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Diagnostic-Capability': diagnosticCapability(contribution.submissionId) }, body: JSON.stringify({ submissionId: contribution.submissionId, retrospective }), signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]) })
       const result = await response.json()
       if ([429, 503].includes(response.status) && result.code === 'collection_paused') {
         if (!controller.signal.aborted) { notesPause.pause(result.resetAt); setNotesStatus('paused') }
         return
       }
+      if (response.status === 403 && result.code === 'notes_unauthorized') { if (!controller.signal.aborted) { setNotesAllowed(false); setNotesStatus('idle') }; return }
       if (!response.ok || !['collected', 'duplicate'].includes(result.status)) throw new Error('Unconfirmed')
       if (!controller.signal.aborted) setNotesStatus('collected')
     } catch { if (!controller.signal.aborted) setNotesStatus('failed') }
@@ -98,7 +102,8 @@ export function ContributionStatus({ contribution, retrospective = null, hidden 
       {retrospective && <section aria-labelledby={notesId}><h3 id={notesId}>Optional process notes</h3>
         <p>These AI-written notes stay in this tab until you share them. Read them for personal information before sharing. Shared notes are kept for 90 days.</p>
         <pre tabIndex={0} aria-label="Optional process notes">{JSON.stringify(retrospective, null, 2)}</pre>
-        <button className="button secondary" type="button" disabled={!['collected', 'partial'].includes(status) || ['sending', 'collected'].includes(notesStatus) || (notesStatus === 'paused' && !notesPause.ready)} onClick={event => { if (document.activeElement === event.currentTarget) closeButton.current?.focus(); void share() }}>{notesStatus === 'collected' ? 'Process notes shared' : notesStatus === 'sending' ? 'Sharing…' : notesStatus === 'failed' || notesStatus === 'paused' ? 'Retry sharing process notes' : 'Share process notes'}</button>
+        <button className="button secondary" type="button" disabled={!notesAllowed || !['collected', 'partial'].includes(status) || ['sending', 'collected'].includes(notesStatus) || (notesStatus === 'paused' && !notesPause.ready)} onClick={event => { if (document.activeElement === event.currentTarget) closeButton.current?.focus(); void share() }}>{notesStatus === 'collected' ? 'Process notes shared' : notesStatus === 'sending' ? 'Sharing…' : notesStatus === 'failed' || notesStatus === 'paused' ? 'Retry sharing process notes' : 'Share process notes'}</button>
+        {!notesAllowed && <p role="status">This tab does not have the original receipt for these diagnostics. Open the tab that first shared them to attach notes. If that receipt is gone, these notes can only be kept locally.</p>}
         {notesStatus === 'paused' && <p role="status">{pauseMessage(notesPause.resetAt)} Process note receipt has not been confirmed.</p>}
         {notesStatus === 'failed' && <p role="status">Sharing could not be confirmed. Your labels are still available.</p>}
       </section>}

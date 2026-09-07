@@ -16,7 +16,7 @@ export interface Env extends GalleryEnv, DiagnosticBudgetConfig {
   SOURCES_RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> }
   ASSETS: { fetch(request: Request): Promise<Response> }
 }
-export default {
+const worker = {
   async scheduled(_event: unknown, env: Env) {
     const migrate = async () => {
       if (!env.DIAGNOSTICS || !env.CATALOG_CONTRIBUTIONS) return
@@ -91,5 +91,18 @@ export default {
     if (path === '/api/labels/ocr') return Response.json({ error: 'Cloud OCR is not enabled. Use a text PDF or paste your order.' }, { status: 503, headers })
     if (path.startsWith('/api/')) return Response.json({ error: 'Not found' }, { status: 404, headers })
     return env.ASSETS.fetch(request)
+  },
+}
+
+export default {
+  ...worker,
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const response = await worker.fetch(request, env)
+    const headers = new Headers(response.headers)
+    // A separate CSP policy preserves any stricter policy set by assets/routes.
+    headers.append('Content-Security-Policy', "frame-ancestors 'none'")
+    headers.set('X-Frame-Options', 'DENY')
+    headers.set('X-Content-Type-Options', 'nosniff')
+    return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
   },
 }

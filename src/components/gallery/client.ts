@@ -28,12 +28,14 @@ export class GalleryUploadError extends Error {
 export async function uploadFailure(response: Response): Promise<GalleryUploadError> {
   const result = await response.json().catch(() => null) as { error?: unknown } | null
   const code = typeof result?.error === 'string' && result.error.length <= 64 ? result.error : ''
+  if (code === 'rate_limited') return new GalleryUploadError('Uploads are temporarily at their limit. Wait a minute, then retry this label. You can still print it.', true)
   const permanent: Record<string, string> = {
     unsupported_image: 'This artwork is not supported for sharing. Use a static, non-interlaced, 8-bit RGB or RGBA sRGB PNG without an embedded ICC profile, then rebuild and re-import the pack. You can still print this label.',
     image_mismatch: 'The uploaded artwork does not match its recorded image details. Re-import the original validated pack before sharing. You can still print your open labels.',
     invalid_geometry: 'This circle or blank writing area is not supported for sharing. Correct the artwork and pack geometry, then re-import the pack. You can still print your open labels.',
     limit_exceeded: 'This image exceeds the sharing size limit. Rebuild and re-import a pack with artwork within the stated limits. You can still print this label.',
     expired: 'This upload reservation has expired. Start a new submission if you still want to share this label. You can still print it.',
+    upload_attempts_exhausted: 'This submission has used its upload attempts. Start a new submission to try sharing again. You can still print this label.',
   }
   if (permanent[code]) return new GalleryUploadError(permanent[code], false)
   return new GalleryUploadError(code === 'intake_closed' ? 'Sharing is paused. Keep this tab open and try again later. You can still print this label.' : 'Artwork upload was not confirmed. Keep this tab open and retry this label.', true)

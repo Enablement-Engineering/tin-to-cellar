@@ -13,6 +13,8 @@ describe('local gallery release preparation', () => {
   expect(JSON.stringify(result)).not.toContain('10c1a5a7-9884-46ad-86d0-2eedf5d8426a');expect(result.vars.PRIVATE_PRODUCTION_SETTING).toBeUndefined()
   expect(result.routes).toEqual([{pattern:'staging.tintocellar.com',custom_domain:true},{pattern:'admin-staging.tintocellar.com',custom_domain:true}]);expect(result.limits).toBeUndefined()
   expect(result.main).toBe('/tmp/checkout/worker/index.ts');expect(result.d1_databases[0].migrations_dir).toBe('/tmp/checkout/migrations/gallery')
+  expect(result.ratelimits.map(limit=>limit.namespace_id)).toEqual(['2005','2007','2008'])
+  expect(result.ratelimits.map(limit=>limit.namespace_id).some(id=>base.ratelimits.some(limit=>limit.namespace_id===id))).toBe(false)
  })
  it('preserves production diagnostics, DO history and routes, while keeping gallery off', () => {
   const {host: _,...prod}=options
@@ -22,6 +24,12 @@ describe('local gallery release preparation', () => {
   expect(result.vars).toMatchObject({GALLERY_INTAKE:'false',GALLERY_PUBLICATION:'false',GALLERY_SERVING:'false'})
   expect(result.workers_dev).toBe(false);expect(result.preview_urls).toBe(false);expect(result.limits.cpu_ms).toBe(2000)
   expect(JSON.stringify(result)).not.toContain('GALLERY_TURNSTILE_SECRET');expect(JSON.stringify(result)).not.toContain('GALLERY_IP_SALT')
+  expect(result.ratelimits).toEqual(expect.arrayContaining([
+   ...base.ratelimits.filter(limit=>!limit.name.startsWith('GALLERY_')),
+   {name:'GALLERY_READ_RATE_LIMITER',namespace_id:'1007',simple:{limit:120,period:60}},
+   {name:'GALLERY_UPLOAD_RATE_LIMITER',namespace_id:'1008',simple:{limit:5,period:60}},
+  ]))
+  expect(new Set(result.ratelimits.map(limit=>limit.namespace_id)).size).toBe(result.ratelimits.length)
  })
  it('rejects missing identities, placeholders, production reuse and test keys before writing config', () => {
   for(const patch of [{'database-id':undefined},{'database-id':'00000000-0000-0000-0000-000000000001'},{'database-id':base.d1_databases[0].database_id},{'admin-subject':'replace-me'},{host:'tintocellar.com'},{host:'www.tintocellar.com'},{host:'https://staging.tintocellar.com'},{host:'demo.example.com'},{bucket:'tin-to-cellar-gallery'},{'access-issuer':'https://evil.net'},{'access-aud':'short'},{'turnstile-site-key':'1x00000000000000000000AA'}])expect(()=>createReleaseConfig(base,{...options,...patch},'/tmp/checkout')).toThrow()

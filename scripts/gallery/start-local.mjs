@@ -13,10 +13,14 @@ const port = process.argv.includes('--port') ? process.argv[process.argv.indexOf
 writeFileSync(config, JSON.stringify({
   name: 'tin-to-cellar-local-gallery', main: resolve(testMode ? 'tests/gallery/test-worker.ts' : 'worker/index.ts'),
   compatibility_date: '2026-09-05', workers_dev: false, preview_urls: false,
-  assets: { directory: resolve('dist'), binding: 'ASSETS', not_found_handling: 'single-page-application', run_worker_first: ['/api/*', '/admin/*', '/gallery/status', ...(testMode ? ['/__test/*'] : [])] },
+  assets: { directory: resolve('dist'), binding: 'ASSETS', not_found_handling: 'single-page-application', run_worker_first: true },
   d1_databases: [{ binding: 'GALLERY', database_name: 'local-gallery', database_id: '00000000-0000-0000-0000-000000000001', migrations_dir: resolve('migrations/gallery') }],
   r2_buckets: [{ binding: 'GALLERY_ART', bucket_name: 'local-gallery' }],
-  ratelimits: [{ name: 'GALLERY_RATE_LIMITER', namespace_id: '9001', simple: { limit: 5, period: 60 } }],
+  ratelimits: [
+    { name: 'GALLERY_RATE_LIMITER', namespace_id: '9001', simple: { limit: 5, period: 60 } },
+    { name: 'GALLERY_READ_RATE_LIMITER', namespace_id: '9002', simple: { limit: 120, period: 60 } },
+    { name: 'GALLERY_UPLOAD_RATE_LIMITER', namespace_id: '9003', simple: { limit: 5, period: 60 } },
+  ],
   vars: { GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'local-test-only-no-production-value', GALLERY_TURNSTILE_SITE_KEY: testMode ? 'local-test-widget' : '' },
   observability: { enabled: false },
 }, null, 2))

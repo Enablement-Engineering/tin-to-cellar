@@ -19,6 +19,7 @@ interface Row {
     request_hash: string;
     state: GalleryState;
     row_version: number;
+    upload_attempts: number;
     created_at: string;
     expires_at: string;
     lease_until: string | null;
@@ -89,10 +90,22 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                 return json({ intake: false, serving: false, noticeVersion: GALLERY_NOTICE_VERSION, turnstileSiteKey: '' });
             return json({ error: 'storage_unavailable' }, 503);
         }
+        // Admit public reads before any D1 query or R2 access. Intake and browsing
+        // use separate allowances so ordinary browsing cannot starve submissions.
+        const limiter = method === 'GET' && !path.startsWith('/admin/')
+            ? env.GALLERY_READ_RATE_LIMITER
+            : method === 'PUT' && /^\/submissions\/[a-f0-9-]+\/artwork$/.test(path)
+                ? env.GALLERY_UPLOAD_RATE_LIMITER : null;
+        const limited = (method === 'GET' && !path.startsWith('/admin/')) || (method === 'PUT' && /^\/submissions\/[a-f0-9-]+\/artwork$/.test(path));
+        if (limited) {
+            if (!limiter || !env.GALLERY_IP_SALT) return json({ error: 'rate_limit_unavailable' }, 503);
+            const key = await sha256(`${env.GALLERY_IP_SALT}:${now.toISOString().slice(0, 10)}:${request.headers.get('CF-Connecting-IP') ?? 'unknown'}`);
+            if (!(await limiter.limit({ key })).success) return Response.json({ error: 'rate_limited' }, { status: 429, headers: { ...responseHeaders, 'Retry-After': '60' } });
+        }
         const db = database(env);
         const switches = await flags(db, env);
         if (path === '/config' && method === 'GET')
-            return json({ ...switches, intake: switches.intake && !!env.GALLERY_TURNSTILE_SITE_KEY && !!env.GALLERY_IP_SALT && !!env.GALLERY_RATE_LIMITER && (!!env.GALLERY_TURNSTILE_SECRET || !!deps.verifyTurnstile), noticeVersion: GALLERY_NOTICE_VERSION, turnstileSiteKey: env.GALLERY_TURNSTILE_SITE_KEY ?? '' });
+            return json({ ...switches, intake: switches.intake && !!env.GALLERY_TURNSTILE_SITE_KEY && !!env.GALLERY_IP_SALT && !!env.GALLERY_RATE_LIMITER && !!env.GALLERY_UPLOAD_RATE_LIMITER && (!!env.GALLERY_TURNSTILE_SECRET || !!deps.verifyTurnstile), noticeVersion: GALLERY_NOTICE_VERSION, turnstileSiteKey: env.GALLERY_TURNSTILE_SITE_KEY ?? '' });
         if (path === '/submissions' && method === 'POST') {
             const token = capability(request);
             if (!token)
@@ -130,19 +143,26 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                     return json({ error: 'unsupported_image' }, 415);
                 if (!switches.intake && ['reserved', 'uploading'].includes(row.state))
                     return json({ error: 'intake_closed' }, 503);
-                const bytes = await boundedBody(request, MAX_IMAGE_BYTES);
                 const draft = JSON.parse(row.metadata_json!) as GalleryLabelDraftV1;
-                if (bytes.length !== draft.image.bytes || await sha256(bytes) !== draft.image.sha256)
-                    return json({ error: 'image_mismatch' }, 400);
-                if (['pending', 'published', 'preparing-publication'].includes(row.state))
+                if (['pending', 'published', 'preparing-publication'].includes(row.state)) {
+                    const bytes = await boundedBody(request, MAX_IMAGE_BYTES);
+                    if (bytes.length !== draft.image.bytes || await sha256(bytes) !== draft.image.sha256)
+                        return json({ error: 'image_mismatch' }, 400);
                     return json(receipt(row, now));
+                }
                 if (!['reserved', 'uploading'].includes(row.state) || row.expires_at <= now.toISOString())
                     return json({ error: 'expired' }, 410);
-                const lease = await db.prepare("UPDATE gallery_submissions SET state='uploading',lease_until=?,row_version=row_version+1 WHERE id=? AND row_version=? AND (state='reserved' OR (state='uploading' AND lease_until<=?))").bind(addDays(now, 5 / 1440), row.id, row.row_version, now.toISOString()).run();
+                if (row.upload_attempts >= 3) return json({ error: 'upload_attempts_exhausted' }, 429);
+                // Claim the allowance and lease together, before consuming even a
+                // mismatched body. Failures and expired leases never refund attempts.
+                const lease = await db.prepare("UPDATE gallery_submissions SET state='uploading',lease_until=?,row_version=row_version+1,upload_attempts=upload_attempts+1 WHERE id=? AND row_version=? AND upload_attempts<3 AND (state='reserved' OR (state='uploading' AND lease_until<=?))").bind(addDays(now, 5 / 1440), row.id, row.row_version, now.toISOString()).run();
                 if (!lease.meta.changes)
                     return json({ error: 'upload_in_progress' }, 409);
                 const version = row.row_version + 1;
                 try {
+                    const bytes = await boundedBody(request, MAX_IMAGE_BYTES);
+                    if (bytes.length !== draft.image.bytes || await sha256(bytes) !== draft.image.sha256)
+                        throw new Error('image_mismatch');
                     const image = await normalizeGalleryImage(bytes);
                     if (image.width !== draft.image.width || image.height !== draft.image.height)
                         throw new Error('image_mismatch');

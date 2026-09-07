@@ -59,7 +59,12 @@ export function createReleaseConfig(base, options, root) {
   config.vars = { ...(config.vars ?? {}), GALLERY_ADMIN_HOST: adminHost, GALLERY_AGENT_ENABLED: 'false', GALLERY_AGENT_ACCESS_AUD: options['agent-access-aud'] ?? '', GALLERY_INTAKE: 'false', GALLERY_SERVING: 'false', GALLERY_PUBLICATION: 'false', GALLERY_ACCESS_ISSUER: issuer.origin, GALLERY_ACCESS_AUD: options['access-aud'], GALLERY_ADMIN_SUBJECT: options['admin-subject'], GALLERY_TURNSTILE_SITE_KEY: siteKey }
   config.d1_databases = [...(config.d1_databases ?? []).filter(db => db.binding !== 'GALLERY').map(db => ({ ...db, migrations_dir: resolve(root, db.migrations_dir ?? 'migrations') })), { binding: 'GALLERY', database_name: bucket, database_id: options['database-id'], migrations_dir: resolve(root, 'migrations/gallery') }]
   config.r2_buckets = [...(config.r2_buckets ?? []).filter(bucket => bucket.binding !== 'GALLERY_ART'), { binding: 'GALLERY_ART', bucket_name: bucket }]
-  config.ratelimits = [...(config.ratelimits ?? []).filter(limit => limit.name !== 'GALLERY_RATE_LIMITER'), { name: 'GALLERY_RATE_LIMITER', namespace_id: target === 'staging' ? '1006' : '1005', simple: { limit: 5, period: 60 } }]
+  const galleryLimits = [
+    { name: 'GALLERY_RATE_LIMITER', namespace_id: target === 'staging' ? '2005' : '1005', simple: { limit: 5, period: 60 } },
+    { name: 'GALLERY_READ_RATE_LIMITER', namespace_id: target === 'staging' ? '2007' : '1007', simple: { limit: 120, period: 60 } },
+    { name: 'GALLERY_UPLOAD_RATE_LIMITER', namespace_id: target === 'staging' ? '2008' : '1008', simple: { limit: 5, period: 60 } },
+  ]
+  config.ratelimits = [...(config.ratelimits ?? []).filter(limit => !galleryLimits.some(gallery => gallery.name === limit.name)), ...galleryLimits]
   if (options['paid-workers-confirmed'] === true) config.limits = { ...(config.limits ?? {}), cpu_ms: 2000 }
   else if (config.limits && 'cpu_ms' in config.limits) { delete config.limits.cpu_ms; if (!Object.keys(config.limits).length) delete config.limits }
   delete config.$schema

@@ -164,15 +164,17 @@ it('rejects unfamiliar shared URLs before allowance and suppresses previously st
   expect((await (await state.object.fetch(get())).json()).sources).toEqual([{ ...source, checkedAt: expect.any(String) }])
 })
 it('shares the same daily pool between reports and optional notes', async () => {
-  const { shareNotes } = await import('./diagnostics')
+  const { diagnosticCapabilityHash, shareNotes } = await import('./diagnostics')
+  const capabilityHash = await diagnosticCapabilityHash(new Request('https://site.com', { headers: { 'X-Diagnostic-Capability': 'c'.repeat(64) } }))
   const state = setup(undefined, { DIAGNOSTIC_DAILY_ALLOWANCE: '1' })
   const limiter = { limit: async () => ({ success: true }) }
   expect((await contributionsResponse(new Request('https://site.com/api/labels/contributions', { method: 'POST', headers: { Origin: 'https://site.com', 'Content-Type': 'application/json' }, body: JSON.stringify(contribution) }), state.binding, limiter)).status).toBe(200)
   const write = vi.fn(async () => ({ meta: { changes: 1 } }))
-  const statement = { bind: () => statement, run: write, async first<T>() { return { feedback: JSON.stringify({ protocolRevision: '0.0.16' }) } as T }, async all<T>() { return { results: [] as T[] } } }
-  const db = { prepare: () => statement, batch: async () => [] }
+  const statement = { bind: () => statement, run: write, async first<T>() { return { feedback: JSON.stringify({ protocolRevision: '0.0.16' }), capability_hash: capabilityHash } as T }, async all<T>() { return { results: [] as T[] } } }
+  const empty = { ...statement, bind: () => empty, async first<T>() { return null as T | null } }
+  const db = { prepare: (sql: string) => sql.includes('diagnostic_notes') ? empty : statement, batch: async () => [] }
   const notes = { format: 'tin-to-cellar/retrospective', schemaVersion: '0.1.0', protocolRevision: '0.0.16', capabilities: { browsing: 'available' }, tools: [], observations: [{ stage: 'packaging', kind: 'helped', explanation: 'The builder produced the archive successfully.' }] }
-  const request = new Request('https://site.com/api/labels/process-notes', { method: 'POST', headers: { Origin: 'https://site.com', 'Content-Type': 'application/json' }, body: JSON.stringify({ submissionId: contribution.submissionId, retrospective: notes }) })
+  const request = new Request('https://site.com/api/labels/process-notes', { method: 'POST', headers: { Origin: 'https://site.com', 'Content-Type': 'application/json', 'X-Diagnostic-Capability': 'c'.repeat(64) }, body: JSON.stringify({ submissionId: contribution.submissionId, retrospective: notes }) })
   expect((await shareNotes(request, db, limiter, state.binding)).status).toBe(429)
   expect(write).not.toHaveBeenCalled()
 })
@@ -294,7 +296,7 @@ it('rolls back expired deletions if updating their count fails', async () => {
 
 it('collects into D1 without migration and rejects malformed JSON before reserving allowance', async () => {
   const run = vi.fn(async () => ({ meta: { changes: 1 } }))
-  const statement = { bind: () => statement, run, first: vi.fn(), all: vi.fn() }
+  const statement = { bind: () => statement, run, first: vi.fn().mockResolvedValueOnce(null).mockResolvedValue({ origin: 'pack', validation: null, capability_hash: null, feedback: JSON.stringify({ format: 'tin-to-cellar/feedback', schemaVersion: '0.2.0', protocolRevision: '0.0.16', request: { labelCount: 1, shape: 'circle' }, outcome: 'complete', steps: [], issues: [] }) }), all: vi.fn() }
   const db = { prepare: () => statement, batch: vi.fn() }
   const fetch = vi.fn(async () => Response.json({}))
   const binding = { getByName: () => ({ fetch }) }
@@ -305,4 +307,33 @@ it('collects into D1 without migration and rejects malformed JSON before reservi
   expect((await contributionsResponse(request(JSON.stringify({ ...contribution, sources: [], feedback: { format: 'tin-to-cellar/feedback', schemaVersion: '0.2.0', protocolRevision: '0.0.16', request: { labelCount: 1, shape: 'circle' }, outcome: 'complete', steps: [], issues: [] } })), binding, limiter, undefined, db)).status).toBe(200)
   expect(fetch).toHaveBeenCalledOnce()
   expect(run).toHaveBeenCalledOnce()
+})
+
+it('atomically reserves each report or note once, including concurrent retries after exhaustion', async () => {
+  const { admitDiagnostics } = await import('./diagnostic-budget')
+  const state = setup(undefined, { DIAGNOSTIC_DAILY_ALLOWANCE: '2' })
+  const report = `report:${'a'.repeat(64)}`
+  const notes = `notes:${'a'.repeat(64)}`
+  const results = await Promise.all(Array.from({ length: 12 }, () => admitDiagnostics(state.binding, report)))
+  expect(results.every(result => result === null)).toBe(true)
+  expect(state.data.get('diagnostic-budget-v1')).toMatchObject({ used: 1 })
+  expect(await admitDiagnostics(state.binding, notes)).toBeNull()
+  expect(await admitDiagnostics(state.binding, report)).toBeNull()
+  expect((await admitDiagnostics(state.binding, `report:${'b'.repeat(64)}`))?.status).toBe(429)
+  expect(state.data.get('diagnostic-budget-v1')).toMatchObject({ used: 2 })
+  expect([...state.data.keys()].filter(key => key.startsWith('diagnostic-admission:'))).toHaveLength(2)
+})
+
+it('expires reservation keys daily and retains the new day reservation through cleanup', async () => {
+  const { admitDiagnostics } = await import('./diagnostic-budget')
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-09-07T23:59:00Z'))
+  const state = setup(undefined, { DIAGNOSTIC_DAILY_ALLOWANCE: '1' })
+  const resource = `report:${'a'.repeat(64)}`
+  expect(await admitDiagnostics(state.binding, resource)).toBeNull()
+  vi.setSystemTime(new Date('2026-09-08T00:00:01Z'))
+  expect(await admitDiagnostics(state.binding, resource)).toBeNull()
+  await state.object.alarm()
+  const keys = [...state.data.keys()].filter(key => key.startsWith('diagnostic-admission:'))
+  expect(keys).toEqual([`diagnostic-admission:2026-09-08:${resource}`])
+  expect(state.data.get('diagnostic-budget-v1')).toMatchObject({ used: 1, day: '2026-09-08' })
 })

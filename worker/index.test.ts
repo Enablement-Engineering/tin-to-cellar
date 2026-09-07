@@ -1,6 +1,29 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import worker from './index'
 
+it('prevents framing of public, private, error and conditional responses without replacing route policy', async () => {
+  const env = adminEnv()
+  vi.spyOn(galleryAuth, 'verifyGalleryAdmin').mockResolvedValue('human')
+  env.ASSETS.fetch.mockImplementation(async () => new Response('<main>app</main>', {
+    headers: { 'Content-Type': 'text/html', 'Content-Security-Policy': "default-src 'self'", ETag: 'fixture' },
+  }))
+  for (const url of ['https://tintocellar.com/labels/create', 'https://tintocellar.com/gallery/status', 'https://admin.tintocellar.com/']) {
+    const response = await worker.fetch(new Request(url), env)
+    expect(response.headers.get('Content-Security-Policy')).toBe("default-src 'self', frame-ancestors 'none'")
+    expect(response.headers.get('X-Frame-Options')).toBe('DENY')
+    expect(response.headers.get('ETag')).toBe('fixture')
+    expect(await response.text()).toBe('<main>app</main>')
+  }
+  vi.spyOn(galleryAuth, 'verifyGalleryAdmin').mockResolvedValue(null)
+  const denied = await worker.fetch(new Request('https://admin.tintocellar.com/'), env)
+  expect(denied.status).toBe(403)
+  expect(denied.headers.get('X-Frame-Options')).toBe('DENY')
+  env.ASSETS.fetch.mockImplementation(async () => new Response(null, { status: 304 }))
+  const conditional = await worker.fetch(new Request('https://tintocellar.com/'), env)
+  expect(conditional.status).toBe(304)
+  expect(conditional.headers.get('Content-Security-Policy')).toBe("frame-ancestors 'none'")
+})
+
 it('retires unnamespaced label APIs without redirects or asset fallthrough', async () => {
   const env = { ASSETS: { fetch: vi.fn() } }
   for (const path of ['/api/protocol/v1', '/api/protocol/v1/instructions.html', '/api/proof', '/api/proof-access', '/api/sources', '/api/contributions', '/api/ocr']) {

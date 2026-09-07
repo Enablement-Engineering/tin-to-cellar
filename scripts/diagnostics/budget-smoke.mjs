@@ -60,7 +60,7 @@ async function start(enabled) {
   }
   throw new Error(`Local Wrangler did not start: ${output}`)
 }
-const post = (path, body) => fetch(base + path, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) })
+const post = (path, body, capability = 'c'.repeat(64)) => fetch(base + path, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json', ...(capability ? { 'X-Diagnostic-Capability': capability } : {}) }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) })
 const report = { version: 2, submissionId: 'a'.repeat(64), feedback: { format: 'tin-to-cellar/feedback', schemaVersion: '0.2.0', protocolRevision: '0.0.16', request: { labelCount: 1, shape: 'circle' }, outcome: 'complete', steps: [], issues: [] }, sources: [], origin: 'pack', validation: null }
 const notes = { submissionId: report.submissionId, retrospective: { format: 'tin-to-cellar/retrospective', schemaVersion: '0.1.0', protocolRevision: '0.0.16', capabilities: { browsing: 'available' }, tools: [], observations: [{ stage: 'packaging', kind: 'helped', explanation: 'Synthetic local smoke test.' }] } }
 for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => { void stop().finally(() => { rmSync(work, { recursive: true, force: true }); process.exit(1) }) })
@@ -80,8 +80,18 @@ try {
   await start(true)
   response = await post('/api/labels/contributions', report)
   assert.equal(response.status, 200); assert.equal((await response.json()).status, 'collected')
+  const duplicates = await Promise.all(Array.from({ length: 3 }, () => post('/api/labels/contributions', report)))
+  for (const duplicate of duplicates) { assert.equal(duplicate.status, 200); assert.equal((await duplicate.json()).status, 'duplicate') }
+  aggregate = await (await fetch(`${base}/api/labels/diagnostics/budget`, { headers: authorization })).json()
+  assert.equal(aggregate.used, 1)
+  assert.equal((await post('/api/labels/process-notes', notes, null)).status, 403)
+  assert.equal((await post('/api/labels/process-notes', notes, 'd'.repeat(64))).status, 403)
+  const otherClient = await (await post('/api/labels/contributions', report, 'd'.repeat(64))).json()
+  assert.equal(otherClient.notesAllowed, false)
   response = await post('/api/labels/process-notes', notes)
   assert.equal(response.status, 200); assert.equal((await response.json()).status, 'collected')
+  response = await post('/api/labels/process-notes', notes)
+  assert.equal(response.status, 200); assert.equal((await response.json()).status, 'duplicate')
   response = await post('/api/labels/contributions', { ...report, submissionId: 'b'.repeat(64) })
   assert.equal(response.status, 429); assert.ok(Number(response.headers.get('Retry-After')) > 0)
   const paused = await response.json(); assert.equal(paused.code, 'collection_paused'); assert.ok(Number.isFinite(Date.parse(paused.resetAt)))
@@ -93,7 +103,8 @@ try {
   const exported = await (await fetch(`${base}/api/labels/diagnostics`, { headers: authorization })).json()
   assert.equal(exported.reports.length, 1); assert.equal(exported.reports[0].id, report.submissionId)
   assert.equal(exported.reports[0].retrospective.observations[0].explanation, 'Synthetic local smoke test.')
-  console.log(JSON.stringify({ localOnly: true, manualPause: 503, resumed: true, report: 200, notes: 200, thirdSubmission: 429, unauthorizedBudget: 403, usedAfterRestart: aggregate.used, limit: aggregate.limit, persistedReports: exported.reports.length, passed: true }))
+  assert.ok(!JSON.stringify(exported).includes('capability'))
+  console.log(JSON.stringify({ localOnly: true, manualPause: 503, resumed: true, report: 200, notes: 200, unauthorizedNotes: 403, duplicatesPreserveAllowance: true, thirdSubmission: 429, unauthorizedBudget: 403, usedAfterRestart: aggregate.used, limit: aggregate.limit, persistedReports: exported.reports.length, passed: true }))
 } finally {
   await stop()
   rmSync(work, { recursive: true, force: true })

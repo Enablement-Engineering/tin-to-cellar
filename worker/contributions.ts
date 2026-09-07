@@ -1,9 +1,9 @@
 import { boundedJson, BodyReadError } from './http'
 import { migrateLegacyDiagnostics } from './legacy-diagnostics'
-import { admitDiagnostics, budgetResponse, type DiagnosticBudgetConfig } from './diagnostic-budget'
+import { admitDiagnostics, budgetResponse, cleanDiagnosticAdmissions, type DiagnosticBudgetConfig } from './diagnostic-budget'
 import { parseContribution, parseSharedContribution, parseSharedSource, type Contribution, type SuggestedSource } from '../src/lib/contributions'
 import { resolveTobaccoId } from '../src/lib/tobacco-catalog'
-import { storeDiagnostics, type DiagnosticsDatabase } from './diagnostics'
+import { diagnosticCapabilityHash, diagnosticRecord, storeDiagnostics, type DiagnosticsDatabase } from './diagnostics'
 export interface Storage {
   get<T>(key: string): Promise<T | undefined>
   put(key: string, value: unknown): Promise<void>
@@ -41,6 +41,7 @@ export class CatalogContributions {
   constructor(ctx: { storage: Storage }, env?: { DIAGNOSTICS?: DiagnosticsDatabase } & DiagnosticBudgetConfig) { this.ctx = ctx; this.database = env?.DIAGNOSTICS; this.budgetConfig = env ?? {} }
   async alarm() {
     const storage = this.ctx.storage
+    await cleanDiagnosticAdmissions(storage)
     await storage.transaction(async transaction => {
       const reports = await transaction.list<Stored>({ prefix: 'report:', limit: reportCapacity + 1 })
       const count = await reportCount(transaction, reports.size)
@@ -63,7 +64,13 @@ export class CatalogContributions {
   }
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
-    if (url.pathname === '/budget' && ['GET', 'POST'].includes(request.method)) return budgetResponse(this.ctx.storage, this.budgetConfig, request.method === 'POST')
+    if (url.pathname === '/budget' && ['GET', 'POST'].includes(request.method)) {
+      const body = request.method === 'POST' ? await request.text() : ''
+      const resource = body ? (JSON.parse(body) as { resource?: string }).resource : undefined
+      const response = await budgetResponse(this.ctx.storage, this.budgetConfig, request.method === 'POST', resource)
+      if (request.method === 'POST' && await this.ctx.storage.getAlarm() === null) await this.ctx.storage.setAlarm(Date.now() + 86400000)
+      return response
+    }
     if (url.pathname === '/migrate' && request.method === 'POST') {
       return migrateLegacyDiagnostics(this.ctx.storage, this.database)
     }
@@ -125,18 +132,31 @@ export async function contributionsResponse(request: Request, binding?: Contribu
     if (!limiter || !(await limiter.limit({ key: request.headers.get('CF-Connecting-IP') ?? 'unknown' })).success) return new Response(null, { status: 429, headers })
     const contribution = parseSharedContribution(await boundedJson(request, { maxBytes: 65536 }))
     if (!contribution) return Response.json({ error: 'Invalid contribution' }, { status: 400, headers })
-    const paused = await admitDiagnostics(binding)
-    if (paused) return paused
     if (db) {
-      const status = await storeDiagnostics(db, contribution)
+      const capabilityHash = await diagnosticCapabilityHash(request)
+      if (request.headers.has('X-Diagnostic-Capability') && !capabilityHash) return Response.json({ error: 'Invalid diagnostic capability' }, { status: 400, headers })
+      const prior = await diagnosticRecord(db, contribution.submissionId)
+      const matches = (record: NonNullable<typeof prior>) => record.origin === (contribution.origin ?? 'pack') && record.feedback === (contribution.feedback ? JSON.stringify(contribution.feedback) : null) && record.validation === (contribution.validation ? JSON.stringify(contribution.validation) : null)
+      if (prior && !matches(prior)) return Response.json({ error: 'Different diagnostics were already shared for this report' }, { status: 409, headers })
+      if (!prior) {
+        const paused = await admitDiagnostics(binding, `report:${contribution.submissionId}`)
+        if (paused) return paused
+      }
+      const status = prior ? 'duplicate' : await storeDiagnostics(db, contribution, new Date(), false, capabilityHash)
+      // The insert winner owns the record. A concurrent loser never acquires ownership.
+      const stored = prior ?? await diagnosticRecord(db, contribution.submissionId)
+      if (!stored || !matches(stored)) return Response.json({ error: 'Different diagnostics were already shared for this report' }, { status: 409, headers })
+      const ownership = capabilityHash ? { notesAllowed: stored.capability_hash === capabilityHash } : {}
       if (contribution.sources.length) {
         // The legacy object continues to own source ordering and deduplication. Do not copy diagnostics there.
         const sourceResult = await target.fetch(new Request('https://catalog/collect', { method: 'POST', body: JSON.stringify({ version: 1, submissionId: contribution.submissionId, feedback: null, sources: contribution.sources }) }))
-        if (!sourceResult.ok) return Response.json({ status: 'partial', diagnostics: status, sources: 'unconfirmed' }, { status: 200, headers })
+        if (!sourceResult.ok) return Response.json({ status: 'partial', diagnostics: status, sources: 'unconfirmed', ...ownership }, { status: 200, headers })
       }
-      return Response.json({ status }, { headers })
+      return Response.json({ status, ...ownership }, { headers })
     }
     if (contribution.version === 2) return Response.json({ error: 'Diagnostics storage is unavailable' }, { status: 503, headers })
+    const paused = await admitDiagnostics(binding, `report:${contribution.submissionId}`)
+    if (paused) return paused
     return target.fetch(new Request('https://catalog/collect', { method: 'POST', body: JSON.stringify(contribution) }))
   } catch (error) {
     if (error instanceof BodyReadError) return Response.json({ error: error.message }, { status: error.status, headers })
