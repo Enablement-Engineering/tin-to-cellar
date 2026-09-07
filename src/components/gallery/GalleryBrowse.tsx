@@ -56,7 +56,7 @@ export function GalleryBrowse({ onUse }: { onUse: (file: File) => Promise<void> 
     setFilter({ ids, typing })
   }
   const openLabel = async (id: string) => { setBusy(true); setError(''); try { const response = await fetch(`${API}/labels/${id}/pack`, { cache: 'no-store' }); if (!response.ok) throw new Error('This design is no longer available. Refresh the library.'); await onUse(new File([await response.blob()], 'community-label.cellarpack.zip', { type: 'application/zip' })) } catch (e) { setError(errorText(e)) } finally { setBusy(false) } }
-  return <section className="gallery-page screen-only" aria-labelledby="gallery-title"><header className="page-heading"><h1 id="gallery-title">Community labels</h1><p>Find a design, choose your quantities, and print for personal cellaring.</p></header>
+  return <section className="gallery-page screen-only" aria-labelledby="gallery-title"><header className="page-heading"><h1 id="gallery-title" tabIndex={-1}>Community labels</h1><p>Find a design, choose your quantities, and print for personal cellaring.</p></header>
     {(configError || error) && <p role="alert">{configError || error}</p>}
     {!config && !configError && <p role="status">Loading library…</p>}
     {config && !config.serving && <p>The community library is closed for now. You can still import and print your own label pack.</p>}
