@@ -66,3 +66,14 @@
 .gallery-pack-items li { display: flex; align-items: center; justify-content: space-between; gap: .75rem; border-bottom: 1px solid var(--line-rule-brass); padding: .25rem 0; }
 .gallery-pack-items span { min-width: 0; overflow-wrap: anywhere; }
 .gallery-pack-items button { flex-shrink: 0; min-height: 44px; }
+
+/* Reserve space even before selection so the gallery never shifts on Add. */
+.gallery-page { padding-bottom: 6rem; }
+.gallery-pack-floating { position: fixed; z-index: 30; right: max(1rem, env(safe-area-inset-right)); bottom: max(1rem, env(safe-area-inset-bottom)); width: min(26rem, calc(100vw - 2rem)); }
+.gallery-pack-floating .gallery-pack-tray { margin: 0 0 .5rem; max-height: 65dvh; overflow-y: auto; box-shadow: 0 4px 24px #0002; }
+.gallery-pack-floating .gallery-pack-tray[hidden] { display: none; }
+.gallery-pack-floating .gallery-pack-heading h2 { font-size: 1.15rem; }
+.gallery-pack-toggle { display: flex; width: 100%; justify-content: space-between; gap: 1rem; box-shadow: 0 3px 16px #0002; }
+.gallery-pack-floating .gallery-actions { flex-wrap: wrap; }
+.gallery-pack-floating .gallery-actions .button { flex: 1 1 auto; }
+.gallery-pack-floating .gallery-pack-items { max-height: 25dvh; }

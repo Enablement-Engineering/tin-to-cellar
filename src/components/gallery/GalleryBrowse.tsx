@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GalleryPublicLabel } from '../../lib/gallery/types'
 import { MAX_PACK_LABELS, validChoice, type PackChoice } from './pack-selection'
+import { FloatingPack } from './FloatingPack'
 import { GalleryBlendSearch } from './GalleryBlendSearch'
 import { API, errorText, request, useConfig } from './client'
 export function GalleryBrowse({ onUse }: { onUse: (file: File) => Promise<void> }) {
@@ -51,13 +52,7 @@ export function GalleryBrowse({ onUse }: { onUse: (file: File) => Promise<void> 
     {config && !config.serving && <p>The community library is closed for now. You can still import and print your own label pack.</p>}
     {config?.serving && <><div className="gallery-filters"><GalleryBlendSearch onChange={(id, pending) => { if (!pending) setCatalogId(id) }} /><label>Label shape<select aria-label="Label shape" defaultValue="circle-2.5"><option value="circle-2.5">2.5-inch circle</option></select></label></div>
     <p role="status" aria-atomic="true">{busy ? 'Loading labels…' : error ? '' : !labels.length ? 'No labels match yet. Try another blend.' : `${labels.length} ${labels.length === 1 ? 'label' : 'labels'} shown${cursor ? '. More labels available.' : '.'}`}</p>
-    {selected.length > 0 && <section className="gallery-pack-tray" aria-labelledby="your-pack-title">
-      <div className="gallery-pack-heading"><h2 id="your-pack-title" aria-live="polite">Your pack · {selected.length} {selected.length === 1 ? 'label' : 'labels'}</h2><button className="button quiet" disabled={assembling} onClick={() => setSelected([])}>Clear pack</button></div>
-      <ul className="gallery-pack-items">{selected.map(label => <li key={label.id}><span>{label.maker} · {label.blend}</span><button className="button quiet" disabled={assembling} aria-label={`Remove ${label.maker} ${label.blend} from pack`} onClick={() => setSelected(old => old.filter(item => item.id !== label.id))}>Remove</button></li>)}</ul>
-      <div className="gallery-actions"><button className="button primary" disabled={busy || assembling} onClick={() => void createPack(true)}>Print selected labels</button><button className="button secondary" disabled={busy || assembling} onClick={() => void createPack(false)}>Download pack</button></div>
-      <p className="field-hint">Choose quantities on the print screen. Up to {MAX_PACK_LABELS} designs per pack.</p>
-    </section>}
-    {assembling && <p role="status">Preparing your pack…</p>}
+    <FloatingPack selected={selected} busy={busy} assembling={assembling} onRemove={id => setSelected(old => old.filter(item => item.id !== id))} onClear={() => setSelected([])} onCreate={print => void createPack(print)} />
     <div className="gallery-grid" role="region" aria-label="Label results" aria-busy={busy}>{labels.map(label => <article className="gallery-card" key={label.id}><a href={`${API}/labels/${label.id}/artwork`} target="_blank" rel="noreferrer" aria-label={`View full-resolution ${label.blend} artwork`}><img src={`${API}/labels/${label.id}/thumbnail`} alt={label.description} loading="lazy" /></a><h2>{label.maker} · {label.blend}</h2><p>{label.edition ? `${label.edition} · ` : ''}2.5-inch circle</p><p>{label.description}</p><div className="gallery-actions"><button className="button primary" disabled={assembling || selected.some(item => item.id === label.id) || selected.length >= MAX_PACK_LABELS} onClick={() => setSelected(old => old.some(item => item.id === label.id) ? old : [...old, { id: label.id, maker: label.maker, blend: label.blend }])}>{selected.some(item => item.id === label.id) ? 'Added to pack' : 'Add to pack'}</button><button className="button secondary" disabled={busy || assembling} onClick={() => void openLabel(label.id)}>Use label</button></div></article>)}</div>
     {cursor && <button className="button secondary" disabled={busy} onClick={() => void load(cursor)}>More labels</button>}</>}
     <footer className="gallery-disclaimer">

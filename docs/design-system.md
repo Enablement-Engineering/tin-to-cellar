@@ -215,3 +215,7 @@ Selection persists in this browser tab's session through filtering and navigatio
 The Blend combobox filters suggestions while typing. Selecting with Enter or a click applies the catalog filter immediately; exploring with arrow keys, focusing, or dismissing with Escape does not apply it. Instructions describe this behavior before selection. Focus stays in the input, and Clear blend returns focus there before its button disappears. Composition keystrokes do not commit a suggestion.
 
 A persistent, polite status region announces loading, the number of labels shown, and empty results. The results region exposes its busy state without making every card a live announcement. New filter requests invalidate older responses so delayed results cannot replace the current selection. Do not move focus or navigate when the filter changes.
+
+### Floating pack controls
+
+The pack control sits at the bottom right of the viewport. Adding designs updates its count without opening the panel, moving focus, or changing gallery layout. Activate the count button to review selections and print or download the pack. The panel is a nonmodal disclosure, with aria-expanded and aria-controls; Escape closes it and restores focus to its toggle. Removal and Clear pack keep focus on the toggle. Its bounded height and scrolling list support small screens. Gallery bottom padding reserves access to the final cards.
