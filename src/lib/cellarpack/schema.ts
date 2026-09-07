@@ -1,15 +1,32 @@
 import Ajv2020 from 'ajv/dist/2020.js'
-import type { ErrorObject, ValidateFunction } from 'ajv'
+import type { ErrorObject } from 'ajv'
 import schemaText from './cellarpack-v1.schema.json?raw'
 import type {
+  ArtworkAsset,
+  CellarLabel,
   CellarPackManifest,
   ManifestValidationResult,
   ValidationIssue,
 } from './types'
 
-const cellarPackSchema = JSON.parse(schemaText) as object
+const cellarPackSchema = JSON.parse(schemaText) as Record<string, unknown>
 const ajv = new Ajv2020({ allErrors: true, strict: false })
-const validate = ajv.compile(cellarPackSchema) as ValidateFunction<CellarPackManifest>
+const validate = ajv.compile<CellarPackManifest>(cellarPackSchema)
+
+const labelSchema = (cellarPackSchema.$defs as Record<string, unknown>).label
+const assetSchema = (cellarPackSchema.$defs as Record<string, unknown>).artworkAsset
+const assetMapSchema = (cellarPackSchema.properties as Record<string, Record<string, unknown>>).assets
+const validateAssetMap = ajv.compile({ ...assetMapSchema, $defs: cellarPackSchema.$defs, additionalProperties: true })
+export const validateLabelSchema = ajv.compile<CellarLabel>({
+  $schema: String(cellarPackSchema.$schema),
+  $defs: cellarPackSchema.$defs,
+  ...(labelSchema as Record<string, unknown>),
+})
+export const validateAssetSchema = ajv.compile<ArtworkAsset>({
+  $schema: String(cellarPackSchema.$schema),
+  $defs: cellarPackSchema.$defs,
+  ...(assetSchema as Record<string, unknown>),
+})
 
 export function validateManifest(input: unknown): ManifestValidationResult {
   const preflightIssues = validateManifestPreflight(input)
@@ -128,4 +145,71 @@ function pointerToPath(pointer: string): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+export function validateRootShape(input: Record<string, unknown>): ValidationIssue[] {
+  if (!Array.isArray(input.labels) || input.labels.length < 1 || input.labels.length > 100) {
+    return [{
+      severity: 'fatal',
+      code: 'INVALID_MANIFEST_SCHEMA',
+      path: 'labels',
+      message: 'The manifest must contain between 1 and 100 labels.',
+      recovery: 'Add at least one label or split an oversized project into multiple packs.',
+    }]
+  }
+  if (!isRecord(input.assets) || Object.keys(input.assets).length < 1) {
+    return [{
+      severity: 'fatal',
+      code: 'INVALID_MANIFEST_SCHEMA',
+      path: 'assets',
+      message: 'The manifest must contain an artwork asset map.',
+      recovery: 'Declare the artwork files referenced by the labels.',
+    }]
+  }
+  if (!validateAssetMap(input.assets)) {
+    return (validateAssetMap.errors ?? []).map((error) => ({
+      severity: 'fatal',
+      code: 'INVALID_MANIFEST_SCHEMA',
+      path: 'assets',
+      message: `Artwork asset map ${error.message ?? 'is invalid'}.`,
+      recovery: 'Use canonical asset IDs and no more than 300 assets.',
+    }))
+  }
+  const candidate = { ...input, labels: [], assets: {} }
+  const valid = validate(candidate)
+  if (valid) return []
+  return (validate.errors ?? [])
+    .filter((error) => !error.instancePath.startsWith('/labels') && !error.instancePath.startsWith('/assets'))
+    .map((error) => ({
+      severity: 'fatal' as const,
+      code: 'INVALID_MANIFEST_SCHEMA' as const,
+      path: pointerSuffix(error.instancePath).replace(/^\./, ''),
+      message: `Manifest root ${error.message ?? 'is invalid'}.`,
+      recovery: 'Regenerate the pack using the published CellarPack v1 schema.',
+    }))
+}
+
+export function ajvLabelErrors(
+  errors: ErrorObject[],
+  label: unknown,
+  index: number,
+): ValidationIssue[] {
+  const id = isRecord(label) && typeof label.id === 'string' ? label.id : `label-${index + 1}`
+  return errors.map((error) => ({
+    severity: 'error',
+    code: error.instancePath.includes('/research') ||
+      (error.keyword === 'required' && error.params.missingProperty === 'research')
+      ? 'MISSING_REQUIRED_RESEARCH'
+      : 'INVALID_MANIFEST_SCHEMA',
+    path: `labels.${index}${pointerSuffix(error.instancePath)}`,
+    labelId: id,
+    message: `Label ${id} ${error.instancePath || 'entry'} ${error.message ?? 'is invalid'}.`,
+    recovery: 'Regenerate or correct this label entry.',
+  }))
+}
+
+
+export function pointerSuffix(pointer: string): string {
+  const path = pointerToPath(pointer)
+  return path ? `.${path}` : ''
 }

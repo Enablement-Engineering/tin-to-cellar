@@ -70,7 +70,7 @@ it('allows a new pack to report a recovered link while reimporting an old pack c
   await state.object.fetch(post({ ...contribution, submissionId: 'c'.repeat(64) }))
   expect((await (await state.object.fetch(get())).json()).sources).toHaveLength(1)
 })
-it('migrates retained legacy records before new collection and only marks completion after successful writes', async () => {
+it('explicitly migrates retained legacy records and only marks completion after successful writes', async () => {
   vi.useFakeTimers(); vi.setSystemTime(new Date('2026-09-06'))
   const rows = new Map<string, unknown[]>()
   let fail = true
@@ -290,4 +290,19 @@ it('rolls back expired deletions if updating their count fails', async () => {
   await expect(state.object.alarm()).rejects.toThrow('Interrupted count write')
   expect(state.data.get('report-count-v2')).toBe(1)
   expect(state.data.has('report:' + contribution.submissionId)).toBe(true)
+})
+
+it('collects into D1 without migration and rejects malformed JSON before reserving allowance', async () => {
+  const run = vi.fn(async () => ({ meta: { changes: 1 } }))
+  const statement = { bind: () => statement, run, first: vi.fn(), all: vi.fn() }
+  const db = { prepare: () => statement, batch: vi.fn() }
+  const fetch = vi.fn(async () => Response.json({}))
+  const binding = { getByName: () => ({ fetch }) }
+  const limiter = { limit: async () => ({ success: true }) }
+  const request = (body: string) => new Request('https://site.com/api/labels/contributions', { method: 'POST', headers: { Origin: 'https://site.com', 'Content-Type': 'application/json' }, body })
+  expect((await contributionsResponse(request('{'), binding, limiter, undefined, db)).status).toBe(400)
+  expect(fetch).not.toHaveBeenCalled()
+  expect((await contributionsResponse(request(JSON.stringify({ ...contribution, sources: [], feedback: { format: 'tin-to-cellar/feedback', schemaVersion: '0.2.0', protocolRevision: '0.0.16', request: { labelCount: 1, shape: 'circle' }, outcome: 'complete', steps: [], issues: [] } })), binding, limiter, undefined, db)).status).toBe(200)
+  expect(fetch).toHaveBeenCalledOnce()
+  expect(run).toHaveBeenCalledOnce()
 })

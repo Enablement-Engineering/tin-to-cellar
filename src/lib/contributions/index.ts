@@ -1,7 +1,6 @@
 import { TOBACCO_CATALOG, findExactTobacco, resolveTobaccoId } from '../tobacco-catalog'
-import historicalFeedbackSchema from '../feedback/historical-schema.json'
-import feedbackSchema from '../feedback/schema.json'
-import legacyFeedbackSchema from '../feedback/legacy-schema.json'
+import { validateHistorical } from '../feedback/validators.generated.js'
+import { parseDiagnosticReport } from '../feedback/validation'
 import type { DiagnosticReport } from '../feedback'
 import type { CellarPackManifest } from '../cellarpack/types'
 import { parseWebsiteValidation, type WebsiteValidation } from './validation'
@@ -17,29 +16,12 @@ const normalize = (v: string) => v.normalize('NFKC').toLowerCase().replace(/[^\p
 export function catalogMatch(maker: string, blend: string) {
   return findExactTobacco(maker, blend) ?? TOBACCO_CATALOG.find(item => normalize(item.maker) === normalize(maker) && normalize(item.blend) === normalize(blend))
 }
-// Pure schema interpreter for these fixed feedback schemas. No runtime code generation in Workers.
-function conforms(value: unknown, schema: Record<string, unknown>, root = schema): boolean {
-  if (typeof schema.$ref === 'string') return conforms(value, (root.$defs as Record<string, Record<string, unknown>>)[schema.$ref.split('/').pop()!], root)
-  if ('const' in schema && value !== schema.const) return false
-  if (Array.isArray(schema.enum) && !schema.enum.includes(value)) return false
-  if (schema.type === 'object') {
-    if (!record(value)) return false
-    const properties = schema.properties as Record<string, Record<string, unknown>>
-    if ((schema.required as string[] ?? []).some(k => !Object.hasOwn(value, k))) return false
-    return Object.entries(value).every(([k, v]) => Object.hasOwn(properties, k) ? conforms(v, properties[k], root) : schema.additionalProperties !== false)
-  }
-  if (schema.type === 'array') return Array.isArray(value) && value.length <= Number(schema.maxItems ?? Infinity) && value.every(v => conforms(v, schema.items as Record<string, unknown>, root))
-  if (schema.type === 'integer') return typeof value === 'number' && Number.isInteger(value) && value >= Number(schema.minimum ?? -Infinity) && value <= Number(schema.maximum ?? Infinity)
-  if (schema.type === 'boolean') return typeof value === 'boolean'
-  if (schema.type === 'string') return typeof value === 'string' && value.length <= Number(schema.maxLength ?? Infinity) && (typeof schema.pattern !== 'string' || new RegExp(schema.pattern).test(value))
-  return true
-}
 export function collectionFeedback(value: unknown): DiagnosticReport | null {
-  return conforms(value, feedbackSchema) || conforms(value, legacyFeedbackSchema) ? JSON.parse(JSON.stringify(value)) as DiagnosticReport : null
+  return parseDiagnosticReport(value)
 }
 // Read-only migration support for the previously published numeric protocol format.
 export function storedFeedback(value: unknown): unknown | null {
-  return collectionFeedback(value) ?? (conforms(value, historicalFeedbackSchema) ? JSON.parse(JSON.stringify(value)) : null)
+  return collectionFeedback(value) ?? (validateHistorical(value) ? JSON.parse(JSON.stringify(value)) : null)
 }
 export function publicSourceUrl(value: unknown): value is string {
   if (typeof value !== 'string' || value.length > 1500) return false

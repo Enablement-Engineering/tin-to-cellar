@@ -42,3 +42,9 @@ test-results/
 
 # Local audit and decision records.
 /docs/adr/
+
+# Build-time feedback validators shared by browser and Worker.
+/src/lib/feedback/validators.generated.js
+
+# Build-time instruction projection of the immutable protocol archive.
+/src/lib/protocol/instructions.json

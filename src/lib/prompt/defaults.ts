@@ -1,9 +1,5 @@
 import type { InspirationRole } from './types'
 
-export const DEFAULT_SPEC_PATH = '/spec/cellarpack-v1.schema.json'
-export const DEFAULT_HUMAN_SPEC_PATH = '/spec/cellarpack-v1.md'
-export const CHATGPT_PROMPT_URL = 'https://chatgpt.com/'
-export const CHATGPT_URL_SAFE_LIMIT = 7000
 
 export const PROMPT_DEFAULTS = Object.freeze({
   fidelity: 'faithful cellar-label adaptation of the best-supported current package',

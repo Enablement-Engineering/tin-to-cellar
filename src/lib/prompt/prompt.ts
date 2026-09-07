@@ -2,12 +2,9 @@ import { formatTobacco } from '../tobacco-catalog'
 import { parseSource } from '../contributions'
 import { requestedCatalogEntries } from './saved-sources'
 import { PROTOCOL_REVISION, resolveProtocolContext } from '../protocol'
-import { protocolInstructions, protocolReleases } from '../protocol/archive'
+import { protocolInstructions } from '../protocol/archive'
 import { assessPromptInput, normalizeTobaccos } from './assessment'
-import {
-  CHATGPT_PROMPT_URL,
-  PROMPT_DEFAULTS,
-} from './defaults'
+import { PROMPT_DEFAULTS } from './defaults'
 import type {
   PromptInspiration,
   PromptLabelGeometry,
@@ -140,10 +137,6 @@ export function buildGenericChatHandoff(input: PromptProjectInput = {}): Prepare
   return { request: buildTinToCellarRequest(input), prompt: buildTinToCellarPrompt(input), protocolRevision: PROTOCOL_REVISION }
 }
 
-export function buildChatGPTLaunchPrompt(input: PromptProjectInput): string {
-  return buildTinToCellarPrompt(input)
-}
-
 export interface PackRepairIssue {
   code?: string
   message: string
@@ -156,7 +149,7 @@ export function buildCellarPackRepairPrompt(
   context: ReturnType<typeof resolveProtocolContext> = { status: 'legacy' },
 ): string {
   const revisionGuidance = context.status === 'known' && context.revision !== undefined
-    ? `Use the bundled protocol revision ${context.revision} below throughout this repair; do not switch to current. Historical URLs in this archived release are identifiers only: do not fetch protocol instructions or schemas.\n\n${protocolReleases[String(context.revision)].files['instructions.md']}`
+    ? `Use the bundled protocol revision ${context.revision} below throughout this repair; do not switch to current. Historical URLs in this archived release are identifiers only: do not fetch protocol instructions or schemas.\n\n${protocolInstructions(context.revision)}`
     : context.status === 'legacy'
       ? 'This pack has no recorded protocol revision. Reuse the original instructions already in this conversation. If absent, ask me to provide them before repairing; do not retrieve instructions or guess a revision.'
       : context.status === 'conflict'
@@ -176,10 +169,4 @@ ${JSON.stringify(diagnostics, null, 2)}
 ${issues.length > 30 ? 'Additional diagnostics were omitted; repair these first and reimport.' : ''}
 
 ${revisionGuidance}`
-}
-
-export function createChatGPTUrl(prompt: string): string {
-  const url = new URL(CHATGPT_PROMPT_URL)
-  url.searchParams.set('prompt', prompt)
-  return url.toString()
 }

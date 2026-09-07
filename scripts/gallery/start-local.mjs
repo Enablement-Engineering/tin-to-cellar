@@ -27,6 +27,6 @@ execFileSync('npm', ['exec', '--', 'node', 'scripts/gallery/seed-catalog.mjs', s
 wrangler('d1', 'execute', 'GALLERY', '--local', '--file', seed)
 wrangler('d1', 'execute', 'GALLERY', '--local', '--command', 'UPDATE gallery_settings SET intake=1,publication=1,serving=1 WHERE id=1')
 console.log(testMode ? 'Local gallery E2E harness: synthetic authentication is confined to tests/gallery/test-worker.ts.' : 'Local gallery: production authentication remains required. No remote resources were changed.')
-const child = spawn('npm', ['exec', '--', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', port, '--config', config, '--persist-to', state], { cwd: root, stdio: 'inherit' })
+const child = spawn('npm', ['exec', '--', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', port, '--inspector-port', '0', '--config', config, '--persist-to', state], { cwd: root, stdio: 'inherit' })
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal))
 child.on('exit', code => { process.exitCode = code ?? 1 })

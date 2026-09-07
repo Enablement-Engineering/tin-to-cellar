@@ -36,9 +36,19 @@ if (process.argv.includes('--create')) {
   if (await read('public/agent/tin-to-cellar-prompt.md') !== completeInstructions) throw new Error('Portable public instructions differ from selected release')
 }
 const metadata = JSON.stringify({ current: registry.current, revisions: Object.keys(registry.releases) }, null, 2) + '\n'
+// Keep the complete immutable registry for verification and historical exports,
+// but do not ship duplicated HTML, schemas and hashes in the prompt bundle.
+const runtimeInstructions = JSON.stringify(Object.fromEntries(Object.entries(registry.releases).map(([key, release]) => {
+  const body = release.files['instructions.md']
+  if (typeof body !== 'string' || !body) throw new Error(`Historical release ${key} has no instructions`)
+  return [key, body]
+})), null, 2) + '\n'
 if (process.argv.includes('--create') || process.argv.includes('--refresh-metadata')) {
   await write('src/lib/protocol/metadata.json', metadata)
 } else if (await read('src/lib/protocol/metadata.json') !== metadata) {
   throw new Error('Protocol metadata differs from immutable releases; run npm run protocol:release -- --refresh-metadata')
 }
+// This ignored build input is regenerated only after archive, canonical source
+// and metadata verification succeeds, including on a fresh checkout.
+await write('src/lib/protocol/instructions.json', runtimeInstructions)
 console.log(`Protocol release ${revision} verified`)

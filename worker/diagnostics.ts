@@ -1,3 +1,4 @@
+import { boundedJson, BodyReadError } from './http'
 import { admitDiagnostics } from './diagnostic-budget'
 import type { ContributionBinding } from './contributions'
 import type { Contribution } from '../src/lib/contributions'
@@ -51,7 +52,7 @@ export async function shareNotes(request: Request, db?: DiagnosticsDatabase, lim
   if (request.headers.get('Content-Type') !== 'application/json') return new Response(null, { status: 415, headers })
   if (!limiter || !(await limiter.limit({ key: request.headers.get('CF-Connecting-IP') ?? 'unknown' })).success) return new Response(null, { status: 429, headers })
   try {
-    const body = await boundedJson(request)
+    const body = await boundedJson(request, { maxBytes: 16384 })
     if (!body || typeof body !== 'object' || Object.keys(body).sort().join() !== 'retrospective,submissionId') return new Response(null, { status: 400, headers })
     const { retrospective, submissionId } = body as Record<string, unknown>
     const notes = parseRetrospective(retrospective)
@@ -68,25 +69,8 @@ export async function shareNotes(request: Request, db?: DiagnosticsDatabase, lim
       if (existing?.body !== JSON.stringify(notes)) return Response.json({ error: 'Different notes were already shared for this report' }, { status: 409, headers })
     }
     return Response.json({ status: result.meta.changes ? 'collected' : 'duplicate' }, { headers })
-  } catch { return Response.json({ error: 'Notes could not be accepted' }, { status: 400, headers }) }
-}
-export async function boundedJson(request: Request): Promise<unknown> {
-  const reader = request.body?.getReader()
-  if (!reader) throw new Error('Missing body')
-  const chunks: Uint8Array[] = []
-  let size = 0
-  const timer = setTimeout(() => { void reader.cancel() }, 5000)
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      size += value.length
-      if (size > 16384) throw new Error('Too large')
-      chunks.push(value)
-    }
-  } finally { clearTimeout(timer); void reader.cancel().catch(() => {}); reader.releaseLock() }
-  const bytes = new Uint8Array(size)
-  let offset = 0
-  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length }
-  return JSON.parse(new TextDecoder().decode(bytes))
+  } catch (error) {
+    if (error instanceof BodyReadError) return Response.json({ error: error.message }, { status: error.status, headers })
+    return Response.json({ error: 'Notes could not be accepted' }, { status: 400, headers })
+  }
 }

@@ -598,3 +598,26 @@ it('preserves manual import choices for quantity changes and requires renewed re
     expect(screen.getByRole('button', { name: 'Add 1 label' })).toBeEnabled()
   } finally { otherTab.close() }
 })
+
+
+it('counts each quarantine failure once in diagnostics and the saved repair request', async () => {
+  window.history.replaceState({}, '', '/labels/print')
+  const prepare = vi.spyOn(contributions, 'contributionFromManifest').mockResolvedValue(null)
+  const missing = { severity: 'error' as const, code: 'MISSING_ARTWORK', message: 'The artwork for this label is missing.', labelId: 'missing-artwork' }
+  const missingLabel = imported('Missing artwork').label
+  importer.mockResolvedValue({ ...ready([imported('Ready label'), imported('Wrong shape', 'square')]), status: 'partial',
+    issues: [missing], quarantinedLabels: [{ id: missing.labelId, label: missingLabel, issues: [missing] }] })
+  render(<App />)
+  await upload()
+  expect(await screen.findByRole('button', { name: 'Print 1 label' })).toBeEnabled()
+  expect(prepare).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+    outcome: 'partial', issues: expect.arrayContaining([
+      { code: 'MISSING_ARTWORK', count: 1 }, { code: 'PROFILE_LABEL_MISMATCH', count: 1 },
+    ]),
+  }))
+  const receipt = (await savedCollection())!.receipts[0]
+  expect(receipt.issues.filter(issue => issue.code === 'MISSING_ARTWORK')).toHaveLength(1)
+  expect(receipt.issues.filter(issue => issue.code === 'PROFILE_LABEL_MISMATCH')).toHaveLength(1)
+  expect(receipt.repairPrompt.match(/MISSING_ARTWORK/g)).toHaveLength(1)
+  expect(receipt.repairPrompt.match(/PROFILE_LABEL_MISMATCH/g)).toHaveLength(1)
+})

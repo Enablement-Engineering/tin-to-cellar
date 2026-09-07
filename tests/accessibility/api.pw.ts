@@ -23,7 +23,10 @@ test('the local website serves Worker API responses instead of SPA HTML', async 
   expect(await retired.json()).toEqual({ error: 'Not found' })
 
   const health = await request.get('/api/health')
-  expect(await health.json()).toEqual({ status: 'ok', cloudOcrEnabled: false })
+  expect(await health.json()).toEqual({ status: 'ok', cloudOcrEnabled: false, capabilities: ['diagnostic-budget-v1', 'curated-intake-v1', 'curated-reconcile-v1'] })
+
+  const budget = await request.get('/api/labels/diagnostics/budget')
+  expect(budget.status()).toBe(403)
 
   const missing = await request.get('/api/not-a-real-endpoint')
   expect(missing.status()).toBe(404)

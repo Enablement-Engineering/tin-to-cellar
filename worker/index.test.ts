@@ -87,3 +87,18 @@ it('still cleans expired diagnostics when migration fails', async () => {
   await expect(worker.scheduled(null, env)).rejects.toThrow('Scheduled cleanup incomplete')
   expect(batch).toHaveBeenCalledOnce()
 })
+
+it('separates migration authorization from read-only exports and avoids migration on export', async () => {
+  const fetch = vi.fn(async (_request: Request) => Response.json({ status: 'migrated', copied: 2 }))
+  const statement = { bind: () => statement, run: vi.fn(), first: vi.fn(), all: async () => ({ results: [] }) }
+  const env = { ASSETS: { fetch: vi.fn() }, DIAGNOSTICS: { prepare: () => statement, batch: vi.fn() }, DIAGNOSTICS_READ_TOKEN: 'reader', CONTRIBUTION_ADMIN_TOKEN: 'admin', CATALOG_CONTRIBUTIONS: { getByName: () => ({ fetch }) } }
+  const migrate = (token?: string, method = 'POST') => worker.fetch(new Request('https://site.com/api/labels/diagnostics/migrate', { method, headers: token ? { Authorization: `Bearer ${token}` } : {} }), env)
+  expect((await migrate()).status).toBe(403)
+  expect((await migrate('reader')).status).toBe(403)
+  expect((await migrate('admin', 'GET')).status).toBe(405)
+  const response = await worker.fetch(new Request('https://site.com/api/labels/diagnostics', { headers: { Authorization: 'Bearer reader' } }), env)
+  expect(response.status).toBe(200)
+  expect(fetch).not.toHaveBeenCalled()
+  expect(await (await migrate('admin')).json()).toEqual({ status: 'migrated', copied: 2 })
+  expect(new URL(fetch.mock.calls[0]![0].url).pathname).toBe('/migrate')
+})

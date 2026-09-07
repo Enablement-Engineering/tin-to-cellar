@@ -1,7 +1,9 @@
+import { boundedJson, BodyReadError } from './http'
+import { migrateLegacyDiagnostics } from './legacy-diagnostics'
 import { admitDiagnostics, budgetResponse, type DiagnosticBudgetConfig } from './diagnostic-budget'
-import { storedFeedback, parseContribution, parseSharedContribution, parseSharedSource, type Contribution, type SuggestedSource } from '../src/lib/contributions'
+import { parseContribution, parseSharedContribution, parseSharedSource, type Contribution, type SuggestedSource } from '../src/lib/contributions'
 import { resolveTobaccoId } from '../src/lib/tobacco-catalog'
-import { diagnosticInsert, storeDiagnostics, type DiagnosticsDatabase, type Statement } from './diagnostics'
+import { storeDiagnostics, type DiagnosticsDatabase } from './diagnostics'
 export interface Storage {
   get<T>(key: string): Promise<T | undefined>
   put(key: string, value: unknown): Promise<void>
@@ -63,29 +65,7 @@ export class CatalogContributions {
     const url = new URL(request.url)
     if (url.pathname === '/budget' && ['GET', 'POST'].includes(request.method)) return budgetResponse(this.ctx.storage, this.budgetConfig, request.method === 'POST')
     if (url.pathname === '/migrate' && request.method === 'POST') {
-      if (!this.database) return Response.json({ error: 'Diagnostics storage unavailable' }, { status: 503, headers })
-      if (await this.ctx.storage.get('diagnostics-migrated-v1')) return Response.json({ status: 'already-migrated' }, { headers })
-      const records = await this.ctx.storage.list<Stored>({ prefix: 'report:', limit: 1000 })
-      let copied = 0
-      let batch: Statement[] = []
-      for (const item of records.values()) {
-        const date = new Date(item.receivedAt)
-        if (date.getTime() <= Date.now() - retention) continue
-        // Legacy source metadata is not copied to D1. Its catalog membership may
-        // have changed since collection and must not block diagnostic migration.
-        const stored = item.contribution
-        if (!stored || typeof stored.submissionId !== 'string' || !/^[a-f0-9]{64}$/.test(stored.submissionId) || !Number.isFinite(date.getTime())) throw new Error('Invalid stored diagnostic identity')
-        const feedback = stored.feedback === null ? null : storedFeedback(stored.feedback)
-        if (stored.feedback !== null && !feedback) throw new Error('Invalid stored diagnostic feedback')
-        const contribution = { submissionId: stored.submissionId, feedback }
-        batch.push(diagnosticInsert(this.database, contribution, date, true))
-        if (batch.length === 50) { await this.database.batch(batch); batch = [] }
-        copied++
-      }
-      if (batch.length) await this.database.batch(batch)
-      // Set the marker only after all writes succeed. INSERT OR IGNORE makes interruption retry safe.
-      await this.ctx.storage.put('diagnostics-migrated-v1', true)
-      return Response.json({ status: 'migrated', copied }, { headers })
+      return migrateLegacyDiagnostics(this.ctx.storage, this.database)
     }
     if (request.method === 'GET' && url.pathname === '/export') {
       const reports = [...(await this.ctx.storage.list<Stored>({ prefix: 'report:', limit: 1000 })).values()].filter(item => Date.parse(item.receivedAt) > Date.now() - retention)
@@ -143,30 +123,11 @@ export async function contributionsResponse(request: Request, binding?: Contribu
     if (request.headers.get('Origin') !== url.origin) return new Response(null, { status: 403, headers })
     if (request.headers.get('Content-Type') !== 'application/json') return new Response(null, { status: 415, headers })
     if (!limiter || !(await limiter.limit({ key: request.headers.get('CF-Connecting-IP') ?? 'unknown' })).success) return new Response(null, { status: 429, headers })
-    const reader = request.body?.getReader()
-    if (!reader) return new Response(null, { status: 400, headers })
-    let size = 0
-    const chunks: Uint8Array[] = []
-    const timer = setTimeout(() => { void reader.cancel() }, 5000)
-    try {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        size += value.length
-        if (size > 65536) return new Response(null, { status: 413, headers })
-        chunks.push(value)
-      }
-    } finally { clearTimeout(timer); void reader.cancel().catch(() => {}); reader.releaseLock() }
-    const bytes = new Uint8Array(size)
-    let offset = 0
-    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length }
-    const contribution = parseSharedContribution(JSON.parse(new TextDecoder().decode(bytes)))
+    const contribution = parseSharedContribution(await boundedJson(request, { maxBytes: 65536 }))
     if (!contribution) return Response.json({ error: 'Invalid contribution' }, { status: 400, headers })
     const paused = await admitDiagnostics(binding)
     if (paused) return paused
     if (db) {
-      const migration = await target.fetch(new Request('https://catalog/migrate', { method: 'POST' }))
-      if (!migration.ok) return Response.json({ error: 'Diagnostics migration is incomplete' }, { status: 503, headers })
       const status = await storeDiagnostics(db, contribution)
       if (contribution.sources.length) {
         // The legacy object continues to own source ordering and deduplication. Do not copy diagnostics there.
@@ -177,5 +138,8 @@ export async function contributionsResponse(request: Request, binding?: Contribu
     }
     if (contribution.version === 2) return Response.json({ error: 'Diagnostics storage is unavailable' }, { status: 503, headers })
     return target.fetch(new Request('https://catalog/collect', { method: 'POST', body: JSON.stringify(contribution) }))
-  } catch { return Response.json({ error: 'Collection could not complete' }, { status: 503, headers }) }
+  } catch (error) {
+    if (error instanceof BodyReadError) return Response.json({ error: error.message }, { status: error.status, headers })
+    return Response.json({ error: 'Collection could not complete' }, { status: 503, headers })
+  }
 }

@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PrintStudio } from './PrintStudio'
 import type { PrintLabel, PrintSettings } from './ui-model'
+import { AVERY_94502_PROFILE } from '../lib/sheets/profiles'
 function Studio(props: Omit<ComponentProps<typeof PrintStudio>, 'settings' | 'onSettingsChange'>) {
   const [settings, setSettings] = useState<PrintSettings>({ page: 0, firstSlot: 1, offset: { x: 0, y: 0 } })
   return <PrintStudio {...props} settings={settings} onSettingsChange={setSettings} />
@@ -38,8 +39,15 @@ describe('PrintStudio', () => {
   it('lays quantities into exact-size sheets, preserving leading blank slots', () => {
     const { container } = render(<Studio labels={[label]} quantities={{ a: 9 }} onQuantityChange={() => undefined} />)
     fireEvent.change(screen.getByLabelText('Start at slot'), { target: { value: '2' } })
-    const pages = container.querySelectorAll('.production-page')
+    const pages = container.querySelectorAll<HTMLElement>('.production-page')
     expect(pages).toHaveLength(2)
+    const { page, slots } = AVERY_94502_PROFILE
+    for (const sheet of [pages[0], container.querySelector<HTMLElement>('.calibration-print')!]) {
+      expect(sheet.style.width).toBe(`${page.width}${page.unit}`)
+      expect(sheet.style.height).toBe(`${page.height}${page.unit}`)
+    }
+    expect(container.querySelector('.simple-sheet')).toHaveStyle({ aspectRatio: `${page.width} / ${page.height}` })
+    expect(screen.getByLabelText('Start at slot').querySelectorAll('option')).toHaveLength(slots.length)
     expect(pages[0].querySelector('.production-slot')?.querySelector('img')).toBeNull()
     const second = pages[0].querySelectorAll<HTMLElement>('.production-slot')[1]
     expect(second.style.left).toBe('3in')

@@ -1,3 +1,4 @@
+import { legacyMigrationResponse, requestLegacyMigration } from './legacy-diagnostics'
 import { budgetStatus, type DiagnosticBudgetConfig } from './diagnostic-budget'
 import { contributionsResponse, type ContributionBinding } from './contributions'
 import { cleanDiagnostics, diagnosticsExport, shareNotes, type DiagnosticsDatabase } from './diagnostics'
@@ -17,15 +18,21 @@ export interface Env extends GalleryEnv, DiagnosticBudgetConfig {
 }
 export default {
   async scheduled(_event: unknown, env: Env) {
-    const results = await Promise.allSettled([(async () => { if (env.DIAGNOSTICS) {
-      if (env.CATALOG_CONTRIBUTIONS) {
-        const result = await env.CATALOG_CONTRIBUTIONS.getByName('catalog-contributions-v1').fetch(new Request('https://catalog/migrate', { method: 'POST' }))
-        if (!result.ok) throw new Error('Diagnostics migration is incomplete')
-      }
-    } })(), (async () => { if (env.DIAGNOSTICS) await cleanDiagnostics(env.DIAGNOSTICS) })(), (async () => {
+    const migrate = async () => {
+      if (!env.DIAGNOSTICS || !env.CATALOG_CONTRIBUTIONS) return
+      const result = await requestLegacyMigration(env.CATALOG_CONTRIBUTIONS)
+      if (!result.ok) throw new Error('Diagnostics migration is incomplete')
+    }
+    const galleryCleanup = async () => {
       const result = await cleanGallery(env)
       if (result.failures) throw new Error(`Gallery cleanup has ${result.failures} failed operations`)
-    })()])
+    }
+    // Independent cleanup still runs if legacy copying needs an operator retry.
+    const results = await Promise.allSettled([
+      migrate(),
+      env.DIAGNOSTICS ? cleanDiagnostics(env.DIAGNOSTICS) : Promise.resolve(),
+      galleryCleanup(),
+    ])
     const failures = results.filter(result => result.status === 'rejected')
     if (failures.length) throw new AggregateError(failures.map(result => result.reason), 'Scheduled cleanup incomplete')
   },
@@ -71,13 +78,10 @@ export default {
       headers.set('Referrer-Policy', 'no-referrer')
       return new Response(response.body, { status: response.status, headers })
     }
+    if (path === '/api/labels/diagnostics/migrate') return legacyMigrationResponse(request, env.CATALOG_CONTRIBUTIONS, env.CONTRIBUTION_ADMIN_TOKEN)
     if (path === '/api/labels/diagnostics/budget') return budgetStatus(request, env.CATALOG_CONTRIBUTIONS, env.DIAGNOSTICS_READ_TOKEN)
     if (path === '/api/labels/diagnostics' && request.method === 'GET') {
       if (!env.DIAGNOSTICS) return Response.json({ error: 'Diagnostics storage is unavailable' }, { status: 503 })
-      if (env.DIAGNOSTICS_READ_TOKEN && request.headers.get('Authorization') === `Bearer ${env.DIAGNOSTICS_READ_TOKEN}` && env.CATALOG_CONTRIBUTIONS) {
-        const result = await env.CATALOG_CONTRIBUTIONS.getByName('catalog-contributions-v1').fetch(new Request('https://catalog/migrate', { method: 'POST' }))
-        if (!result.ok) return Response.json({ error: 'Diagnostics migration is incomplete' }, { status: 503 })
-      }
       return diagnosticsExport(request, env.DIAGNOSTICS, env.DIAGNOSTICS_READ_TOKEN)
     }
     if (path === '/api/labels/process-notes') return shareNotes(request, env.DIAGNOSTICS, env.CONTRIBUTION_RATE_LIMITER, env.CATALOG_CONTRIBUTIONS)

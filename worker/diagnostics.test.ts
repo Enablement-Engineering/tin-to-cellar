@@ -84,3 +84,13 @@ it('pauses notes before persistence and never reserves allowance for invalid not
   expect((await db.prepare('SELECT * FROM diagnostic_notes').all()).results).toHaveLength(0)
   expect((await shareNotes(notesRequest(), db, limiter)).status).toBe(503)
 })
+
+it('rejects oversized notes before database reads or budget admission', async () => {
+  const prepare = vi.fn()
+  const db = { prepare, batch: vi.fn() }
+  const reserve = vi.fn()
+  const request = new Request(notesRequest(), { body: JSON.stringify({ padding: 'x'.repeat(16384) }) })
+  expect((await shareNotes(request, db, limiter, { getByName: () => ({ fetch: reserve }) })).status).toBe(413)
+  expect(prepare).not.toHaveBeenCalled()
+  expect(reserve).not.toHaveBeenCalled()
+})

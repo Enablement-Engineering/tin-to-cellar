@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { PROTOCOL_REVISION } from '../protocol'
 import { describe, expect, it } from 'vitest'
-import { buildCompleteTinToCellarPrompt, buildTinToCellarInstructions, buildTinToCellarRequest, assessPromptInput, buildCellarPackRepairPrompt, buildChatGPTLaunchPrompt, buildTinToCellarPrompt, createChatGPTUrl } from './index'
+import { buildCompleteTinToCellarPrompt, buildTinToCellarInstructions, buildTinToCellarRequest, assessPromptInput, buildCellarPackRepairPrompt, buildTinToCellarPrompt } from './index'
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
 const schema = JSON.parse(read('../cellarpack/cellarpack-v1.schema.json'))
@@ -45,7 +45,6 @@ describe('self-contained generation protocol', () => {
   it('carries the exact canonical schema on every route without local URL dependencies', () => {
     const input = { tobaccos: 'Escudo', specUrl: 'http://localhost:5173/spec.json' }
     const prompt = buildCompleteTinToCellarPrompt(input)
-    expect(buildChatGPTLaunchPrompt(input)).toBe(buildTinToCellarPrompt(input))
     expect(schemaIn(prompt)).toEqual(schema)
     expect(prompt).not.toContain('http://localhost:5173/spec.json')
     expect(prompt).not.toContain('Personality')
@@ -98,12 +97,7 @@ describe('self-contained generation protocol', () => {
     expect(schemaIn(published)).toEqual(schema)
     expect(published.trim()).toBe(buildTinToCellarInstructions().trim())
   })
-  it('encodes the full supplied prompt when a caller requests a URL', () => {
-    const prompt = 'Escudo & Pirate Kake\n2.5-inch circle'
-    const url = new URL(createChatGPTUrl(prompt))
-    expect(url.origin).toBe('https://chatgpt.com')
-    expect(url.searchParams.get('prompt')).toBe(prompt)
-  })
+
 })
 
 describe('same-chat repair', () => {

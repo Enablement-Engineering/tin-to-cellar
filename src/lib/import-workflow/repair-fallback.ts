@@ -1,4 +1,4 @@
-import type { PackRepairIssue } from '../lib/prompt'
+import type { PackRepairIssue } from '../prompt'
 
 /** Keeps validated artwork usable when the full instruction module cannot load. */
 export function buildFallbackRepairPrompt(issues: readonly PackRepairIssue[]): string {
