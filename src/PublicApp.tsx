@@ -25,7 +25,6 @@ import { CollectionImportReview } from './components/CollectionImportReview'
 import type { ImportSummary } from './components/ui-model'
 import type { CellarPackImportResult } from './lib/cellarpack'
 import { GalleryBrowse, GallerySubmission, GalleryAdmin } from './components/gallery'
-import { useConfig as useGalleryConfig } from './components/gallery/client'
 import { downloadPublishedPack } from './components/gallery/pack-builder'
 import { validChoice, MAX_PACK_LABELS, type PackChoice } from './components/gallery/pack-selection'
 import { addRequests, updateRow, removeRow, setPrintSettings, setHandoff, setReceiptDelivery, prepareImport, planImport, applyImport, exportCollection, type Collection, type CollectionOrigin, type ImportCandidate, type ImportDecisions, type ImportPlan } from './lib/collection'
@@ -49,7 +48,6 @@ const targetKey = (targets: { rowId: string; revision: number }[]) => JSON.strin
 const importReviewKey = (collection: Collection, candidate: ImportCandidate) => JSON.stringify([candidate.receipt.id, collection.handoff?.id, collection.rows.map(row => [row.id, row.revision, row.designId])])
 
 export default function PublicApp() {
-  const { config: galleryConfig } = useGalleryConfig()
   const { collection, ready, saving, error: storageError, commit } = useCollection()
   const labels = usePrintLabels(collection)
   const [view, setView] = useState<View | 'not-found'>(viewFromPath)
@@ -257,10 +255,9 @@ export default function PublicApp() {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault(); navigate(next)
   }
-  const workflowViews: View[] = ['labels', 'create', 'print', 'help', 'gallery', 'gallery-admin']
-  const navItems: { view: View; label: string }[] = [{ view: 'labels', label: 'Labels' }, ...(workflowViews.includes(view as View) ? [
-    { view: 'create' as const, label: 'Choose labels' }, { view: 'print' as const, label: 'Print labels' }, ...(galleryConfig?.serving ? [{ view: 'gallery' as const, label: 'Community labels' }] : []),
-  ] : [])]
+  const navItems: { view: View; label: string }[] = [
+    { view: 'create' as const, label: 'Choose labels' }, { view: 'print' as const, label: 'Print labels' },
+  ]
   return <div className="app-shell tc-grain" onClick={event => {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     const anchor = event.target instanceof Element ? event.target.closest('a') : null

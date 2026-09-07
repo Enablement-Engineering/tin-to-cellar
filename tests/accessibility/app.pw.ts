@@ -17,6 +17,12 @@ for (const width of [1280, 320]) {
       await page.setViewportSize({ width, height: 900 })
       await page.goto(`/${route}`)
       await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
+      if (route === 'labels') {
+        await expect(page.getByRole('navigation', { name: 'Workflow' }).getByRole('link')).toHaveText(['Choose labels', 'Print labels'])
+        await expect(page.getByText('Optional', { exact: true })).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Choose labels', exact: true })).toBeVisible()
+        await page.screenshot({ path: `test-results/overview-${width}.png`, fullPage: true })
+      }
       await audit(page)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
       if (route === 'labels/create') await page.screenshot({ path: `test-results/preparation-empty-${width}.png`, fullPage: true })

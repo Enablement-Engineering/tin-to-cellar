@@ -120,6 +120,7 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 .landing-hero-art { aspect-ratio: 1; margin: 0; border: 1px solid var(--line-hairline); border-radius: var(--radius-card); box-shadow: var(--shadow-3); overflow: hidden; }
 .landing-hero-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 58%; }
 .landing-steps-heading { margin-bottom: 24px; font: var(--type-title); }
+.landing-process-intro { max-width: 64ch; margin-bottom: 24px; color: var(--text-muted); }
 .landing-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
 .landing-step { display: grid; align-content: start; justify-items: start; gap: 12px; }
 .landing-step-icon { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--line-rule-brass); border-radius: 50%; color: var(--text-accent); }

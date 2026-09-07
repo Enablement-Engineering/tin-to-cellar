@@ -26,8 +26,7 @@ Adaptations made for the application:
 
 | Destination | Entry | Content |
 | --- | --- | --- |
-| Home | `/` | Redirects to Labels |
-| Labels | `/labels` | Product introduction, existing/community artwork, Choose labels action and print specifications |
+| Home | `/`, `/labels`, wordmark | First-visit introduction, community-first flow, explicitly optional AI creation, shared printing and a sample pack; `/` resolves to `/labels` |
 | Choose labels | `/labels/create` | Confirmed blend rows, community choices, optional scoped creation, one saved handoff |
 | Community labels | `/gallery` | Discovery that adds to the same saved labels, without a separate basket |
 | Print labels | `/labels/print` | Reviewed additive ZIP import, original import reports, quantities, download, sheet preview, printing and alignment |
@@ -37,6 +36,10 @@ Adaptations made for the application:
 | Privacy | `/privacy`, footer | Local processing and limited contribution collection |
 
 The wordmark returns to the site root. Navigation must remain usable with the keyboard and browser history. Moving between site pages does not clear the current request or print job. Direct path navigation loads the app through the static-assets SPA fallback; legacy hash routes have no compatibility layer.
+
+The home page explains the product; Choose labels is the working area. Access home through the wordmark, without a redundant Labels or Overview tab. The home's numbered path is choose then print, with creation marked Optional between them. Existing designs need no AI chat. The primary action opens Choose labels; Import a label ZIP goes directly to import review on Print labels. Keep the existing `/labels` URL.
+
+The top navigation contains Choose labels and Print labels on every public page. Community browsing is a secondary discovery route from Browse community labels inside Choose labels, not another workflow tab. Keep `/gallery` and existing deep links working; browsing still adds to the same saved set.
 
 The preparation workspace is a vertical sequence of committed blend rows, not a required wizard. Existing thumbnails and their editions appear before the optional Create my own action. A saved design remains printable while its replacement is requested. A compact count separates ready designs, creation requests and unresolved choices. Do not imply that copying starts a remote job.
 
