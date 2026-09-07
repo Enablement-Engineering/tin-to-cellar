@@ -1,9 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { formatTobacco, searchTobaccos, type TobaccoEntry } from '../../lib/tobacco-catalog'
 
-export function GalleryBlendSearch({ onChange }: { onChange: (catalogId: string, pending: boolean) => void }) {
+export function GalleryBlendSearch({ onChange }: { onChange: (catalogIds: string[] | null, typing: boolean) => void }) {
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
+  const composing = useRef(false)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
@@ -12,14 +13,17 @@ export function GalleryBlendSearch({ onChange }: { onChange: (catalogId: string,
   useEffect(() => {
     if (active >= 0) document.getElementById(`${id}-option-${active}`)?.scrollIntoView?.({ block: 'nearest' })
   }, [active, id])
+  const publishQuery = (value: string) => onChange(value.trim() ? searchTobaccos(value, 8).map(entry => entry.id) : null, Boolean(value.trim()))
   const choose = (entry: TobaccoEntry) => {
-    setQuery(formatTobacco(entry)); setOpen(false); setActive(-1); onChange(entry.id, false)
+    setQuery(formatTobacco(entry)); setOpen(false); setActive(-1); onChange([entry.id], false)
   }
   return <div className="field tobacco-picker gallery-blend-search">
     <label htmlFor={id}>Blend</label>
     <div className="tobacco-editor">
       <input ref={input} type="text" id={id} role="combobox" aria-autocomplete="list" aria-expanded={showOptions} aria-controls={showOptions ? `${id}-options` : undefined} aria-activedescendant={showOptions && active >= 0 ? `${id}-option-${active}` : undefined} aria-describedby={`${id}-hint`} autoComplete="off" placeholder="Search by maker or blend…" value={query}
-        onChange={event => { setQuery(event.target.value); setOpen(true); setActive(-1); onChange('', Boolean(event.target.value.trim())) }}
+        onChange={event => { setQuery(event.target.value); setOpen(true); setActive(-1); if (!composing.current) publishQuery(event.target.value) }}
+        onCompositionStart={() => { composing.current = true }}
+        onCompositionEnd={event => { composing.current = false; publishQuery(event.currentTarget.value) }}
         onFocus={() => setOpen(true)} onBlur={() => { setOpen(false); setActive(-1) }}
         onKeyDown={event => {
           if (event.nativeEvent.isComposing) return
@@ -33,8 +37,8 @@ export function GalleryBlendSearch({ onChange }: { onChange: (catalogId: string,
         {matches.map((entry, index) => <li key={entry.id} id={`${id}-option-${index}`} role="option" aria-label={`${entry.blend} by ${entry.maker}`} aria-selected={active === index} onMouseDown={event => event.preventDefault()} onClick={() => choose(entry)}><strong>{entry.blend}</strong><span>{entry.maker}</span></li>)}
       </ul>}
     </div>
-    <span className="field-hint" id={`${id}-hint`}>Choose a suggestion to filter labels immediately. Use arrow keys to explore and Enter to select. Clear the field to browse all blends.</span>
+    <span className="field-hint" id={`${id}-hint`}>Typing filters labels to the matching suggestions. Use arrow keys and Enter to narrow to one blend. Clear the field to browse all blends.</span>
     <span className="field-hint" role="status">{showOptions && !matches.length ? 'No matching blends. Try another name.' : ''}</span>
-    {query && <button className="clear-tobaccos" type="button" onClick={() => { setQuery(''); setOpen(false); setActive(-1); onChange('', false); input.current?.focus() }}>Clear blend</button>}
+    {query && <button className="clear-tobaccos" type="button" onClick={() => { setQuery(''); setOpen(false); setActive(-1); onChange(null, false); input.current?.focus() }}>Clear blend</button>}
   </div>
 }

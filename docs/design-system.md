@@ -212,10 +212,16 @@ Selection persists in this browser tab's session through filtering and navigatio
 
 ### Automatic gallery filtering
 
-The Blend combobox filters suggestions while typing. Selecting with Enter or a click applies the catalog filter immediately; exploring with arrow keys, focusing, or dismissing with Escape does not apply it. Instructions describe this behavior before selection. Focus stays in the input, and Clear blend returns focus there before its button disappears. Composition keystrokes do not commit a suggestion.
+The Blend combobox filters both suggestions and gallery labels while typing, after a 100ms pause. The image grid includes the union of the displayed suggestions, up to eight blends. Selecting with Enter or a click narrows immediately to one blend; exploring with arrow keys, focusing, or dismissing with Escape does not change the matching set. Instructions describe this behavior before selection. No matches produce an empty grid; clearing restores all blends. In-flight searches are canceled and stale responses ignored. The existing per-blend endpoint is queried only for the bounded suggestion set, with merged ID pagination so subsequent designs are not lost. Focus stays in the input, and Clear blend returns focus there before its button disappears. Composition keystrokes do not commit a suggestion.
 
 A persistent, polite status region announces loading, the number of labels shown, and empty results. The results region exposes its busy state without making every card a live announcement. New filter requests invalidate older responses so delayed results cannot replace the current selection. Do not move focus or navigate when the filter changes.
 
 ### Floating pack controls
 
 The pack control sits at the bottom right of the viewport. Adding designs updates its count without opening the panel, moving focus, or changing gallery layout. Activate the count button to review selections and print or download the pack. The panel is a nonmodal disclosure, with aria-expanded and aria-controls; Escape closes it and restores focus to its toggle. Removal and Clear pack keep focus on the toggle. Its bounded height and scrolling list support small screens. Gallery bottom padding reserves access to the final cards.
+
+### Gallery image loading
+
+Cards use the existing 320px thumbnails, with explicit width and height and a reserved square layout to avoid shifts while images load. The first thumbnail loads eagerly; subsequent thumbnails use native lazy loading, which allows the browser to prefetch near the viewport. Images use asynchronous decoding. Full-resolution artwork and printable packs are fetched only through their explicit actions. Keep image descriptions available as alt text and keep the loading placeholder static.
+
+Thumbnails reveal from a soft blur to sharp over 420ms after loading, over a static surface-colored placeholder. The reveal does not add requests or alter the reserved image size. Reduced-motion users receive the image immediately without animation. Failed images expose their alternative text rather than remaining hidden behind the placeholder.
