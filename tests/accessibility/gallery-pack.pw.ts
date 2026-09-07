@@ -17,6 +17,7 @@ for (const width of [1280, 320]) test(`gallery selection downloads and prints a 
   })
   await page.setViewportSize({width, height: 900})
   await page.goto('/gallery')
+  await expect(page.getByRole('region', {name: 'Your pack', exact: true})).toHaveCount(0)
   const firstAdd = page.getByRole('button', {name: 'Add to pack', exact: true}).first()
   await firstAdd.scrollIntoViewIfNeeded()
 
@@ -53,4 +54,7 @@ for (const width of [1280, 320]) test(`gallery selection downloads and prints a 
   await page.getByRole('button', {name: 'Your pack · 2 labels'}).click()
   await page.getByRole('button', {name: 'Remove Test Maker One from pack'}).click()
   await expect(page.getByRole('button', {name: 'Your pack · 1 label'})).toBeVisible()
+  await page.getByRole('button', {name: 'Clear pack'}).click()
+  await expect(page.getByRole('region', {name: 'Your pack', exact: true})).toHaveCount(0)
+  await expect(page.getByRole('heading', {name: 'Community labels', exact: true})).toBeFocused()
 })
