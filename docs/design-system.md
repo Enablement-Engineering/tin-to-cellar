@@ -226,4 +226,4 @@ Cards use the existing 320px thumbnails, with explicit width and height and a re
 
 Thumbnails reveal from a soft blur to sharp over 420ms after loading, over a static surface-colored placeholder. The reveal does not add requests or alter the reserved image size. Reduced-motion users receive the image immediately without animation. Failed images expose their alternative text rather than remaining hidden behind the placeholder.
 
-The floating pack control is absent when no designs are selected. Clearing the pack or removing its last design hides it and returns focus to the gallery heading without scrolling. Both the control and expanded panel use the same translucent tan and 8px backdrop blur as the site header, with dark text for contrast.
+The floating pack control is absent when no designs are selected. Clearing the pack or removing its last design hides it and returns focus to the gallery heading without scrolling. The bottom control uses the same translucent tan and 8px backdrop blur as the site header. The expanded selected-label panel uses solid tan so artwork behind it does not compete with its contents. Both use dark text for contrast.
