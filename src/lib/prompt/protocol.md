@@ -163,7 +163,7 @@ Before generation, save the fenced script verbatim as UTF-8 with LF newlines and
 # CellarPack protocol
 Use the complete schema below; no additional schema fetch is required. Return root manifest.json and artwork/<label-id>.png. Reference assets by artworkAssetId. Compute SHA-256 from actual delivered bytes. Research must distinguish inspected observations from creative adaptation.
 
-Record this release in manifest.extensions["tin-to-cellar:protocol"] as {"revision":"0.0.20","cellarpackVersion":"0.1.0","feedbackVersion":"0.2.0"}. Keep this revision through repairs; do not switch to a newer release mid-run.
+Copy the exact manifest.extensions["tin-to-cellar:protocol"] object from the header of these pinned instructions. Use that same revision in the feedback and optional retrospective. Keep this revision through repairs; do not switch to a newer release mid-run.
 
 Write-in x/y/width/height use the finished trim bounding box, not the bleed canvas. Measure the actual surface; keep it unrotated and inside the safe area. Set overlay.mode to blank. The overlay object contains only mode; the website does not render overlays.
 

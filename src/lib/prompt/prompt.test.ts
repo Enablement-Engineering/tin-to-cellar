@@ -270,7 +270,7 @@ it('keeps all emitted version declarations consistent with the selected pre-rele
   const prompt = buildTinToCellarPrompt({ tobaccos: 'Westminster' })
   expect(prompt).toContain(`Protocol version: ${PROTOCOL_REVISION}`)
   expect(prompt).toContain(`"revision":"${PROTOCOL_REVISION}","cellarpackVersion":"0.1.0","feedbackVersion":"0.2.0"`)
-  expect(prompt).toContain(`Set protocolRevision to the semantic version string "${PROTOCOL_REVISION}"`)
+  expect(prompt).toContain('Set protocolRevision to the semantic version string in the header of these pinned instructions')
   expect(prompt).toContain('schemaVersion 0.1.0')
   const schemas = [...prompt.matchAll(/```json\n([\s\S]*?)\n```/g)].map(match => JSON.parse(match[1]))
   expect(schemas[1].properties.schemaVersion.const).toBe('0.2.0')
@@ -285,4 +285,11 @@ it('provides user-facing examples without waiving checks or inventing completed 
 it('uses numbered choices only for genuine decisions and accepts natural replies', () => {
   const prompt = buildTinToCellarInstructions()
   for (const text of ['Example: choosing a package edition', 'most recent unanswered menu', 'Accept the option number or an ordinary-language reply', 'Do not append menus to routine progress', 'Never make the user select an already-authorized next step']) expect(prompt).toContain(text)
+})
+
+it('uses the selected release in every explicit manifest protocol declaration', () => {
+  const instructions = buildTinToCellarInstructions()
+  const declarations = [...instructions.matchAll(/\{"revision":"([^"]+)","cellarpackVersion":"0\.1\.0","feedbackVersion":"0\.2\.0"\}/g)]
+  expect(declarations.length).toBeGreaterThan(0)
+  expect([...new Set(declarations.map(match => match[1]))]).toEqual([PROTOCOL_REVISION])
 })
