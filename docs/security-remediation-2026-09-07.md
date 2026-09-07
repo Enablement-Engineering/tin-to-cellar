@@ -12,7 +12,7 @@ This candidate addresses all five findings in [the audit](security-audit-2026-09
 
 ## Release prerequisites
 
-Use the current origin/main release workflow. The original research checkout remains on `preserve/local-main-2026-09-07` and must not be used for release. The other code-quality task owns the clean main checkout at `/Users/dylanisaac/Projects/tin-to-cellar-quality` and was notified of these changes.
+Use the current origin/main release workflow. The shared checkout at `/Users/dylanisaac/Projects/tin-to-cellar` is now on main and includes this security commit. The separate quality checkout has been retired. Unfinished research remains uncommitted; publish only the reviewed commits through GitHub Actions, which builds a clean checkout. Coordinate releases with other active tasks.
 
 The current `.github/workflows/deploy.yml` already applies both database migration directories before uploading the Worker. These additive migrations must succeed in that release procedure:
 
