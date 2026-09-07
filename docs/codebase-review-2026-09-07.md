@@ -2,11 +2,11 @@
 
 ## Current status after reconciliation
 
-All applicable review fixes and both performance improvements are now integrated in the current release branch. Use the [review implementation and release status](codebase-review-work-plan.md) for current verification, production status and preserved work.
+All applicable review fixes and both performance improvements are implemented, merged through PR #9 and deployed as source `51476e2`. Production smoke checks passed. Use the [review implementation and release status](codebase-review-work-plan.md) for verification evidence and preserved work.
 
 R-01, R-06 and R-08 have been adapted to the newer application; the existing cost, privacy and focus fixes are retained. R-02's secured research receiver remains preserved on main and absent from the newer application. R-11 now defers archived instructions/admin code and avoids repeated source-report counting scans.
 
-The user has settled the privacy and budget policy: known catalog URLs only, pause diagnostics at the allowance, preserve local labels, and target the existing $5 monthly plan. The implemented starting allowance is 1,000 attempts per UTC day, with a daily Codex monitor. Production pausing and alert delivery are not verified. No further product decision is needed to begin the remaining local work.
+The user has settled the privacy and budget policy: known catalog URLs only, pause diagnostics at the allowance, preserve local labels, and target the existing $5 monthly plan. The deployed starting allowance is 1,000 attempts per UTC day, verified through authenticated production status, with an active daily Codex monitor. Exhaustion behavior passed an isolated local Worker smoke test; production was not deliberately exhausted, and a future pause notification has not yet occurred. The allowance is not a hard cap on the account bill. No implementation items remain for this review; manual coverage limits and preserved optional research work are documented in the release record.
 
 ## Original review record
 

@@ -2,7 +2,7 @@
 
 Updated September 7, 2026. This supersedes the preparation snapshot at commit `a6c7b11`. The user authorized completion, testing and deployment after reviewing that plan.
 
-All applicable R-01 through R-11 implementation work is now integrated on `codex/diagnostic-cost-controls`, based on the newer gallery and saved-label application. All combined local checks pass. Production deployment and live verification are next; deployment is not yet claimed.
+All applicable R-01 through R-11 implementation work is complete, merged through [PR #9](https://github.com/Enablement-Engineering/tin-to-cellar/pull/9), and deployed at [tintocellar.com](https://tintocellar.com). Combined local checks, release CI and the production smoke checks below passed. The original local main preserves older research and production work; it is not the deployed source.
 
 ## Finding disposition
 
@@ -62,7 +62,16 @@ No generated artwork, build output, dependencies, private diagnostics, credentia
 
 ## Release and recovery
 
-The production release uses the existing repository deployment workflow and existing Cloudflare resources. After deployment, verify the exact served asset hash, protected aggregate endpoint, admin routing and built-in example import/printing/reload, with no diagnostic or gallery submission from that example action. Record the deployment result here.
+The production release used the existing repository deployment workflow and existing Cloudflare resources:
+
+- Source: `51476e2d024757290347731f3b54af3169ef4659`, merged through PR #9.
+- [Production workflow 34090530877](https://github.com/Enablement-Engineering/tin-to-cellar/actions/runs/34090530877) succeeded.
+- Worker version: `c3b2957d-ac93-4a8b-af65-ff2ebd36c950`, deployed September 7 at 06:23:53 UTC.
+- Live smoke completed at 06:24:45 UTC. The served entry asset matched the local build SHA-256 `67f8de931e9d746143d0b9babf0969d3773e9fdb82d328a904f9211ce6b86501`.
+- Health passed. Authenticated aggregate status reported 0 of 1,000 attempts, unpaused, resetting at midnight UTC. Unauthenticated aggregate access returned 403; public-host admin API returned 404; the admin host redirected unauthenticated access to Cloudflare Access.
+- The built-in example imported 10 labels. Changing the first quantity to two produced 11 print copies and survived reload. Artwork and printing controls loaded; screenshot and PDF artifacts were captured. There were no browser errors or API writes during this example workflow.
+
+The daily budget monitor was updated to the deployed release. Production allowance exhaustion was not deliberately triggered. Billing below $5 has not been established by these functional checks.
 
 Do not roll back to an older source-report writer after it starts modifying counted records without arranging a transactional count rebuild before the optimized writer resumes. A forward fix using the current counter implementation preserves the invariant. Current tests cover rollback of failed transactions, initialization, drift detection and alarm/insert interleaving.
 
