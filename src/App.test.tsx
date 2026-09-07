@@ -28,7 +28,7 @@ async function upload(review = false) {
   Object.defineProperty(file, 'arrayBuffer', { value: async () => new ArrayBuffer(1) })
   fireEvent.change(screen.getByLabelText('Label ZIP'), { target: { files: [file] } })
   if (review) return
-  await waitFor(() => expect(screen.getByLabelText('Label ZIP')).toBeEnabled())
+  await waitFor(() => expect(screen.queryByRole('button', { name: /^Add \d+ labels?$|Keep current labels/ }) ?? screen.queryByLabelText('Label ZIP')).toBeEnabled())
   const accept = screen.queryByRole('button', { name: /^Add \d+ labels?$|Keep current labels/ })
   if (accept) { fireEvent.click(accept); await waitFor(() => expect(screen.getByLabelText('Label ZIP')).toBeEnabled()) }
 }
@@ -549,7 +549,8 @@ it('retains the previous collection and the import review when saving runs out o
   fireEvent.click(add)
   await screen.findByRole('alert')
   failedWrite.mockRestore()
-  expect(screen.getByLabelText('Quantity for Blend A')).toHaveValue(1)
+  expect(screen.queryByLabelText('Quantity for Blend A')).not.toBeInTheDocument()
+  expect((await savedCollection())?.rows[0].quantity).toBe(1)
   expect(screen.queryByLabelText('Quantity for Unsaved blend')).not.toBeInTheDocument()
   expect(screen.getByRole('heading', { name: 'Add your new labels' })).toBeInTheDocument()
   expect((await savedCollection())?.rows).toHaveLength(1)
@@ -586,7 +587,8 @@ it('preserves manual import choices for quantity changes and requires renewed re
     let saved = (await otherTab.load())!
     saved = await otherTab.save(saved.revision, updateRow(saved, saved.rows[0].id, { quantity: 3 }))
     fireEvent(window, new Event('focus'))
-    await waitFor(() => expect(screen.getByLabelText('Quantity for Blend A')).toHaveValue(3))
+    expect(screen.queryByLabelText('Quantity for Blend A')).not.toBeInTheDocument()
+    expect((await savedCollection())?.rows[0].quantity).toBe(3)
     expect(choice).toHaveValue('skip')
     expect(screen.queryByRole('button', { name: 'Review updated choices' })).not.toBeInTheDocument()
     await otherTab.save(saved.revision, updateRow(saved, saved.rows[0].id, { notes: 'Different edition requested' }))
