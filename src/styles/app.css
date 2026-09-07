@@ -397,6 +397,9 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 @media print {
   :root, body { margin: 0 !important; padding: 0 !important; background: white !important; }
   .screen-only, .site-footer, .skip-link { display: none !important; }
+  /* Optional panels can render loading/error fallbacks outside PrintStudio.
+     Only the sheet workspace belongs in a label print job. */
+  .view-print > :not(.simple-print) { display: none !important; }
   .app-shell { min-height: 0; background: white; overflow: visible; }
   .app-shell::after { display: none; }
   .site-main, .simple-print { display: block; min-height: 0; max-width: none; margin: 0; padding: 0; outline: none; }
