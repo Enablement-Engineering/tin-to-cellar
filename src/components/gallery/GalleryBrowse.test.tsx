@@ -138,3 +138,13 @@ it('offers retry after a first-page lookup failure without calling it no results
   expect(screen.queryByText(/^No labels match/)).toBeNull()
   await screen.findByRole('button', { name: 'Add to your labels' })
 })
+
+it('presents each blend as a heading and gives card actions accessible identity context', async () => {
+  vi.mocked(searchLabels).mockResolvedValue({ labels: [label], nextCursor: null })
+  render(<GalleryBrowse onAdd={vi.fn()} />)
+  expect(await screen.findByRole('heading', { level: 2, name: 'Nightcap' })).toBeVisible()
+  expect(screen.getByRole('article', { name: 'Nightcap Peterson' })).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Add to your labels' })).toHaveAccessibleDescription('Nightcap Peterson')
+  expect(screen.getByRole('link', { name: /Nightcap by Peterson artwork.*opens in a new tab/ })).toHaveAttribute('target', '_blank')
+  expect(screen.queryByText('About this design')).not.toBeInTheDocument()
+})

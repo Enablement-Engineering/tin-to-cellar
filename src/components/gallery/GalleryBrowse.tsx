@@ -109,11 +109,10 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
       {error && !cursor && <button className="button secondary" type="button" disabled={busy} onClick={() => void load()}>Retry loading designs</button>}
       {!onCreate && !busy && !error && !labels.length && <a className="button secondary" href="/labels/create">Choose labels to create</a>}
       {addError && <p role="alert">{addError} Your existing labels are unchanged. Try adding the design again.</p>}
-      <div className="gallery-grid" role="region" aria-label="Label results" aria-busy={busy}>{labels.map((label, index) => <article className="gallery-card" key={label.id}>
-        <a href={`${API}/labels/${label.id}/artwork`} target="_blank" rel="noreferrer" aria-label={`View full-resolution ${label.blend} artwork`}><GalleryThumbnail src={`${API}/labels/${label.id}/thumbnail`} alt={label.description} eager={index < 4} /></a>
-        <h2>{label.maker} · {label.blend}</h2>{label.edition && <p>{label.edition}</p>}
-        <div className="gallery-actions"><button type="button" className="button primary" disabled={saving || adding !== null || selectedIds.includes(label.id)} onClick={() => void add(label)}>{selectedIds.includes(label.id) ? 'Added to your labels' : adding === label.id ? 'Adding design…' : getActionLabel?.(label) ?? 'Add to your labels'}</button></div>
-        {label.description && <details className="gallery-design-details"><summary>About this design</summary><p>{label.description}</p></details>}
+      <div className="gallery-grid" role="region" aria-label="Label results" aria-busy={busy}>{labels.map((label, index) => <article className="gallery-card" key={label.id} aria-labelledby={`gallery-blend-${label.id} gallery-maker-${label.id}`}>
+        <a href={`${API}/labels/${label.id}/artwork`} target="_blank" rel="noreferrer" className="gallery-artwork-link" aria-label={`View full-resolution ${label.blend} by ${label.maker} artwork (opens in a new tab)`}><GalleryThumbnail src={`${API}/labels/${label.id}/thumbnail`} alt={label.description} eager={index < 4} /></a>
+        <header className="gallery-card-heading"><h2 id={`gallery-blend-${label.id}`}>{label.blend}</h2><p id={`gallery-maker-${label.id}`} className="gallery-card-maker">{label.maker}</p>{label.edition && <p className="gallery-card-edition">{label.edition}</p>}</header>
+        <div className="gallery-actions"><button type="button" className="button primary" aria-describedby={`gallery-blend-${label.id} gallery-maker-${label.id}`} disabled={saving || adding !== null || selectedIds.includes(label.id)} onClick={() => void add(label)}>{selectedIds.includes(label.id) ? 'Added to your labels' : adding === label.id ? 'Adding design…' : getActionLabel?.(label) ?? 'Add to your labels'}</button></div>
       </article>)}</div>
       {adding && <p role="status">Downloading and checking the selected design…</p>}
       <div className="gallery-pagination">

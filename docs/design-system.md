@@ -269,3 +269,5 @@ A selected replacement is labeled Needs new artwork with Previous design saved. 
 ### Gallery scrolling
 
 Do not present the number of loaded cards as the gallery total. Initial loading and empty-search messages appear before results; subsequent loading and retry feedback stays below the grid. Do not show an end-of-results message. Start the next page within 1,400px of the viewport, keep one request in flight, and retain a manual Show more labels button. Load the first four thumbnails eagerly and defer distant images. Reserve image dimensions and reveal decoded thumbnails immediately without blur or motion, so loading does not shift existing cards or delay clear artwork.
+
+Browse cards put the blend name in an h2, with the maker beneath it in smaller sans-serif text. Keep artwork, identity, and the add action together; omit the About this design disclosure. Preserve the artwork description as image alt text. Name each article from its blend and maker, describe its action with the same identity, and announce that full-resolution artwork links open a new tab. Align actions at the bottom of cards without fixed card heights or truncated names.
