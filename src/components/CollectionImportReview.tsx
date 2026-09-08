@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Collection, ImportDecisions, ImportPlan } from '../lib/collection'
 
-export function CollectionImportReview({ collection, plan, decisions, onChange, onAccept, onCancel, onReplace, children, error, busy, invalidated = false, onRefresh }: {
+export function CollectionImportReview({ collection, plan, decisions, onChange, onAccept, onCancel, onReplace, children, error, busy, invalidated = false, onRefresh, unresolvedRequests = [] }: {
   collection: Collection; plan: ImportPlan; decisions: ImportDecisions; onChange: (next: ImportDecisions) => void; onAccept: () => void; onCancel: () => void; busy: boolean;
-  invalidated?: boolean; onRefresh?: () => void; onReplace?: () => void; children?: ReactNode; error?: string;
+  invalidated?: boolean; onRefresh?: () => void; onReplace?: () => void; children?: ReactNode; error?: string; unresolvedRequests?: string[];
 }) {
   const [urls, setUrls] = useState<Record<string, string>>({})
   const [previewError, setPreviewError] = useState(false)
@@ -50,6 +50,7 @@ export function CollectionImportReview({ collection, plan, decisions, onChange, 
     <p className="import-review-summary">{newCount} new {newCount === 1 ? 'design' : 'designs'}{attentionCount > 0 ? ` · ${attentionCount} ${attentionCount === 1 ? 'match' : 'matches'} to review` : ''}{duplicateCount > 0 ? ` · ${duplicateCount} already saved` : ''}. Additions will appear in your print sheet.</p>
     </header>
     <div className="import-review-body">
+    {unresolvedRequests.length > 0 && <p className="import-request-coverage">New artwork will still be needed for: {unresolvedRequests.join(', ')}. These requests will stay in your labels.</p>}
     {error && <p role="alert">{error}</p>}
     {children && <details className="import-validation"><summary>Validation checks</summary>{children}</details>}
     {newCount > 0 && <button type="button" className="button quiet" aria-expanded={showNew} onClick={() => setShowNew(value => !value)}>{showNew ? 'Hide new designs' : `Review ${newCount} new ${newCount === 1 ? 'design' : 'designs'}`}</button>}

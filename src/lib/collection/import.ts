@@ -49,6 +49,7 @@ export async function prepareImport(result: CellarPackImportResult, options: Pre
     receipt: { id: receiptId, title: (result.manifest?.title ?? 'Imported labels').slice(0, 300), createdAt: new Date().toISOString(), protocolContext: options.protocolContext ?? { status: 'legacy' }, repairPrompt: options.repairPrompt ?? '', issues: result.issues.map(issue => ({ ...issue })), quarantined: result.quarantinedLabels.map(item => ({ id: item.id, reason: item.issues.map(issue => [issue.message, issue.recovery].filter(Boolean).join(' ')).join(' ') })), contribution, delivery: contribution ? 'pending' : 'none' },
     designs: [],
   }
+  candidate.receipt.origin = options.origin
   for (const original of result.labels) {
     if (!checkAvery94502Compatibility(original.label.surface).compatible) throw new CollectionError('invalid', 'This artwork must be a compatible 2.5-inch circle before it can be added.')
     if (await sha256(original.artwork.data) !== original.artwork.asset.sha256) throw new CollectionError('invalid', 'The artwork does not match the verified ZIP. Import the original ZIP again.')
@@ -77,12 +78,18 @@ function matches(row: CollectionRow, design: CollectionDesign): boolean {
 
 export function planImport(collection: Collection, candidate: ImportCandidate): ImportPlan {
   return { baseRevision: collection.revision, collectionId: collection.id, candidate, entries: candidate.designs.map(design => {
-    if (Object.values(collection.designs).some(existing => existing.fingerprint === design.fingerprint)) return { designId: design.id, sourceLabelId: design.item.id, matchRowIds: collection.rows.filter(row => row.designId === design.id).map(row => row.id), kind: 'duplicate' }
     const all = collection.rows.filter(row => matches(row, design))
     const frozenMatches = all.filter(row => collection.handoff?.targets.some(target => target.rowId === row.id && target.revision === row.revision))
     const rows = frozenMatches.length ? frozenMatches : all
     const single = rows.length === 1 ? rows[0] : null
     const stale = single && collection.handoff?.targets.some(target => target.rowId === single.id && target.revision !== single.revision)
+    // A retained previous design is available for reuse, but it is not selected.
+    // Reimporting it must still be able to complete an unfinished request.
+    if (Object.values(collection.designs).some(existing => existing.fingerprint === design.fingerprint)) {
+      if (single && !single.designId && !stale) return { designId: design.id, sourceLabelId: design.item.id, matchRowIds: [single.id], kind: 'fill' }
+      if (rows.some(row => !row.designId)) return { designId: design.id, sourceLabelId: design.item.id, matchRowIds: rows.map(row => row.id), kind: 'choice' }
+      return { designId: design.id, sourceLabelId: design.item.id, matchRowIds: collection.rows.filter(row => row.designId === design.id).map(row => row.id), kind: 'duplicate' }
+    }
     return { designId: design.id, sourceLabelId: design.item.id, matchRowIds: rows.map(row => row.id), kind: single && !single.designId && !stale ? 'fill' : rows.length ? 'choice' : 'add' }
   }) }
 }
@@ -105,6 +112,7 @@ export function applyImport(collection: Collection, plan: ImportPlan, decisions:
       if (index < 0 || replaced.has(rows[index].id)) throw new CollectionError('conflict', 'Choose a different requested label for each returned design.')
       replaced.add(rows[index].id)
       rows[index] = { ...rows[index], designId: design.id, createRequested: false, revision: rows[index].revision + 1 }
+      delete rows[index].previousDesignId
     } else if (decision.action === 'add') {
       const row = newRow({ ...identityForDesign(design.item.label.maker, design.item.label.blend), edition: editionFor(design) })
       rows.push({ ...row, designId: design.id })
@@ -115,8 +123,12 @@ export function applyImport(collection: Collection, plan: ImportPlan, decisions:
   const originalSubmission = plan.candidate.receipt.contribution && collection.receipts.find(receipt => receipt.contribution?.submissionId === plan.candidate.receipt.contribution!.submissionId)
   const incomingReceipt = originalSubmission ? { ...plan.candidate.receipt, contribution: originalSubmission.contribution, delivery: originalSubmission.delivery } : plan.candidate.receipt
   const observedHashes = plan.candidate.receipt.knownGalleryHashes
-  const receipts = existingReceipt
-    ? observedHashes?.length ? collection.receipts.map(receipt => receipt.id === existingReceipt.id ? { ...receipt, knownGalleryHashes: [...new Set([...(receipt.knownGalleryHashes ?? []), ...observedHashes])] } : receipt) : collection.receipts
+  const receipts: Collection['receipts'] = existingReceipt
+    ? collection.receipts.map(receipt => receipt.id === existingReceipt.id ? {
+      ...receipt,
+      origin: receipt.origin === 'local' || incomingReceipt.origin === 'local' || receipt.contribution !== null || Object.values(collection.designs).some(design => design.receiptId === receipt.id && design.origin === 'local') ? 'local' : receipt.origin ?? incomingReceipt.origin,
+      ...(observedHashes?.length ? { knownGalleryHashes: [...new Set([...(receipt.knownGalleryHashes ?? []), ...observedHashes])] } : {}),
+    } : receipt)
     : [...collection.receipts, incomingReceipt]
   return finish({ ...collection, rows, designs, receipts })
 }

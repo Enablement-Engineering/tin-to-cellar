@@ -21,6 +21,7 @@ for (const width of [1280, 768, 320]) for (const count of [1, 3]) {
     await page.getByRole('combobox', { name: 'Add a blend' }).fill('Autumn Evening')
     await page.getByRole('option', { name: 'Autumn Evening by Cornell & Diehl', exact: true }).click()
     const row = page.getByRole('article', { name: 'Autumn Evening', exact: true })
+    await row.getByRole('button', { name: 'Choose design', exact: true }).click()
     const previews = row.locator('.preparation-design-preview')
     await expect(previews).toHaveCount(count)
     for (const preview of await previews.all()) {
@@ -47,7 +48,14 @@ for (const width of [1280, 768, 320]) for (const count of [1, 3]) {
     await page.keyboard.press('Tab')
     await expect(row.getByRole('button', { name: 'Use this design', exact: true }).first()).toBeFocused()
     await row.getByRole('button', { name: 'Create my own', exact: true }).click()
-    await expect(row.getByRole('textbox', { name: 'Requests for Autumn Evening optional' })).toBeVisible()
+    await expect(row.getByRole('button', { name: 'Create my own', exact: true })).toHaveCount(0)
+    await expect(row).toContainText('Selected for creation')
+    await page.getByRole('button', { name: 'Continue to creation', exact: true }).click()
+    await expect(page).toHaveURL(/\/labels\/artwork$/)
+    await expect(page.getByRole('heading', { name: 'Review your request', exact: true })).toBeVisible()
+    await page.getByText('Design notes · optional', { exact: true }).click()
+    await expect(page.getByRole('textbox', { name: 'Requests for Autumn Evening optional' })).toBeVisible()
+    expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([])
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   })
 }

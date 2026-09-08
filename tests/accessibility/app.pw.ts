@@ -12,15 +12,15 @@ async function audit(page: Page) {
   expect(results.violations).toEqual([])
 }
 for (const width of [1280, 320]) {
-  for (const route of ['', 'labels', 'labels/create', 'labels/print', 'labels/help', 'about', 'inspiration', 'privacy', 'missing-page']) {
+  for (const route of ['', 'labels', 'labels/create', 'labels/order', 'labels/artwork', 'labels/print', 'labels/help', 'about', 'inspiration', 'privacy', 'missing-page']) {
     test(`${route} at ${width}px has no automated violations or horizontal overflow`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 })
       await page.goto(`/${route}`)
       await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
       if (route === 'labels') {
-        await expect(page.getByRole('navigation', { name: 'Workflow' }).getByRole('link')).toHaveText(['Choose labels', 'Print labels'])
+        await expect(page.getByRole('navigation', { name: 'Workflow' }).getByRole('link')).toHaveText(['Your labels', 'Print labels'])
         await expect(page.getByText('Optional', { exact: true })).toBeVisible()
-        await expect(page.getByRole('button', { name: 'Choose labels', exact: true })).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Enter blends manually', exact: true })).toBeVisible()
         await page.screenshot({ path: `test-results/overview-${width}.png`, fullPage: true })
       }
       await audit(page)
@@ -37,13 +37,13 @@ test('skip link is first, preserves the route, and route changes set focus and t
   await expect(page.getByRole('main')).toBeFocused()
   await expect(page).toHaveURL(/\/labels\/create$/)
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Choose labels', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your labels', exact: true })).toBeVisible()
   await page.getByRole('navigation', { name: 'Workflow' }).getByRole('link', { name: 'Print labels' }).click()
   await expect(page.getByRole('main')).toBeFocused()
   await expect(page).toHaveTitle('Print labels | Tin to Cellar')
   await page.goBack()
   await expect(page.getByRole('main')).toBeFocused()
-  await expect(page).toHaveTitle('Choose labels | Tin to Cellar')
+  await expect(page).toHaveTitle('Your labels | Tin to Cellar')
 })
 test('keyboard suggestions and removal preserve focus', async ({ page }) => {
   await page.goto('/labels/create')
@@ -55,21 +55,21 @@ test('keyboard suggestions and removal preserve focus', async ({ page }) => {
   await expect(input).toBeFocused()
   await page.getByRole('button', { name: /^Remove / }).focus()
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('heading', { name: 'Choose labels', exact: true })).toBeFocused()
+  await expect(input).toBeFocused()
   await expect(input).not.toHaveAttribute('aria-controls')
 })
-test('order review can be completed by keyboard and returns focus to its trigger', async ({ page }) => {
+test('order review can be completed by keyboard and focuses the saved workspace', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 })
-  await page.goto('/labels/create')
-  const trigger = page.getByRole('button', { name: 'Import order', exact: true })
-  await trigger.focus()
-  await trigger.press('Enter')
-  await page.getByRole('textbox', { name: 'Order text' }).fill('G. L. Pease\nQuiet Nights 2oz')
-  await page.getByRole('button', { name: 'Find tobaccos' }).press('Enter')
+  await page.goto('/labels/order')
+  await page.getByRole('textbox', { name: 'Blend list' }).focus()
+  await page.getByRole('textbox', { name: 'Blend list' }).fill('G. L. Pease\nQuiet Nights 2oz')
+  await page.getByRole('button', { name: 'Find blends', exact: true }).press('Enter')
   await audit(page)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-  await page.getByRole('button', { name: 'Add selected tobaccos' }).press('Enter')
-  await expect(trigger).toBeFocused()
+  await page.getByRole('button', { name: 'Save 1 blend and choose designs', exact: true }).press('Enter')
+  await expect(page).toHaveURL(/\/labels\/create$/)
+  await expect(page.getByRole('main')).toBeFocused()
+  await expect(page.getByRole('article', { name: 'Quiet Nights', exact: true })).toBeVisible()
 })
 test('ZIP input has one visible keyboard entry and failed imports announce a result', async ({ page }) => {
   await page.goto('/labels/print')
@@ -96,7 +96,11 @@ test('forced colors retain a field outline and reduced motion disables smooth sc
 test('expanded prompt stays accessible at narrow width', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 })
   await page.goto('/labels/create')
-  await page.getByRole('button', { name: 'Choose blends in my AI chat' }).click()
+  await page.getByRole('combobox', { name: 'Add a blend' }).fill('My custom test blend')
+  await page.getByRole('combobox', { name: 'Add a blend' }).press('Enter')
+  await page.getByRole('button', { name: 'Choose artwork to create', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Choose artwork to create', exact: true }).getByRole('button', { name: 'Continue with 1 label', exact: true }).click()
+  await page.getByRole('button', { name: 'Continue with 1 label', exact: true }).click()
   await page.getByText('Read prompt', { exact: true }).click()
   await audit(page)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

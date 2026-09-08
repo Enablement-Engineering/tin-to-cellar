@@ -1,0 +1,21 @@
+.preparation-entry-actions.preparation-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  gap: 12px;
+  padding-top: 20px;
+}
+.preparation-shortcuts > .button {
+  justify-content: flex-start;
+  gap: 12px;
+  min-height: 48px;
+  padding: 12px 16px;
+  text-align: left;
+  color: var(--text-accent);
+  box-shadow: none;
+}
+.preparation-shortcuts > .button:hover:not(:disabled) {
+  background: var(--surface-accent-soft);
+  border-color: var(--text-accent);
+}
+.preparation-shortcuts .icon { flex-shrink: 0; }
+.preparation-import-return > .button { gap: 10px; }

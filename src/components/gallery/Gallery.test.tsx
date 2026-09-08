@@ -21,7 +21,7 @@ it('searches blends with keyboard suggestions and clears the catalog filter with
   render(<GalleryBrowse onAdd={vi.fn()} />)
   const input = await screen.findByRole('combobox', { name: 'Maker or blend' })
   expect(screen.getByText('Choose designs shared by the community. Add them to your labels and print them alongside your own artwork.')).toBeInTheDocument()
-  expect(screen.getByText('Available format')).toBeInTheDocument()
+  expect(screen.getByText('2.5-inch circles')).toBeInTheDocument()
   expect(screen.queryByRole('combobox', { name: 'Label shape' })).toBeNull()
   expect(screen.queryByLabelText('Edition')).toBeNull()
   fireEvent.change(input, { target: { value: 'Peterson Nightcap' } })

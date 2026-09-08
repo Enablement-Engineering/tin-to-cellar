@@ -7,12 +7,16 @@ type IconName =
   | 'guide'
   | 'lock'
   | 'print'
+  | 'pencil'
+  | 'book'
   | 'research'
   | 'spark'
   | 'trash'
   | 'upload'
 
 const paths: Record<IconName, React.ReactNode> = {
+  pencil: <><path d="m15 4 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14zM4 14l5 5" /></>,
+  book: <><path d="M12 5v15M12 5C9 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-2-1-6-1-9 1Z" /></>,
   arrow: <path d="m5 12 7-7 7 7M12 5v14" />,
   copy: <><rect x="8" y="8" width="11" height="11" rx="1.5" /><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8" /></>,
   download: <><path d="M12 3v12m0 0 5-5m-5 5-5-5" /><path d="M5 20h14" /></>,

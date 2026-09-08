@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-export const viewPaths = { labels: '/labels', create: '/labels/create', print: '/labels/print', help: '/labels/help', about: '/about', inspiration: '/inspiration', privacy: '/privacy', gallery: '/gallery', 'gallery-admin': '/admin/gallery' } as const
+export const viewPaths = { labels: '/labels', create: '/labels/create', artwork: '/labels/artwork', order: '/labels/order', print: '/labels/print', help: '/labels/help', about: '/about', inspiration: '/inspiration', privacy: '/privacy', gallery: '/gallery', 'gallery-admin': '/admin/gallery' } as const
 export type View = keyof typeof viewPaths
 function viewFromPath(): View | 'not-found' {
   const pathname = window.location.pathname.replace(/\/$/, '') || '/'
@@ -12,6 +12,7 @@ export function usePublicNavigation() {
   const [view, setView] = useState<View | 'not-found'>(viewFromPath)
   const main = useRef<HTMLElement>(null)
   const previousView = useRef(view)
+  const galleryScroll = useRef(0)
   useEffect(() => {
     try {
       if (sessionStorage.getItem('tin-to-cellar:instructions-reload-focus') === '1') {
@@ -21,17 +22,18 @@ export function usePublicNavigation() {
     } catch { /* Browser storage may be unavailable; loading can still recover. */ }
   }, [])
   const navigate = (next: View) => {
+    if (view === 'gallery') galleryScroll.current = window.scrollY
     setView(next)
     if (next === view) { main.current?.focus({ preventScroll: true }); window.scrollTo({ top: 0, left: 0 }) }
     if (window.location.pathname !== viewPaths[next] || window.location.hash) window.history.pushState({}, '', viewPaths[next])
   }
   useEffect(() => {
-    if (previousView.current !== view) { main.current?.focus({ preventScroll: true }); window.scrollTo({ top: 0, left: 0 }); previousView.current = view }
+    if (previousView.current !== view) { main.current?.focus({ preventScroll: true }); window.scrollTo({ top: view === 'gallery' ? galleryScroll.current : 0, left: 0 }); previousView.current = view }
   }, [view])
   useEffect(() => {
     const previousRestoration = window.history.scrollRestoration
     window.history.scrollRestoration = 'manual'
-    const onPopState = () => setView(viewFromPath())
+    const onPopState = () => { if (previousView.current === 'gallery') galleryScroll.current = window.scrollY; setView(viewFromPath()) }
     window.addEventListener('popstate', onPopState)
     return () => { window.removeEventListener('popstate', onPopState); window.history.scrollRestoration = previousRestoration }
   }, [])

@@ -3,10 +3,10 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Icon } from './Icons'
 
-type PromptHandoffProps = { prompt: string; request: string; onPrint?: () => void; copyLabel?: string; busy?: boolean; onCopy?: () => Promise<string>; onCopied?: () => void }
+type PromptHandoffProps = { prompt: string; request: string; copyLabel?: string; copied?: boolean; busy?: boolean; onCopy?: () => Promise<string>; onCopied?: () => void }
 type CopyResult = { payload: string; source: string; failed: boolean }
 
-export function PromptHandoff({ prompt, request, onPrint, copyLabel = 'Copy prompt', busy, onCopy, onCopied }: PromptHandoffProps) {
+export function PromptHandoff({ prompt, request, copyLabel = 'Copy instructions', copied = false, busy, onCopy, onCopied }: PromptHandoffProps) {
   const [result, setResult] = useState<CopyResult | null>(null)
   const [expanded, setExpanded] = useState(false)
   const [source, setSource] = useState(false)
@@ -35,13 +35,12 @@ export function PromptHandoff({ prompt, request, onPrint, copyLabel = 'Copy prom
   return (
     <section className="handoff" aria-labelledby="handoff-title">
       <div className="handoff-content">
-      <div className="panel-heading"><h2 id="handoff-title">Create the artwork</h2></div>
-      <p className="panel-intro">Copy the prompt into your AI chat to create the requested designs. Bring the finished ZIP back to add the new artwork to your labels.</p>
-      <p className="field-hint">Generating the images and creating the ZIP may take several minutes.</p>
-      <div className="handoff-actions"><button className="button primary" type="button" disabled={busy || saving} onClick={() => void copy()}><Icon name="copy" />{saving ? 'Preparing request…' : copyLabel}</button></div>
+      <div className="creation-step-heading"><span className="creation-step-number" aria-hidden="true">2</span><h2 id="handoff-title" tabIndex={-1}>Create in your AI chat</h2></div>
+      <ol className="creation-chat-instructions"><li>Copy the instructions below.</li><li>Open your AI chat, paste the instructions, and send.</li><li>When the artwork is ready, download the label ZIP it produces.</li></ol>
+      <p className="field-hint">Creating the images and ZIP may take several minutes. This page does not start or track your AI chat.</p>
+      <div className="handoff-actions"><button className={`button ${copied || currentResult && !currentResult.failed ? 'secondary' : 'primary'}`} type="button" disabled={busy || saving} onClick={() => void copy()}><Icon name="copy" />{saving ? 'Preparing request…' : copyLabel}</button></div>
       {saveError && <p role="alert">{saveError}</p>}
-      <p className="copy-status" role="status">{currentResult ? currentResult.failed ? 'Automatic copying did not work. Select and copy the text below.' : 'Prompt and all instructions copied. Paste into your AI chat and send.' : ''}</p>
-      {onPrint && <button className="button quiet" type="button" onClick={onPrint}>Add your new label ZIP<Icon name="arrow" size={16} /></button>}
+      <p className="copy-status" role="status">{currentResult?.failed ? 'Automatic copying did not work. Select and copy the text below.' : copied || currentResult ? 'Copied. Open your AI chat, paste, and send. Return here with the finished ZIP.' : ''}</p>
       </div>
       <div className="handoff-details">
       <details className="prompt-preview" open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>

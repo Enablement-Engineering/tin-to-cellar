@@ -29,7 +29,14 @@ export function updateRow(collection: Collection, id: string, patch: Partial<Pic
     if (row.id !== id) return row
     const next = { ...row, ...patch }
     const identityChanged = ['maker', 'blend', 'catalogId', 'edition'].some(key => next[key as keyof CollectionRow] !== row[key as keyof CollectionRow])
-    if (identityChanged) next.designId = null
+    if (identityChanged) { next.designId = null; delete next.previousDesignId }
+    else if (next.createRequested && next.designId) {
+      next.previousDesignId = next.designId
+      next.designId = null
+    } else if (!next.createRequested && next.previousDesignId) {
+      next.designId = next.previousDesignId
+      delete next.previousDesignId
+    }
     // Quantities do not change which artwork a prepared request was asking for.
     const requestChanged = identityChanged || next.notes !== row.notes || next.createRequested !== row.createRequested
     return { ...next, revision: row.revision + Number(requestChanged) }
@@ -45,7 +52,7 @@ export function setReceiptDelivery(collection: Collection, id: string, delivery:
 }
 
 export function finish(collection: Collection): Collection {
-  const selected = new Set(collection.rows.flatMap(row => row.designId ? [row.designId] : []))
+  const selected = new Set(collection.rows.flatMap(row => [row.designId, row.previousDesignId].filter((id): id is string => Boolean(id))))
   const blobs = new Map<string, ArrayBuffer>()
   const designs = Object.fromEntries(Object.entries(collection.designs).filter(([id]) => selected.has(id)).map(([id, design]) => {
     const artwork = design.item.artwork

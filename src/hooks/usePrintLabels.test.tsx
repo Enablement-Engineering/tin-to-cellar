@@ -39,3 +39,19 @@ it('keeps URLs stable for receipt and quantity changes, releasing them on replac
   unmount()
   expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:next')
 })
+
+it('excludes generation requests and retained previous artwork, then restores the preview when canceled', () => {
+  Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn().mockReturnValueOnce('blob:original').mockReturnValueOnce('blob:restored') })
+  Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() })
+  const original = collection(['a'])
+  const { result, rerender } = renderHook(({ value }) => usePrintLabels(value), { initialProps: { value: original } })
+  expect(result.current.labels).toHaveLength(1)
+  const pending = { ...original, rows: original.rows.map(row => ({ ...row, createRequested: true, designId: null, previousDesignId: row.designId! })) }
+  rerender({ value: pending })
+  expect(result.current.labels).toHaveLength(0)
+  expect(result.current.pending).toBe(false)
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:original')
+  expect(URL.createObjectURL).toHaveBeenCalledTimes(1)
+  rerender({ value: original })
+  expect(result.current.labels[0].imageUrl).toBe('blob:restored')
+})

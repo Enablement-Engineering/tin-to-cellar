@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({ download: vi.fn(), prepare: vi.fn() }))
 vi.mock('../components/gallery/pack-builder', () => ({ downloadPublishedPack: mocks.download }))
 vi.mock('../lib/import-workflow/prepare', () => ({ preparePackImport: mocks.prepare }))
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals() })
-async function setup(replace = false) {
+async function setup(replace = false, fromGallery = false) {
   vi.stubGlobal('Blob', NodeBlob)
   const pack = await collectionFixture()
   expect(pack.labels).toHaveLength(1)
@@ -26,7 +26,7 @@ async function setup(replace = false) {
   const commit = async (change: (value: Collection) => Collection) => current = { ...change(current), revision: current.revision + 1 }
   const hook = renderHook(({ collection }) => usePackImport({ collection, ready: true, commit, onStart: () => {}, onImported: () => {} }), { initialProps: { collection: current } })
   let operation!: Promise<unknown>
-  await act(async () => { operation = hook.result.current.chooseCommunity({ id: 'community', maker: 'Fixture Maker', blend: 'Fixture Blend' }, replace ? current.rows[0].id : undefined).catch(error => error) })
+  await act(async () => { operation = hook.result.current.chooseCommunity({ id: 'community', maker: 'Fixture Maker', blend: 'Fixture Blend' }, replace && !fromGallery ? current.rows[0].id : undefined).catch(error => error) })
   return {
     hook,
     change(update: (value: Collection) => Collection) { current = { ...update(current), revision: current.revision + 1 }; hook.rerender({ collection: current }) },
@@ -122,4 +122,14 @@ it('can replace artwork when retaining both collections would exceed the storage
     expect(run.current().rows).toHaveLength(1)
     expect(run.current().rows[0].blend).toBe('Fixture Blend')
   } finally { limits.artworkBytes = originalBudget }
+})
+
+it('fills an exact pending request when the design is chosen from the gallery', async () => {
+  const run = await setup(true, true)
+  run.change(current => updateRow(current, current.rows[0].id, { quantity: 5 }))
+  const { outcome, current } = await run.complete()
+  expect(outcome).toBeUndefined()
+  expect(current.rows).toHaveLength(1)
+  expect(current.rows[0]).toMatchObject({ quantity: 5, blend: 'Fixture Blend' })
+  expect(current.rows[0].designId).toBeTruthy()
 })

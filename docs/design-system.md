@@ -26,10 +26,13 @@ Adaptations made for the application:
 
 The failed-run report uses a compact disclosure card aligned with the help text column. Its styled file-picker button opens a local JSON report; preview and sharing remain separate actions. Preserve the upload status, error, and retry states. Component-specific layout lives in `src/styles/standalone-feedback.css`.
 
+Preparation shortcuts use equal-width outlined buttons with 18px decorative action icons: document for order intake, search for designs, upload for finished artwork, and sparkle for AI creation. The top shortcuts stack on narrow screens; preserve the separate placement of finished-artwork import. Layout lives in `src/styles/preparation-actions.css`.
+
 | Destination | Entry | Content |
 | --- | --- | --- |
 | Home | `/`, `/labels`, wordmark | First-visit introduction, community-first flow, explicitly optional AI creation, shared printing and a sample pack; `/` resolves to `/labels` |
-| Choose labels | `/labels/create` | Confirmed blend rows, community choices, optional scoped creation, one saved handoff |
+| Your labels | `/labels/create` | Saved blend rows, community choices, and explicit creation targets |
+| Create artwork | `/labels/artwork` | Review the request, copy instructions into an external AI chat, and return with the finished ZIP |
 | Community labels | `/gallery` | Discovery that adds to the same saved labels, without a separate basket |
 | Print labels | `/labels/print` | Reviewed additive ZIP import, original import reports, quantities, download, sheet preview, printing and alignment |
 | How it works | `/labels/help` | AI handoff instructions, portable instructions, file handling, local review guide explanation, printing guidance |
@@ -43,7 +46,7 @@ The home page explains the product; Choose labels is the working area. Access ho
 
 The top navigation contains Choose labels and Print labels on every public page. Community browsing is a secondary discovery route from Browse community labels inside Choose labels, not another workflow tab. Keep `/gallery` and existing deep links working; browsing still adds to the same saved set.
 
-The preparation workspace is a vertical sequence of committed blend rows, not a required wizard. Existing thumbnails and their editions appear before the optional Create my own action. A saved design remains printable while its replacement is requested. A compact count separates ready designs, creation requests and unresolved choices. Do not imply that copying starts a remote job.
+The preparation workspace is a vertical sequence of committed blend rows, not a required wizard. Existing thumbnails and their editions appear before the optional Create my own action. A replacement request leaves the current design off the print sheet while retaining it and its quantity for Use previous design. A compact count separates ready designs, creation requests and unresolved choices. Do not imply that copying starts a remote job.
 
 Blend cards use a compact heading above a horizontal artwork choice: a complete square thumbnail beside its edition and primary Use this design action. Optional creation sits in a quieter side column, stacking below at 900px. The thumbnail wrapper owns the square dimensions; its image fills that box with `object-fit: contain` and an explicit 100% height, overriding the intrinsic 320px attribute. Keep artwork unmodified and full-artwork links available. Use the existing Paper 50/100, Ink 900/500 and Moss 600 palette, Newsreader blend headings and Hanken Grotesk controls. Avoid tall nested portrait cards or decorative labels that compete with the artwork.
 
@@ -158,7 +161,7 @@ Use the first elevation for chips and secondary buttons, the second for cards, a
 | Quantity controls | Labeled controls with zero as the exclusion state; preserve automatic pagination |
 | Sheet preview | Paper sheet on a neutral background, actual artwork from the imported pack, measurements in mono |
 
-`Import order` reveals local PDF, screenshot, or pasted-text reading. `Read prompt` starts collapsed and separates the readable request preview from the full copied protocol. Copy prompt includes everything in one action. `Paper and alignment` contains printer adjustments. Copy and print remain visible without expanding a disclosure.
+`Add several blends` reveals local PDF, screenshot, or pasted-text reading. `Read prompt` starts collapsed and separates the readable request preview from the full copied protocol. Copy prompt includes everything in one action. `Paper and alignment` contains printer adjustments. Copy and print remain visible without expanding a disclosure.
 
 Standard controls are at least 44px tall. The source permits 34px dense controls, but compact appearance must not prevent touch or keyboard use. Hover changes color or border only. A primary action moves from moss 600 to 700 on hover and 800 when pressed. Do not move, scale, spring, or ripple controls.
 
@@ -238,6 +241,31 @@ The pack control sits at the bottom right of the viewport. Adding designs update
 
 Cards use the existing 320px thumbnails, with explicit width and height and a reserved square layout to avoid shifts while images load. The first thumbnail loads eagerly; subsequent thumbnails use native lazy loading, which allows the browser to prefetch near the viewport. Images use asynchronous decoding. Full-resolution artwork and printable packs are fetched only through their explicit actions. Keep image descriptions available as alt text and keep the loading placeholder static.
 
-Thumbnails reveal from a soft blur to sharp over 420ms after loading, over a static surface-colored placeholder. The reveal does not add requests or alter the reserved image size. Reduced-motion users receive the image immediately without animation. Failed images expose their alternative text rather than remaining hidden behind the placeholder.
+Thumbnails appear immediately after loading, over a static surface-colored placeholder. Loading does not alter the reserved image size or animate the artwork. Failed images expose their alternative text rather than remaining hidden behind the placeholder.
 
 The floating pack control is absent when no designs are selected. Clearing the pack or removing its last design hides it and returns focus to the gallery heading without scrolling. The bottom control uses the same translucent tan and 8px backdrop blur as the site header. The expanded selected-label panel uses solid tan so artwork behind it does not compete with its contents. Both use dark text for contrast.
+
+
+## Order and browsing entrances
+
+Home gives Add several blends and Browse label designs equal visual weight. Saved work adds Resume your labels above those entrances. Both use the existing local collection.
+
+Below the main entrances, manual entry, ZIP import, and help use compact outlined buttons with pencil, upload, and book icons. Keep their text labels visible and icons decorative. Buttons wrap on wider screens and stack with left-aligned labels on phones, with at least 48px target height.
+
+Your labels uses compact rows, explicit All / Needs artwork / Ready filters, and one expanded artwork chooser. Readiness and creation intent remain distinct; selecting a replacement suspends the current design from printing and retains it for restoration. The shared selection summary shows saved entries and readiness, while Print shows copies and sheets. Use Review & print before quantities are reviewed.
+
+Order intake is immediately visible on its own page. Reviewed matches, original local reference, missing-name entry and recovery precede saving. Move focus to the review heading after successful reading, and preserve the reviewed list after save errors.
+
+Blend intake offers an image or PDF picker and an always-visible pasted blend list. Home briefly names recent orders and cellar inventories as sources; intake also gives receipts and packing slips as examples and asks for visible maker and blend names. Explain that an address-only shipping label cannot identify blends. Associate this guidance with the upload button for screen readers; keep file formats and local-reading details subordinate.
+
+Single gallery replacements use a current-versus-selected comparison dialog. Batch creation uses a target-list dialog; pending imports keep the existing validated review. Modal headers and actions stay visible while their body scrolls. Cancel never writes the saved collection. Native dialogs contain focus, support Escape when not saving, and restore a surviving trigger.
+
+## Focused artwork creation
+
+The creation page uses three numbered sections in one reading order: request review, AI-chat instructions, and ZIP return. Keep one primary next action; after copying, the copy button becomes secondary and the ZIP action becomes primary. Request review collapses to a named summary and remains editable. Notes are optional disclosures per blend. Never infer external generation progress. On phones, sections stack without a second floating action bar.
+
+A selected replacement is labeled Needs new artwork with Previous design saved. The workspace offers Use previous design. Cancel import changes only the pending review, while restoring a previous design cancels that row's creation request. Import-report outcomes describe deterministic checks, not whether the artwork is currently selected for printing.
+
+### Gallery scrolling
+
+Do not present the number of loaded cards as the gallery total. Initial loading and empty-search messages appear before results; subsequent loading and retry feedback stays below the grid. Do not show an end-of-results message. Start the next page within 1,400px of the viewport, keep one request in flight, and retain a manual Show more labels button. Load the first four thumbnails eagerly and defer distant images. Reserve image dimensions and reveal decoded thumbnails immediately without blur or motion, so loading does not shift existing cards or delay clear artwork.

@@ -1,4 +1,4 @@
-import { assertCollection, verifyCollectionArtwork } from './validation'
+import { assertCollection, readCollection, verifyCollectionArtwork } from './validation'
 import { CollectionError, type Collection } from './types'
 
 export type CollectionStore = { load(): Promise<Collection | null>; save(expectedRevision: number, next: Collection): Promise<Collection>; close(): void }
@@ -28,9 +28,9 @@ export function createCollectionStore(options: { name?: string; indexedDB?: IDBF
         tx.onabort = () => reject(new CollectionError('unavailable', 'Saved labels could not be read. Retry without clearing browser storage.'))
       })
       if (value === undefined) return null
-      assertCollection(value)
-      await verifyCollectionArtwork(value)
-      return value
+      const collection = readCollection(value)
+      await verifyCollectionArtwork(collection)
+      return collection
     },
     async save(expectedRevision, next) {
       assertCollection(next)

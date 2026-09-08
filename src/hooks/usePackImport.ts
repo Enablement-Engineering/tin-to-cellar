@@ -38,12 +38,22 @@ export function usePackImport({ collection, ready, commit, onStart, onImported }
   const [freshReceipts, setFreshReceipts] = useState<Set<string>>(() => new Set())
   const [notes, setNotes] = useState<Record<string, Retrospective>>({})
   const [diagnosticWarnings, setDiagnosticWarnings] = useState<Record<string, boolean>>({})
+  // Cancel is a review-only transition. It never writes the saved collection.
+  const cancelImport = () => {
+    if (importBusy.current) return
+    setCandidate(null)
+    setReviewChoices(null)
+    setImportError('')
+    setImportLoadError(false)
+    setNotice('Import canceled. Your saved selection is unchanged.')
+  }
   const saveIncoming = async (incoming: ImportCandidate, change: (current: Collection) => Collection) => {
     const saved = await commit(change)
     if (incoming.receipt.contribution && !collection.receipts.some(receipt => receipt.id === incoming.receipt.id || receipt.contribution?.submissionId === incoming.receipt.contribution?.submissionId)) setFreshReceipts(previous => new Set(previous).add(incoming.receipt.id))
-    setReceiptId(incoming.receipt.id); setCandidate(null)
+    setReceiptId(incoming.receipt.id); setCandidate(null); setReviewChoices(null)
     const count = saved.rows.filter(row => row.designId).length
-    setNotice(`${incoming.receipt.repairPrompt ? incoming.designs.length ? 'Some labels need repair. ' : 'ZIP needs repair. ' : ''}${count} ${count === 1 ? 'label' : 'labels'} ready.`)
+    const remaining = saved.rows.filter(row => row.createRequested).map(row => row.blend)
+    setNotice(`${incoming.receipt.repairPrompt ? incoming.designs.length ? 'Some labels need repair. ' : 'ZIP needs repair. ' : ''}${count} ${count === 1 ? 'label' : 'labels'} ready.${remaining.length ? ` Artwork still requested for: ${remaining.join(', ')}.` : ''}`)
     return saved
   }
   const saveCandidate = (incoming: ImportCandidate, plan: ImportPlan, choices: ImportDecisions) => saveIncoming(incoming, current => applyImport(current, plan, choices))
@@ -59,19 +69,30 @@ export function usePackImport({ collection, ready, commit, onStart, onImported }
     const { incoming, retrospective, diagnosticWarning } = await preparePackImport(result, title, origin, publicationId)
     if (retrospective) setNotes(previous => ({ ...previous, [incoming.receipt.id]: retrospective }))
     setDiagnosticWarnings(previous => ({ ...previous, [incoming.receipt.id]: diagnosticWarning }))
+    const reviewIncoming = () => {
+      const plan = planImport(collection, incoming)
+      setCandidate(incoming)
+      setReviewChoices({ key: importReviewKey(collection, incoming), values: defaultDecisions(plan) })
+    }
     if (origin === 'gallery' && incoming.designs.length === 1) {
+      const initialEntry = planImport(collection, incoming).entries[0]
+      const initialTarget = target && collection.rows.find(row => row.id === target.id)
+      if (initialEntry.kind === 'choice' || initialTarget?.designId && initialTarget.designId !== initialEntry.designId) { reviewIncoming(); return }
       await saveIncoming(incoming, current => {
         if (current.id !== collection.id || target && !current.rows.some(row => row.id === target.id && row.revision === target.revision)) throw new CollectionError('conflict', 'The requested label changed while its design downloaded. Review the label and choose a design again.')
         const plan = planImport(current, incoming)
         const choices = defaultDecisions(plan)
         const entry = plan.entries[0]
-        if (entry && (target || entry.kind !== 'duplicate')) choices[entry.designId] = target ? { action: 'replace', rowId: target.id } : { action: 'add' }
+        const targetRow = target && current.rows.find(row => row.id === target.id)
+        if (entry.kind === 'choice' || targetRow?.designId && targetRow.designId !== entry.designId) throw new CollectionError('conflict', 'Your saved artwork changed while this design downloaded. Choose it again to review the replacement.')
+        // Exact unfinished matches use the same default fill rule from both
+        // entry paths. Existing artwork needs a separate review decision.
+        if (entry && target) choices[entry.designId] = { action: 'replace', rowId: target.id }
         return applyImport(current, plan, choices)
       })
     } else if (!incoming.designs.length) await saveIncoming(incoming, current => applyImport(current, planImport(current, incoming), {}))
     else {
-      setCandidate(incoming)
-      setReviewChoices({ key: importReviewKey(collection, incoming), values: defaultDecisions(planImport(collection, incoming)) })
+      reviewIncoming()
       // Trying the bundled template is already an explicit selection. An empty
       // collection needs no merge decision; validate and save before previewing.
       if (origin === 'example' && result.status === 'ready' && collection.rows.length === 0) {
@@ -104,7 +125,7 @@ export function usePackImport({ collection, ready, commit, onStart, onImported }
     finally { importBusy.current = false; setImporting(false) }
   }
   const refreshDecisions = () => { if (review) setDecisions(defaultDecisions(review)) }
-  return { importing, candidate, setCandidate, review, decisions, setDecisions, reviewInvalidated, refreshDecisions,
+  return { importing, candidate, setCandidate, cancelImport, review, decisions, setDecisions, reviewInvalidated, refreshDecisions,
     notice, setNotice, importError, setImportError, importLoadError, receiptId, setReceiptId,
     freshReceipts, setFreshReceipts, notes, setNotes, diagnosticWarnings, saveCandidate, replaceCandidate, handlePack, chooseCommunity }
 }

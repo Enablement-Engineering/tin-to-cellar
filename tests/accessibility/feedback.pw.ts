@@ -43,7 +43,7 @@ for (const width of [1280, 320]) {
     await page.keyboard.press('Escape')
     await expect(dialog).not.toBeVisible()
     await expect(trigger).toBeFocused()
-    await page.getByRole('navigation', { name: 'Workflow' }).getByRole('link', { name: 'Choose labels', exact: true }).click()
+    await page.getByRole('navigation', { name: 'Workflow' }).getByRole('link', { name: 'Your labels', exact: true }).click()
     await page.getByRole('navigation', { name: 'Workflow' }).getByRole('link', { name: 'Print labels' }).click()
     expect(sent).toHaveLength(2)
   })

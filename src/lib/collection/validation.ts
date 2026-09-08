@@ -16,6 +16,17 @@ function encodedBuffer(value: unknown): value is ArrayBuffer {
 function invalid(): never { throw new CollectionError('invalid', 'The saved labels could not be read safely. Keep your downloaded ZIPs and retry without replacing this saved work.') }
 function capacity(message: string): never { throw new CollectionError('capacity', message) }
 
+/** Older saved rows kept replacement-request artwork active. Retain it only for restore. */
+export function readCollection(value: unknown): Collection {
+  const migrated = record(value) && value.version === 1 && Array.isArray(value.rows)
+    ? { ...value, rows: value.rows.map(row => record(row) && row.createRequested === true && typeof row.designId === 'string' && row.previousDesignId === undefined
+      ? { ...row, previousDesignId: row.designId, designId: null }
+      : row) }
+    : value
+  assertCollection(migrated)
+  return migrated
+}
+
 export function manifestForDesign(design: CollectionDesign): CellarPackManifest {
   return { format: 'tin-to-cellar/cellarpack', schemaVersion: '0.1.0', packId: 'urn:uuid:43649b43-8094-4a32-b5ee-8be75208fb63', createdAt: '2026-09-07T00:00:00Z', generator: { name: 'Tin to Cellar', version: '1.0.0' }, labels: [design.item.label], assets: { [design.item.label.artworkAssetId]: design.item.artwork.asset } }
 }
@@ -30,6 +41,11 @@ export function assertCollection(value: unknown): asserts value is Collection {
   for (const row of value.rows) {
     if (!record(row) || !string(row.id, 100) || rowIds.has(row.id) || !integer(row.revision) || !(row.catalogId === null || string(row.catalogId, 200)) || !string(row.maker, 200, true) || !string(row.blend, 200) || !string(row.edition, 300, true) || !string(row.notes, 3000, true) || !integer(row.quantity, 0, 99) || typeof row.createRequested !== 'boolean' || !(row.designId === null || string(row.designId, 100))) invalid()
     rowIds.add(row.id)
+    if (row.previousDesignId !== undefined) {
+      if (!string(row.previousDesignId, 100) || !row.createRequested || row.designId !== null || !Object.hasOwn(value.designs, row.previousDesignId)) invalid()
+      selected.add(row.previousDesignId)
+    }
+    if (row.createRequested && row.designId !== null) invalid()
     if (row.designId) { if (!Object.hasOwn(value.designs, row.designId)) invalid(); selected.add(row.designId); copies += row.quantity }
   }
   if (copies > 450) capacity('One print job can contain up to 450 labels. Reduce quantities before adding more.')
@@ -52,7 +68,8 @@ export function assertCollection(value: unknown): asserts value is Collection {
   const receiptIds = new Set<string>()
   for (const receipt of value.receipts) {
     if (!record(receipt) || !string(receipt.id, 100) || receiptIds.has(receipt.id) || !string(receipt.title, 300) || !string(receipt.createdAt, 100) || !Number.isFinite(Date.parse(receipt.createdAt)) || !string(receipt.repairPrompt, 200_000, true) || !record(receipt.protocolContext) || !['known', 'unknown', 'legacy', 'invalid', 'conflict'].includes(String(receipt.protocolContext.status)) || !Array.isArray(receipt.issues) || !Array.isArray(receipt.quarantined) || !['none', 'pending', 'sent', 'failed'].includes(String(receipt.delivery)) || !(receipt.contribution === null || parseContribution(receipt.contribution))) invalid()
-    if (Object.keys(receipt).some(key => !['id', 'title', 'createdAt', 'protocolContext', 'repairPrompt', 'issues', 'quarantined', 'contribution', 'delivery', 'knownGalleryHashes'].includes(key))) invalid()
+    if (Object.keys(receipt).some(key => !['id', 'title', 'createdAt', 'protocolContext', 'repairPrompt', 'issues', 'quarantined', 'contribution', 'delivery', 'knownGalleryHashes', 'origin'].includes(key))) invalid()
+    if (receipt.origin !== undefined && !['local', 'gallery', 'example'].includes(String(receipt.origin))) invalid()
     if (receipt.knownGalleryHashes !== undefined && (!Array.isArray(receipt.knownGalleryHashes) || receipt.knownGalleryHashes.length > 100 || receipt.knownGalleryHashes.some(hash => !hex(hash)) || new Set(receipt.knownGalleryHashes).size !== receipt.knownGalleryHashes.length)) invalid()
     if (!(receipt.protocolContext.revision === undefined || string(receipt.protocolContext.revision, 100) || integer(receipt.protocolContext.revision, 1)) || Object.keys(receipt.protocolContext).some(key => !['status', 'revision'].includes(key))) invalid()
     for (const issue of receipt.issues) if (!record(issue) || !['fatal', 'error', 'warning', 'info'].includes(String(issue.severity)) || !string(issue.code, 100) || !string(issue.message, 6000) || !(issue.recovery === undefined || string(issue.recovery, 6000, true)) || !(issue.labelId === undefined || string(issue.labelId, 200, true))) invalid()

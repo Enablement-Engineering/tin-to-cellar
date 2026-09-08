@@ -1,0 +1,36 @@
+.artwork-creation-page { max-width: 880px; margin: 0 auto; padding: 24px 32px 64px; }
+.creation-back { margin: 0 0 16px; padding-left: 0; }
+.artwork-creation-page .page-heading { display: block; margin-bottom: 28px; }
+.artwork-creation-page .page-heading p { margin-top: 16px; max-width: 60ch; }
+.creation-step-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.creation-step-heading h2 { margin: 0; }
+.artwork-creation-page .creation-step-heading h2 { font: var(--type-heading); }
+.creation-chat-instructions { margin: 0; padding-left: 22px; }
+.creation-step-number { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border: 1px solid var(--line-strong); border-radius: 50%; color: var(--text-accent); }
+.artwork-creation-page h2 { scroll-margin-top: 104px; }
+.creation-review-list { list-style: none; padding: 0; margin: 24px 0; }
+.creation-review-list > li { border-top: 1px solid var(--line-hairline); padding: 16px 0; }
+.creation-request-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.creation-request-row > div { min-width: 0; overflow-wrap: anywhere; }
+.creation-request-row span, .creation-request-row small { display: block; color: var(--text-muted); }
+.creation-notes { margin-top: 12px; }
+.creation-notes summary { cursor: pointer; color: var(--text-accent); padding: 8px 0; }
+.creation-notes .field { margin-top: 12px; }
+.creation-review-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.creation-copy-step, .creation-return { margin-top: 24px; }
+.creation-upcoming { padding: 24px 32px; color: var(--text-muted); }
+.artwork-creation-page .handoff { display: block; padding: 28px 32px; border: 1px solid var(--line-hairline); border-radius: var(--radius-card); background: var(--surface-card); }
+.artwork-creation-page .handoff-content { max-width: none; }
+.artwork-creation-page .handoff-details { margin-top: 20px; }
+.artwork-creation-page .importer-compact .drop-zone { min-height: 180px; margin-top: 20px; }
+.artwork-creation-page .import-privacy { font-size: 13px; }
+.workspace-row-title h3, .workspace-row-title p { height: auto; min-height: 0; line-height: 1.4; }
+.workspace-row-title .field-hint { display: block; margin-top: 4px; }
+.workspace-row-actions { flex-wrap: wrap; }
+@media (max-width: 680px) {
+  .artwork-creation-page { padding: 16px 16px 40px; }
+  .artwork-creation-page .panel, .artwork-creation-page .handoff, .creation-upcoming { padding: 20px; }
+  .creation-request-row { flex-wrap: wrap; gap: 8px; }
+  .creation-request-row .button { padding-left: 0; }
+  .creation-review-actions .primary { width: 100%; }
+}
