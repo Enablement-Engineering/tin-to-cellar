@@ -517,7 +517,6 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 .preparation-identity-options > p { flex-basis: 100%; }
 .preparation-identity-options .button { white-space: normal; text-align: left; }
 .preparation-workspace .handoff { max-width: none; }
-.import-review { display: grid; gap: 20px; }
 .import-review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 20px; }
 .import-review-label { display: grid; align-content: start; gap: 12px; min-width: 0; padding: 16px; border: 1px solid var(--line-hairline); border-radius: var(--radius-control); overflow-wrap: anywhere; }
 .import-review-label img { width: 160px; height: 160px; object-fit: contain; justify-self: center; }
@@ -587,4 +586,38 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
   .app-shell:has(.preparation-summary.review-navigation) { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
   html:has(.preparation-summary.review-navigation) { scroll-padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
   .selected-labels-heading { scroll-margin-top: 120px; }
+}
+
+/* Modal review has one scrolling body; cards never shrink to the viewport. */
+.import-review-dialog { width: min(960px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--line-hairline); border-radius: var(--radius-card); background: var(--surface-card); color: var(--text-strong); overflow: hidden; }
+.import-review-dialog[open] { display: flex; flex-direction: column; }
+.import-review-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+body:has(.import-review-dialog[open]) { overflow: hidden; }
+.import-review-header { padding: 24px 28px 16px; flex: none; border-bottom: 1px solid var(--line-hairline); }
+.import-review-header h2 { margin-bottom: 8px; }
+.import-review-header p { margin-bottom: 0; }
+.import-review-body { overflow-y: auto; overscroll-behavior: contain; min-height: 0; padding: 20px 28px; display: block; }
+.import-review-body > * + * { margin-top: 20px; }
+.import-review-body .import-review-grid { align-items: start; grid-auto-rows: auto; }
+.import-review-label[hidden] { display: none; }
+.import-review-label img { max-width: 100%; flex-shrink: 0; }
+.import-review-dialog .import-review-actions { flex: none; justify-content: flex-end; margin: 0; padding: 16px 28px; border-top: 1px solid var(--line-hairline); background: var(--surface-card); }
+.import-validation > summary { cursor: pointer; font-weight: 600; }
+@media (max-width: 680px) {
+  .import-review-dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
+  .import-review-header { padding: 16px; }
+  .import-review-body { padding: 16px; }
+  .import-review-dialog .import-review-actions { padding: 12px 16px; }
+  .import-review-dialog .import-review-actions .button { flex: 1; }
+}
+@media print { .import-review-dialog { display: none !important; } }
+
+.import-review-dialog .import-review-grid { grid-template-columns: 1fr; }
+.import-review-dialog .import-review-label { grid-template-columns: 160px minmax(0, 1fr); column-gap: 24px; }
+.import-review-dialog .import-review-label img { grid-column: 1; grid-row: 1 / span 5; }
+.import-review-dialog .import-review-label :is(h3, label, select, p) { grid-column: 2; }
+@media (max-width: 680px) {
+  .import-review-dialog .import-review-label { grid-template-columns: minmax(0, 1fr); }
+  .import-review-dialog .import-review-label img { grid-column: 1; grid-row: auto; }
+  .import-review-dialog .import-review-label :is(h3, label, select, p) { grid-column: 1; }
 }

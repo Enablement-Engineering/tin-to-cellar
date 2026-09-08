@@ -49,6 +49,8 @@ async function savedCollection() {
   try { return await store.load() } finally { store.close() }
 }
 beforeEach(async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute('open') }
   vi.stubGlobal('crypto', webcrypto)
   vi.stubGlobal('Blob', NodeBlob)
   vi.stubGlobal('indexedDB', new IDBFactory())
@@ -547,7 +549,7 @@ it('retains the previous collection and the import review when saving runs out o
   await waitFor(() => expect(add).toBeEnabled())
   const failedWrite = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementationOnce(() => { throw new DOMException('Full', 'QuotaExceededError') })
   fireEvent.click(add)
-  await screen.findByRole('alert')
+  await within(screen.getByRole('dialog', { name: 'Add your new labels' })).findByRole('alert')
   failedWrite.mockRestore()
   expect(screen.queryByLabelText('Quantity for Blend A')).not.toBeInTheDocument()
   expect((await savedCollection())?.rows[0].quantity).toBe(1)
