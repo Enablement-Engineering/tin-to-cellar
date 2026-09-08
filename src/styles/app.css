@@ -628,3 +628,21 @@ body:has(.import-review-dialog[open]) { overflow: hidden; }
   .import-review-dialog .import-review-label img { grid-column: 1; grid-row: auto; }
   .import-review-dialog .import-review-label :is(h3, label, select, p) { grid-column: 1; }
 }
+
+/* Import choices stay next to the artwork they affect. */
+.import-review-dialog .import-review-label { grid-template-columns: minmax(160px, 260px) minmax(0, 1fr); }
+.import-artwork-previews { grid-column: 1; grid-row: 1 / span 3; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.import-artwork-previews figure { margin: 0; text-align: center; }
+.import-review-dialog .import-artwork-previews img { display: block; width: 120px; height: 120px; }
+.import-artwork-previews figcaption { margin-top: 6px; font: var(--type-ui); }
+.import-design-choices { grid-column: 2; min-width: 0; margin: 0; padding: 0; border: 0; }
+.import-design-choices legend { margin-bottom: 8px; font: var(--type-ui-strong); }
+.import-design-choices label, .import-simple-choice { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
+.import-design-choices input, .import-simple-choice input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--text-strong); }
+.import-replace-option summary { cursor: pointer; min-height: 44px; align-content: center; }
+@media (max-width: 600px) {
+  .import-review-dialog .import-review-label { grid-template-columns: minmax(0, 1fr); }
+  .import-artwork-previews, .import-design-choices { grid-column: 1; grid-row: auto; }
+  .import-artwork-previews { gap: 8px; }
+  .import-review-dialog .import-artwork-previews img { width: 96px; height: 96px; }
+}

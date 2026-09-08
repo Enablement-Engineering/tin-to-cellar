@@ -610,8 +610,9 @@ it('preserves manual import choices for quantity changes and requires renewed re
   await upload()
   await waitFor(async () => expect((await savedCollection())?.receipts[0].delivery).toBe('sent'))
   await upload(true)
-  const choice = await screen.findByLabelText('How to add this design')
-  fireEvent.change(choice, { target: { value: 'skip' } })
+  fireEvent.click(await screen.findByRole('button', { name: 'Review 1 new design' }))
+  const choice = screen.getByRole('checkbox', { name: 'Add this label' })
+  fireEvent.click(choice)
   const otherTab = createCollectionStore()
   try {
     let saved = (await otherTab.load())!
@@ -619,7 +620,7 @@ it('preserves manual import choices for quantity changes and requires renewed re
     fireEvent(window, new Event('focus'))
     expect(screen.queryByLabelText('Quantity for Blend A')).not.toBeInTheDocument()
     expect((await savedCollection())?.rows[0].quantity).toBe(3)
-    expect(choice).toHaveValue('skip')
+    expect(choice).not.toBeChecked()
     expect(screen.queryByRole('button', { name: 'Review updated choices' })).not.toBeInTheDocument()
     await otherTab.save(saved.revision, updateRow(saved, saved.rows[0].id, { notes: 'Different edition requested' }))
     fireEvent(window, new Event('focus'))
