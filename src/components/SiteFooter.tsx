@@ -1,4 +1,4 @@
-type FooterPage = 'help' | 'about' | 'inspiration' | 'privacy'
+type FooterPage = 'gallery' | 'help' | 'about' | 'inspiration' | 'privacy'
 
 interface SiteFooterProps {
   currentView: string
@@ -6,6 +6,7 @@ interface SiteFooterProps {
 }
 
 const pages: { page: FooterPage; label: string }[] = [
+  { page: 'gallery', label: 'Community labels' },
   { page: 'help', label: 'How it works' },
   { page: 'privacy', label: 'Privacy' },
   { page: 'about', label: 'About' },
