@@ -24,6 +24,8 @@ Adaptations made for the application:
 
 ## Routes and page structure
 
+The failed-run report uses a compact disclosure card aligned with the help text column. Its styled file-picker button opens a local JSON report; preview and sharing remain separate actions. Preserve the upload status, error, and retry states. Component-specific layout lives in `src/styles/standalone-feedback.css`.
+
 | Destination | Entry | Content |
 | --- | --- | --- |
 | Home | `/`, `/labels`, wordmark | First-visit introduction, community-first flow, explicitly optional AI creation, shared printing and a sample pack; `/` resolves to `/labels` |
