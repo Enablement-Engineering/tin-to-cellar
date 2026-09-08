@@ -17,7 +17,6 @@
 .gallery-card-heading { padding-top: 1rem; overflow-wrap: anywhere; }
 .gallery-page .gallery-card-heading h2 { margin: 0; font-size: 1.65rem; line-height: 1.15; text-wrap: pretty; }
 .gallery-card-heading .gallery-card-maker { margin: .45rem 0 0; font: var(--type-ui); color: var(--text-muted); }
-.gallery-card-heading .gallery-card-edition { margin: .4rem 0 0; font-size: .875rem; }
 .gallery-artwork-link { display: block; border-radius: .25rem; }
 .gallery-artwork-link:focus-visible { outline: 3px solid var(--line-focus); outline-offset: 4px; }
 .gallery-page .gallery-actions .button { width: 100%; white-space: normal; }
