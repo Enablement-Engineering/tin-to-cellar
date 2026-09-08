@@ -44,7 +44,7 @@ it('keeps ready artwork printable while another row is requested and no generic 
     { id: 'ready', catalogId: null, maker: 'Maker', blend: 'Ready', createRequested: false, artwork: { id: 'ready', maker: 'Maker', blend: 'Ready', imageUrl: 'blob:ready', imageFrame: { left: 0, top: 0, width: 100, height: 100 } } },
     { id: 'pending', catalogId: null, maker: '', blend: 'New', createRequested: true },
   ]} />)
-  expect(screen.getByRole('status')).toHaveTextContent('1 label ready · 1 to create')
+  expect(screen.getByLabelText('Selection summary')).toHaveTextContent('2 selected · 1 ready to print · 1 need artwork')
   fireEvent.click(screen.getByRole('button', { name: 'Review & print' }))
   expect(callbacks.onPrint).toHaveBeenCalledOnce()
   expect(screen.queryByRole('button', { name: 'Choose blends in my AI chat' })).not.toBeInTheDocument()

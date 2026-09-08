@@ -23,20 +23,25 @@ export type PreparationWorkspaceProps = {
 }
 const identity = (entry: TobaccoEntry): PreparationIdentity => ({ catalogId: entry.id, maker: entry.maker, blend: entry.blend })
 
-function BlendIntake({ busy, onAdd }: Pick<PreparationWorkspaceProps, 'busy' | 'onAdd'>) {
+function BlendIntake({ busy, onAdd, rows }: Pick<PreparationWorkspaceProps, 'busy' | 'onAdd' | 'rows'>) {
   const id = useId(), input = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState(''), [open, setOpen] = useState(false), [active, setActive] = useState(-1)
   const [adding, setAdding] = useState(false), [addError, setAddError] = useState('')
+  const [confirmation, setConfirmation] = useState('')
+  useEffect(() => { if (!confirmation) return; const timer = window.setTimeout(() => setConfirmation(''), 6000); return () => window.clearTimeout(timer) }, [confirmation])
   const [retryIdentities, setRetryIdentities] = useState<PreparationIdentity[] | null>(null)
   const matches = searchTobaccos(draft, 6), visible = open && Boolean(draft.trim())
   useEffect(() => { if (visible && active >= 0) document.getElementById(`${id}-${active}`)?.scrollIntoView?.({ block: 'nearest' }) }, [visible, active, id])
   const addIdentities = async (identities: PreparationIdentity[]) => {
     if (busy || adding) return
-    setAdding(true); setAddError('')
+    setAdding(true); setAddError(''); setConfirmation('')
     setRetryIdentities(identities)
     try {
       const saved = onAdd(identities)
       if (saved) await saved
+      const first = identities[0]
+      const exists = first && rows.some(row => row.maker === first.maker && row.blend === first.blend)
+      setConfirmation(identities.length === 1 ? `${first.blend} ${exists ? 'is already selected' : 'added'}` : 'Selection saved')
       setDraft(''); setRetryIdentities(null); setOpen(false); setActive(-1); input.current?.focus()
     } catch (failure) { setAddError(errorText(failure)) }
     finally { setAdding(false) }
@@ -75,6 +80,7 @@ function BlendIntake({ busy, onAdd }: Pick<PreparationWorkspaceProps, 'busy' | '
           <li id={`${id}-${matches.length}`} role="option" aria-selected={selected === matches.length} onMouseDown={event => event.preventDefault()} onClick={() => add()}>Use “{draft.trim()}” without a catalog match</li>
         </ul>}
       </div><button type="button" className="button secondary" disabled={busy || adding || !draft.trim()} onClick={submit}>{adding ? 'Adding…' : 'Add blend'}</button></div>
+      <p className="selection-confirmation" role="status" aria-atomic="true">{confirmation && `${confirmation} · ${rows.length} ${rows.length === 1 ? 'blend' : 'blends'} selected.`}</p>
       {addError && <p role="alert">{addError} Your entered names are still here. Try adding them again.</p>}
     </div>
     <OrderImporter onAdd={onAdd} />
@@ -140,15 +146,20 @@ function RowNotes({ row, onNotes }: { row: PreparationRow; onNotes: NonNullable<
 
 export function PreparationWorkspace({ rows, busy, onAdd, onRemove, onCreate, onNotes, onResolve, onChooseCommunity, onPrint, onBrowse, onImport, onGenericChat, handoff }: PreparationWorkspaceProps) {
   const heading = useRef<HTMLHeadingElement>(null)
-  const ready = rows.filter(row => row.artwork).length, toCreate = rows.filter(row => row.createRequested).length
+  const selectedHeading = useRef<HTMLHeadingElement>(null)
+  const ready = rows.filter(row => row.artwork).length
   return <section className="create-workspace preparation-workspace screen-only" aria-labelledby="preparation-title">
     <header className="page-heading"><h1 id="preparation-title" ref={heading} tabIndex={-1}>Choose labels</h1><p>Use a community design or create your own. Print them together when you’re ready.</p></header>
+    {rows.length > 0 && <div className="preparation-summary review-navigation" aria-label="Selection summary">
+      <p role="status" aria-atomic="true"><strong>{rows.length} selected</strong> · {ready} ready to print · {rows.length - ready} need artwork</p>
+      <div className="selection-actions"><button type="button" className="button secondary" onClick={() => { selectedHeading.current?.scrollIntoView({ block: 'start' }); selectedHeading.current?.focus({ preventScroll: true }) }}>View selected</button>{ready > 0 && <button type="button" className="button primary" onClick={onPrint}>Review &amp; print</button>}</div>
+    </div>}
     <section className="panel preparation-start" aria-label="Add labels">
-      <BlendIntake busy={busy} onAdd={onAdd} />
+      <BlendIntake busy={busy} onAdd={onAdd} rows={rows} />
       <div className="preparation-entry-actions"><button type="button" className="button quiet" onClick={onBrowse}>Browse community labels</button><button type="button" className="button quiet" onClick={onImport}>Import a label ZIP</button></div>
     </section>
     {rows.length > 0 && <>
-      <div className={`preparation-summary${ready > 0 ? ' review-navigation' : ''}`}><div><h2>Your labels</h2><p role="status">{ready} {ready === 1 ? 'label' : 'labels'} ready{toCreate ? ` · ${toCreate} to create` : ''}{rows.some(row => !row.artwork && !row.createRequested) ? ` · ${rows.filter(row => !row.artwork && !row.createRequested).length} to choose` : ''}</p></div>{ready > 0 && <button type="button" className="button primary" onClick={onPrint}>Review &amp; print</button>}</div>
+      <h2 ref={selectedHeading} tabIndex={-1} className="selected-labels-heading">Your labels</h2>
       <div className="preparation-rows">{rows.map(row => <article className="panel preparation-row" key={row.id} aria-labelledby={`row-${row.id}`}>
         <div className="preparation-row-heading">{row.artwork && <div className="label-thumbnail"><LabelArtwork label={row.artwork} /></div>}<div><h3 id={`row-${row.id}`}>{row.blend}</h3>{row.maker && <p>{row.maker}{row.edition ? ` · ${row.edition}` : ''}</p>}<span className="field-hint">{row.artwork ? row.createRequested ? 'Ready to print · new design requested' : 'Ready to print' : row.createRequested ? 'Included in your creation request' : 'Choose a design below'}</span></div><button type="button" className="button quiet" disabled={busy} aria-label={`Remove ${formatTobacco(row)}`} onClick={() => { onRemove(row.id); heading.current?.focus({ preventScroll: true }) }}>Remove</button></div>
         <div className="preparation-row-content"><div className="preparation-artwork-options">
