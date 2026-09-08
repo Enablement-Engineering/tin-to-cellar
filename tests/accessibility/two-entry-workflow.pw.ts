@@ -162,7 +162,7 @@ test('ten saved requests combine six community choices and three returned design
   await expect(review).toBeVisible()
   await expect(review).toContainText(blends[9].blend)
   expect((await savedRows(page)).filter(row => row.designId)).toHaveLength(6)
-  await review.getByRole('button', { name: 'Apply changes', exact: true }).click()
+  await review.getByRole('button', { name: 'Add 3 labels', exact: true }).click()
   await expect.poll(async () => (await savedRows(page)).filter(row => row.designId).length).toBe(9)
   await expect(page).toHaveURL(/\/labels\/create$/)
   await page.getByRole('button', { name: 'Needs artwork (1)', exact: true }).click()
@@ -277,7 +277,7 @@ for (const width of [1280, 320]) test(`creation replacement can restore previous
   await page.getByRole('button', { name: 'I already have a finished ZIP', exact: true }).click()
   await page.getByLabel('Label ZIP', { exact: true }).setInputFiles(returned)
   await expect(review).toBeVisible()
-  await review.getByRole('button', { name: 'Apply changes', exact: true }).click()
+  await review.getByRole('button', { name: 'Add 1 label', exact: true }).click()
   await expect(page).toHaveURL(/\/labels\/create$/)
   await expect(page.getByRole('button', { name: 'Ready (2)', exact: true })).toBeVisible()
   const accepted = (await savedRows(page)).find(row => row.blend === blends[0].blend)!

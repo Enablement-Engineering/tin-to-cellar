@@ -19,7 +19,7 @@ for(const width of [1280,320])test(`expanded human gallery review is accessible 
   const shell=await (await request.get('/')).text()
   await page.route('https://**/*',route=>{external.push(route.request().url());return route.abort()})
   // Intercept every request on this host; fetch application assets only from local Wrangler.
-  await page.route('https://admin-staging.tintocellar.com/**',async route=>{const url=new URL(route.request().url());if(url.pathname==='/')return route.fulfill({status:200,contentType:'text/html',body:shell});const response=await request.get(`http://127.0.0.1:43927${url.pathname}${url.search}`);return route.fulfill({response})})
+  await page.route('https://admin-staging.tintocellar.com/**',async route=>{const url=new URL(route.request().url());if(url.pathname==='/')return route.fulfill({status:200,contentType:'text/html',body:shell});const response=await request.get(`${url.pathname}${url.search}`);return route.fulfill({response})})
   await page.route('**/api/gallery/v1/admin/**',route=>{
     const path=new URL(route.request().url()).pathname
     if(path.endsWith('/artwork')||path.endsWith('/thumbnail'))return route.fulfill({status:200,contentType:'image/png',body:png})

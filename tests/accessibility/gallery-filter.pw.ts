@@ -17,9 +17,9 @@ test('typing Earl shows the matching designs before a suggestion is selected', a
   })
   await page.goto('/gallery')
   const input = page.getByRole('combobox', { name: 'Maker or blend' })
-  await expect(page.getByRole('status').filter({ hasText: 'Showing 3 labels.' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Label results' }).getByRole('article')).toHaveCount(3)
   await input.fill('earl')
-  await expect(page.getByRole('status').filter({ hasText: 'Showing 2 labels.' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Label results' }).getByRole('article')).toHaveCount(2)
   expect(queries.slice(1)).toEqual(expect.arrayContaining(matches.map(entry => entry.id)))
   expect(queries.length - 1).toBe(await page.getByRole('listbox', { name: 'Blend suggestions' }).getByRole('option').count())
   await expect(page.getByRole('heading', { name: 'Other · Unrelated' })).toHaveCount(0)
@@ -27,17 +27,17 @@ test('typing Earl shows the matching designs before a suggestion is selected', a
   await expect(input).toHaveAttribute('aria-expanded', 'true')
   await input.press('ArrowDown')
   await input.press('Enter')
-  await expect(page.getByRole('status').filter({ hasText: 'Showing 1 label.' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Label results' }).getByRole('article')).toHaveCount(1)
   await expect(page.getByRole('heading', { name: `${labels[0].maker} · ${labels[0].blend}`, exact: true })).toBeVisible()
   const count = queries.length
   await input.fill('zzzzzzzzzz')
   await expect(page.getByRole('status').filter({ hasText: 'No labels match your search.' })).toBeVisible()
   expect(queries).toHaveLength(count)
   await page.getByRole('button', { name: 'Clear search' }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'Showing 3 labels.' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Label results' }).getByRole('article')).toHaveCount(3)
 })
 
-for (const width of [1280, 320]) test(`automatic blend filtering preserves focus and announces results at ${width}px`, async ({ page }) => {
+for (const width of [1280, 320]) test(`automatic blend filtering preserves focus and announces empty results at ${width}px`, async ({ page }) => {
   const queries: string[] = []
   await page.route('**/api/gallery/v1/**', async route => {
     const url = new URL(route.request().url())
@@ -55,7 +55,7 @@ for (const width of [1280, 320]) test(`automatic blend filtering preserves focus
   const results = page.getByRole('region', { name: 'Label results' })
   await expect(page.getByRole('status').filter({ hasText: 'No labels match your search.' })).toBeVisible()
   await input.fill('Peterson Nightcap')
-  await expect(page.getByRole('status').filter({ hasText: 'Showing 1 label.' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Label results' }).getByRole('article')).toHaveCount(1)
   const typedQueries = queries.length
   await input.press('ArrowDown')
   await expect(input).toBeFocused()
@@ -68,7 +68,7 @@ for (const width of [1280, 320]) test(`automatic blend filtering preserves focus
   expect(queries).toHaveLength(typedQueries)
   await input.press('ArrowDown')
   await input.press('Enter')
-  await expect(page.getByRole('status').filter({ hasText: 'Showing 1 label.' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Label results' }).getByRole('article')).toHaveCount(1)
   await expect(results).toHaveAttribute('aria-busy', 'false')
   await expect(input).toBeFocused()
   await expect(input).toHaveAttribute('aria-expanded', 'false')
