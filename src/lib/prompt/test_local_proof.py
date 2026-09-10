@@ -14,11 +14,19 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 
+def prepare_image(directory, size=(1254, 1254), mode="RGBA", color="white", **geometry):
+    native = Path(directory) / "native.png"
+    final = Path(directory) / "art.png"
+    Image.new(mode, size, color).save(native)
+    module.prepare(native, final, assume_srgb=True, **geometry)
+    return native, final
+
+
 class ProofTests(unittest.TestCase):
     def test_observed_text_failures_and_inside_panel(self):
         with tempfile.TemporaryDirectory() as tmp:
-            source, output = Path(tmp) / "art.png", Path(tmp) / "proof.png"
-            Image.new("RGBA", (1254, 1254), "white").save(source)
+            _, source = prepare_image(tmp)
+            output = Path(tmp) / "proof.png"
             original = source.read_bytes()
             regions = [
                 {"name": "Westminster maker", "kind": "text", "box": [307, 175, 934, 280]},
@@ -52,14 +60,14 @@ class ProofTests(unittest.TestCase):
 
     def test_cli_returns_failure_with_inspectable_region_results(self):
         with tempfile.TemporaryDirectory() as tmp:
-            source, output, regions = [Path(tmp) / n for n in ("art.png", "proof.png", "regions.json")]
-            Image.new("RGB", (1254, 1254), "white").save(source)
+            _, source = prepare_image(tmp, mode="RGB")
+            output, regions = [Path(tmp) / n for n in ("proof.png", "regions.json")]
             regions.write_text(json.dumps([
                 {"name": "maker", "kind": "text", "box": [307, 175, 934, 280]},
                 {"name": "panel", "kind": "panel", "box": [399, 980, 855, 1077]},
             ]))
             result = subprocess.run([sys.executable, str(Path(__file__).with_name("local-proof.py")),
-                                     str(source), str(output), "--regions", str(regions)],
+                                     "inspect", str(source), str(output), "--regions", str(regions)],
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 1, result.stderr)
             report = json.loads(result.stdout)
@@ -68,8 +76,8 @@ class ProofTests(unittest.TestCase):
 
     def test_circle_geometry_pixels_and_source_preservation(self):
         with tempfile.TemporaryDirectory() as tmp:
-            source, output = Path(tmp) / "art.png", Path(tmp) / "proof.png"
-            Image.new("RGBA", (1100, 1100), "white").save(source)
+            _, source = prepare_image(tmp, size=(1100, 1100))
+            output = Path(tmp) / "proof.png"
             original = hashlib.sha256(source.read_bytes()).hexdigest()
             result = module.render(source, output)
             self.assertEqual(result["trim"], (50, 50, 1049, 1049))
@@ -77,7 +85,7 @@ class ProofTests(unittest.TestCase):
             with Image.open(output) as proof:
                 self.assertEqual(proof.getpixel((550, 50)), (0, 200, 255, 255))
                 self.assertEqual(proof.getpixel((550, 550)), (255, 255, 255, 255))
-                self.assertEqual(proof.getpixel((0, 0)), (255, 255, 255, 255))
+                self.assertEqual(proof.getpixel((0, 0)), (255, 255, 255, 0))
                 self.assertNotEqual(proof.getpixel((550, 20)), (255, 255, 255, 255))
                 self.assertEqual(proof.getpixel((999, 550)), (230, 0, 180, 255))
             self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), original)
@@ -86,8 +94,9 @@ class ProofTests(unittest.TestCase):
 
     def test_rectangle_geometry_and_alpha(self):
         with tempfile.TemporaryDirectory() as tmp:
-            source, output = Path(tmp) / "art.png", Path(tmp) / "proof.png"
-            Image.new("RGBA", (1300, 900), (10, 20, 30, 255)).save(source)
+            _, source = prepare_image(tmp, size=(1300, 900), color=(10, 20, 30, 255),
+                                      shape="rectangle", width=3, height=2)
+            output = Path(tmp) / "proof.png"
             result = module.render(source, output, "rectangle", 3, 2)
             self.assertEqual(result["trim"], (50, 50, 1249, 849))
             self.assertEqual(result["safe"], (100, 100, 1199, 799))
@@ -115,16 +124,49 @@ class ProofTests(unittest.TestCase):
 
     def test_failed_encoding_leaves_no_published_or_temporary_file(self):
         with tempfile.TemporaryDirectory() as tmp:
-            source, output = Path(tmp) / "art.png", Path(tmp) / "proof.png"
+            source, output = Path(tmp) / "native.png", Path(tmp) / "art.png"
             Image.new("RGB", (100, 100), "white").save(source)
             def broken_save(image, target, **kwargs):
                 target.write(b"incomplete")
                 raise OSError("Simulated interrupted encode")
             with patch.object(Image.Image, "save", broken_save):
                 with self.assertRaises(OSError):
-                    module.render(source, output)
+                    module.prepare(source, output, assume_srgb=True)
             self.assertFalse(output.exists())
             self.assertEqual(list(Path(tmp).iterdir()), [source])
+
+    def test_prepare_writes_explicit_srgb_without_icc_and_preserves_pixels(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            native, final = prepare_image(tmp, size=(1024, 1024), color=(20, 40, 60, 255))
+            checks = module.png_export_checks(final.read_bytes())
+            self.assertEqual(checks["canonical_encoding"], "PASS")
+            self.assertEqual(checks["gallery_input_limits"], "PASS")
+            self.assertIn("sRGB", checks["chunks"])
+            self.assertNotIn("iCCP", checks["chunks"])
+            with Image.open(native) as before, Image.open(final) as after:
+                before.load(); after.load()
+                self.assertEqual(before.convert("RGBA").getpixel((512, 512)), after.getpixel((512, 512)))
+
+    def test_prepare_converts_embedded_profile_without_copying_iccp(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            native, final = Path(tmp) / "tagged.png", Path(tmp) / "art.png"
+            Image.new("RGB", (1024, 1024), (20, 40, 60)).save(
+                native, icc_profile=module.srgb_profile())
+            result = module.prepare(native, final)
+            checks = module.png_export_checks(final.read_bytes())
+            self.assertEqual(checks["canonical_encoding"], "PASS")
+            self.assertIn("Converted embedded ICC profile", result["color_action"])
+            self.assertNotIn("iCCP", checks["chunks"])
+            with Image.open(final) as after:
+                after.load()
+                self.assertEqual(after.getpixel((512, 512)), (20, 40, 60, 255))
+
+    def test_inspect_rejects_noncanonical_png(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source, output = Path(tmp) / "plain.png", Path(tmp) / "proof.png"
+            Image.new("RGB", (1024, 1024), "white").save(source)
+            with self.assertRaisesRegex(ValueError, "Run prepare first"):
+                module.render(source, output)
 
 
 if __name__ == "__main__":

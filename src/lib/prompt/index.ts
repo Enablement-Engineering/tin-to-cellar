@@ -2,7 +2,7 @@ export { assessPromptInput } from './assessment'
 export {
   PROMPT_DEFAULTS,
 } from './defaults'
-export { buildCollectionHandoff, buildGenericChatHandoff, buildCompleteTinToCellarPrompt, buildTinToCellarInstructions, buildTinToCellarRequest, buildCellarPackRepairPrompt, buildTinToCellarPrompt } from './prompt'
+export { buildCollectionHandoff, buildGenericChatHandoff, buildCompleteTinToCellarPrompt, buildTinToCellarInstructions, buildTinToCellarRequest, buildCellarPackRepairPrompt, buildTinToCellarPrompt, verifyPreparedPromptHandoff } from './prompt'
 export type {
   DimensionUnit,
   InspirationRole,

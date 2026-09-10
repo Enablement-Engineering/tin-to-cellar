@@ -4,6 +4,7 @@ import { protocolHtml } from './protocol-html.mjs'
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8')
 const write = (path, value) => writeFile(new URL(`../${path}`, import.meta.url), value)
 const hash = (text) => createHash('sha256').update(text).digest('hex')
+const integrity = (content) => ({ sha256: hash(content), bytes: Buffer.byteLength(content, 'utf8') })
 const registry = JSON.parse(await read('src/lib/protocol/releases.json'))
 const revision = registry.current
 if (typeof revision !== 'string' || !/^(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})$/.test(revision)) throw new Error('Current protocol version must use major.minor.patch')
@@ -35,7 +36,25 @@ if (process.argv.includes('--create')) {
   }
   if (await read('public/agent/tin-to-cellar-prompt.md') !== completeInstructions) throw new Error('Portable public instructions differ from selected release')
 }
-const metadata = JSON.stringify({ current: registry.current, revisions: Object.keys(registry.releases) }, null, 2) + '\n'
+const releaseIntegrity = Object.fromEntries(Object.entries(registry.releases).map(([key, release]) => [key, {
+  files: Object.fromEntries(Object.entries(release.files).map(([name, content]) => [name, integrity(content)])),
+}]))
+const currentComponents = Object.fromEntries(Object.entries({
+  'instructions.md': completeInstructions,
+  'local-proof.py': localProof,
+  'cellarpack.schema.json': manifest,
+  'feedback.schema.json': feedback,
+  'retrospective.schema.json': retrospective,
+}).map(([name, content]) => [name, integrity(content)]))
+const metadata = JSON.stringify({
+  current: registry.current,
+  revisions: Object.keys(registry.releases),
+  integrity: {
+    algorithm: 'SHA-256',
+    releases: releaseIntegrity,
+    currentComponents,
+  },
+}, null, 2) + '\n'
 // Keep the complete immutable registry for verification and historical exports,
 // but do not ship duplicated HTML, schemas and hashes in the prompt bundle.
 const runtimeInstructions = JSON.stringify(Object.fromEntries(Object.entries(registry.releases).map(([key, release]) => {

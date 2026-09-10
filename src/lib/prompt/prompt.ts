@@ -3,6 +3,7 @@ import { parseSource } from '../contributions'
 import { requestedCatalogEntries } from './saved-sources'
 import { PROTOCOL_REVISION, resolveProtocolContext } from '../protocol'
 import { protocolInstructions } from '../protocol/archive'
+import { verifyProtocolInstructions } from '../protocol/integrity'
 import { assessPromptInput, normalizeTobaccos } from './assessment'
 import { PROMPT_DEFAULTS } from './defaults'
 import type {
@@ -125,6 +126,15 @@ export function buildTinToCellarPrompt(input: PromptProjectInput): string {
 
 export type PreparedPromptHandoff = { prompt: string; request: string; protocolRevision: typeof PROTOCOL_REVISION }
 
+/** Fail closed before persistence or clipboard delivery if release bytes or assembly drift. */
+export async function verifyPreparedPromptHandoff(handoff: { prompt: string; request: string; protocolRevision: string | number }): Promise<void> {
+  const instructions = protocolInstructions(handoff.protocolRevision)
+  await verifyProtocolInstructions(handoff.protocolRevision, instructions)
+  if (handoff.prompt !== `${instructions}\n\n${handoff.request}`) {
+    throw new Error('The prepared prompt failed its integrity check. Reload the application before copying.')
+  }
+}
+
 /** The caller persists this exact snapshot with the corresponding local row revisions. */
 export function buildCollectionHandoff(input: PromptProjectInput & { tobaccos: readonly PromptTobacco[] }): PreparedPromptHandoff {
   if (!Array.isArray(input.tobaccos) || !input.tobaccos.length || input.tobaccos.some(item => !item || typeof item.blend !== 'string' || !item.blend.trim())) throw new Error('Choose at least one label to create before preparing a prompt.')
@@ -134,7 +144,8 @@ export function buildCollectionHandoff(input: PromptProjectInput & { tobaccos: r
 
 /** Explicit alternate entrance: the blend list may live in the user's AI chat. */
 export function buildGenericChatHandoff(input: PromptProjectInput = {}): PreparedPromptHandoff {
-  return { request: buildTinToCellarRequest(input), prompt: buildTinToCellarPrompt(input), protocolRevision: PROTOCOL_REVISION }
+  const request = buildTinToCellarRequest(input)
+  return { request, prompt: `${buildTinToCellarInstructions()}\n\n${request}`, protocolRevision: PROTOCOL_REVISION }
 }
 
 export interface PackRepairIssue {

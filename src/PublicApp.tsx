@@ -32,6 +32,7 @@ import { useCollection } from './hooks/useCollection'
 import { usePrintLabels } from './hooks/usePrintLabels'
 import { usePromptModule } from './hooks/usePromptModule'
 import { formatTobacco } from './lib/tobacco-catalog'
+import { PROTOCOL_REVISION } from './lib/protocol'
 
 function issueText(issue: { message?: string; recovery?: string }) { return [issue.message ?? 'The label needs repair.', issue.recovery].filter(Boolean).join(' ') }
 const ignoreHandledError = () => undefined
@@ -113,13 +114,17 @@ export default function PublicApp() {
     return creationRows.length ? promptModule.module.buildCollectionHandoff(input) : genericChat ? promptModule.module.buildGenericChatHandoff(input) : null
   }, [frozen, creationRows, savedSources, genericChat, promptModule.module])
   const instructions = useMemo(() => view === 'help' && promptModule.module ? promptModule.module.buildTinToCellarInstructions(window.location.href) : null, [view, promptModule.module])
-  const copyHandoff = async () => {
+  const copyHandoff = async (useLatest = false) => {
     if (!handoffDraft) throw new Error('Choose at least one label to create first.')
+    if (!promptModule.module) throw new Error('Instructions could not load. Reload the application before copying.')
+    await promptModule.module.verifyPreparedPromptHandoff(handoffDraft)
+    const selected = useLatest ? { ...handoffDraft, protocolRevision: PROTOCOL_REVISION, prompt: `${promptModule.module.buildTinToCellarInstructions()}\n\n${handoffDraft.request}` } : handoffDraft
+    if (useLatest) await promptModule.module.verifyPreparedPromptHandoff(selected)
     const saved = await commit(current => {
       const actual = current.rows.filter(row => row.createRequested).map(row => ({ rowId: row.id, revision: row.revision }))
       if (targetKey(actual) !== requestedKey) throw new Error('Your label choices changed. Review the updated prompt before copying.')
-      if (current.handoff && current.handoff.prompt === handoffDraft.prompt && targetKey(current.handoff.targets) === requestedKey) return current
-      return setHandoff(current, { id: crypto.randomUUID(), createdAt: new Date().toISOString(), targets, prompt: handoffDraft.prompt, request: handoffDraft.request, protocolRevision: handoffDraft.protocolRevision, copied: false })
+      if (current.handoff && current.handoff.prompt === selected.prompt && targetKey(current.handoff.targets) === requestedKey) return current
+      return setHandoff(current, { id: crypto.randomUUID(), createdAt: new Date().toISOString(), targets, prompt: selected.prompt, request: selected.request, protocolRevision: selected.protocolRevision, copied: false })
     })
     return saved.handoff!.prompt
   }
@@ -211,7 +216,7 @@ export default function PublicApp() {
   </div>
   const handoff = handoffDraft && <>
     {collection.handoff && !frozen && <p role="status">Your creation choices changed. Copy the updated prompt before starting a new chat.</p>}
-    <PromptHandoff prompt={handoffDraft.prompt} request={handoffDraft.request} copyLabel={targets.length ? `Copy instructions for ${targets.length} ${targets.length === 1 ? 'label' : 'labels'}` : 'Copy instructions for my AI chat'} copied={Boolean(frozen?.copied)} busy={busy} onCopy={copyHandoff} onCopied={() => { void commit(current => current.handoff?.prompt === handoffDraft.prompt ? setHandoff(current, { ...current.handoff, copied: true }) : current).catch(ignoreHandledError) }} />
+    <PromptHandoff prompt={handoffDraft.prompt} request={handoffDraft.request} copyLabel={targets.length ? `Copy instructions for ${targets.length} ${targets.length === 1 ? 'label' : 'labels'}` : 'Copy instructions for my AI chat'} copied={Boolean(frozen?.copied)} busy={busy || !promptModule.module} onCopy={() => copyHandoff()} onCopyLatest={frozen && String(frozen.protocolRevision) !== PROTOCOL_REVISION ? () => copyHandoff(true) : undefined} onCopied={payload => { void commit(current => current.handoff?.prompt === payload ? setHandoff(current, { ...current.handoff, copied: true }) : current).catch(ignoreHandledError) }} />
   </>
   const promptLoading = <section className="panel screen-only" aria-label="Instructions">
     <p role="status">{promptModule.failed ? 'Instructions could not load. Reload to try again. Your saved labels remain available.' : 'Loading instructions…'}</p>

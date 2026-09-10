@@ -17,6 +17,8 @@ export function ArtworkCreationFlow({ rows, allRows, requestKey, copied, generic
   const returnHeading = useRef<HTMLHeadingElement>(null)
   const focusCopy = useRef(false)
   const reviewed = !editingRequest && (copied || reviewedKey === requestKey)
+  // Remember review when a restored copied handoff is replaced with updated instructions.
+  if (copied && reviewedKey !== requestKey) setReviewedKey(requestKey)
   useEffect(() => {
     if (reviewed && focusCopy.current) {
       const heading = copyStep.current?.querySelector<HTMLElement>('h2')

@@ -8,11 +8,13 @@ Tin to Cellar helps people choose tobacco jar labels from community artwork, cre
 
 1. Add blends with autocomplete, custom names, a pasted list, or a reviewed order PDF or screenshot. Choose existing community designs where you want them.
 2. Mark any remaining designs with Create my own. Copy their scoped prompt into a chat with research, image generation, and ZIP creation tools. The prompt includes the complete versioned protocol, schemas and local proof program. Existing artwork stays on the website.
-3. Review the generated labels against the original packaging in that same conversation. Ask for corrections before the AI packages the final images.
+3. The AI researches and shows one tobacco's packaging photo. If it is the right package, right-click the photo, choose **Copy Image**, then paste it into the chat and send. The AI generates and proofs that label before researching the next tobacco. If copying is unavailable, attach the saved photo or a clear screenshot. If the chat pauses after an image, reply Continue to resume checks and ZIP preparation. A confirmed artwork defect prompts a separate choice to authorize one focused repair.
 4. Download the `.cellarpack.zip`, review its additions in Print labels, and add them to your saved work. Choose quantities across all ready designs. Copy any original-import repair request back into its chat.
 5. Print at Actual Size / 100% on US Letter, with browser headers and footers off, or choose Save as PDF. Avery 94502 holds nine circles per sheet; extra labels continue onto additional sheets. Test alignment on plain paper first.
 
 For an empty website list, Choose blends in my AI chat keeps the conversation-led entrance available. How it works offers reusable instructions. No prompt or file transfers automatically. Download labels preserves finished artwork as a standard CellarPack; pending requests and quantities stay in this browser.
+
+Saved requests retain the instructions originally copied. When newer instructions are available, **Copy updated instructions for a new chat** keeps the same request and replaces its saved instructions. Use the updated copy in a new chat; existing conversations retain their original protocol.
 
 ## What the app handles
 
@@ -50,7 +52,7 @@ npm run build
 
 The dev/build scripts prepare the OCR runtime automatically. `npm run dev` builds the frontend and serves it with the real Worker API locally through Wrangler. `npm run preview` serves an existing build with that backend; `npm run preview:cloudflare` is an alias for `npm run dev`. Rebuild after frontend edits. For frontend-only work with hot reload, use `npm run dev:frontend`; it does not run the API. See the [deployment guide](docs/cloudflare-deployment.md) before using `npm run deploy`, particularly with your own account or domain. Pushes to `main` deploy through the configured [GitHub workflow](docs/ci-deployment.md) after checks pass.
 
-The prompt artifact is published at `public/agent/tin-to-cellar-prompt.md`. CellarPack's human-readable specification and JSON Schema live under `public/spec/`.
+The prompt artifact is published at `public/agent/tin-to-cellar-prompt.md`. The [protocol operations guide](docs/hosted-protocol.md) covers the selected revision, conversation behavior, integrity verification and release process. CellarPack's human-readable specification and JSON Schema live under `public/spec/`.
 
 ## Trust model
 
@@ -58,7 +60,9 @@ The browser does not upload CellarPack files or automatically fetch provenance l
 
 Order reading also runs locally. Screenshot OCR downloads its English reader from the site on first use. Review matches before adding them; purchase quantities do not become print quantities.
 
-The protocol supplies a tested Python/Pillow program that the AI runs inside its chat to create trim, bleed, and safe-area guides. No hosted proof upload or access credential is required. The AI must visually inspect the separate proof alongside the original package; guides and ZIP validation do not certify artwork fidelity. Cloud OCR and automatic reference-image caching are not implemented.
+Before saving or copying a prepared creation request, the browser verifies the bundled instructions against their release hash and byte length, then checks that the prompt contains exactly those instructions and the frozen request. These checks depend on the application and its release metadata being trusted. Imported CellarPacks still undergo their own validation.
+
+The protocol supplies a tested Python/Pillow program that the AI runs inside its chat. Its `prepare` command converts artwork to a clean sRGB PNG, verifies lossless serialization, and preserves native dimensions. Its `inspect` command creates separate trim, bleed, and safe-area guides. See the [local preparation and proof guide](src/lib/prompt/LOCAL-PROOF.md) for commands and limits. The AI must visually inspect the proof alongside the original package; guides and ZIP validation do not certify artwork fidelity. Cloud OCR and automatic reference-image caching are not implemented.
 
 The default circular export includes opaque artwork through a 0.125-inch bleed ring, then transparent corners outside the 2.75-inch outer circle. The preview shows the finished trim; printing includes the supplied bleed. The generated image owns the entire blank writing surface, without website-added words or lines.
 

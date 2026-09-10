@@ -52,9 +52,9 @@ describe('self-contained generation protocol', () => {
     const code = prompt.match(/```python\n([\s\S]*?)\n```/)![1]
     expect(code).toBe(read('./local-proof.py').trim())
     expect(prompt).toContain(`Canonical local-proof.py SHA-256: ${createHash('sha256').update(code + '\n').digest('hex')}`)
-    expect(code.length).toBeLessThan(10000)
-    // Includes retrospective vocabulary and the explicit sharing/personal-use boundary.
-    expect(prompt.length - code.length).toBeLessThan(45000)
+    expect(code.length).toBeLessThan(20000)
+    // Includes schemas, diagnostics and the single-reference recovery contract.
+    expect(prompt.length - code.length).toBeLessThan(55000)
   })
   it('preserves research-before-generation and close reference fidelity', () => {
     const prompt = buildCompleteTinToCellarPrompt({ tobaccos: 'Escudo' })
@@ -75,17 +75,21 @@ describe('self-contained generation protocol', () => {
     expect(prompt).toContain('Never use the proof as artwork, editing reference or ZIP content')
     expect(prompt).toContain('record proof-unavailable')
     expect(prompt).toContain('Never generate a contact sheet')
-    expect(prompt).toContain('at least 825px on both sides')
+    expect(prompt).toContain('825px per side')
     expect(prompt).toContain('Verify SHA-256 of saved bytes')
     expect(prompt).toContain('A zero-byte, missing or stale proof is failure')
     expect(prompt).toContain('inventory all visible lettering (including small side copy)')
     expect(prompt).toContain('never omit failed regions or shrink their boxes to pass')
     expect(prompt).toContain('This is not OCR or independent text certification')
     expect(prompt).toContain('harmless spacing differences from catalog formatting are not defects')
+    expect(prompt).toContain('local-proof.py prepare native-candidate.png final-artwork.png')
+    expect(prompt).toContain('local-proof.py inspect final-artwork.png review-proof.png')
+    expect(prompt).toContain('an explicit sRGB chunk and no ICC chunk')
+    expect(prompt).toContain("reports canonical PNG encoding and the gallery's current input limits separately")
   })
   it('specifies actual image geometry, blank writing surface and honest packaging', () => {
     const prompt = buildCompleteTinToCellarPrompt({})
-    for (const requirement of ['blank, light, unobstructed writing surface', 'Leave that surface blank, with no words or writing line', 'The overlay object contains only mode; the website does not render overlays', 'Declare actual dimensions', 'not the bleed canvas', 'SHA-256 from actual delivered bytes', '50 MiB compressed', '200 MiB uncompressed', 'No scripts, HTML, executables, or nested archives', 'review and add each pack to their saved labels', 'Say validated pack only if all passed', 'Do not imply loose files are importable']) {
+    for (const requirement of ['blank, light, unobstructed writing surface', 'Leave that surface blank, with no words or writing line', 'The overlay object contains only mode; the website does not render overlays', 'Never upscale to pass or imply detail', 'not the bleed canvas', 'SHA-256 from actual delivered bytes', '50 MiB compressed', '200 MiB uncompressed', 'No scripts, HTML, executables, or nested archives', 'review and add each pack to their saved labels', 'Say validated pack only if all passed', 'Do not imply loose files are importable']) {
       expect(prompt).toContain(requirement)
     }
   })
@@ -204,41 +208,39 @@ describe('original package image handoff', () => {
     expect(compact).toContain(complete.trim())
     for (const prompt of [complete]) {
       expect(prompt).toContain('direct handoff is unavailable')
-      expect(prompt).toContain('one batch')
-      expect(prompt).toContain('direct handoff works')
+      expect(prompt).toContain('Reuse accessible photos already attached in this conversation')
       expect(prompt).toContain('before generating')
       expect(prompt).toContain('artwork-only brief')
       expect(prompt).toContain('blend name')
       expect(prompt).not.toContain('Otherwise generate from a detailed brief')
     }
     expect(complete).toContain('source-page link')
-    expect(complete).toContain('exclude the full task prompt, schemas, diagnostic feedback and proof instructions')
+    expect(complete).toContain('Exclude other blend names, progress and ZIP requests, the full task prompt, schemas, diagnostic feedback and proof instructions')
     expect(complete).toContain('Never substitute generated artwork')
     expect(complete).toContain('generation skipped with zero attempts')
   })
   it('isolates current-blend generation and finishes its checks before the next label', () => {
     const complete = buildTinToCellarInstructions()
     expect(complete).toContain('select exactly one original from that batch per call')
-    expect(complete).toContain('finish its visual review, dimensioned proof and necessary repairs before generating the next blend')
+    expect(complete).toContain('finish its visual review and dimensioned proof before researching the next blend')
     expect(complete).toContain('select exactly one reference input')
-    expect(complete).toContain('naming only the current maker and blend')
     expect(complete).toContain('Repairs select the exact current clean label file/image identifier as the edit target')
     expect(complete).toContain('secondary reference only if the tool distinguishes that role explicitly')
     expect(complete).toContain('Never use other labels or annotated proofs')
     expect(complete).toContain('do not request reupload when that works')
-    expect(complete).toContain('the original for initial generation, the current clean label for repairs')
-    expect(complete).toContain('not a generator brief')
+    expect(complete).toContain('current-label artwork-only brief')
     expect(complete).toContain('Any artwork change invalidates its previous proof')
     expect(complete).toContain('do not repeat the same call')
-    expect(complete).toContain('attachment retries do not reset it')
+    expect(complete).toContain('Attachment retries do not reset the cumulative image-call count')
   })
   it('resumes measured repairs and checks the delivered archive layout', () => {
     const complete = buildTinToCellarInstructions()
-    expect(complete).toContain('Review unreviewed artwork and run proof before another image call')
-    expect(complete).toContain('Resuming alone is not a reason to regenerate')
-    expect(complete).toContain('measured failed checks and next unfinished step')
-    expect(complete).toContain('repair width, height and position together')
-    expect(complete).toContain('share five total attempts per label')
+    expect(complete).toContain('After an image, Continue means inspect the existing candidate')
+    expect(complete).toContain('It never means generate another image')
+    expect(complete).toContain('measured failed checks, and next unfinished action')
+    expect(complete).toContain('repair width, height and position together when needed')
+    expect(complete).toContain('One initial image-producing call is authorized per label')
+    expect(complete).toContain('authorizes exactly one additional edit')
     expect(complete).toContain('arcname=file.relative_to(staging).as_posix()')
     expect(complete).toContain('"manifest.json" in archive.namelist()')
     expect(complete).toContain("assert every asset's path is present")
@@ -251,12 +253,16 @@ describe('original package image handoff', () => {
       expect(prompt).toContain('whenever')
       expect(prompt).toContain('one prominent downloadable .cellarpack.zip')
       expect(prompt).toContain('printing link')
-      expect(prompt).toContain('if it stops')
+      expect(prompt).toContain('If the chat pauses after the image appears')
     }
     expect(complete).toContain('Never claim a check passed unless you performed it')
     expect(complete).toContain('a local file alone does not establish a working user download')
-    expect(complete).toContain('Keep diagnostic feedback inside the pack')
-    expect(complete).toContain('A tool ending an image-only turn is not by itself unclear instructions')
+    expect(complete).toContain('Put it in manifest.extensions["tin-to-cellar:feedback"] when returning a pack')
+    expect(complete).toContain('A host-required image-only turn is not unclear instructions')
+    expect(complete).toContain('In that same message, provide a clickable link labeled "View the proof showing the problem"')
+    expect(complete).toContain('Do not make the user choose Show me before receiving the proof link')
+    expect(complete).toContain('Do not link a stale proof or invent a file URL')
+    expect(complete).toContain('If proof creation or delivery failed, state that the proof is unavailable')
   })
 })
 
@@ -271,14 +277,14 @@ it('keeps all emitted version declarations consistent with the selected pre-rele
   expect(schemas[1].properties.protocolRevision.type).toBe('string')
 })
 
-it('provides user-facing examples without waiving checks or inventing completed work', () => {
+it('starts immediately, explains image pauses, and carries authorized work through delivery', () => {
   const prompt = buildTinToCellarInstructions()
-  for (const text of ['# Talking with the user', 'Example: starting a requested batch', 'Example: repairing a detected defect', 'Example: an image tool may end the turn', 'Example: a reference is genuinely unavailable', 'Example: successful delivery', 'Example: the generator returns a multi-label composite', 'Example: the site reports a ZIP structure problem', 'Example: import succeeds but the user notices a visual defect', 'Example: the ZIP download fails', 'Example: a detailed audit is requested', 'Example: a label still fails after the allowed repairs', 'Perform every required research, reference, proof and ZIP check', 'Never invent a successful result or a link', 'Do not claim the website has accepted the ZIP before an observed import']) expect(prompt).toContain(text)
+  for (const text of ['# Conversation contract', 'Start the requested work immediately', 'Do not stop after acknowledging the instructions', 'A request to critique, summarize, or revise the instructions is not an execution request', 'Carry authorized work to the next real boundary', 'Immediately before every authorized image-producing call', 'This notice does not instruct the assistant to pause', 'Do not create a numbered "check this image" menu', 'create and validate the ZIP without another approval', 'checked locally']) expect(prompt).toContain(text)
 })
 
 it('uses numbered choices only for genuine decisions and accepts natural replies', () => {
   const prompt = buildTinToCellarInstructions()
-  for (const text of ['Example: choosing a package edition', 'most recent unanswered menu', 'Accept the option number or an ordinary-language reply', 'Do not append menus to routine progress', 'Never make the user select an already-authorized next step']) expect(prompt).toContain(text)
+  for (const text of ['Number only real decisions', 'one session-local `active_menu`', 'Never reuse reference choice 1 as repair authorization', '"Show me" is not permission to edit', 'Continue may approve the displayed package only while that package-approval question is pending']) expect(prompt).toContain(text)
 })
 
 it('uses the selected release in every explicit manifest protocol declaration', () => {

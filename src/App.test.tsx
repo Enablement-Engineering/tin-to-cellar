@@ -7,7 +7,9 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App, { GalleryAdminShell } from './App'
 import { collectionFixture } from './lib/collection/test-fixtures'
-import { createCollectionStore, updateRow } from './lib/collection'
+import { addRequests, createCollection, createCollectionStore, setHandoff, updateRow } from './lib/collection'
+import { protocolInstructions } from './lib/protocol/archive'
+import { PROTOCOL_REVISION } from './lib/protocol'
 import type { CellarPackImportResult } from './lib/cellarpack/types'
 import * as contributions from './lib/contributions'
 import * as retrospectives from './lib/feedback/retrospective'
@@ -132,6 +134,29 @@ it('preserves valid artwork with a bounded original-instructions repair fallback
   expect(receipt.quarantined).toHaveLength(1)
 })
 describe('home, prompt, print, and help navigation', () => {
+  it('preserves a saved old prompt on reload and lets a new chat use updated instructions', async () => {
+    let collection = addRequests(createCollection(), [{ catalogId: null, maker: 'Test maker', blend: 'Adagio', notes: 'Keep my direction' }])
+    collection = updateRow(collection, collection.rows[0].id, { createRequested: true })
+    const row = collection.rows[0]
+    const request = '# Project input\nTest maker Adagio\nKeep my direction'
+    const oldPrompt = `${protocolInstructions('0.0.24')}\n\n${request}`
+    collection = setHandoff(collection, { id: 'saved-old', createdAt: new Date().toISOString(), targets: [{ ...row, rowId: row.id }], prompt: oldPrompt, request, protocolRevision: '0.0.24', copied: true })
+    const store = createCollectionStore()
+    await store.save(0, collection)
+    store.close()
+    window.history.replaceState({}, '', '/labels/artwork')
+    render(<App />)
+    const copy = await screen.findByRole('button', { name: 'Copy instructions for 1 label' })
+    await waitFor(() => { fireEvent.click(copy); expect(navigator.clipboard.writeText).toHaveBeenCalledWith(oldPrompt) })
+    expect((await savedCollection())?.handoff?.protocolRevision).toBe('0.0.24')
+    const latest = await screen.findByRole('button', { name: 'Copy updated instructions for a new chat' })
+    fireEvent.click(latest)
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(`${protocolInstructions(PROTOCOL_REVISION)}\n\n${request}`))
+    await waitFor(async () => expect((await savedCollection())?.handoff?.copied).toBe(true))
+    expect((await savedCollection())?.handoff?.protocolRevision).toBe(PROTOCOL_REVISION)
+    expect((await savedCollection())?.rows).toEqual(collection.rows)
+    expect(screen.queryByRole('button', { name: 'Copy updated instructions for a new chat' })).not.toBeInTheDocument()
+  })
   it('starts on the landing page and keeps committed labels when returning through home', async () => {
     window.history.replaceState({}, '', '/labels')
     render(<App />)

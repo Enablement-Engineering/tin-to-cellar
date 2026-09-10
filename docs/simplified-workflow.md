@@ -14,13 +14,21 @@ Order reading remains local. Supported input includes text PDFs up to 20 pages, 
 
 The creation prompt lists only rows explicitly marked **Create my own**. Selected artwork remains on the website. A ready row may request another design without losing its current printable artwork.
 
-The website saves one exact handoff before copying it, including its target identities, row revisions, source leads and protocol revision. Later source responses do not change that copy. Changing a target prepares a new request. Copying does not prove that the AI is running.
+The website verifies the released instruction bytes and exact prompt assembly before saving and copying one handoff, including its target identities, row revisions, source leads and protocol revision. A verification failure stops that operation. Later source responses do not change that copy. Changing a target prepares a new request. Copying does not prove that the AI is running.
+
+Reloading preserves the saved prompt even when the application has a newer protocol. **Copy updated instructions for a new chat** appears for an older saved revision. It verifies the old handoff and new instructions, preserves the exact request and selected labels, then saves and copies a new handoff. Ordinary Copy continues to use the saved version. The update does not alter an existing AI conversation or an imported pack's repair instructions.
 
 When no rows need creation, the collection does not show a generation prompt. **Choose blends in my AI chat** is a separate, deliberate entrance from an empty preparation workspace. It lets the AI ask for the blend list, without inferring an inventory from account memory or unrelated chats.
 
-The complete copied prompt includes the protocol, schemas and local proof program. It instructs the AI to research actual packaging, generate artwork, review a separate proof, and return a CellarPack ZIP. The AI needs research, image inspection, image generation and file creation tools. There is no provider API integration or automatic file transfer.
+The complete copied prompt includes the protocol, schemas and local proof program. The AI researches only the first requested tobacco and displays its inspected packaging photo with a source link. It asks the user to right-click the photo, choose **Copy Image**, then paste it into the chat and send. Pasting that matching photo confirms the reference without a second approval. A URL alone is not an image attachment. If copying is unavailable, a saved photo or clear screenshot is accepted.
 
-The AI return destination remains `/labels/print`. It is a human-facing import page, not an endpoint for the model to fetch. Reusable instructions are available in How it works. Protocol 0.0.22 describes additive import; older immutable instructions remain unchanged.
+The AI inspects the pasted photo, generates that label, prepares its PNG and completes visual review and dimensioned proof before researching or displaying the next tobacco. It repeats this sequence for each requested label and returns one ZIP of validated artwork. Multiple existing photos can be reused only when the tool can explicitly select and inspect the current one alone. Each call names the active blend and selected input. A composite or wrong-blend result stops generation across the batch until reference selection is corrected; it requires a separately authorized regeneration, rather than an edit to the wrong output. A failed label requires a repair decision or an explicit choice to skip it before proceeding. File preparation, proof and ZIP corrections continue without another image call.
+
+Before each image call the AI explains that the host may pause after showing the image. Replying Continue resumes inspection and the remaining preparation, proof and packaging work. Numbered choices are reserved for decisions, such as approving a reference or authorizing a repair. The AI needs research, image inspection, image generation and file creation tools. There is no provider API integration or automatic file transfer.
+
+When reporting a visual defect, the AI includes a link to the proof image showing the problem and explains the relevant mark or crop. That evidence accompanies the repair choices without requiring a separate request to see it. If proof creation fails or an error has no visual evidence, the AI explains what is available instead.
+
+The AI return destination remains `/labels/print`. It is a human-facing import page, not an endpoint for the model to fetch. Reusable instructions are available in How it works. The source selects protocol 0.0.28 for new requests; existing chats retain their pinned revision. See [protocol operations](hosted-protocol.md) for local validation and deployment status.
 
 ## Add returned artwork
 
