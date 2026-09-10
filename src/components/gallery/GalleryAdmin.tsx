@@ -1,60 +1,211 @@
 import { useEffect, useRef, useState } from 'react'
-import type { GalleryLabelDraftV1, GalleryReviewRecord } from '../../lib/gallery/types'
-import { publicReference } from '../../lib/gallery/schema'
-import { TOBACCO_CATALOG, searchTobaccos } from '../../lib/tobacco-catalog'
-import { API, errorText, request } from './client'
+import type { GalleryLabelDraft, GalleryReviewRecord } from '../../lib/gallery/types'
+import { errorText, request, GalleryRequestError } from './client'
 import { PrivateImage } from './PrivateImage'
+import { ReviewArtwork } from './ReviewArtwork'
+import { ReviewEditor } from './ReviewEditor'
 import { ReviewEvidence } from './ReviewEvidence'
+import { BatchReview } from './BatchReview'
 import { AdminOperations } from './AdminOperations'
 import { AgentGrants } from './AgentGrants'
 import { CuratedIntake } from './CuratedIntake'
-type QueueCounts = { pending: number; reservedBytes: number; oldestPendingAt: string | null; cleanupWaiting?: number }
+import { approvalBlocker, decisionBody, initialFilters, matchesReview, MAX_REVIEW_BATCH, reviewName, reviewQuery, type ReviewAction } from './review-model'
+import '../../styles/gallery-admin.css'
+
+type QueueCounts = { pending: number; reservedBytes: number; oldestPendingAt: string | null }
 type Queue = { submissions: GalleryReviewRecord[]; nextCursor: string | null; counts?: QueueCounts }
+type SavedDraft = { version: number; draft: GalleryLabelDraft }
+
 export function GalleryAdmin() {
-  const [tab, setTab] = useState<'review'|'operations'|'agents'>('review')
+  const [tab, setTab] = useState<'review' | 'operations' | 'agents'>('review')
+  const [filters, setFilters] = useState(initialFilters)
+  const applied = useRef(initialFilters)
+  const [items, setItems] = useState<GalleryReviewRecord[]>([])
   const [counts, setCounts] = useState<QueueCounts | null>(null)
-  const [items, setItems] = useState<GalleryReviewRecord[]>([]), [cursor, setCursor] = useState<string | null>(null), [state, setState] = useState('pending')
-  const [search, setSearch] = useState(''), [mappingNeeded, setMappingNeeded] = useState(false), [catalogSearch, setCatalogSearch] = useState('')
-  const [current, setCurrent] = useState<GalleryReviewRecord | null>(null), [draft, setDraftValue] = useState<GalleryLabelDraftV1 | null>(null), [image, setImage] = useState('')
-  const [error, setError] = useState(''), [busy, setBusy] = useState(false), [reviewed, setReviewed] = useState(false), [reason, setReason] = useState('unsuitable'), [conflict, setConflict] = useState(false)
-  const reviewHeading = useRef<HTMLHeadingElement|null>(null)
-  const queueController = useRef<AbortController|null>(null), detailController = useRef<AbortController|null>(null)
-  const setDraft = (value:GalleryLabelDraftV1|null) => {setDraftValue(value);setReviewed(false)}
-  const list = async (next?: string) => {
-    queueController.current?.abort();const controller=new AbortController();queueController.current=controller;setBusy(true);setError('')
-    if(!next){detailController.current?.abort();setCurrent(null);setDraft(null);setImage('');setReviewed(false);setCursor(null)}
-    try { const query = new URLSearchParams({ state, ...(search?{search}:{}), ...(mappingNeeded?{mappingNeeded:'true'}:{}), ...(next ? { cursor: next } : {}) }); const result = await request<Queue>(`/admin/submissions?${query}`,{signal:controller.signal}); if(!controller.signal.aborted){setItems(old => next ? [...old, ...result.submissions] : result.submissions);setCursor(result.nextCursor);setCounts(result.counts ?? null)} } catch (e) { if(!controller.signal.aborted)setError(errorText(e)) } finally { if(!controller.signal.aborted)setBusy(false) }
+  const [cursor, setCursor] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [status, setStatus] = useState('')
+  const [selected, setSelected] = useState<string[]>([])
+  const [batch, setBatch] = useState<string[] | null>(null)
+  const [current, setCurrent] = useState<GalleryReviewRecord | null>(null)
+  const [draft, setDraftValue] = useState<GalleryLabelDraft | null>(null)
+  const [reviewed, setReviewed] = useState(false)
+  const [imageReady, setImageReady] = useState(false)
+  const [conflict, setConflict] = useState(false)
+  const [reason, setReason] = useState('unsuitable')
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [artworkAttempt, setArtworkAttempt] = useState(0)
+  const selectedId = useRef<string | null>(null)
+  const [drafts, setDrafts] = useState(() => new Map<string, SavedDraft>())
+  const queueRequest = useRef<AbortController | null>(null)
+  const detailRequest = useRef<AbortController | null>(null)
+  const countsRequest = useRef<AbortController | null>(null)
+  const inFlight = useRef(false)
+  const reviewHeading = useRef<HTMLHeadingElement>(null)
+  const queueHeading = useRef<HTMLHeadingElement>(null)
+  const queueButtons = useRef(new Map<string, HTMLButtonElement>())
+  const mounted = useRef(true)
+
+  useEffect(() => {
+    mounted.current = true
+    const controller = new AbortController(); queueRequest.current = controller
+    void request<Queue>(`/admin/submissions?${reviewQuery(initialFilters)}`, { signal: controller.signal }).then(result => {
+      if (!controller.signal.aborted) { setItems(result.submissions); setCursor(result.nextCursor); setCounts(result.counts ?? null) }
+    }).catch(cause => { if (!controller.signal.aborted) setError(errorText(cause)) }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => { mounted.current = false; queueRequest.current?.abort(); detailRequest.current?.abort(); countsRequest.current?.abort() }
+  }, [])
+  useEffect(() => { reviewHeading.current?.focus({ preventScroll: true }); reviewHeading.current?.scrollIntoView?.({ block: 'start', behavior: 'instant' }) }, [current?.id, current?.version])
+
+  const forgetDraft = (id: string) => setDrafts(old => { const next = new Map(old); next.delete(id); return next })
+  const updateDraft = (value: GalleryLabelDraft) => {
+    if (!current) return
+    setDraftValue(value); setReviewed(false); setSelected(old => old.filter(id => id !== current.id))
+    if (JSON.stringify(value) === JSON.stringify(current.metadata)) forgetDraft(current.id)
+    else setDrafts(old => new Map(old).set(current.id, { version: current.version, draft: value }))
   }
-  useEffect(() => { const controller=new AbortController();queueController.current=controller;void request<Queue>('/admin/submissions?state=pending',{signal:controller.signal}).then(result => { if(!controller.signal.aborted){setItems(result.submissions);setCursor(result.nextCursor);setCounts(result.counts ?? null)} }).catch(e => { if(!controller.signal.aborted)setError(errorText(e)) }); return () => {queueController.current?.abort();detailController.current?.abort()} }, [])
-  const open = async (id: string) => {
-    detailController.current?.abort();const controller=new AbortController();detailController.current=controller;setBusy(true);setError('');setReviewed(false);setImage('');setCurrent(null);setDraft(null);setConflict(false);setCatalogSearch('')
-    try { const result = await request<GalleryReviewRecord>(`/admin/submissions/${id}`,{signal:controller.signal});if(!controller.signal.aborted){setCurrent(result);setDraft(result.metadata)} } catch (e) { if(!controller.signal.aborted)setError(errorText(e)) } finally { if(!controller.signal.aborted)setBusy(false) }
+  const returnToQueue = () => {
+    const id = selectedId.current
+    detailRequest.current?.abort(); selectedId.current = null
+    setCurrent(null); setDraftValue(null); setDetailLoading(false); setReviewed(false); setBatch(null)
+    requestAnimationFrame(() => { (id ? queueButtons.current.get(id) : null)?.focus(); if (!id) queueHeading.current?.focus() })
   }
-  useEffect(() => { if (!current) return; const controller = new AbortController(); let url = ''; void fetch(`${API}/admin/submissions/${current.id}/artwork`, { cache: 'no-store', signal: controller.signal,referrerPolicy:'no-referrer' }).then(async response => { if (!response.ok) throw new Error('Private artwork is unavailable. Reload this submission before approving.'); const blob = await response.blob(); if (!controller.signal.aborted) { url = URL.createObjectURL(blob); setImage(url) } }).catch(e => { if (!controller.signal.aborted) setError(errorText(e)) }); return () => { controller.abort(); if (url) URL.revokeObjectURL(url) } }, [current])
-  useEffect(()=>{reviewHeading.current?.focus()},[current?.id])
-  const action = async (kind: string) => {
-    if (!current || conflict) return; setBusy(true); setError(''); setReviewed(false)
+  const loadQueue = async (next?: string) => {
+    if (inFlight.current) return
+    queueRequest.current?.abort(); countsRequest.current?.abort()
+    const controller = new AbortController(); queueRequest.current = controller
+    if (!next) { applied.current = { ...filters, search: filters.search.trim() }; setSelected([]); setItems([]); setCursor(null); returnToQueue() }
+    setLoading(true); setError('')
     try {
-      const result = await request<GalleryReviewRecord>(`/admin/submissions/${current.id}${kind === 'save' ? '' : `/${kind}`}`, { method: kind === 'save' ? 'PATCH' : 'POST', body: JSON.stringify({ expectedVersion: current.version, ...(kind === 'save' ? { metadata: draft } : kind === 'reject' ? { reason } : kind === 'approve' ? { digest: current.digest } : {}) }) })
-      setCurrent(result); setDraft(result.metadata);setItems(old=>old.map(item=>item.id===result.id?result:item))
-    } catch (e) { setError(errorText(e));if(errorText(e).includes('changed'))setConflict(true) } finally { setBusy(false) }
+      const result = await request<Queue>(`/admin/submissions?${reviewQuery(applied.current, next)}`, { signal: controller.signal })
+      if (!controller.signal.aborted) { setItems(old => next ? [...old, ...result.submissions.filter(item => !old.some(existing => existing.id === item.id))] : result.submissions); setCursor(result.nextCursor); setCounts(result.counts ?? null) }
+    } catch (cause) { if (!controller.signal.aborted) setError(errorText(cause)) }
+    finally { if (!controller.signal.aborted) setLoading(false) }
   }
-  const dirty = JSON.stringify(draft) !== JSON.stringify(current?.metadata)
-  const catalogOptions = catalogSearch ? searchTobaccos(catalogSearch, 30) : TOBACCO_CATALOG
-  const selectedCatalog=TOBACCO_CATALOG.find(entry=>entry.id===draft?.catalogId)
-  const visibleCatalog=selectedCatalog&&!catalogOptions.some(entry=>entry.id===selectedCatalog.id)?[selectedCatalog,...catalogOptions]:catalogOptions
-  return <section className="gallery-page screen-only"><h1>Review community labels</h1><p>Review the full-resolution artwork, blank writing area, tobacco match, and shared metadata. Approval publishes this exact version.</p><nav className="gallery-admin-tabs" aria-label="Administration"><button className="button secondary" aria-pressed={tab==='review'} onClick={()=>setTab('review')}>Review queue</button><button className="button secondary" aria-pressed={tab==='operations'} onClick={()=>setTab('operations')}>Operations</button><button className="button secondary" aria-pressed={tab==='agents'} onClick={()=>setTab('agents')}>Agent permissions</button></nav>{tab==='operations'&&<AdminOperations/>}{tab==='agents'&&<AgentGrants/>}{tab==='review'&&<>{error && <p role="alert">{error}</p>}
-    <CuratedIntake/>
-    <form className="gallery-filters" onSubmit={event => { event.preventDefault(); void list() }}><label>Submission status<select value={state} onChange={event => setState(event.target.value)}>{['pending','reserved','published','unpublished','rejected','withdrawn','expired','deleting','deleted'].map(value => <option key={value}>{value}</option>)}</select></label><label>Maker or blend<input maxLength={160} value={search} onChange={event=>setSearch(event.target.value)}/></label><label className="gallery-check"><input type="checkbox" checked={mappingNeeded} onChange={event=>setMappingNeeded(event.target.checked)}/>Needs catalog mapping</label><button className="button secondary" disabled={busy}>Refresh queue</button></form>
-    {counts && <p className="field-hint">{`${counts.pending} awaiting review · ${(counts.reservedBytes / 1024 / 1024).toFixed(1)} MiB reserved${counts.oldestPendingAt ? ` · Oldest pending: ${new Date(counts.oldestPendingAt).toLocaleDateString()}` : ''}`}</p>}
-    <div className="gallery-admin-layout"><section aria-label="Review queue">{items.map(item => <button className="gallery-queue-item" key={item.id} aria-current={current?.id===item.id?'true':undefined} onClick={() => void open(item.id)}><PrivateImage id={item.id} alt=""/><span><strong>{item.maker ?? item.metadata?.proposedIdentity?.maker ?? TOBACCO_CATALOG.find(entry => entry.id === item.metadata?.catalogId)?.maker} {item.blend ?? item.metadata?.proposedIdentity?.blend ?? TOBACCO_CATALOG.find(entry => entry.id === item.metadata?.catalogId)?.blend ?? item.id}</strong><span>{item.state}{item.mappingNeeded?' · Needs mapping':''}</span><span>{item.metadata?.edition || 'Edition not specified'}</span>{item.createdAt&&<time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleDateString()}</time>}</span></button>)}{!items.length && !busy && <p>No submissions in this queue.</p>}{cursor && <button className="button secondary" disabled={busy} onClick={() => void list(cursor)}>More submissions</button>}</section>
-    {current && !draft && <article aria-label="Selected submission"><h2 ref={reviewHeading} tabIndex={-1}>Submission record</h2><p>Status: {current.state}. Artwork and metadata are no longer available for review.</p>{current.deletionDue&&<p>Scheduled deletion: {new Date(current.deletionDue).toLocaleString()}</p>}<ReviewEvidence key={`${current.id}:${current.version}`} record={current}/></article>}
-    {current && draft && <article aria-label="Selected submission"><h2 ref={reviewHeading} tabIndex={-1}>Review label</h2><button className="button quiet" disabled={busy} onClick={()=>void open(current.id)}>Reload submission</button><p>Status: {current.state} · Version {current.version}</p>{image && <a href={image} target="_blank" rel="noreferrer"><img className="gallery-review-art" src={image} alt={draft.description} onError={()=>{setImage('');setReviewed(false);setError('Artwork could not be displayed. Reload this submission before approving.')}} /><span>Open full-resolution artwork</span></a>}<p className="gallery-digest">Approval digest: {current.digest ?? 'Not ready for approval'}</p><p>{draft.image.width} × {draft.image.height} pixels · {draft.surface.finishedSize.width} {draft.surface.finishedSize.unit} circle</p>
-    <p>Current identity: {current.maker ?? draft.proposedIdentity?.maker ?? 'Not recorded'} {current.blend ?? draft.proposedIdentity?.blend ?? ''}</p>{current.publishedIdentity&&<p>Published identity: {current.publishedIdentity.maker} {current.publishedIdentity.blend}</p>}<p className="field-hint">Catalog ID: {draft.catalogId ?? 'Mapping required. Add a new blend through catalog maintenance if needed.'}</p><fieldset disabled={busy || conflict || current.state !== 'pending'}><legend>Reviewed metadata</legend><label>Search catalog<input value={catalogSearch} maxLength={160} onChange={event=>setCatalogSearch(event.target.value)}/></label><label>Tobacco match<select value={draft.catalogId ?? ''} onChange={event => { const id = event.target.value; if (id) setDraft({ ...draft, catalogId: id, proposedIdentity: null }); setReviewed(false) }}><option value="">Unmapped; catalog update required before approval</option>{visibleCatalog.map(entry => <option key={entry.id} value={entry.id}>{entry.maker} · {entry.blend}</option>)}</select></label><label>Edition<input maxLength={120} value={draft.edition} onChange={event => setDraft({ ...draft, edition: event.target.value })} /></label><label>Artwork description<input maxLength={320} value={draft.description} onChange={event => setDraft({ ...draft, description: event.target.value })} /></label><label>Package<select value={draft.package} onChange={event => setDraft({ ...draft, package: event.target.value as GalleryLabelDraftV1['package'] })}>{['unknown','tin','pouch','box','bulk','other'].map(value => <option key={value}>{value}</option>)}</select></label><label>Variant<select value={draft.variant} onChange={event => setDraft({ ...draft, variant: event.target.value as GalleryLabelDraftV1['variant'] })}>{['unknown','current','historical','special'].map(value => <option key={value}>{value}</option>)}</select></label>
-    {draft.references.map((reference, index) => <div key={index}><label>Reference {index + 1}<input value={reference.url} maxLength={1500} onChange={event => setDraft({ ...draft, references: draft.references.map((ref, i) => i === index ? { ...ref, url: event.target.value } : ref) })} /></label><label>Reference role {index + 1}<select value={reference.role} onChange={event=>setDraft({...draft,references:draft.references.map((ref,i)=>i===index?{...ref,role:event.target.value as 'package-appearance'|'variant-identification'}:ref)})}><option value="package-appearance">Package appearance</option><option value="variant-identification">Variant identification</option></select></label>{publicReference(reference.url) && <a href={reference.url} target="_blank" rel="noreferrer">Open reference</a>}<button className="button quiet" onClick={() => setDraft({ ...draft, references: draft.references.filter((_, i) => i !== index) })}>Remove reference</button></div>)}{draft.references.length < 3 && <button className="button quiet" onClick={() => setDraft({ ...draft, references: [...draft.references, { url: '', role: 'package-appearance' }] })}>Add public reference</button>}<button className="button secondary" disabled={!dirty} onClick={() => void action('save')}>Save corrections for review</button></fieldset>
-    <ReviewEvidence key={`${current.id}:${current.version}`} record={current}/>
-    <label className="gallery-check"><input type="checkbox" checked={reviewed} disabled={dirty || !image || busy || conflict} onChange={event => setReviewed(event.target.checked)} />I reviewed this artwork and the saved metadata, including its blank writing area.</label>
-    <div className="gallery-actions">{current.state === 'pending' && <button className="button primary" disabled={busy || conflict || dirty || !reviewed || !draft.catalogId || !current.digest} onClick={() => void action('approve')}>Approve and publish</button>}{current.state === 'unpublished' && <button className="button primary" disabled={busy || conflict || dirty || !reviewed || !current.digest} onClick={() => void action('republish')}>Republish reviewed version</button>}{current.state === 'published' && <><button className="button secondary" disabled={busy || conflict} onClick={() => void action('refresh')}>Refresh public identity and pack</button><button className="button secondary" disabled={busy || conflict} onClick={() => void action('unpublish')}>Unpublish now</button></>}{current.state === 'pending' && <><label>Rejection reason<select value={reason} onChange={event => setReason(event.target.value)}>{['unsuitable','rights-concern','duplicate','other'].map(value => <option key={value}>{value}</option>)}</select></label><button className="button secondary" disabled={busy || conflict} onClick={() => void action('reject')}>Reject submission</button></>}</div>{current.deletionDue&&<p>Scheduled deletion: {new Date(current.deletionDue).toLocaleString()}</p>}<p>Unpublishing stops subsequent downloads. Copies already downloaded cannot be recalled.</p></article>}
-    </div>{busy && <p role="status">Updating review…</p>}</>}
+  const refreshCounts = async () => {
+    countsRequest.current?.abort()
+    const controller = new AbortController(); countsRequest.current = controller
+    try {
+      const result = await request<Queue>(`/admin/submissions?${reviewQuery(applied.current)}`, { signal: controller.signal })
+      if (!controller.signal.aborted && mounted.current) setCounts(result.counts ?? null)
+    } catch { if (!controller.signal.aborted && mounted.current) setError('The decision was recorded, but queue counts could not refresh. Refresh the queue to update them.') }
+  }
+  const open = async (id: string, discard = false) => {
+    if (inFlight.current) return
+    if (discard) forgetDraft(id)
+    detailRequest.current?.abort()
+    const controller = new AbortController(); detailRequest.current = controller
+    selectedId.current = id
+    setCurrent(null); setDraftValue(null); setDetailLoading(true); setReviewed(false); setImageReady(false); setConflict(false); setError(''); setReason('unsuitable')
+    setArtworkAttempt(value => value + 1)
+    try {
+      const record = await request<GalleryReviewRecord>(`/admin/submissions/${id}`, { signal: controller.signal })
+      if (!controller.signal.aborted) {
+        const stored = discard ? undefined : drafts.get(id)
+        const saved = stored && JSON.stringify(stored.draft) !== JSON.stringify(record.metadata) ? stored : undefined
+        if (stored && !saved) forgetDraft(id)
+        setCurrent(record); setDraftValue(saved?.draft ?? record.metadata)
+        setConflict(Boolean(saved && saved.version !== record.version))
+        if (saved) setStatus(saved.version !== record.version ? 'The saved submission changed. Your corrections are retained; discard them to review the latest version.' : 'Your unsaved corrections have been restored.')
+      }
+    } catch (cause) { if (!controller.signal.aborted) setError(errorText(cause)) }
+    finally { if (!controller.signal.aborted) setDetailLoading(false) }
+  }
+  const reconcile = (record: GalleryReviewRecord) => {
+    setItems(old => old.flatMap(item => item.id !== record.id ? [item] : matchesReview(record, applied.current) ? [record] : []))
+    setSelected(old => old.filter(id => id !== record.id))
+  }
+  const action = async (kind: ReviewAction, next = false) => {
+    if (!current || conflict || inFlight.current) return
+    const record = current
+    const following = items.slice(items.findIndex(item => item.id === record.id) + 1).find(item => item.state === 'pending') ?? items.find(item => item.id !== record.id && item.state === 'pending')
+    inFlight.current = true; setBusy(true); setReviewed(false); setError(''); setStatus('Saving decision…')
+    let succeeded = false
+    try {
+      const result = await request<GalleryReviewRecord>(`/admin/submissions/${record.id}${kind === 'save' ? '' : `/${kind}`}`, { method: kind === 'save' ? 'PATCH' : 'POST', body: decisionBody(record, kind, reason, draft) })
+      if (!mounted.current) return
+      forgetDraft(record.id); reconcile(result)
+      if (selectedId.current === record.id) { setCurrent(result); setDraftValue(result.metadata); setImageReady(false) }
+      setStatus(kind === 'save' ? 'Corrections saved. Review this version before approving.' : `${reviewName(result)}: ${result.state}.`)
+      succeeded = true
+      await refreshCounts()
+    } catch (cause) {
+      if (mounted.current) { const uncertain = !(cause instanceof GalleryRequestError) || cause.status === 409 || cause.status >= 500; setError(errorText(cause)); setConflict(uncertain); setStatus(uncertain ? 'The result could not be confirmed. Reload the submission before another decision.' : 'The request was not accepted. Your corrections are still here.') }
+    } finally { inFlight.current = false; if (mounted.current) setBusy(false) }
+    if (succeeded && next && mounted.current && selectedId.current === record.id) {
+      if (following) await open(following.id)
+      else { returnToQueue(); setStatus('No more pending labels are loaded. Load more submissions or refresh the queue.') }
+    }
+  }
+  const dirty = Boolean(current && JSON.stringify(draft) !== JSON.stringify(current.metadata))
+  const blocker = current ? approvalBlocker(current, draft, imageReady, conflict) : ''
+  const selectable = items.filter(item => item.state === 'pending' && !drafts.has(item.id))
+  const locked = busy || loading || detailLoading
+  const setBatchBusy = (value: boolean) => { inFlight.current = value; setBusy(value) }
+  const position = current ? items.findIndex(item => item.id === current.id) : -1
+
+  return <section className="gallery-page gallery-admin screen-only">
+    <header className="review-heading"><div><h1>Review community labels</h1><p>Check the artwork and tobacco match, then publish or reject.</p></div></header>
+    <nav className="gallery-admin-tabs" aria-label="Administration">{(['review', 'operations', 'agents'] as const).map(value => <button key={value} className="button secondary" disabled={busy} aria-pressed={tab === value} onClick={() => setTab(value)}>{value === 'review' ? 'Review queue' : value === 'operations' ? 'Operations' : 'Agent permissions'}</button>)}</nav>
+    {tab === 'operations' && <AdminOperations />}{tab === 'agents' && <AgentGrants />}
+    {tab === 'review' && <>
+      {batch ? <BatchReview ids={batch} onClose={returnToQueue} onResult={reconcile} onFinished={refreshCounts} onBusy={setBatchBusy} /> : <>
+        <div className={current || detailLoading ? 'review-queue-tools review-mobile-hidden' : 'review-queue-tools'}>
+          <form className="gallery-filters" onSubmit={event => { event.preventDefault(); void loadQueue() }}>
+            <label>Submission status<select disabled={busy} value={filters.state} onChange={event => setFilters({ ...filters, state: event.target.value })}>{['pending', 'published', 'unpublished', 'rejected', 'reserved', 'expired', 'deleting', 'deleted'].map(value => <option key={value}>{value}</option>)}</select></label>
+            <label>Maker or blend<input maxLength={160} disabled={busy} value={filters.search} onChange={event => setFilters({ ...filters, search: event.target.value })} /></label>
+            <label className="gallery-check"><input type="checkbox" disabled={busy} checked={filters.mappingNeeded} onChange={event => setFilters({ ...filters, mappingNeeded: event.target.checked })} />Needs catalog mapping</label>
+            <button className="button secondary" disabled={busy}>Apply filters / refresh</button>
+          </form>
+          {counts && <p>{counts.pending} awaiting review{counts.oldestPendingAt ? ` · Oldest: ${new Date(counts.oldestPendingAt).toLocaleDateString()}` : ''}</p>}
+          <div className="review-batch-toolbar">
+            <label className="gallery-check"><input type="checkbox" disabled={locked || !selectable.length} checked={selectable.length > 0 && selectable.slice(0, MAX_REVIEW_BATCH).every(item => selected.includes(item.id))} onChange={event => setSelected(event.target.checked ? selectable.slice(0, MAX_REVIEW_BATCH).map(item => item.id) : [])} />Select loaded labels, up to {MAX_REVIEW_BATCH}</label>
+            <span>{selected.length} selected</span><button className="button primary" disabled={locked || !selected.length} onClick={() => { setBatch([...selected]); setError('') }}>Review selected ({selected.length})</button>
+            {selected.length > 0 && <button className="button quiet" disabled={locked} onClick={() => setSelected([])}>Clear selection</button>}
+          </div>
+        </div>
+        <div className={`gallery-admin-layout ${current || detailLoading ? 'review-has-detail' : ''}`}>
+          <section className="review-queue" aria-label="Review queue" aria-busy={loading}>
+            <h2 ref={queueHeading} tabIndex={-1}>Submissions</h2>
+            {items.map(item => <div className="review-queue-row" key={item.id}>
+              {item.state === 'pending' && <input aria-label={`Select ${reviewName(item)}`} type="checkbox" checked={selected.includes(item.id)} disabled={locked || drafts.has(item.id) || (!selected.includes(item.id) && selected.length >= MAX_REVIEW_BATCH)} onChange={event => setSelected(old => event.target.checked ? [...old, item.id] : old.filter(id => id !== item.id))} />}
+              <button ref={element => { if (element) queueButtons.current.set(item.id, element); else queueButtons.current.delete(item.id) }} className="gallery-queue-item" aria-label={`${reviewName(item)}, ${item.state}${item.mappingNeeded ? ", needs mapping" : ""}${drafts.has(item.id) ? ", unsaved corrections" : ""}`} disabled={busy} aria-current={current?.id === item.id ? 'true' : undefined} onClick={() => void open(item.id)}>
+                <PrivateImage id={item.id} alt="" /><span><strong>{reviewName(item)}</strong><span>{item.state}{item.mappingNeeded ? ' · Needs mapping' : ''}{drafts.has(item.id) ? ' · Unsaved corrections' : ''}</span>{item.metadata?.edition && <span>{item.metadata.edition}</span>}</span>
+              </button>
+            </div>)}
+            {!items.length && !loading && <p>No submissions match these filters.</p>}
+            {cursor && <button className="button secondary" disabled={locked} onClick={() => void loadQueue(cursor)}>More submissions</button>}
+          </section>
+          <div className="review-detail">
+            {detailLoading && <p role="status">Loading submission…</p>}
+            {!current && !detailLoading && <p className="review-empty">Choose a label to inspect, or select a group for batch review.</p>}
+            {current && <article aria-label="Selected submission">
+              <header className="review-heading"><div><h2 ref={reviewHeading} tabIndex={-1}>{reviewName(current)}</h2><p>{current.state}{draft?.edition ? ` · ${draft.edition}` : ''}</p></div><button className="button secondary" disabled={busy} onClick={returnToQueue}>Back to queue</button></header>
+              <div className="admin-review-navigation"><a className="button quiet review-decision-jump" href="#label-decision">Go to decision</a><button className="button quiet" disabled={busy || position <= 0} onClick={() => void open(items[position - 1].id)}>Previous</button><button className="button quiet" disabled={busy || position < 0 || position >= items.length - 1} onClick={() => void open(items[position + 1].id)}>Next</button><button className="button quiet" disabled={busy} onClick={() => void open(current.id)}>Reload submission</button></div>
+              {draft ? <>
+                <ReviewArtwork key={`${current.id}:${current.version}:${artworkAttempt}`} id={current.id} alt={draft.altText || `${reviewName(current)} artwork`} onReady={setImageReady} />
+                <ReviewEditor key={`editor:${current.id}:${current.version}`} draft={draft} onChange={updateDraft} onSave={() => void action('save')} onDiscard={() => { if (conflict) void open(current.id, true); else { forgetDraft(current.id); setDraftValue(current.metadata); setReviewed(false) } }} dirty={dirty} disabled={busy || conflict || current.state !== 'pending'} />
+                {conflict && dirty && <button className="button secondary" disabled={busy} onClick={() => void open(current.id, true)}>Discard corrections and reload</button>}
+                <ReviewEvidence key={`evidence:${current.id}:${current.version}`} record={current} />
+              </> : <p>Artwork and metadata are no longer available for review.</p>}
+              <div id="label-decision" tabIndex={-1} className="review-decision-bar" aria-label="Review decision">
+                <p role="status" aria-atomic="true">{status}</p>{error && <p role="alert">{error}</p>}
+                {blocker && ['pending', 'unpublished'].includes(current.state) && <p id="approval-blocker">{blocker}</p>}
+                {draft && ['pending', 'unpublished'].includes(current.state) && <label className="gallery-check"><input type="checkbox" checked={reviewed} disabled={busy || Boolean(blocker)} onChange={event => setReviewed(event.target.checked)} />I reviewed this artwork and the saved details, including its blank writing area.</label>}
+                <div className="gallery-actions">
+                  {current.state === 'pending' && <><button className="button primary" disabled={busy || Boolean(blocker) || !reviewed} onClick={() => void action('approve', true)}>Approve and next</button><button className="button secondary" disabled={busy || Boolean(blocker) || !reviewed} onClick={() => void action('approve')}>Approve and publish</button><label>Rejection reason<select disabled={busy} value={reason} onChange={event => setReason(event.target.value)}>{['unsuitable', 'rights-concern', 'duplicate', 'other'].map(value => <option key={value}>{value}</option>)}</select></label><button className="button secondary" disabled={busy || conflict} onClick={() => void action('reject', true)}>Reject and next</button></>}
+                  {current.state === 'unpublished' && <button className="button primary" disabled={busy || Boolean(blocker) || !reviewed} onClick={() => void action('republish')}>Republish reviewed version</button>}
+                  {current.state === 'published' && <><button className="button secondary" disabled={busy || conflict} onClick={() => void action('unpublish')}>Unpublish now</button><button className="button quiet" disabled={busy || conflict} onClick={() => void action('refresh')}>Refresh public identity and pack</button></>}
+                </div>
+                {current.deletionDue && <p>Scheduled deletion: {new Date(current.deletionDue).toLocaleString()}</p>}
+              </div>
+            </article>}
+          </div>
+        </div>
+        {!current && <div className="review-status"><p role="status">{loading ? 'Loading submissions…' : status}</p>{error && <p role="alert">{error}</p>}</div>}
+        <CuratedIntake />
+      </>}
+    </>}
   </section>
 }

@@ -238,7 +238,7 @@ function validateLabelSemantics(label: CellarLabel): ValidationIssue[] {
       message: `Write-in area ID ${duplicate} is duplicated within the label.`,
     })
   }
-  for (const duplicate of duplicateValues(label.research.sources.map((source) => source.id))) {
+  for (const duplicate of duplicateValues((label.research?.sources ?? []).map((source) => source.id))) {
     issues.push({
       severity: 'error',
       code: 'DUPLICATE_ID',
@@ -247,7 +247,7 @@ function validateLabelSemantics(label: CellarLabel): ValidationIssue[] {
       message: `Research source ID ${duplicate} is duplicated within the label.`,
     })
   }
-  if (label.research.status === 'limited') {
+  if (label.research?.status === 'limited') {
     issues.push({
       severity: 'warning',
       code: 'LIMITED_RESEARCH',
@@ -256,7 +256,7 @@ function validateLabelSemantics(label: CellarLabel): ValidationIssue[] {
       message: 'Package research is limited; the artwork needs human fidelity review.',
     })
   }
-  if (!label.research.sources.some((source) => source.role === 'package-appearance')) {
+  if (label.research && !label.research.sources.some((source) => source.role === 'package-appearance')) {
     issues.push({
       severity: 'warning',
       code: 'MISSING_REQUIRED_RESEARCH',

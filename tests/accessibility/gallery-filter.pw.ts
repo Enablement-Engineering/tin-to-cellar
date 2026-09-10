@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright'
 
 test('typing Earl shows the matching designs before a suggestion is selected', async ({ page }) => {
   const matches = [{ id: 'dunhill-early-morning-pipe', maker: 'Dunhill', blend: 'Early Morning Pipe' }, { id: 'peterson-early-morning-pipe', maker: 'Peterson', blend: 'Early Morning Pipe' }]
-  const labels = matches.slice(0, 2).map((entry, index) => ({ ...entry, catalogId: entry.id, id: `label-${index}`, description: `${entry.maker} ${entry.blend} design` }))
+  const labels = matches.slice(0, 2).map((entry, index) => ({ ...entry, catalogId: entry.id, id: `label-${index}`, altText: `${entry.maker} ${entry.blend} design` }))
   const queries: string[] = []
   await page.route('**/api/gallery/v1/**', async route => {
     const url = new URL(route.request().url())
@@ -11,7 +11,7 @@ test('typing Earl shows the matching designs before a suggestion is selected', a
     if (url.pathname.endsWith('/labels')) {
       const catalog = url.searchParams.get('catalogId') ?? ''
       queries.push(catalog)
-      return route.fulfill({ json: { labels: catalog ? labels.filter(label => label.catalogId === catalog) : [...labels, { id: 'other', maker: 'Other', blend: 'Unrelated', description: 'Other design' }], nextCursor: null } })
+      return route.fulfill({ json: { labels: catalog ? labels.filter(label => label.catalogId === catalog) : [...labels, { id: 'other', maker: 'Other', blend: 'Unrelated', altText: 'Other design' }], nextCursor: null } })
     }
     return route.fulfill({ status: 204 })
   })
@@ -45,7 +45,7 @@ for (const width of [1280, 320]) test(`automatic blend filtering preserves focus
     if (url.pathname.endsWith('/labels')) {
       const catalog = url.searchParams.get('catalogId') ?? ''
       queries.push(catalog)
-      return route.fulfill({ json: { labels: catalog ? [{ id: 'nightcap', maker: 'Peterson', blend: 'Nightcap', description: 'A cream label with a blank writing area.' }] : [], nextCursor: null } })
+      return route.fulfill({ json: { labels: catalog ? [{ id: 'nightcap', maker: 'Peterson', blend: 'Nightcap', altText: 'A cream label with a blank writing area.' }] : [], nextCursor: null } })
     }
     return route.fulfill({ status: 204 })
   })

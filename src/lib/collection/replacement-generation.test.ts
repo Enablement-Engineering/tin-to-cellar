@@ -46,7 +46,7 @@ it('keeps generation state unchanged while an import is reviewed or skipped, the
   const { saved } = await ready()
   const pending = updateRow(saved, saved.rows[0].id, { createRequested: true })
   const snapshot = structuredClone(pending)
-  const replacement = await prepareImport(await collectionFixture(manifest => { manifest.labels[0].research.adaptationSummary = 'New replacement design details.' }), { origin: 'local' })
+  const replacement = await prepareImport(await collectionFixture(manifest => { manifest.labels[0].research!.adaptationSummary = 'New replacement design details.' }), { origin: 'local' })
   const plan = planImport(pending, replacement)
   expect(plan.entries[0].kind).toBe('fill')
   expect(pending).toEqual(snapshot) // Closing the review does not apply the plan.

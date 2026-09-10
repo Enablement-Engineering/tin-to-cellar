@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { encode } from 'fast-png'
 import type { GalleryReviewRecord } from '../../src/lib/gallery/types'
+import { reviewFixture } from '../fixtures/gallery-review'
 const id='11111111-1111-4111-8111-111111111111'
 const tobacco={id:'cornell-and-diehl-briar-fox',maker:'Cornell & Diehl',blend:'Briar Fox'}
 function artwork() {
@@ -12,7 +13,7 @@ function artwork() {
   }
   return Buffer.from(encode({width:825,height:825,channels:4,data}))
 }
-function fixture():GalleryReviewRecord {return {id,state:'pending',version:2,expiresAt:'2026-10-01T00:00:00Z',deletionDue:null,digest:'a'.repeat(64),publicationId:null,createdAt:'2026-09-01T12:00:00Z',maker:tobacco.maker,blend:tobacco.blend,mappingNeeded:false,canonicalHash:'b'.repeat(64),metadataHash:'c'.repeat(64),uploadedHash:'d'.repeat(64),publishedIdentity:null,validation:{format:'gallery-v1',geometry:'circle-2.5',imageValidated:true,visualReviewRequired:true},metadata:{version:1,submissionId:id,catalogId:tobacco.id,proposedIdentity:null,package:'tin',variant:'current',edition:'Synthetic review fixture',description:'Green circle with a gold border and blank cream writing area.',surface:{shape:'circle',finishedSize:{width:2.5,height:2.5,unit:'in'},bleed:{top:.125,right:.125,bottom:.125,left:.125,unit:'in'},safeInset:{top:.125,right:.125,bottom:.125,left:.125,unit:'in'}},writeInArea:{id:'date',purpose:'jarred-date',geometry:{shape:'rectangle',x:.3,y:.6,width:.4,height:.1},background:{integratedInArtwork:true},overlay:{mode:'blank'}},references:[{url:'https://example.org/fixture-product',role:'package-appearance'}],image:{sha256:'d'.repeat(64),bytes:10000,width:825,height:825},acknowledgement:{version:'2026-09-06-v1',accepted:true}}}}
+function fixture():GalleryReviewRecord { const item = reviewFixture(id, tobacco.blend); item.maker = tobacco.maker; item.metadata!.edition = 'Synthetic review fixture'; return item }
 for(const width of [1280,320])test(`expanded human gallery review is accessible at ${width}px`,async({page,request})=>{
   const item=fixture(), png=artwork();const external:string[]=[]
   // UI-only harness: production admin HTML still requires real Access authentication.
@@ -34,11 +35,12 @@ for(const width of [1280,320])test(`expanded human gallery review is accessible 
   await page.setViewportSize({width,height:900});await page.goto('https://admin-staging.tintocellar.com/')
   const queue=page.getByRole('button',{name:new RegExp(`${tobacco.maker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}.*pending`)})
   await queue.focus();await queue.press('Enter')
-  await expect(page.getByRole('heading',{name:'Review label',exact:true})).toBeFocused()
+  await expect(page.getByRole('heading',{name:`${tobacco.maker} ${tobacco.blend}`,exact:true})).toBeFocused()
   await expect(page.getByText('Open full-resolution artwork')).toBeVisible()
   await expect(page.getByRole('button',{name:'Approve and publish'})).toBeDisabled()
   await page.getByText('Geometry and validation',{exact:true}).click()
   await expect(page.getByText('Image format and geometry checks passed.',{exact:false})).toBeVisible()
+  await page.getByText('Agent recommendations (1)', {exact:true}).click()
   await expect(page.getByText('Review the blank writing area at print size.')).toBeVisible()
   expect((await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze()).violations).toEqual([])
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)

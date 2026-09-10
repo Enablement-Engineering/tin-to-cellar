@@ -1,7 +1,8 @@
-import { addDays, database, type GalleryEnv } from './storage';
+import { addDays, database, labelMetadataReady, type GalleryEnv } from './storage';
 export async function cleanGallery(env: GalleryEnv, now = new Date()) {
     if (!env.GALLERY || !env.GALLERY_ART)
         return { deleted: 0, failures: 0, orphans: 0 };
+    if (!await labelMetadataReady(env)) return { deleted: 0, failures: 0, orphans: 0 };
     const db = database(env);
     let deleted = 0, failures = 0, orphans = 0;
     // Recommendation text is private review content: expire it even if R2 deletion retries.
@@ -18,7 +19,7 @@ export async function cleanGallery(env: GalleryEnv, now = new Date()) {
             const claimed = await db.prepare("UPDATE gallery_submissions SET state='deleting',row_version=row_version+1 WHERE id=? AND deletion_due<=? AND state IN('expired','rejected','withdrawn','unpublished','deleting')").bind(row.id, now.toISOString()).run();
             if (!claimed.meta.changes)
                 continue;
-            const assets = (await db.prepare('SELECT r2_key FROM gallery_assets WHERE submission_id=?').bind(row.id).all<{
+            const assets = (await db.prepare("SELECT r2_key FROM gallery_assets WHERE submission_id=? UNION SELECT json_extract(pack_asset_json, '$.r2_key') AS r2_key FROM gallery_label_metadata_backups WHERE submission_id=? AND pack_asset_json IS NOT NULL").bind(row.id, row.id).all<{
                 r2_key: string;
             }>()).results;
             for (const a of assets) {
@@ -26,7 +27,7 @@ export async function cleanGallery(env: GalleryEnv, now = new Date()) {
                 if (await env.GALLERY_ART.head(a.r2_key))
                     throw new Error('delete_failed');
             }
-            await db.batch([db.prepare('DELETE FROM gallery_assets WHERE submission_id=?').bind(row.id), db.prepare("UPDATE gallery_submissions SET state='deleted',metadata_json=NULL,metadata_hash=NULL,artwork_hash=NULL,digest=NULL,catalog_id=NULL,reserved_bytes=0,input_bytes=0,quota_key='',deletion_due=NULL,receipt_until=COALESCE(receipt_until,?),reviewer=NULL,approval_digest=NULL,published_maker=NULL,published_blend=NULL WHERE id=? AND state='deleting'").bind(addDays(now, 90), row.id),db.prepare("INSERT INTO gallery_review_events(id,submission_id,actor,action,row_version,digest,created_at) SELECT ?,id,'system','deleted',row_version,digest,? FROM gallery_submissions WHERE id=? AND changes()=1").bind(crypto.randomUUID(),now.toISOString(),row.id)]);
+            await db.batch([db.prepare('DELETE FROM gallery_label_metadata_backups WHERE submission_id=?').bind(row.id),db.prepare('DELETE FROM gallery_assets WHERE submission_id=?').bind(row.id), db.prepare("UPDATE gallery_submissions SET state='deleted',metadata_json=NULL,metadata_hash=NULL,artwork_hash=NULL,digest=NULL,catalog_id=NULL,reserved_bytes=0,input_bytes=0,quota_key='',deletion_due=NULL,receipt_until=COALESCE(receipt_until,?),reviewer=NULL,approval_digest=NULL,published_maker=NULL,published_blend=NULL WHERE id=? AND state='deleting'").bind(addDays(now, 90), row.id),db.prepare("INSERT INTO gallery_review_events(id,submission_id,actor,action,row_version,digest,created_at) SELECT ?,id,'system','deleted',row_version,digest,? FROM gallery_submissions WHERE id=? AND changes()=1").bind(crypto.randomUUID(),now.toISOString(),row.id)]);
             deleted++;
         }
         catch {
@@ -43,7 +44,7 @@ export async function cleanGallery(env: GalleryEnv, now = new Date()) {
         if (obj.uploaded.getTime() > now.getTime() - 86400000)
             continue;
         try {
-            const owned = await db.prepare('SELECT id FROM gallery_assets WHERE r2_key=?').bind(obj.key).first();
+            const owned = await db.prepare("SELECT id FROM gallery_assets WHERE r2_key=? UNION SELECT submission_id AS id FROM gallery_label_metadata_backups WHERE json_extract(pack_asset_json, '$.r2_key')=?").bind(obj.key,obj.key).first();
             if (owned)
                 continue;
             const id = obj.key.split('/')[1];

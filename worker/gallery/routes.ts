@@ -1,13 +1,13 @@
 import { agentResponse, adminAgentResponse, type AgentDependencies } from './agents'
 import { humanQueue, reviewRecord } from './review'
 import type { Statement } from '../diagnostics'
-import { GALLERY_NOTICE_VERSION, type GalleryLabelDraftV1, type GalleryReceipt, type GalleryState } from '../../src/lib/gallery/types';
-import { canonicalJson, MAX_IMAGE_BYTES, MAX_METADATA_BYTES, parseGalleryDraft, uuid } from '../../src/lib/gallery/schema';
+import { GALLERY_NOTICE_VERSION, type GalleryLabelDraft, type GalleryReceipt, type GalleryState } from '../../src/lib/gallery/types';
+import { galleryCatalogId, galleryAltText, canonicalJson, MAX_IMAGE_BYTES, MAX_METADATA_BYTES, parseGalleryDraft, uuid } from '../../src/lib/gallery/schema';
 import { normalizeGalleryImage } from '../../src/lib/gallery/image';
 import { buildGalleryPack } from '../../src/lib/gallery/pack';
 import { verifyGalleryAdmin, verifyGalleryTurnstile } from './auth';
 import { reserveGallery } from './admission';
-import { addDays, boundedBody, database, responseHeaders, sha256, type GalleryDatabase, type GalleryEnv } from './storage';
+import { addDays, boundedBody, database, labelMetadataReady, responseHeaders, sha256, type GalleryDatabase, type GalleryEnv } from './storage';
 export interface GalleryDependencies extends AgentDependencies {
     verifyAdmin?: typeof verifyGalleryAdmin;
     verifyTurnstile?: typeof verifyGalleryTurnstile;
@@ -54,7 +54,7 @@ async function flags(db: GalleryDatabase, env: GalleryEnv) { const s = await db.
     serving: number;
     publication: number;
 }>(); return { intake: !!s?.intake && env.GALLERY_INTAKE === 'true', serving: !!s?.serving && env.GALLERY_SERVING === 'true', publication: !!s?.publication && env.GALLERY_PUBLICATION === 'true' }; }
-async function digest(metadata: GalleryLabelDraftV1, imageHash: string) { return sha256(`gallery-v1:${imageHash}:${await sha256(canonicalJson(metadata))}:${metadata.catalogId ?? ''}`); }
+async function digest(metadata: GalleryLabelDraft, imageHash: string) { return sha256(`gallery-v2:${imageHash}:${await sha256(canonicalJson(metadata))}:${galleryCatalogId(metadata) ?? ''}`); }
 async function auditedMutation(db: GalleryDatabase, mutation: Statement, id: string, actor: string, action: string, now: Date, beforeDigest?: string|null) {
     // D1 batch executes both statements in one SQLite transaction. changes() is
     // scoped to the preceding guarded UPDATE, so a stale no-op cannot create an event.
@@ -73,11 +73,14 @@ async function assetResponse(db: GalleryDatabase, env: GalleryEnv, id: string, k
     return json({ error: 'storage_unavailable' }, 503); return new Response(await object.arrayBuffer(), { headers: { ...responseHeaders, 'Content-Type': kind === 'pack' ? 'application/zip' : 'image/png', ...(kind === 'pack' ? { 'Content-Disposition': `attachment; filename="label-${id}.cellarpack.zip"` } : {}) } }); }
 async function putAsset(db: GalleryDatabase, env: GalleryEnv, id: string, kind: string, bytes: Uint8Array, version: number) { const hash = await sha256(bytes); const key = `gallery/${id}/${kind}-${version}-${hash}`; await env.GALLERY_ART!.put(key, bytes); const changed = await db.prepare(`INSERT INTO gallery_assets(id,submission_id,kind,r2_key,sha256,bytes) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM gallery_submissions WHERE id=? AND row_version=? AND state IN('uploading','preparing-publication')) ON CONFLICT(submission_id,kind) DO UPDATE SET r2_key=excluded.r2_key,sha256=excluded.sha256,bytes=excluded.bytes`).bind(crypto.randomUUID(), id, kind, key, hash, bytes.length, id, version).run(); if (!changed.meta.changes)
     throw new Error('review_changed'); return hash; }
-async function publicProjection(r: Row) { const metadata = JSON.parse(r.metadata_json!) as GalleryLabelDraftV1; return { id: r.id, catalogId: r.catalog_id, maker: r.published_maker, blend: r.published_blend, edition: metadata.edition, description: metadata.description, geometry: 'circle-2.5', metadata: { surface: metadata.surface, writeInArea: metadata.writeInArea, references: metadata.references, package: metadata.package, variant: metadata.variant, edition: metadata.edition, description: metadata.description }, publishedAt: r.published_at }; }
+async function publicProjection(r: Row) { const metadata = parseGalleryDraft(JSON.parse(r.metadata_json!)); return { id: r.id, catalogId: r.catalog_id, maker: r.published_maker, blend: r.published_blend, ...(metadata.edition ? { edition: metadata.edition } : {}), altText: galleryAltText(metadata, r.published_maker!, r.published_blend!), artworkProfileId: metadata.artworkProfileId, publishedAt: r.published_at }; }
 export async function galleryResponse(request: Request, env: GalleryEnv, deps: GalleryDependencies = {}): Promise<Response> {
     if (!new URL(request.url).pathname.startsWith('/api/gallery/v1/'))
         return json({ error: 'not_found' }, 404);
-    if(new URL(request.url).pathname.startsWith('/api/gallery/v1/agent/'))return agentResponse(request,env,deps);
+    if(new URL(request.url).pathname.startsWith('/api/gallery/v1/agent/')) {
+    if (!await labelMetadataReady(env)) return json({ error: 'maintenance', message: 'Gallery maintenance is in progress. Please try again shortly.' }, 503);
+        return agentResponse(request,env,deps);
+    }
     const now = deps.now?.() ?? new Date();
     const url = new URL(request.url);
     const path = url.pathname.slice('/api/gallery/v1'.length);
@@ -110,6 +113,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
             const key = await sha256(`${env.GALLERY_IP_SALT}:${now.toISOString().slice(0, 10)}:${request.headers.get('CF-Connecting-IP') ?? 'unknown'}`);
             if (!(await limiter.limit({ key })).success) return Response.json({ error: 'rate_limited' }, { status: 429, headers: { ...responseHeaders, 'Retry-After': '60' } });
         }
+    if (!await labelMetadataReady(env)) return json({ error: 'maintenance', message: 'Gallery maintenance is in progress. Please try again shortly.' }, 503);
         const db = database(env);
         const switches = await flags(db, env);
         if (path === '/config' && method === 'GET')
@@ -134,7 +138,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                 return json({ error: 'intake_closed' }, 503);
             if (!(await (deps.verifyTurnstile ?? verifyGalleryTurnstile)(request, env)))
                 return json({ error: 'challenge_required' }, 403);
-            if (draft.catalogId && !await db.prepare('SELECT id FROM gallery_tobaccos WHERE id=? AND active=1').bind(draft.catalogId).first())
+            if (galleryCatalogId(draft) && !await db.prepare('SELECT id FROM gallery_tobaccos WHERE id=? AND active=1').bind(galleryCatalogId(draft)).first())
                 return json({ error: 'catalog_mapping_required' }, 400);
             await reserveGallery(db, env, request, draft, capHash, hash, metadata, now);
             return json(receipt((await get(db, draft.submissionId))!,now), 201);
@@ -150,7 +154,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                     return json({ error: 'unsupported_image' }, 415);
                 if (!switches.intake && ['reserved', 'uploading'].includes(row.state))
                     return json({ error: 'intake_closed' }, 503);
-                const draft = JSON.parse(row.metadata_json!) as GalleryLabelDraftV1;
+                const draft = JSON.parse(row.metadata_json!) as GalleryLabelDraft;
                 if (['pending', 'published', 'preparing-publication'].includes(row.state)) {
                     const bytes = await boundedBody(request, MAX_IMAGE_BYTES);
                     if (bytes.length !== draft.image.bytes || await sha256(bytes) !== draft.image.sha256)
@@ -192,8 +196,8 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
             if (!admin)
                 return json({ error: 'forbidden' }, 403);
             if (path === '/admin/reconcile' && method === 'POST') {
-                if (!switches.publication)
-                    return json({ error: 'publication_closed' }, 503);
+                if (!switches.intake)
+                    return json({ error: 'intake_closed' }, 503);
                 const encoded = await boundedBody(request, MAX_IMAGE_BYTES + MAX_METADATA_BYTES + 65536);
                 const form = await new Response(encoded as BodyInit, { headers: { 'Content-Type': request.headers.get('Content-Type') ?? '' } }).formData();
                 const rawMetadata = form.get('metadata');
@@ -201,61 +205,16 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                 if (typeof rawMetadata !== 'string' || !(artworkFile instanceof File) || artworkFile.type !== 'image/png' || new TextEncoder().encode(rawMetadata).length > MAX_METADATA_BYTES)
                     return json({ error: 'invalid_metadata' }, 400);
                 const incoming = parseGalleryDraft(JSON.parse(rawMetadata));
-                if (!incoming.catalogId || incoming.acknowledgement.version !== GALLERY_NOTICE_VERSION)
+                if (!galleryCatalogId(incoming) || incoming.acknowledgement.version !== GALLERY_NOTICE_VERSION)
                     return json({ error: 'invalid_metadata' }, 400);
-                const matches = (await db.prepare("SELECT * FROM gallery_submissions WHERE state='published' AND catalog_id=? LIMIT 2").bind(incoming.catalogId).all<Row>()).results;
+                const matches = (await db.prepare("SELECT id FROM gallery_submissions WHERE state='published' AND catalog_id=? LIMIT 2").bind(galleryCatalogId(incoming)).all<{ id: string }>()).results;
                 if (!matches.length)
                     return json({ error: 'publication_not_found' }, 404);
                 if (matches.length !== 1)
                     return json({ error: 'review_changed' }, 409);
-                const row = matches[0];
-                const source = new Uint8Array(await artworkFile.arrayBuffer());
-                if (source.length > MAX_IMAGE_BYTES || source.length !== incoming.image.bytes || await sha256(source) !== incoming.image.sha256)
-                    return json({ error: 'image_mismatch' }, 400);
-                const metadata = { ...incoming, submissionId: row.id };
-                const normalized = await normalizeGalleryImage(source);
-                if (normalized.width !== metadata.image.width || normalized.height !== metadata.image.height)
-                    return json({ error: 'image_mismatch' }, 400);
-                const tobacco = await db.prepare('SELECT maker,blend FROM gallery_tobaccos WHERE id=? AND active=1').bind(metadata.catalogId).first<{ maker: string; blend: string }>();
-                if (!tobacco)
-                    return json({ error: 'catalog_mapping_required' }, 400);
-                const metadataJson = canonicalJson(metadata);
-                const metadataHash = await sha256(metadataJson);
-                const artworkHash = await sha256(normalized.artwork);
-                const approvalDigest = await digest(metadata, artworkHash);
-                const pack = await buildGalleryPack({ metadata, ...tobacco, packId: row.id, createdAt: row.created_at }, normalized.artwork);
-                const version = row.row_version + 1;
-                const prepared = [
-                    { kind: 'artwork', bytes: normalized.artwork },
-                    { kind: 'thumbnail', bytes: normalized.thumbnail },
-                    { kind: 'pack', bytes: pack },
-                ];
-                const assets = await Promise.all(prepared.map(async ({ kind, bytes }) => {
-                    const hash = await sha256(bytes);
-                    const key = `gallery/${row.id}/${kind}-${version}-${hash}`;
-                    await env.GALLERY_ART!.put(key, bytes);
-                    return { kind, bytes, hash, key };
-                }));
-                if (!(await Promise.all(assets.map(asset => env.GALLERY_ART!.head(asset.key)))).every(Boolean))
-                    throw new Error('storage_unavailable');
-                const comparable = canonicalJson({ catalogId: metadata.catalogId, surface: metadata.surface, writeInArea: metadata.writeInArea, edition: metadata.edition, references: metadata.references, package: metadata.package, variant: metadata.variant });
-                const dedupeHash = await sha256(artworkHash + comparable);
-                const totalBytes = assets.reduce((sum, asset) => sum + asset.bytes.length, 0);
-                const mutationId = crypto.randomUUID();
-                const update = db.prepare("UPDATE gallery_submissions SET request_hash=?,metadata_json=?,metadata_hash=?,input_bytes=?,artwork_hash=?,digest=?,approval_digest=?,published_maker=?,published_blend=?,dedupe_hash=?,reserved_bytes=?,row_version=row_version+1 WHERE id=? AND row_version=? AND state='published' AND EXISTS(SELECT 1 FROM gallery_settings WHERE id=1 AND publication=1) AND EXISTS(SELECT 1 FROM gallery_tobaccos WHERE id=gallery_submissions.catalog_id AND active=1 AND maker=? AND blend=?) AND (SELECT COALESCE(SUM(reserved_bytes),0) FROM gallery_submissions WHERE id<>?)<=8589934592-?")
-                    .bind(metadataHash, metadataJson, metadataHash, source.length, artworkHash, approvalDigest, approvalDigest, tobacco.maker, tobacco.blend, dedupeHash, totalBytes, row.id, row.row_version, tobacco.maker, tobacco.blend, row.id, totalBytes);
-                const statements = [
-                    update,
-                    db.prepare(`INSERT INTO gallery_review_events (id,submission_id,actor,action,row_version,digest,created_at,before_version,before_digest,request_id,reason)
-                        SELECT ?,id,?,'reconcile',row_version,digest,?,row_version-1,?, ?,reason FROM gallery_submissions WHERE id=? AND changes()=1`)
-                        .bind(mutationId, admin, now.toISOString(), row.digest, mutationId, row.id),
-                    ...assets.map(asset => db.prepare(`INSERT INTO gallery_assets(id,submission_id,kind,r2_key,sha256,bytes) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM gallery_review_events WHERE id=? AND submission_id=?) ON CONFLICT(submission_id,kind) DO UPDATE SET r2_key=excluded.r2_key,sha256=excluded.sha256,bytes=excluded.bytes`)
-                        .bind(crypto.randomUUID(), row.id, asset.kind, asset.key, asset.hash, asset.bytes.length, mutationId, row.id)),
-                ];
-                const [changed] = await db.batch(statements);
-                if (!(changed as { meta: { changes: number } }).meta.changes)
-                    return json({ error: 'review_changed' }, 409);
-                return json(receipt((await get(db, row.id))!, now));
+                // Existing publications must not change until an exact replacement
+                // has passed a separate human approval transition.
+                return json({ error: 'replacement_review_required' }, 503);
             }
             if (path === '/admin/intake' && method === 'POST') {
                 const draft = parseGalleryDraft(await body(request));
@@ -268,11 +227,11 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                     return json({ error: 'intake_closed' }, 503);
                 if (draft.acknowledgement.version !== GALLERY_NOTICE_VERSION)
                     return json({ error: 'invalid_metadata' }, 400);
-                if (draft.catalogId && !await db.prepare('SELECT id FROM gallery_tobaccos WHERE id=? AND active=1').bind(draft.catalogId).first())
+                if (galleryCatalogId(draft) && !await db.prepare('SELECT id FROM gallery_tobaccos WHERE id=? AND active=1').bind(galleryCatalogId(draft)).first())
                     return json({ error: 'catalog_mapping_required' }, 400);
                 const capHash = await sha256(`admin-intake:${admin}:${draft.submissionId}`);
                 try {
-                    await db.prepare(`INSERT INTO gallery_submissions(id,capability_hash,request_hash,state,created_at,expires_at,metadata_json,metadata_hash,catalog_id,input_bytes,quota_key) VALUES(?,?,?,'reserved',?,?,?,?,?,?,?)`).bind(draft.submissionId, capHash, hash, now.toISOString(), addDays(now, 1 / 24), metadata, hash, draft.catalogId, draft.image.bytes, `admin:${now.toISOString().slice(0, 10)}:${draft.submissionId}`).run();
+                    await db.prepare(`INSERT INTO gallery_submissions(id,capability_hash,request_hash,state,created_at,expires_at,metadata_json,metadata_hash,catalog_id,input_bytes,quota_key) VALUES(?,?,?,'reserved',?,?,?,?,?,?,?)`).bind(draft.submissionId, capHash, hash, now.toISOString(), addDays(now, 1 / 24), metadata, hash, galleryCatalogId(draft), draft.image.bytes, `admin:${now.toISOString().slice(0, 10)}:${draft.submissionId}`).run();
                 }
                 catch (e) {
                     if (String(e).includes('gallery_capacity'))
@@ -293,7 +252,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                 if (!switches.intake && ['reserved', 'uploading'].includes(row.state))
                     return json({ error: 'intake_closed' }, 503);
                 const bytes = await boundedBody(request, MAX_IMAGE_BYTES);
-                const draft = JSON.parse(row.metadata_json) as GalleryLabelDraftV1;
+                const draft = JSON.parse(row.metadata_json) as GalleryLabelDraft;
                 if (bytes.length !== draft.image.bytes || await sha256(bytes) !== draft.image.sha256)
                     return json({ error: 'image_mismatch' }, 400);
                 if (['pending', 'published', 'preparing-publication'].includes(row.state))
@@ -345,13 +304,13 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                 if (row.state !== 'pending' || row.expires_at <= now.toISOString())
                     return json({ error: 'review_changed' }, 409);
                 const metadata = parseGalleryDraft(action.metadata);
-                const old = JSON.parse(row.metadata_json!) as GalleryLabelDraftV1;
-                if (canonicalJson(metadata.acknowledgement) !== canonicalJson(old.acknowledgement) || metadata.submissionId !== row.id || canonicalJson(metadata.image) !== canonicalJson(old.image) || canonicalJson(metadata.surface) !== canonicalJson(old.surface) || canonicalJson(metadata.writeInArea) !== canonicalJson(old.writeInArea))
+                const old = JSON.parse(row.metadata_json!) as GalleryLabelDraft;
+                if (canonicalJson(metadata.acknowledgement) !== canonicalJson(old.acknowledgement) || metadata.submissionId !== row.id || canonicalJson(metadata.image) !== canonicalJson(old.image) || metadata.artworkProfileId !== old.artworkProfileId || canonicalJson(metadata.writingArea) !== canonicalJson(old.writingArea))
                     return json({ error: 'invalid_metadata' }, 400);
-                if (metadata.catalogId && !await db.prepare('SELECT id FROM gallery_tobaccos WHERE id=? AND active=1').bind(metadata.catalogId).first())
+                if (galleryCatalogId(metadata) && !await db.prepare('SELECT id FROM gallery_tobaccos WHERE id=? AND active=1').bind(galleryCatalogId(metadata)).first())
                     return json({ error: 'catalog_mapping_required' }, 400);
                 const d = await digest(metadata, row.artwork_hash!);
-                const changed = await auditedMutation(db, db.prepare("UPDATE gallery_submissions SET metadata_json=?,metadata_hash=?,catalog_id=?,digest=?,row_version=row_version+1 WHERE id=? AND row_version=? AND state='pending'").bind(canonicalJson(metadata), await sha256(canonicalJson(metadata)), metadata.catalogId, d, row.id, row.row_version), row.id, admin, 'correct', now, row.digest);
+                const changed = await auditedMutation(db, db.prepare("UPDATE gallery_submissions SET metadata_json=?,metadata_hash=?,catalog_id=?,digest=?,row_version=row_version+1 WHERE id=? AND row_version=? AND state='pending'").bind(canonicalJson(metadata), await sha256(canonicalJson(metadata)), galleryCatalogId(metadata), d, row.id, row.row_version), row.id, admin, 'correct', now, row.digest);
                 if (!changed.meta.changes)
                     return json({ error: 'review_changed' }, 409);
             }
@@ -366,8 +325,8 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                 }>();
                 if (!tobacco)
                     return json({ error: 'catalog_mapping_required' }, 400);
-                const metadata = JSON.parse(row.metadata_json!) as GalleryLabelDraftV1;
-                const same = (m: GalleryLabelDraftV1) => canonicalJson({ catalogId: m.catalogId, surface: m.surface, writeInArea: m.writeInArea, edition: m.edition, references: m.references, package: m.package, variant: m.variant });
+                const metadata = JSON.parse(row.metadata_json!) as GalleryLabelDraft;
+                const same = (m: GalleryLabelDraft) => canonicalJson({ tobacco: m.tobacco, artworkProfileId: m.artworkProfileId, writingArea: m.writingArea, edition: m.edition ?? '' });
                 const duplicates = (await db.prepare("SELECT * FROM gallery_submissions WHERE state='published' AND artwork_hash=? AND catalog_id=?").bind(row.artwork_hash, row.catalog_id).all<Row>()).results;
                 const duplicate = duplicates.find(r => same(JSON.parse(r.metadata_json!)) === same(metadata));
                 if (duplicate) {
@@ -397,7 +356,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                         throw new Error('storage_unavailable');
                     if (!(await flags(db, env)).publication)
                         throw new Error('publication_closed');
-                    const done = await auditedMutation(db, db.prepare("UPDATE gallery_submissions SET state='published',publication_id=id,published_at=?,approval_digest=digest,reviewer=?,published_maker=?,published_blend=?,lease_until=NULL,row_version=row_version+1,reserved_bytes=(SELECT SUM(bytes) FROM gallery_assets WHERE submission_id=?) WHERE id=? AND row_version=? AND state='preparing-publication' AND EXISTS(SELECT 1 FROM gallery_settings WHERE id=1 AND publication=1) AND EXISTS(SELECT 1 FROM gallery_tobaccos WHERE id=gallery_submissions.catalog_id AND active=1)").bind(now.toISOString(), admin, tobacco.maker, tobacco.blend, row.id, row.id, version), row.id, admin, 'approve', now);
+                    const done = await auditedMutation(db, db.prepare("UPDATE gallery_submissions SET state='published',publication_id=id,published_at=?,approval_digest=digest,reviewer=?,published_maker=?,published_blend=?,lease_until=NULL,row_version=row_version+1,reserved_bytes=(SELECT COALESCE(SUM(bytes),0) FROM gallery_owned_storage WHERE submission_id=?) WHERE id=? AND row_version=? AND state='preparing-publication' AND EXISTS(SELECT 1 FROM gallery_settings WHERE id=1 AND publication=1) AND EXISTS(SELECT 1 FROM gallery_tobaccos WHERE id=gallery_submissions.catalog_id AND active=1)").bind(now.toISOString(), admin, tobacco.maker, tobacco.blend, row.id, row.id, version), row.id, admin, 'approve', now);
                     if (!done.meta.changes)
                         return json({ error: 'review_changed' }, 409);
                 }
@@ -441,8 +400,8 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                 if (!await env.GALLERY_ART.head(key)) throw new Error('storage_unavailable');
                 const mutationId = crypto.randomUUID();
                 const [changed] = await db.batch([
-                    db.prepare("UPDATE gallery_submissions SET published_maker=?,published_blend=?,row_version=row_version+1,reserved_bytes=(SELECT COALESCE(SUM(bytes),0) FROM gallery_assets WHERE submission_id=? AND kind<>'pack')+? WHERE id=? AND row_version=? AND state='published' AND EXISTS(SELECT 1 FROM gallery_settings WHERE id=1 AND publication=1) AND EXISTS(SELECT 1 FROM gallery_tobaccos WHERE id=gallery_submissions.catalog_id AND active=1 AND maker=? AND blend=?) AND (SELECT COALESCE(SUM(reserved_bytes),0) FROM gallery_submissions WHERE id<>?)+(SELECT COALESCE(SUM(bytes),0) FROM gallery_assets WHERE submission_id=? AND kind<>'pack')<=8589934592-?")
-                        .bind(tobacco.maker, tobacco.blend, row.id, pack.length, row.id, row.row_version, tobacco.maker, tobacco.blend, row.id, row.id, pack.length),
+                    db.prepare("UPDATE gallery_submissions SET published_maker=?,published_blend=?,row_version=row_version+1,reserved_bytes=(SELECT COALESCE(SUM(bytes),0) FROM (SELECT r2_key,MAX(bytes) AS bytes FROM (SELECT r2_key,bytes FROM gallery_assets WHERE submission_id=? AND kind<>'pack' UNION ALL SELECT json_extract(pack_asset_json,'$.r2_key') AS r2_key,CAST(json_extract(pack_asset_json,'$.bytes') AS INTEGER) AS bytes FROM gallery_label_metadata_backups WHERE submission_id=gallery_submissions.id AND pack_asset_json IS NOT NULL AND json_extract(pack_asset_json,'$.r2_key')<>?) GROUP BY r2_key))+? WHERE id=? AND row_version=? AND state='published' AND EXISTS(SELECT 1 FROM gallery_settings WHERE id=1 AND publication=1) AND EXISTS(SELECT 1 FROM gallery_tobaccos WHERE id=gallery_submissions.catalog_id AND active=1 AND maker=? AND blend=?) AND (SELECT COALESCE(SUM(reserved_bytes),0) FROM gallery_submissions WHERE id<>?)+(SELECT COALESCE(SUM(bytes),0) FROM (SELECT r2_key,MAX(bytes) AS bytes FROM (SELECT r2_key,bytes FROM gallery_assets WHERE submission_id=? AND kind<>'pack' UNION ALL SELECT json_extract(pack_asset_json,'$.r2_key') AS r2_key,CAST(json_extract(pack_asset_json,'$.bytes') AS INTEGER) AS bytes FROM gallery_label_metadata_backups WHERE submission_id=gallery_submissions.id AND pack_asset_json IS NOT NULL AND json_extract(pack_asset_json,'$.r2_key')<>?) GROUP BY r2_key))<=8589934592-?")
+                        .bind(tobacco.maker, tobacco.blend, row.id, key, pack.length, row.id, row.row_version, tobacco.maker, tobacco.blend, row.id, row.id, key, pack.length),
                     db.prepare("INSERT INTO gallery_review_events(id,submission_id,actor,action,row_version,digest,created_at,before_version,before_digest,request_id,reason) SELECT ?,id,?,'refresh',row_version,digest,?,row_version-1,digest,?,reason FROM gallery_submissions WHERE id=? AND changes()=1")
                         .bind(mutationId, admin, now.toISOString(), mutationId, row.id),
                     db.prepare("UPDATE gallery_assets SET r2_key=?,sha256=?,bytes=? WHERE submission_id=? AND kind='pack' AND EXISTS(SELECT 1 FROM gallery_review_events WHERE id=?)")
@@ -457,7 +416,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                 if (assets.length !== 3 || !(await Promise.all(assets.map(a => env.GALLERY_ART!.head(a.r2_key)))).every(Boolean))
                     return json({ error: 'storage_unavailable' }, 503);
                 if(!(await flags(db,env)).publication)return json({error:'publication_closed'},503);
-                const changed = await auditedMutation(db, db.prepare("UPDATE gallery_submissions SET state='published',deletion_due=NULL,row_version=row_version+1 WHERE id=? AND row_version=? AND state='unpublished' AND expires_at>? AND digest=approval_digest AND EXISTS(SELECT 1 FROM gallery_settings WHERE id=1 AND publication=1) AND EXISTS(SELECT 1 FROM gallery_tobaccos WHERE id=gallery_submissions.catalog_id AND active=1)").bind(row.id, row.row_version, now.toISOString()), row.id, admin, 'republish', now);
+                const changed = await auditedMutation(db, db.prepare("UPDATE gallery_submissions SET state='published',deletion_due=NULL,row_version=row_version+1,reserved_bytes=(SELECT COALESCE(SUM(bytes),0) FROM gallery_owned_storage WHERE submission_id=gallery_submissions.id) WHERE id=? AND row_version=? AND state='unpublished' AND expires_at>? AND digest=approval_digest AND EXISTS(SELECT 1 FROM gallery_settings WHERE id=1 AND publication=1) AND EXISTS(SELECT 1 FROM gallery_tobaccos WHERE id=gallery_submissions.catalog_id AND active=1)").bind(row.id, row.row_version, now.toISOString()), row.id, admin, 'republish', now);
                 if (!changed.meta.changes)
                     return json({ error: 'review_changed' }, 409);
             }

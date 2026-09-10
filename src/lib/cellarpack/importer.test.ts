@@ -7,6 +7,25 @@ import { sha256Hex } from './image'
 import type { CellarPackManifest } from './types'
 
 describe('importCellarPack', () => {
+  it('imports core metadata without research while still rejecting unsafe writing geometry', async () => {
+    const core = (manifest: CellarPackManifest) => {
+      delete manifest.labels[0].research
+      manifest.labels[0].edition = '2026'
+      manifest.labels[0].altText = 'Cream circular label with a dark border.'
+    }
+    const valid = await importCellarPack(await makeCellarPack({ mutateManifest: core }))
+    expect(valid.status).toBe('ready')
+    expect(valid.labels[0].label.edition).toBe('2026')
+    expect(valid.labels[0].label.altText).toBe('Cream circular label with a dark border.')
+    expect(valid.issues.some(issue => issue.code === 'MISSING_REQUIRED_RESEARCH')).toBe(false)
+    const invalid = await importCellarPack(await makeCellarPack({ mutateManifest: manifest => {
+      core(manifest)
+      manifest.labels[0].writeInAreas[0].geometry.x = .99
+    } }))
+    expect(invalid.labels).toHaveLength(0)
+    expect(invalid.issues.some(issue => issue.code === 'WRITE_AREA_OUTSIDE_TRIM')).toBe(true)
+  })
+
   it('quarantines an undeclared prototype-named asset while preserving valid siblings', async () => {
     const result = await importCellarPack(await makeCellarPack({
       mutateManifest: (manifest) => {
@@ -192,8 +211,8 @@ describe('importCellarPack', () => {
     const result = await importCellarPack(
       await makeCellarPack({
         mutateManifest: (manifest) => {
-          manifest.labels[0].research.status = 'limited'
-          manifest.labels[0].research.limitations = 'Only one historical source was available.'
+          manifest.labels[0].research!.status = 'limited'
+          manifest.labels[0].research!.limitations = 'Only one historical source was available.'
         },
       }),
     )

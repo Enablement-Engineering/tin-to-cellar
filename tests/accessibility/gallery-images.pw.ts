@@ -5,7 +5,7 @@ for (const reducedMotion of ['no-preference', 'reduce'] as const) test(`thumbnai
   await page.route('**/api/gallery/v1/**', async route => {
     const path = new URL(route.request().url()).pathname
     if (path.endsWith('/config')) return route.fulfill({ json: { serving: true } })
-    if (path.endsWith('/labels')) return route.fulfill({ json: { labels: [{ id: 'one', maker: 'Test maker', blend: 'One', description: 'A label design' }], nextCursor: null } })
+    if (path.endsWith('/labels')) return route.fulfill({ json: { labels: [{ id: 'one', maker: 'Test maker', blend: 'One', altText: 'A label design' }], nextCursor: null } })
     return route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aAt8AAAAASUVORK5CYII=', 'base64') })
   })
   await page.goto('/gallery')
@@ -19,7 +19,7 @@ for (const reducedMotion of ['no-preference', 'reduce'] as const) test(`thumbnai
 
 for (const width of [1280, 320]) test(`gallery defers distant thumbnails and reserves image space at ${width}px`, async ({ page }) => {
   const requested = new Set<string>()
-  const labels = Array.from({ length: 24 }, (_, index) => ({ id: `label-${String(index).padStart(2, '0')}`, maker: 'Test maker', blend: `Blend ${index}`, description: `Label design ${index}` }))
+  const labels = Array.from({ length: 24 }, (_, index) => ({ id: `label-${String(index).padStart(2, '0')}`, maker: 'Test maker', blend: `Blend ${index}`, altText: `Label design ${index}` }))
   await page.route('**/api/gallery/v1/**', async route => {
     const url = new URL(route.request().url())
     if (url.pathname.endsWith('/config')) return route.fulfill({ json: { serving: true } })
@@ -46,7 +46,7 @@ for (const width of [1280, 320]) test(`gallery defers distant thumbnails and res
 
 for (const width of [1280, 390]) test(`gallery preloads the next page without moving existing cards at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 })
-  const labels = Array.from({ length: 48 }, (_, index) => ({ id: `label-${String(index).padStart(2, '0')}`, maker: 'Test maker', blend: `Blend ${index}`, description: `Label design ${index}` }))
+  const labels = Array.from({ length: 48 }, (_, index) => ({ id: `label-${String(index).padStart(2, '0')}`, maker: 'Test maker', blend: `Blend ${index}`, altText: `Label design ${index}` }))
   let releasePage: () => void = () => {}
   const nextPage = new Promise<void>(resolve => { releasePage = resolve })
   let nextRequested = false

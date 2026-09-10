@@ -1,6 +1,6 @@
 import Ajv2020 from 'ajv/dist/2020.js'
 import type { ErrorObject } from 'ajv'
-import schemaText from './cellarpack-v1.schema.json?raw'
+import schema from './cellarpack-v1.schema.json'
 import type {
   ArtworkAsset,
   CellarLabel,
@@ -9,7 +9,7 @@ import type {
   ValidationIssue,
 } from './types'
 
-const cellarPackSchema = JSON.parse(schemaText) as Record<string, unknown>
+const cellarPackSchema = schema as Record<string, unknown>
 const ajv = new Ajv2020({ allErrors: true, strict: false })
 const validate = ajv.compile<CellarPackManifest>(cellarPackSchema)
 

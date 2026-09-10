@@ -115,7 +115,9 @@ export interface CellarLabel {
   artworkAssetId: string
   surface: LabelSurface
   writeInAreas: WriteInArea[]
-  research: LabelResearch
+  edition?: string
+  altText?: string
+  research?: LabelResearch
   extensions?: Record<string, unknown>
 }
 

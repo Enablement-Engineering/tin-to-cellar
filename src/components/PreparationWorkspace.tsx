@@ -122,7 +122,7 @@ function ArtworkChoices({ row, busy, onChooseCommunity }: Pick<PreparationWorksp
     {(error || page?.serving === false) && <div className="preparation-notice"><p>Community designs are unavailable right now. You can still create your own.</p><button type="button" className="button quiet" onClick={() => { setLoading(true); setPage(null); setError(''); setAttempt(value => value + 1) }} disabled={loading}>Retry community lookup</button></div>}
     {!loading && !error && page?.serving && !page.labels.length && <p className="field-hint">No community designs for this blend yet.</p>}
     {page?.serving && page.labels.length > 0 && <ul className="preparation-designs" aria-label={`Community examples for ${row.blend}`}>{page.labels.map((label, index) => <li key={label.id}>
-      <a className="preparation-design-preview" href={`${API}/labels/${label.id}/artwork`} target="_blank" rel="noreferrer" aria-label={`View community example ${index + 1} for ${label.blend}`}><GalleryThumbnail src={`${API}/labels/${label.id}/thumbnail`} alt={label.description} eager={false} /></a>
+      <a className="preparation-design-preview" href={`${API}/labels/${label.id}/artwork`} target="_blank" rel="noreferrer" aria-label={`View community example ${index + 1} for ${label.blend}`}><GalleryThumbnail src={`${API}/labels/${label.id}/thumbnail`} alt={label.altText} eager={false} /></a>
       <div className="preparation-design-action"><p>Community example {index + 1}</p>
         <button type="button" className="button primary" disabled={busy || choosing !== null} onClick={() => void choose(label)}>{choosing === label.id ? 'Adding design…' : 'Use this design'}</button>
       </div>

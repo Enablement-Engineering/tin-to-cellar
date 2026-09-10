@@ -33,7 +33,8 @@
     "test:gallery": "npm run build && playwright test --config playwright.gallery.config.ts",
     "gallery:seed": "node scripts/gallery/seed-catalog.mjs",
     "gallery:prepare-release": "node scripts/gallery/prepare-release.mjs",
-    "gallery:agent": "node scripts/gallery/agent-client.mjs"
+    "gallery:agent": "node scripts/gallery/agent-client.mjs",
+    "gallery:migrate-labels": "node scripts/gallery/migrate-label-metadata.mjs"
   },
   "dependencies": {
     "@tesseract.js-data/eng": "1.0.0",

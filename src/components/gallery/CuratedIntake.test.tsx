@@ -23,7 +23,7 @@ const fetchMock = vi.fn()
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock)
-  vi.mocked(buildDraft).mockImplementation(async (item, _choice, submissionId) => ({ submissionId, catalogId: item.id }) as Awaited<ReturnType<typeof buildDraft>>)
+  vi.mocked(buildDraft).mockImplementation(async (item, _choice, submissionId) => ({ submissionId, tobacco: { catalogId: item.id } }) as Awaited<ReturnType<typeof buildDraft>>)
 })
 afterEach(() => { cleanup(); vi.resetAllMocks(); vi.unstubAllGlobals() })
 
@@ -85,6 +85,15 @@ it('falls back to private intake only for explicit publication_not_found and upl
   expect(fetchMock.mock.calls[2][1]).toMatchObject({ method: 'PUT', body: item.artwork.data })
 })
 
+it('explains that an existing publication remains unchanged until staged review exists', async () => {
+  fetchMock.mockResolvedValue(response(503, { error: 'replacement_review_required' }))
+  await load()
+  prepare()
+  await screen.findByText('Maker first: A matching public label already exists. It was left unchanged because staged replacement review is not available yet.')
+  expect(screen.getByRole('status')).toHaveTextContent('0 of 1')
+  expect(fetchMock).toHaveBeenCalledTimes(1)
+})
+
 it('retries unfinished labels without resubmitting a previously published success', async () => {
   fetchMock.mockResolvedValueOnce(response(200, { id: 'existing-first', state: 'published' }))
     .mockResolvedValueOnce(response(503, { error: 'temporarily_unavailable' }))
@@ -97,7 +106,7 @@ it('retries unfinished labels without resubmitting a previously published succes
   fireEvent.click(retry)
   await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('2 of 2'))
   expect(fetchMock).toHaveBeenCalledTimes(3)
-  const catalogIds = fetchMock.mock.calls.map(([, init]) => JSON.parse((init.body as FormData).get('metadata') as string).catalogId)
+  const catalogIds = fetchMock.mock.calls.map(([, init]) => JSON.parse((init.body as FormData).get('metadata') as string).tobacco.catalogId)
   expect(catalogIds).toEqual(['first', 'second', 'second'])
   expect(buildDraft).toHaveBeenCalledTimes(2)
   expect(screen.queryByText(/Published-resource reconciliation failed/)).not.toBeInTheDocument()
@@ -105,8 +114,8 @@ it('retries unfinished labels without resubmitting a previously published succes
 
 it.each([['historical', 'historical'], ['special', 'special'], ['unrecognized variant', 'unknown']])('preserves edition evidence and maps %s to %s', async (variant, expected) => {
   const item = label('first')
-  item.label.research.observedPackage.variant = variant
-  item.label.research.observedPackage.variantDateOrEdition = '1996 edition'
+  item.label.research!.observedPackage.variant = variant
+  item.label.edition = '1996 edition'
   fetchMock.mockResolvedValue(response(200, { id: 'published', state: 'published' }))
   await load([item])
   prepare()

@@ -49,7 +49,7 @@ it('previews locally, then uploads only explicitly selected artwork and allowlis
   const mutations = calls.filter(call => call.init?.method)
   expect(mutations.map(call => call.init?.method)).toEqual(['POST','PUT'])
   const draft = JSON.parse(mutations[0].init?.body as string)
-  expect(draft.references).toEqual([]); expect(draft.image.sha256).toBe(sha)
+  expect(draft.evidence).toBeUndefined(); expect(draft.image.sha256).toBe(sha)
   expect(JSON.stringify(draft)).not.toContain('DO NOT SHARE'); expect(JSON.stringify(draft)).not.toContain('PRIVATE'); expect(JSON.stringify(draft)).not.toContain('filename'); expect(JSON.stringify(draft)).not.toContain('Blend two')
   expect(mutations[1].init?.body).toEqual(new Uint8Array([1,2,3]).buffer)
   expect(screen.queryByRole('link')).toBeNull()
@@ -120,7 +120,7 @@ it('retries an unconfirmed upload with the same reservation ID and capability', 
 it('requires another review after metadata corrections before approving a version', async () => {
   const { GalleryAdmin } = await import('./GalleryAdmin')
   const metadata = await buildDraft(fixture(), { edition: '', package: 'unknown', variant: 'unknown', description: 'Label', references: [] }, crypto.randomUUID())
-  metadata.catalogId = 'cornell-and-diehl-briar-fox'; metadata.proposedIdentity = null
+  metadata.tobacco = { catalogId: 'cornell-and-diehl-briar-fox' }
   const receipt = { id: metadata.submissionId, state: 'pending', version: 2, digest: 'review-digest', metadata, expiresAt: '2026-10-01' }
   const actions: RequestInit[] = []
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
@@ -131,13 +131,13 @@ it('requires another review after metadata corrections before approving a versio
   }))
   render(<GalleryAdmin />)
   fireEvent.click(await screen.findByRole('button', { name: /pending/ }))
-  await screen.findByText('Open full-resolution artwork')
+  await screen.findByText('Open full-resolution artwork'); fireEvent.load(document.querySelector('.gallery-review-art')!)
   const approve = screen.getByRole('button', { name: 'Approve and publish' })
   expect(approve).toBeDisabled()
   fireEvent.click(screen.getByLabelText(/I reviewed this artwork/)); expect(approve).toBeEnabled()
-  fireEvent.change(screen.getByLabelText('Edition'), { target: { value: 'New edition' } }); expect(approve).toBeDisabled()
-  fireEvent.click(screen.getByRole('button', { name: 'Save corrections for review' }))
-  await screen.findByText('Approval digest: new-digest')
+  fireEvent.click(screen.getByText('Edit details')); fireEvent.change(screen.getByLabelText('Edition, optional'), { target: { value: 'New edition' } }); expect(approve).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: 'Save corrections' }))
+  await screen.findByText('Corrections saved. Review this version before approving.')
   expect(approve).toBeDisabled(); expect(actions[0].body).toContain('"expectedVersion":2')
 })
 
@@ -158,6 +158,7 @@ it('explains permanent unsupported artwork without offering an unchanged upload 
 async function openUnpublishedReview() {
   const { GalleryAdmin } = await import('./GalleryAdmin')
   const metadata = await buildDraft(fixture(), { edition: 'Reviewed edition', package: 'tin', variant: 'current', description: 'Reviewed label', references: ['https://example.com/product'] }, crypto.randomUUID())
+  metadata.tobacco = { catalogId: 'cornell-and-diehl-briar-fox' }
   const receipt = { id: metadata.submissionId, state: 'unpublished', version: 8, digest: 'stored-approval-digest', metadata, expiresAt: '2026-10-01' }
   const writes: { url: string; init: RequestInit }[] = []
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
@@ -174,7 +175,7 @@ async function openUnpublishedReview() {
   }))
   render(<GalleryAdmin />)
   fireEvent.click(await screen.findByRole('button', { name: /unpublished/ }))
-  await screen.findByText('Open full-resolution artwork')
+  await screen.findByText('Open full-resolution artwork'); fireEvent.load(document.querySelector('.gallery-review-art')!)
   return { writes, receipt }
 }
 
@@ -193,9 +194,10 @@ it('republishes the reviewed version using only the expectedVersion backend payl
 
 it('keeps unpublished metadata and correction actions disabled while allowing review', async () => {
   const { writes } = await openUnpublishedReview()
-  for (const label of ['Tobacco match', 'Edition', 'Artwork description', 'Package', 'Variant', 'Reference 1']) expect(screen.getByLabelText(label)).toBeDisabled()
-  for (const name of ['Save corrections for review', 'Add public reference', 'Remove reference']) expect(screen.getByRole('button', { name })).toBeDisabled()
-  expect(screen.getByLabelText('Edition')).toHaveValue('Reviewed edition')
+  fireEvent.click(screen.getByText('Edit details')); fireEvent.click(screen.getByText('Source links (1)'))
+  for (const label of ['Tobacco match', 'Edition, optional', 'Artwork description, optional', 'Reference 1']) expect(screen.getByLabelText(label)).toBeDisabled()
+  for (const name of ['Save corrections', 'Add public reference', 'Remove reference 1']) expect(screen.getByRole('button', { name })).toBeDisabled()
+  expect(screen.getByLabelText('Edition, optional')).toHaveValue('Reviewed edition')
   expect(screen.getByLabelText(/I reviewed this artwork/)).toBeEnabled()
   expect(writes).toHaveLength(0)
 })

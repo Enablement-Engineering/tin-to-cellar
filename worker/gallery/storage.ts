@@ -88,3 +88,9 @@ export async function boundedBody(request: Request, max: number): Promise<Uint8A
 }
 export const addDays = (now: Date, days: number) => new Date(now.getTime() + days * 86400000).toISOString();
 export const responseHeaders = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' };
+
+export async function labelMetadataReady(env: GalleryEnv): Promise<boolean> {
+    if (!env.GALLERY) return true;
+    const legacy = await database(env).prepare("SELECT id FROM gallery_submissions WHERE metadata_json IS NOT NULL AND json_extract(metadata_json, '$.version') IS NOT 2 LIMIT 1").first();
+    return !legacy;
+}

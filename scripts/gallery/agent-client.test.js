@@ -72,3 +72,10 @@ it('accepts actual padded queue cursors and enforces UTF-8/evidence limits befor
  expect(()=>validateRecommendation({...recommendation,findings:[{category:'artwork',severity:'info',explanation:'Review',evidence:Array.from({length:5},()=>({type:'artwork'}))}]})).toThrow('invalid_recommendation')
  expect(validateRecommendation({...recommendation,findings:[{category:'artwork',severity:'info',explanation:'First observation.\nSecond observation.'}]}).findings).toHaveLength(1)
 })
+
+it('accepts v2 metadata evidence fields and rejects retired fields',()=>{
+ const proposal={schemaVersion:1,expectedVersion:1,digest:'a'.repeat(64),idempotencyKey:id,assessment:'needs-attention',findings:[{category:'catalog-match',severity:'warning',explanation:'Check the tobacco match.',evidence:[{type:'metadata',field:'tobacco'}]}]}
+ expect(validateRecommendation(proposal)).toBe(proposal)
+ proposal.findings[0].evidence[0].field='catalogId'
+ expect(()=>validateRecommendation(proposal)).toThrow('invalid_recommendation')
+})

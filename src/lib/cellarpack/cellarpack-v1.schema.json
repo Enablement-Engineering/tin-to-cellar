@@ -223,7 +223,7 @@
     },
     "label": {
       "type": "object",
-      "required": ["id", "maker", "blend", "artworkAssetId", "surface", "writeInAreas", "research"],
+      "required": ["id", "maker", "blend", "artworkAssetId", "surface", "writeInAreas"],
       "properties": {
         "id": { "$ref": "#/$defs/canonicalId" },
         "maker": { "type": "string", "minLength": 1, "maxLength": 300 },
@@ -232,6 +232,8 @@
         "artworkAssetId": { "$ref": "#/$defs/canonicalId" },
         "surface": { "$ref": "#/$defs/surface" },
         "writeInAreas": { "type": "array", "minItems": 1, "maxItems": 10, "items": { "$ref": "#/$defs/writeInArea" } },
+        "edition": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "altText": { "type": "string", "minLength": 1, "maxLength": 2000 },
         "research": { "$ref": "#/$defs/research" },
         "extensions": { "type": "object" }
       },

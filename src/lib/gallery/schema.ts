@@ -1,6 +1,6 @@
 import { isWriteAreaInsideSurface, isWriteAreaInsideSafeArea } from '../cellarpack/geometry'
-import type { LabelSurface, NormalizedWriteAreaGeometry } from '../cellarpack/types'
-import { GALLERY_NOTICE_VERSION, type GalleryLabelDraftV1 } from './types';
+import type { LabelSurface, NormalizedWriteAreaGeometry, WriteInArea } from '../cellarpack/types'
+import { GALLERY_NOTICE_VERSION, GALLERY_ARTWORK_PROFILE, type GalleryLabelDraft } from './types';
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const MAX_METADATA_BYTES = 16 * 1024;
 export const uuid = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value);
@@ -18,47 +18,35 @@ export function publicReference(value: unknown): boolean {
         return false;
     }
 }
-export function parseGalleryDraft(value: unknown): GalleryLabelDraftV1 {
+const allowed = (value: unknown, required: string[], optional: string[] = []): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value) && required.every(key => Object.hasOwn(value, key)) && Object.keys(value).every(key => required.includes(key) || optional.includes(key));
+export function galleryCatalogId(draft: GalleryLabelDraft): string | null { return 'catalogId' in draft.tobacco ? draft.tobacco.catalogId : null }
+export function galleryIdentity(draft: GalleryLabelDraft): { maker: string; blend: string } | null { return 'catalogId' in draft.tobacco ? null : draft.tobacco }
+export function gallerySurface(): LabelSurface {
+    return { shape: 'circle', finishedSize: { width: 2.5, height: 2.5, unit: 'in' }, bleed: { top: .125, right: .125, bottom: .125, left: .125, unit: 'in' }, safeInset: { top: .125, right: .125, bottom: .125, left: .125, unit: 'in' } }
+}
+export function galleryWriteInArea(draft: GalleryLabelDraft): WriteInArea {
+    return { id: 'jarred-date', purpose: 'jarred-date', geometry: { ...draft.writingArea }, background: { integratedInArtwork: true }, overlay: { mode: 'blank' } }
+}
+export function galleryAltText(draft: GalleryLabelDraft, maker: string, blend: string): string { return draft.altText?.trim() || `${maker} ${blend} jar label` }
+export function parseGalleryDraft(value: unknown): GalleryLabelDraft {
     const fail = (): never => { throw new Error('invalid_metadata'); };
-    if (!exact(value, ['version', 'submissionId', 'catalogId', 'proposedIdentity', 'package', 'variant', 'edition', 'description', 'surface', 'writeInArea', 'references', 'image', 'acknowledgement']))
-        return fail();
-    if (value.version !== 1 || !uuid(value.submissionId) || !bounded(value.edition, 120) || !bounded(value.description, 320, true))
-        return fail();
-    if (value.catalogId !== null && (!bounded(value.catalogId, 200, true) || !/^[a-z0-9][a-z0-9-]*$/.test(value.catalogId)))
-        return fail();
-    if (value.catalogId === null ? !exact(value.proposedIdentity, ['maker', 'blend']) || !bounded(value.proposedIdentity.maker, 160, true) || !bounded(value.proposedIdentity.blend, 160, true) : value.proposedIdentity !== null)
-        return fail();
-    if (!['tin', 'pouch', 'box', 'bulk', 'other', 'unknown'].includes(String(value.package)) || !['current', 'historical', 'special', 'unknown'].includes(String(value.variant)))
-        return fail();
-    if (!exact(value.acknowledgement, ['version', 'accepted']) || (value.acknowledgement.version !== GALLERY_NOTICE_VERSION && value.acknowledgement.version !== '2026-09-06-v1') || value.acknowledgement.accepted !== true)
-        return fail();
-    if (!exact(value.image, ['sha256', 'bytes', 'width', 'height']) || typeof value.image.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(value.image.sha256) || !Number.isInteger(value.image.bytes) || Number(value.image.bytes) < 1 || Number(value.image.bytes) > MAX_IMAGE_BYTES || !Number.isInteger(value.image.width) || Number(value.image.width) < 825 || Number(value.image.width) > 2048 || value.image.height !== value.image.width)
-        return fail();
-    const s = value.surface;
-    if (!exact(s, ['shape', 'finishedSize', 'bleed', 'safeInset']) || s.shape !== 'circle' || !exact(s.finishedSize, ['width', 'height', 'unit']) || s.finishedSize.width !== 2.5 || s.finishedSize.height !== 2.5 || s.finishedSize.unit !== 'in')
-        return fail();
-    for (const inset of [s.bleed, s.safeInset])
-        if (!exact(inset, ['top', 'right', 'bottom', 'left', 'unit']) || inset.unit !== 'in' || ['top', 'right', 'bottom', 'left'].some(k => inset[k] !== 0.125))
-            return fail();
-    const w = value.writeInArea;
-    if (!exact(w, ['id', 'purpose', 'geometry', 'background', 'overlay']) || !bounded(w.id, 80, true) || w.purpose !== 'jarred-date' || !exact(w.background, ['integratedInArtwork']) || w.background.integratedInArtwork !== true || !exact(w.overlay, ['mode']) || w.overlay.mode !== 'blank')
-        return fail();
-    const g = w.geometry;
-    if (!g || typeof g !== 'object' || Array.isArray(g))
-        return fail();
-    const geo = g as Record<string, unknown>;
-    if (!exact(geo, ['shape', 'x', 'y', 'width', 'height', ...('cornerRadius' in geo ? ['cornerRadius'] : []), ...('rotationDegrees' in geo ? ['rotationDegrees'] : [])]))
-        return fail();
-    if (!['rectangle', 'rounded-rectangle', 'oval'].includes(String(geo.shape)) || ['x', 'y', 'width', 'height'].some(k => typeof geo[k] !== 'number' || !Number.isFinite(geo[k])) || Number(geo.width) <= 0 || Number(geo.height) <= 0 || ('rotationDegrees' in geo && geo.rotationDegrees !== 0) || ('cornerRadius' in geo && (typeof geo.cornerRadius !== 'number' || !Number.isFinite(geo.cornerRadius) || geo.cornerRadius < 0 || geo.cornerRadius > 0.5)))
-        return fail();
-    // CellarPack geometry is normalized to the finished trim box, not the bleed canvas.
-    // Reuse its shape-aware perimeter checks so valid ovals retain their original geometry.
-    if (!isWriteAreaInsideSurface(geo as unknown as NormalizedWriteAreaGeometry, s as unknown as LabelSurface) ||
-        !isWriteAreaInsideSafeArea(geo as unknown as NormalizedWriteAreaGeometry, s as unknown as LabelSurface))
-        return fail();
-    if (!Array.isArray(value.references) || value.references.length > 3 || value.references.some(r => !exact(r, ['url', 'role']) || !publicReference(r.url) || !['package-appearance', 'variant-identification'].includes(String(r.role))))
-        return fail();
-    return value as unknown as GalleryLabelDraftV1;
+    if (!allowed(value, ['version', 'submissionId', 'tobacco', 'artworkProfileId', 'writingArea', 'image', 'acknowledgement'], ['edition', 'altText', 'evidence'])) return fail();
+    if (value.version !== 2 || !uuid(value.submissionId) || value.artworkProfileId !== GALLERY_ARTWORK_PROFILE) return fail();
+    if ('edition' in value && !bounded(value.edition, 120, true) || 'altText' in value && !bounded(value.altText, 320, true)) return fail();
+    const tobacco = value.tobacco;
+    if (!(exact(tobacco, ['catalogId']) && bounded(tobacco.catalogId, 200, true) && /^[a-z0-9][a-z0-9-]*$/.test(tobacco.catalogId)) && !(exact(tobacco, ['maker', 'blend']) && bounded(tobacco.maker, 160, true) && bounded(tobacco.blend, 160, true))) return fail();
+    if (!exact(value.acknowledgement, ['version', 'accepted']) || (value.acknowledgement.version !== GALLERY_NOTICE_VERSION && value.acknowledgement.version !== '2026-09-06-v1') || value.acknowledgement.accepted !== true) return fail();
+    if (!exact(value.image, ['sha256', 'bytes', 'width', 'height']) || typeof value.image.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(value.image.sha256) || !Number.isInteger(value.image.bytes) || Number(value.image.bytes) < 1 || Number(value.image.bytes) > MAX_IMAGE_BYTES || !Number.isInteger(value.image.width) || Number(value.image.width) < 825 || Number(value.image.width) > 2048 || value.image.height !== value.image.width) return fail();
+    const geo = value.writingArea;
+    if (!allowed(geo, ['shape', 'x', 'y', 'width', 'height'], ['cornerRadius']) || !['rectangle', 'rounded-rectangle', 'oval'].includes(String(geo.shape)) || ['x', 'y', 'width', 'height'].some(k => typeof geo[k] !== 'number' || !Number.isFinite(geo[k])) || Number(geo.width) <= 0 || Number(geo.height) <= 0 || ('cornerRadius' in geo && (typeof geo.cornerRadius !== 'number' || !Number.isFinite(geo.cornerRadius) || geo.cornerRadius < 0 || geo.cornerRadius > 0.5))) return fail();
+    if (!isWriteAreaInsideSurface(geo as unknown as NormalizedWriteAreaGeometry, gallerySurface()) || !isWriteAreaInsideSafeArea(geo as unknown as NormalizedWriteAreaGeometry, gallerySurface())) return fail();
+    if ('evidence' in value) {
+        const e = value.evidence;
+        if (!allowed(e, [], ['references', 'package', 'variant'])) return fail();
+        if ('package' in e && !['tin', 'pouch', 'box', 'bulk', 'other', 'unknown'].includes(String(e.package)) || 'variant' in e && !['current', 'historical', 'special', 'unknown'].includes(String(e.variant))) return fail();
+        if ('references' in e && (!Array.isArray(e.references) || e.references.length > 3 || e.references.some(r => !exact(r, ['url', 'role']) || !publicReference(r.url) || !['package-appearance', 'variant-identification'].includes(String(r.role))))) return fail();
+    }
+    return value as unknown as GalleryLabelDraft;
 }
 export function canonicalJson(value: unknown): string { if (Array.isArray(value))
     return '[' + value.map(canonicalJson).join(',') + ']'; if (value && typeof value === 'object')

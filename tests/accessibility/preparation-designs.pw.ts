@@ -13,7 +13,7 @@ for (const width of [1280, 768, 320]) for (const count of [1, 3]) {
       if (url.pathname.endsWith('/thumbnail')) return route.fulfill({ contentType: 'image/jpeg', body: artwork })
       if (url.pathname.endsWith('/labels')) return route.fulfill({ json: { serving: true, nextCursor: null, labels: Array.from({ length: count }, (_, index) => ({
         id: `design-${index}`, catalogId: url.searchParams.get('catalogId'), maker: 'Cornell & Diehl', blend: 'Autumn Evening',
-        edition: index === 0 ? '' : `Alternate edition ${index}`, description: 'Autumn Evening label with a reading chair and blank date area',
+        edition: index === 0 ? '' : `Alternate edition ${index}`, altText: 'Autumn Evening label with a reading chair and blank date area',
       })) } })
       return route.fulfill({ json: {} })
     })

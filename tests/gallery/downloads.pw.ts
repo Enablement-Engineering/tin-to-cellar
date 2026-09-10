@@ -6,7 +6,8 @@ import { basename } from 'node:path'
 import { createHash } from 'node:crypto'
 import JSZip from 'jszip'
 import { decode } from 'fast-png'
-import type { GalleryLabelDraftV1, GalleryReceipt } from '../../src/lib/gallery/types'
+import type { GalleryLabelDraft, GalleryReceipt } from '../../src/lib/gallery/types'
+import { galleryCatalogId } from '../../src/lib/gallery/schema'
 import { resolveTobaccoId } from '../../src/lib/tobacco-catalog'
 
 const paths: string[] = JSON.parse(process.env.GALLERY_TEST_PACKS ?? '[]')
@@ -50,8 +51,8 @@ for (const [index, path] of paths.entries()) test(`local Downloads submission: $
   expect(response.status(), await response.text()).toBe(200)
   const receipt = await response.json() as GalleryReceipt
   expect(receipt.state).toBe('pending')
-  const draft = JSON.parse(writes.find(w => w.url === `${api}/submissions`)!.body!) as GalleryLabelDraftV1
-  expect(draft.references).toEqual([])
+  const draft = JSON.parse(writes.find(w => w.url === `${api}/submissions`)!.body!) as GalleryLabelDraft
+  expect(draft.evidence?.references ?? []).toEqual([])
   expect(writes).toHaveLength(2)
   expect((await request.get(`${api}/labels/${receipt.id}/artwork`)).status()).toBe(404)
   await page.screenshot({ path: `output/gallery/download-${index + 1}-pending.png`, fullPage: true })
@@ -71,7 +72,7 @@ for (const [index, path] of paths.entries()) test(`local Downloads submission: $
   const publicContext = await browser.newContext()
   const publicPage = await publicContext.newPage()
   await publicPage.goto('http://127.0.0.1:43928/gallery')
-  const tobacco = resolveTobaccoId(draft.catalogId!)!
+  const tobacco = resolveTobaccoId(galleryCatalogId(draft)!)!
   const search = publicPage.getByRole('combobox', { name: 'Maker or blend', exact: true })
   await search.fill(`${tobacco.maker} ${tobacco.blend}`); await search.press('ArrowDown'); await search.press('Enter')
   await publicPage.getByRole('button', { name: 'Add to your labels' }).first().click()

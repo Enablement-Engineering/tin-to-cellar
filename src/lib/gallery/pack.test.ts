@@ -4,10 +4,11 @@ import JSZip from 'jszip'
 import { buildGalleryPack } from './pack'
 import { importCellarPack } from '../cellarpack/importer'
 import { checkAvery94502Compatibility } from '../sheets/compatibility'
-import type { GalleryLabelDraftV1 } from './types'
+import type { GalleryLabelDraft } from './types'
 it('reconstructs deterministic private-data-free CellarPack accepted by real importer and print geometry', async () => {
   const artwork = encode({ width: 825, height: 825, channels: 3, data: new Uint8Array(825 * 825 * 3).fill(240) })
-  const metadata: GalleryLabelDraftV1 = { version: 1, submissionId: '43649b43-8094-4a32-b5ee-8be75208fb63', catalogId: 'synthetic', proposedIdentity: null, package: 'unknown', variant: 'unknown', edition: '', description: 'Original synthetic cream label', surface: { shape: 'circle', finishedSize: { width: 2.5, height: 2.5, unit: 'in' }, bleed: { top: .125, right: .125, bottom: .125, left: .125, unit: 'in' }, safeInset: { top: .125, right: .125, bottom: .125, left: .125, unit: 'in' } }, writeInArea: { id: 'private-id', purpose: 'jarred-date', geometry: { shape: 'rectangle', x: .35, y: .55, width: .3, height: .1 }, background: { integratedInArtwork: true }, overlay: { mode: 'blank' } }, references: [], image: { width: 825, height: 825, sha256: '0'.repeat(64), bytes: artwork.length }, acknowledgement: { version: '2026-09-06-v2', accepted: true } }
+  const metadata: GalleryLabelDraft = { version: 2, submissionId: '43649b43-8094-4a32-b5ee-8be75208fb63', tobacco: { catalogId: 'synthetic' }, artworkProfileId: 'circle-2.5@1', edition: '2026', altText: 'Original synthetic cream label', writingArea: { shape: 'rectangle', x: .35, y: .55, width: .3, height: .1 }, image: { width: 825, height: 825, sha256: '0'.repeat(64), bytes: artwork.length }, acknowledgement: { version: '2026-09-06-v2', accepted: true } }
+
   const input = { metadata, maker: 'Synthetic Maker', blend: 'Synthetic Blend', packId: '43649b43-8094-4a32-b5ee-8be75208fb63', createdAt: '2026-09-06T00:00:00Z' }
   const zip = await buildGalleryPack(input, artwork)
   expect(await buildGalleryPack(input, artwork)).toEqual(zip)
@@ -17,5 +18,7 @@ it('reconstructs deterministic private-data-free CellarPack accepted by real imp
   expect(result.labels[0].artwork.data).toEqual(Uint8Array.from(artwork).buffer)
   const manifest = await (await JSZip.loadAsync(zip)).file('manifest.json')!.async('string')
   expect(manifest).not.toContain('private note'); expect(manifest).not.toContain('private-id'); expect(manifest).not.toContain('acknowledgement')
-  expect(result.labels[0].label.research.status).toBe('limited')
+  expect(result.labels[0].label.research).toBeUndefined()
+  expect(result.labels[0].label.edition).toBe('2026')
+  expect(result.labels[0].label.altText).toBe(metadata.altText)
 })

@@ -3,9 +3,9 @@ import AxeBuilder from '@axe-core/playwright'
 import { readFileSync } from 'node:fs'
 
 const labels = [
-  { id: 'golden', maker: 'Orlik', blend: 'Golden Sliced', description: 'Red and gold circular label with a portrait and a cream writing area.' },
-  { id: 'autumn', maker: 'Cornell & Diehl', blend: 'Autumn Evening', description: 'An armchair and lamp against a dark blue background, with a cream writing area.' },
-  { id: 'long', maker: 'A maker with a longer name', blend: 'A longer blend name that needs several lines', description: 'Red and gold label artwork.' },
+  { id: 'golden', maker: 'Orlik', blend: 'Golden Sliced', altText: 'Red and gold circular label with a portrait and a cream writing area.' },
+  { id: 'autumn', maker: 'Cornell & Diehl', blend: 'Autumn Evening', altText: 'An armchair and lamp against a dark blue background, with a cream writing area.' },
+  { id: 'long', maker: 'A maker with a longer name', blend: 'A longer blend name that needs several lines', altText: 'Red and gold label artwork.' },
 ]
 for (const [width, largeText] of [[1280, false], [320, false], [640, true]] as const) test(`browse cards at ${width}px with large text ${largeText}`, async ({ page }, testInfo) => {
   await page.setViewportSize({ width, height: 1000 })

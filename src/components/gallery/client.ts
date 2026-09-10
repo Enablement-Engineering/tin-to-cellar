@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react'
 export const API = '/api/gallery/v1'
 export type GalleryConfig = { intake: boolean; serving: boolean; noticeVersion: string; turnstileSiteKey: string }
+export class GalleryRequestError extends Error {
+  readonly status: number
+  constructor(message: string, status: number) { super(message); this.name = 'GalleryRequestError'; this.status = status }
+}
 export async function request<T>(path: string, init: RequestInit = {}, capability?: string): Promise<T> {
   const response = await fetch(`${API}${path}`, { ...init, headers: { ...(init.body && typeof init.body === 'string' ? { 'Content-Type': 'application/json' } : {}), ...(capability ? { Authorization: `Bearer ${capability}` } : {}), ...init.headers }, cache: 'no-store', referrerPolicy: 'no-referrer' })
   if (!response.ok) {
-    if (response.status === 409) throw new Error('This submission changed. Refresh its status before trying again.')
-    if (response.status === 401 || response.status === 403) throw new Error('Access was not confirmed. Please try again.')
-    if (response.status === 404) throw new Error('This item is unavailable.')
-    if (response.status === 429) throw new Error('Sharing is at its current limit. Please try again later; you can still print.')
+    if (response.status === 409) throw new GalleryRequestError('This submission changed. Refresh its status before trying again.', response.status)
+    if (response.status === 401 || response.status === 403) throw new GalleryRequestError('Access was not confirmed. Please try again.', response.status)
+    if (response.status === 404) throw new GalleryRequestError('This item is unavailable.', response.status)
+    if (response.status === 429) throw new GalleryRequestError('Requests are at their current limit. Please try again later.', response.status)
     const body = await response.json().catch(() => ({})) as { error?: string }
-    throw new Error(`The request was not completed${body.error ? ` (${body.error.replaceAll('_', ' ')})` : ''}.`)
+    throw new GalleryRequestError(`The request was not completed${body.error ? ` (${body.error.replaceAll('_', ' ')})` : ''}.`, response.status)
   }
   return response.json() as Promise<T>
 }

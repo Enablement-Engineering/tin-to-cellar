@@ -10,7 +10,7 @@ Opening a ZIP, inspecting a sharing preview, and printing remain local. A contri
 
 Contributors need no account. After successful upload, the website shows “Submitted for review.” There are no contributor status links, private-preview endpoints or withdrawal controls. An internal same-tab nonce authorizes reservation/upload retries only; it is not exposed as a recovery link. Dylan manages submitted labels through private review, rejection and unpublishing.
 
-At `/admin/gallery`, the reviewer checks full-resolution canonical artwork, blank-area geometry, identity, edition, description, and selected reference links. Corrections invalidate the previous review digest. An unknown blend must be mapped to an active repository catalog entry before publication. Approval publishes that exact version; image replacement requires a separate submission. Exact published duplicates link to the existing publication and the duplicate submission is scheduled for removal.
+At `/admin/gallery`, the reviewer checks full-resolution canonical artwork, blank-area geometry, identity, optional edition and alternative text, and any private review evidence. Corrections invalidate the previous review digest. An unknown blend must be mapped to an active repository catalog entry before publication. Approval publishes that exact version; image replacement requires a separate submission. Exact published duplicates link to the existing publication and the duplicate submission is scheduled for removal.
 
 Public browsing at `/gallery` and downloads pass through `/api/gallery/v1/labels`. Every detail, thumbnail, artwork and pack request checks current publication state using a primary-consistent D1 session and returns `Cache-Control: no-store`. There are no public R2 URLs. Unpublish stops subsequent public requests, including previously copied URLs; an in-flight response or an earlier download cannot be recalled.
 
@@ -83,7 +83,7 @@ Confirm the actual Cloudflare account plan, CPU allowance, budget, and private r
 | --- | --- |
 | Artwork intake | Static, non-interlaced, 8-bit RGB/RGBA PNG; 8 MiB input; square 825–2048px; canonical output at most 18 MiB. |
 | Geometry | 2.5-inch circle, 0.125-inch bleed/safe inset, one artwork-owned blank writing area; Avery 94502. |
-| Metadata | 16 KiB; up to three selected public references; 1,500 characters per URL; 120-character edition; 320-character description; 160-character unknown maker/blend. URL screening is not a promise that every accepted link is free of private information. |
+| Metadata | 16 KiB; up to three selected public references; 1,500 characters per URL; 120-character edition; 320-character alternative text; 160-character unknown maker/blend. URL screening is not a promise that every accepted link is free of private information. |
 | Reservation / operation lease | Reservation expires after one hour; upload/publication lease is five minutes. Identical retries are supported; changed input requires a new submission. |
 | Admission | 20 labels/day per daily salted IP hash; 100/day site-wide; 500 reserved/uploading/pending/preparing items; 1 GiB active input bytes. |
 | Capacity accounting | Reserve 40 MiB per submission against an 8 GiB admission ceiling, reconcile published records to stored asset sizes. This is application accounting, not a provider-enforced spending cap; orphan files await cleanup. |
@@ -103,3 +103,7 @@ For an intake incident, disable `intake` in `gallery_settings`; for moderation p
 Before separately authorized hosted release, verify the recorded deployment identity, actual Access/Turnstile behavior, private R2 settings, schema/seed separation, and flags. Use controlled original synthetic artwork to exercise unauthorized denial, explicit upload, admin private preview, stale-digest rejection, approval, download/reimport/print preview, admin unpublish, old direct URLs and conditional requests, cleanup failures and eventual deletion on both domains. Verify the real admin and contributor browser flows, narrow viewport and keyboard access. Remove synthetic staging data afterward.
 
 Local validation, hosted readiness, packaging fidelity and physical print calibration are separate outcomes. Review the PDF and a physical calibration sheet before claiming printer alignment. No hosted deployment is authorized or established by these instructions.
+
+## Saved label format
+
+Gallery submissions use the v2 `GalleryLabelDraft` contract: tobacco identity, artwork profile, writing-area geometry, optional edition and alternative text, optional private evidence, image measurements, and consent acknowledgement. Public records expose identity, artworkProfileId, optional edition, and altText once. Research is optional in CellarPack exports. See [the one-time metadata migration](gallery-label-metadata-migration.md) before deploying this contract over existing records.

@@ -14,14 +14,14 @@ function stable(value: unknown): string {
   return JSON.stringify(value)
 }
 function projectLabel(label: CellarLabel): CellarLabel {
-  const { id, maker, blend, displayName, artworkAssetId, surface, writeInAreas, research } = label
+  const { id, maker, blend, displayName, artworkAssetId, surface, writeInAreas, edition, altText, research } = label
   const catalog = findExactTobacco(maker, blend)
   const sources = label.extensions?.[SOURCE_KEY]
   const checked = catalog && Array.isArray(sources) ? sources.flatMap(source => {
     const valid = record(source) ? parseSource({ ...source, catalogId: catalog.id }) : null
     return valid ? [valid] : []
   }).slice(0, 10) : []
-  return JSON.parse(JSON.stringify({ id, maker, blend, ...(displayName ? { displayName } : {}), artworkAssetId, surface, writeInAreas, research, ...(checked.length ? { extensions: { [SOURCE_KEY]: checked } } : {}) })) as CellarLabel
+  return JSON.parse(JSON.stringify({ id, maker, blend, ...(displayName ? { displayName } : {}), artworkAssetId, surface, writeInAreas, edition, altText, research, ...(checked.length ? { extensions: { [SOURCE_KEY]: checked } } : {}) })) as CellarLabel
 }
 
 /** IDs and paths belong to their source archive; they are not artwork identity. */
@@ -65,7 +65,7 @@ export async function prepareImport(result: CellarPackImportResult, options: Pre
 }
 
 function editionFor(design: CollectionDesign): string {
-  const edition = design.item.label.research.observedPackage.variantDateOrEdition.trim()
+  const edition = design.item.label.edition?.trim() ?? ''
   return /^(unknown|not recorded|not recorded in the shared label)$/i.test(edition) ? '' : edition
 }
 function matches(row: CollectionRow, design: CollectionDesign): boolean {

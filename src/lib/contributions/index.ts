@@ -85,7 +85,7 @@ export async function contributionFromManifest(manifest: CellarPackManifest, val
       if (source) sources.push(source)
     }
     // Older packs have no link-check report. Preserve provenance without inventing verification.
-    for (const source of label.research.sources) if (source.type === 'web' && source.role === 'package-appearance' && knownCatalogSourceUrl(entry.id, source.url) && !sources.some(v => v.catalogId === entry.id && v.url === source.url)) {
+    for (const source of label.research?.sources ?? []) if (source.type === 'web' && source.role === 'package-appearance' && knownCatalogSourceUrl(entry.id, source.url) && !sources.some(v => v.catalogId === entry.id && v.url === source.url)) {
       sources.push({ catalogId: entry.id, url: source.url, status: 'unverified', package: 'unknown', variant: 'unknown' })
     }
   }

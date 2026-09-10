@@ -14,6 +14,23 @@ async function firstCollection() {
   return applyImport(empty, planImport(empty, candidate))
 }
 describe('saved label collection', () => {
+  it('round trips edition and alt text without a research object', async () => {
+    const candidate = await prepareImport(await collectionFixture(manifest => {
+      delete manifest.labels[0].research
+      manifest.labels[0].edition = '2026'
+      manifest.labels[0].altText = 'A cream label with a blank writing panel.'
+    }), { origin: 'local' })
+    const empty = createCollection()
+    const collection = applyImport(empty, planImport(empty, candidate))
+    expect(collection.rows[0].edition).toBe('2026')
+    const label = collection.designs[collection.rows[0].designId!].item.label
+    expect(label.research).toBeUndefined()
+    expect(label.altText).toBe('A cream label with a blank writing panel.')
+    const exported = await importCellarPack(await (await exportCollection(collection)).arrayBuffer())
+    expect(exported.labels[0].label).toMatchObject({ edition: '2026', altText: label.altText })
+    expect(exported.labels[0].label.research).toBeUndefined()
+  })
+
   it('adds to existing labels and preserves quantities, order and original bytes', async () => {
     const initial = await firstCollection()
     const existing = updateRow(initial, initial.rows[0].id, { quantity: 5 })
@@ -43,7 +60,7 @@ describe('saved label collection', () => {
     const existing = await firstCollection()
     for (const mutate of [
       (manifest: Awaited<ReturnType<typeof collectionFixture>>['manifest']) => { manifest!.labels[0].surface.safeInset.top = .01 },
-      (manifest: Awaited<ReturnType<typeof collectionFixture>>['manifest']) => { manifest!.labels[0].research.adaptationSummary = 'A corrected account of the same artwork.' },
+      (manifest: Awaited<ReturnType<typeof collectionFixture>>['manifest']) => { manifest!.labels[0].research!.adaptationSummary = 'A corrected account of the same artwork.' },
     ]) {
       const candidate = await prepareImport(await collectionFixture(mutate), { origin: 'local' })
       const plan = planImport(existing, candidate)
@@ -83,7 +100,7 @@ describe('saved label collection', () => {
   })
   it('does not silently replace different editions or ambiguous identities', async () => {
     let collection = addRequests(createCollection(), [{ catalogId: null, maker: 'Fixture Maker', blend: 'Fixture Blend', edition: '1999' }, { catalogId: null, maker: 'Fixture Maker', blend: 'Fixture Blend', notes: 'First design' }, { catalogId: null, maker: 'Fixture Maker', blend: 'Fixture Blend', notes: 'Second design' }])
-    const candidate = await prepareImport(await collectionFixture(manifest => { manifest.labels[0].research.observedPackage.variantDateOrEdition = '2026' }), { origin: 'local' })
+    const candidate = await prepareImport(await collectionFixture(manifest => { manifest.labels[0].edition = '2026' }), { origin: 'local' })
     const plan = planImport(collection, candidate)
     expect(plan.entries[0].kind).toBe('choice')
     expect(plan.entries[0].matchRowIds).not.toContain(collection.rows[0].id)
@@ -114,7 +131,7 @@ describe('saved label collection', () => {
   it('removes unselected design bytes after replacement and removal', async () => {
     const collection = await firstCollection()
     expect(Object.keys(removeRow(collection, collection.rows[0].id).designs)).toHaveLength(0)
-    const candidate = await prepareImport(await collectionFixture(manifest => { manifest.labels[0].research.adaptationSummary = 'Replacement design' }), { origin: 'local' })
+    const candidate = await prepareImport(await collectionFixture(manifest => { manifest.labels[0].research!.adaptationSummary = 'Replacement design' }), { origin: 'local' })
     const next = applyImport(collection, planImport(collection, candidate), { [candidate.designs[0].id]: { action: 'replace', rowId: collection.rows[0].id } })
     expect(Object.keys(next.designs)).toEqual([candidate.designs[0].id])
   })

@@ -20,7 +20,7 @@ The format preserves design intent without binding an image to a specific printe
 - Work without an account, upload, or server-side unpacking.
 - Support circles, ovals, squares, rectangles, rounded rectangles, and custom width/height labels.
 - Preserve enough geometry for correct clipping, bleed, safe zones, and a writable jarred-date field.
-- Record mandatory preliminary research into the actual tin/package and concise visual analysis for every label.
+- Keep core label data independent of optional package research and visual analysis.
 - Allow a generator to emit a pack and a website to render it predictably.
 - Be extensible without making v1 importers unsafe or brittle.
 - Support Avery 94502, full-sheet sticker paper, other named presets, and custom sheets without putting sheet coordinates into artwork metadata.
@@ -279,11 +279,11 @@ Recommended defaults:
 
 Importers MUST show a visible repair warning if the field is missing, intersects the trim boundary, or the artwork does not appear to contain an appropriate light surface. Geometry can be validated deterministically; visual suitability can only be advisory. Correct an unsuitable writing surface in the artwork and update its measured geometry before returning the pack.
 
-## 9. Mandatory research and provenance
+## 9. Optional research and provenance
 
-Every label MUST contain a `research` object. This requirement protects fidelity and makes generation auditable without redistributing reference images.
+A label MAY contain a `research` object when real research evidence is available. Omit it when absent; never fabricate placeholder observations. Core label identity, artwork and writing geometry do not depend on research. Optional top-level `edition` identifies a known edition (1–300 characters); optional `altText` describes the artwork for accessibility (1–2000 characters). Omit unknown editions.
 
-### Required fields
+### Fields required when research is supplied
 
 - `status`: `complete` or `limited`. `complete` is required for full generator conformance.
 - `observedPackage.format`: e.g. round tin, rectangular tin, pouch, bulk label.
@@ -376,7 +376,7 @@ For example, `defaultPrintIntent.labelQuantityMode` may be omitted or set to `on
 Three labels keep responsibilities honest:
 
 1. **Archive Conformant**: safe ZIP, valid root manifest, supported schema major, valid hashes and assets.
-2. **Generator Conformant**: Archive Conformant plus full research/provenance, shape-adapted art, required integrated jarred-date surface, 300+ PPI, sRGB, and contact sheet recommended.
+2. **Generator Conformant**: Archive Conformant plus shape-adapted art, required integrated jarred-date surface, 300+ PPI, sRGB, and contact sheet recommended.
 3. **Print Ready**: Generator Conformant plus all labels fit the selected sheet profile at 100% scale and pass the website's safe-area checks. This status is profile- and calibration-dependent and therefore determined by the website, not asserted permanently by the pack.
 
 ## 14. Deterministic validation and security
@@ -478,7 +478,7 @@ A paste-only ChatGPT workflow may be unable to produce a correctly hashed ZIP in
 - A pack with circular, oval, square, rectangle, rounded-rectangle, and custom-dimension labels validates without sheet-specific artwork changes.
 - The same label imports into Avery 94502 and full-sheet Letter layouts.
 - A custom profile can be included and selected without changing `labels[].surface`.
-- Every generator-conformant label records actual-package research and a source-backed visual analysis.
+- Research evidence, when included, records actual observations and source-backed visual analysis.
 - Every label's blank writing surface is measured from the finished trim box, unrotated, and contained in the safe area. The website adds no words, lines, or dates.
 - Unsafe paths, duplicate normalized filenames, decompression bombs, MIME spoofing, dimension bombs, and hash mismatches are rejected deterministically.
 - An importer can ignore unknown optional fields from a newer 1.x pack.

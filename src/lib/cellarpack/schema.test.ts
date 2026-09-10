@@ -52,15 +52,14 @@ describe('validateManifest', () => {
     expect(validateManifest(manifest).valid).toBe(false)
   })
 
-  it('rejects a label with missing mandatory research', async () => {
+  it('accepts a core label without research', async () => {
     const manifest = await makeTestManifest()
     const unsafeLabel = manifest.labels[0] as unknown as Record<string, unknown>
     delete unsafeLabel.research
     const result = validateManifest(manifest)
 
-    expect(result.valid).toBe(false)
-    expect(result.manifest).toBeNull()
-    expect(result.issues.map((issue) => issue.code)).toContain('MISSING_REQUIRED_RESEARCH')
+    expect(result.valid).toBe(true)
+    expect(result.manifest?.labels[0].research).toBeUndefined()
   })
 
   it('reports unsupported schema majors before schema compilation', async () => {

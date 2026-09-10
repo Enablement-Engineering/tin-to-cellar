@@ -28,7 +28,7 @@ export function validateRecommendation(v) {
           const r = e.region
           if (!exact(r,['x','y','width','height']) || Object.values(r).some(n => typeof n !== 'number' || !Number.isFinite(n)) || r.x < 0 || r.y < 0 || r.width <= 0 || r.height <= 0 || r.x + r.width > 1 || r.y + r.height > 1) fail('invalid_recommendation')
         }
-      } else if (e?.type === 'metadata' && exact(e,['type','field']) && ['catalogId','edition','package','variant','description','surface','writeInArea'].includes(e.field)) continue
+      } else if (e?.type === 'metadata' && exact(e,['type','field']) && ['tobacco','edition','evidence','altText','artworkProfileId','writingArea'].includes(e.field)) continue
       else if (e?.type === 'duplicate' && exact(e,['type','publicationId']) && UUID.test(e.publicationId)) continue
       else if (e?.type === 'reference' && exact(e,['type','url']) && text(e.url,1500)) {
         let u; try { u = new URL(e.url) } catch { fail('invalid_recommendation') }

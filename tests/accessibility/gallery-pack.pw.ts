@@ -7,7 +7,7 @@ import { buildGalleryPack } from '../../src/lib/gallery/pack'
 
 for (const width of [1280, 320]) test(`community designs share the durable print collection at ${width}px`, async ({ page }) => {
   const source = await fixture(825)
-  const labels = ['One', 'Two'].map((blend, index) => ({ id: `43649b43-8094-4a32-b5ee-8be75208fb6${index + 3}`, maker: 'Test Maker', blend, description: 'Cream writing area on a green label' }))
+  const labels = ['One', 'Two'].map((blend, index) => ({ id: `43649b43-8094-4a32-b5ee-8be75208fb6${index + 3}`, maker: 'Test Maker', blend, altText: 'Cream writing area on a green label' }))
   const packs = await Promise.all(labels.map(label => buildGalleryPack({ metadata: source.draft, ...label, packId: label.id, createdAt: '2026-09-06T00:00:00Z' }, source.png)))
   await page.route('**/api/gallery/v1/**', async route => {
     const url = new URL(route.request().url())

@@ -7,12 +7,12 @@ import JSZip from 'jszip';
 import { galleryResponse } from './routes';
 import { cleanGallery } from './cleanup';
 import { sha256, type GalleryBucket, type GalleryDatabase, type GalleryEnv } from './storage';
-import type { GalleryLabelDraftV1, GalleryReceipt } from '../../src/lib/gallery/types';
+import type { GalleryLabelDraft, GalleryReceipt } from '../../src/lib/gallery/types';
 import { canonicalJson, parseGalleryDraft } from '../../src/lib/gallery/schema';
 import { verifyGalleryAdmin } from './auth';
 class DB implements GalleryDatabase {
     readonly db: DatabaseSync;
-    constructor(db = new DatabaseSync(':memory:')) { this.db = db; db.exec(readFileSync(new URL('../../migrations/gallery/0001_gallery.sql', import.meta.url), 'utf8'));db.exec(readFileSync(new URL('../../migrations/gallery/0002_agent_review.sql', import.meta.url), 'utf8'));db.exec(readFileSync(new URL('../../migrations/gallery/0003_audit_context.sql', import.meta.url), 'utf8')); db.exec(readFileSync(new URL('../../migrations/gallery/0004_upload_attempts.sql', import.meta.url), 'utf8')); db.exec("UPDATE gallery_settings SET intake=1,publication=1,serving=1; INSERT INTO gallery_tobaccos VALUES('test-blend','Test','Blend','[]',1,'fixture')"); }
+    constructor(db = new DatabaseSync(':memory:')) { this.db = db; db.exec(readFileSync(new URL('../../migrations/gallery/0001_gallery.sql', import.meta.url), 'utf8'));db.exec(readFileSync(new URL('../../migrations/gallery/0002_agent_review.sql', import.meta.url), 'utf8'));db.exec(readFileSync(new URL('../../migrations/gallery/0003_audit_context.sql', import.meta.url), 'utf8')); db.exec(readFileSync(new URL('../../migrations/gallery/0004_upload_attempts.sql', import.meta.url), 'utf8')); db.exec(readFileSync(new URL('../../migrations/gallery/0005_label_metadata_v2.sql', import.meta.url), 'utf8')); db.exec("UPDATE gallery_settings SET intake=1,publication=1,serving=1; INSERT INTO gallery_tobaccos VALUES('test-blend','Test','Blend','[]',1,'fixture')"); }
     prepare(sql: string) { let args: unknown[] = []; const stmt = { bind: (...a: unknown[]) => { args = a; return stmt; }, run: async () => ({ meta: { changes: Number(this.db.prepare(sql).run(...args as never[]).changes) } }), first: async <T>() => (this.db.prepare(sql).get(...args as never[]) ?? null) as T | null, all: async <T>() => ({ results: this.db.prepare(sql).all(...args as never[]) as T[] }) }; return stmt; }
     private pendingBatch: Promise<void> = Promise.resolve();
     async batch(statements: ReturnType<DB['prepare']>[]) {
@@ -35,7 +35,7 @@ class Bucket implements GalleryBucket {
         throw Error('injected'); this.objects.delete(key); }
     async list() { return { objects: [...this.objects.keys()].map(key => ({ key, uploaded: new Date('2026-01-01') })), truncated: false }; }
 }
-let db: DB, bucket: Bucket, env: GalleryEnv, draft: GalleryLabelDraftV1, png: Uint8Array;
+let db: DB, bucket: Bucket, env: GalleryEnv, draft: GalleryLabelDraft, png: Uint8Array;
 const key = 'a'.repeat(64), now = new Date('2026-09-06T12:00:00Z');
 const deps = { verifyAdmin: async (r: Request) => r.headers.get('X-Test-Admin') === 'yes' ? 'admin' : null, verifyTurnstile: async () => true, verifyAgent: async (r:Request)=>r.headers.get('X-Test-Machine')==='yes'?'fixture.access':null, now: () => now };
 function call(path: string, method = 'GET', data?: unknown, headers: Record<string, string> = {}) { return galleryResponse(new Request('https://site.example/api/gallery/v1' + path, { method, headers: { Origin: 'https://site.example', Authorization: `Bearer ${key}`, ...(data instanceof Uint8Array ? { 'Content-Type': 'image/png' } : data ? { 'Content-Type': 'application/json' } : {}), ...headers }, body: data instanceof Uint8Array ? data as BodyInit : data ? JSON.stringify(data) : undefined }), env, deps); }
@@ -47,8 +47,18 @@ it('distinguishes a serving library with no matches from disabled listing respon
   env.GALLERY_SERVING = 'false';
   expect(await (await call('/labels?catalogId=test-blend')).json()).toEqual({ serving: false, labels: [], nextCursor: null });
 });
-beforeEach(async () => { db = new DB(); bucket = new Bucket(); env = { GALLERY: db, GALLERY_ART: bucket, GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'fixture', GALLERY_MUTATION_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_READ_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_UPLOAD_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_RATE_LIMITER: { limit: async () => ({ success: true }) } }; png = encode({ width: 825, height: 825, channels: 3, depth: 8, data: new Uint8Array(825 * 825 * 3).fill(255) }); const inset = { top: .125, right: .125, bottom: .125, left: .125, unit: 'in' as const }; draft = { version: 1, submissionId: crypto.randomUUID(), catalogId: 'test-blend', proposedIdentity: null, package: 'tin', variant: 'current', edition: '', description: 'Synthetic test label', surface: { shape: 'circle', finishedSize: { width: 2.5, height: 2.5, unit: 'in' }, bleed: inset, safeInset: inset }, writeInArea: { id: 'date', purpose: 'jarred-date', geometry: { shape: 'rectangle', x: .35, y: .6, width: .3, height: .1 }, background: { integratedInArtwork: true }, overlay: { mode: 'blank' } }, references: [], image: { sha256: await sha256(png), bytes: png.length, width: 825, height: 825 }, acknowledgement: { version: '2026-09-06-v2', accepted: true } }; });
+beforeEach(async () => { db = new DB(); bucket = new Bucket(); env = { GALLERY: db, GALLERY_ART: bucket, GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'fixture', GALLERY_MUTATION_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_READ_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_UPLOAD_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_RATE_LIMITER: { limit: async () => ({ success: true }) } }; png = encode({ width: 825, height: 825, channels: 3, depth: 8, data: new Uint8Array(825 * 825 * 3).fill(255) }); draft = { version: 2, submissionId: crypto.randomUUID(), tobacco: { catalogId: 'test-blend' }, artworkProfileId: 'circle-2.5@1', altText: 'Synthetic test label', writingArea: { shape: 'rectangle', x: .35, y: .6, width: .3, height: .1 }, image: { sha256: await sha256(png), bytes: png.length, width: 825, height: 825 }, acknowledgement: { version: '2026-09-06-v2', accepted: true } }; });
 describe('private gallery workflow', () => {
+    it('pauses all gallery operations and cleanup until saved metadata is migrated', async () => {
+        await submit();
+        db.db.prepare("UPDATE gallery_submissions SET metadata_json=json_set(metadata_json,'$.version',1),expires_at='2000-01-01'").run();
+        const before = db.db.prepare('SELECT * FROM gallery_submissions').all();
+        for (const path of ['/labels','/admin/submissions','/agent/jobs']) expect((await call(path)).status).toBe(503);
+        expect(await cleanGallery(env,now)).toEqual({deleted:0,failures:0,orphans:0});
+        expect(db.db.prepare('SELECT * FROM gallery_submissions').all()).toEqual(before);
+        db.db.prepare("UPDATE gallery_submissions SET metadata_json=json_set(metadata_json,'$.version',2)").run();
+        expect((await call('/labels')).status).toBe(200);
+    });
     it('admits proofed operator artwork without a public challenge while preserving human publication review', async () => {
         env.GALLERY_RATE_LIMITER = { limit: async () => ({ success: false }) };
         const create = await call('/admin/intake', 'POST', draft, { 'X-Test-Admin': 'yes' });
@@ -75,7 +85,7 @@ describe('private gallery workflow', () => {
         expect((await call(`/labels/${draft.submissionId}/${kind}`, 'GET', undefined, { 'If-None-Match': 'anything' })).status).toBe(404); expect((await call(`/submissions/${draft.submissionId}/withdraw`, 'POST', {})).status).toBe(404); });
     it('resolves retries without consumed challenges and rejects changed uploads', async () => { await submit(); env.GALLERY_INTAKE = 'false'; expect((await call('/submissions', 'POST', draft)).status).toBe(200); expect((await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png)).status).toBe(200); const changed = png.slice(); changed[50] ^= 1; expect((await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', changed)).status).toBe(400); expect((await call('/submissions', 'POST', { ...draft, edition: 'different' })).status).toBe(409); });
     it('rejects malformed PNG even with its correct declared hash', async () => { png = new Uint8Array([1, 2, 3]); draft.image.bytes = 3; draft.image.sha256 = await sha256(png); expect((await call('/submissions', 'POST', draft)).status).toBe(201); expect((await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png)).status).not.toBe(200); expect(bucket.objects.size).toBe(0); });
-    it('cannot approve stale metadata or publish an unknown blend', async () => { draft.catalogId = null; draft.proposedIdentity = { maker: 'Unknown', blend: 'Test' }; const r = await submit(); expect((await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: r.version, digest: r.digest }, { 'X-Test-Admin': 'yes' })).status).toBe(400); const mapped = { ...draft, catalogId: 'test-blend', proposedIdentity: null }; expect((await call(`/admin/submissions/${draft.submissionId}`, 'PATCH', { expectedVersion: r.version, metadata: mapped }, { 'X-Test-Admin': 'yes' })).status).toBe(200); expect((await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: r.version, digest: r.digest }, { 'X-Test-Admin': 'yes' })).status).toBe(409); });
+    it('cannot approve stale metadata or publish an unknown blend', async () => { draft.tobacco = { maker: 'Unknown', blend: 'Test' }; const r = await submit(); expect((await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: r.version, digest: r.digest }, { 'X-Test-Admin': 'yes' })).status).toBe(400); const mapped = { ...draft, tobacco: { catalogId: 'test-blend' } }; expect((await call(`/admin/submissions/${draft.submissionId}`, 'PATCH', { expectedVersion: r.version, metadata: mapped }, { 'X-Test-Admin': 'yes' })).status).toBe(200); expect((await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: r.version, digest: r.digest }, { 'X-Test-Admin': 'yes' })).status).toBe(409); });
     it('retains capacity and retryable records across failed delete', async () => { const r=await submit(); await call(`/admin/submissions/${draft.submissionId}/reject`,'POST',{expectedVersion:r.version,reason:'unsuitable'},{'X-Test-Admin':'yes'}); bucket.failDelete = true; const failed = await cleanGallery(env, new Date('2026-09-14')); expect(failed.failures).toBeGreaterThan(0); expect(db.db.prepare('SELECT reserved_bytes FROM gallery_submissions').get()!.reserved_bytes).toBeGreaterThan(0); bucket.failDelete = false; expect((await cleanGallery(env, new Date('2026-09-14'))).deleted).toBe(1); expect(bucket.objects.size).toBe(0); expect(db.db.prepare('SELECT metadata_json FROM gallery_submissions').get()!.metadata_json).toBeNull(); });
     it('recovers failed writes without exposing a pending artifact', async () => { await call('/submissions', 'POST', draft); bucket.failPut = true; expect((await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png)).status).toBe(503); expect((await call(`/labels/${draft.submissionId}/artwork`)).status).toBe(404); bucket.failPut = false; expect((await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png)).status).toBe(200); });
     it('atomically enforces daily reservation caps', async () => { for (let i = 0; i < 20; i++) {
@@ -83,7 +93,7 @@ describe('private gallery workflow', () => {
         expect((await call('/submissions', 'POST', draft)).status).toBe(201);
     } draft.submissionId = crypto.randomUUID(); expect((await call('/submissions', 'POST', draft)).status).toBe(429); expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_submissions').get()!.n).toBe(20); });
     it('rejects cross-origin changes and forged production admin', async () => { expect((await call('/submissions', 'POST', draft, { Origin: 'https://evil.example' })).status).toBe(403); expect(await verifyGalleryAdmin(new Request('https://site.example', { headers: { 'Cf-Access-Jwt-Assertion': 'forged' } }), { GALLERY_ACCESS_ISSUER: 'https://test.cloudflareaccess.com', GALLERY_ACCESS_AUD: 'aud', GALLERY_ADMIN_SUBJECT: 'admin' })).toBeNull(); });
-    it('rejects private manifest fields and unsafe reference URLs', () => { expect(() => parseGalleryDraft({ ...draft, notes: 'secret' })).toThrow(); expect(() => parseGalleryDraft({ ...draft, references: [{ role: 'package-appearance', url: 'https://shop.example/a%40b.com' }] })).toThrow(); expect(() => parseGalleryDraft({ ...draft, references: [{ role: 'package-appearance', url: 'http://127.0.0.1/' }] })).toThrow(); });
+    it('rejects private manifest fields and unsafe reference URLs', () => { expect(() => parseGalleryDraft({ ...draft, notes: 'secret' })).toThrow(); expect(() => parseGalleryDraft({ ...draft, evidence: { references: [{ role: 'package-appearance', url: 'https://shop.example/a%40b.com' }] } })).toThrow(); expect(() => parseGalleryDraft({ ...draft, evidence: { references: [{ role: 'package-appearance', url: 'http://127.0.0.1/' }] } })).toThrow(); });
     it('binds publication identity to review and resolves public duplicates only', async () => { const original = await approve(); const oldId = draft.submissionId; db.db.exec("UPDATE gallery_tobaccos SET maker='Renamed' WHERE id='test-blend'"); expect((await (await call(`/labels/${oldId}`)).json()).maker).toBe('Test'); draft.submissionId = crypto.randomUUID(); const pending = await submit(); expect(pending.publicationId).toBeNull(); const duplicate = await (await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: pending.version, digest: pending.digest }, { 'X-Test-Admin': 'yes' })).json(); expect(duplicate.state).toBe('rejected'); expect(duplicate.publicationId).toBe(original.id); expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_submissions WHERE state='published'").get()!.n).toBe(1); });
     it('refreshes a published identity and downloadable pack after a catalog correction', async () => {
         const published = await approve();
@@ -99,32 +109,22 @@ describe('private gallery workflow', () => {
         expect(manifest.labels[0].blend).toBe('Blend: Corrected');
         expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_review_events WHERE submission_id=? AND action='refresh'").get(draft.submissionId)!.n).toBe(1);
     });
-    it('reconciles a matching published resource in place from an approved CellarPack', async () => {
+    it('keeps a matching publication unchanged until staged replacement review exists', async () => {
         const published = await approve();
         const originalId = published.id;
+        const before = new Uint8Array(await (await call(`/labels/${originalId}/artwork`)).arrayBuffer());
         const replacement = encode({ width: 825, height: 825, channels: 3, depth: 8, data: new Uint8Array(825 * 825 * 3).fill(64) });
         const reference = 'https://www.smokingpipes.com/pipe-tobacco/test/blend/product_id/1';
-        const revised = { ...draft, submissionId: crypto.randomUUID(), references: [{ role: 'package-appearance' as const, url: reference }], image: { ...draft.image, sha256: await sha256(replacement), bytes: replacement.length } };
+        const revised = { ...draft, submissionId: crypto.randomUUID(), evidence: { references: [{ role: 'package-appearance' as const, url: reference }] }, image: { ...draft.image, sha256: await sha256(replacement), bytes: replacement.length } };
         const form = new FormData();
         form.set('metadata', JSON.stringify(revised));
         form.set('artwork', new Blob([replacement as Uint8Array<ArrayBuffer>], { type: 'image/png' }), 'label.png');
         const response = await galleryResponse(new Request('https://site.example/api/gallery/v1/admin/reconcile', { method: 'POST', headers: { Origin: 'https://site.example', 'X-Test-Admin': 'yes' }, body: form }), env, deps);
-        expect(response.status).toBe(200);
-        const reconciled = await response.json() as GalleryReceipt;
-        expect(reconciled.id).toBe(originalId);
-        expect(reconciled.state).toBe('published');
-        expect(reconciled.version).toBe(published.version + 1);
-        const projection = await (await call(`/labels/${originalId}`)).json();
-        expect(projection.metadata.references).toEqual([{ role: 'package-appearance', url: reference }]);
+        expect(response.status).toBe(503);
+        expect(await response.json()).toEqual({ error: 'replacement_review_required' });
+        expect(new Uint8Array(await (await call(`/labels/${originalId}/artwork`)).arrayBuffer())).toEqual(before);
         expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_submissions WHERE state='published' AND catalog_id='test-blend'").get()!.n).toBe(1);
-        expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_review_events WHERE submission_id=? AND action='reconcile'").get(originalId)!.n).toBe(1);
-        const archive = await (await call(`/labels/${originalId}/pack`)).arrayBuffer();
-        const zip = await JSZip.loadAsync(archive);
-        const manifest = JSON.parse(await zip.file('manifest.json')!.async('text'));
-        expect(manifest.labels[0].research.sources[0].description).toContain(reference);
-        const asset = manifest.assets[manifest.labels[0].artworkAssetId];
-        const publicArtwork = new Uint8Array(await (await call(`/labels/${originalId}/artwork`)).arrayBuffer());
-        expect(asset.sha256).toBe(await sha256(publicArtwork));
+        expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_review_events WHERE submission_id=? AND action='reconcile'").get(originalId)!.n).toBe(0);
     });
     it('serializes concurrent upload leases and cancels approval after a terminal retention transition', async () => { await call('/submissions', 'POST', draft); const uploads = await Promise.all([call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png), call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png)]); expect(uploads.filter(r => r.status === 200)).toHaveLength(1); expect(uploads.filter(r => r.status === 409)).toHaveLength(1); const pending = await (await call(`/admin/submissions/${draft.submissionId}`,'GET',undefined,{'X-Test-Admin':'yes'})).json(); const originalPut = bucket.put.bind(bucket); bucket.put = async (k, b) => { await originalPut(k, b); if (k.includes('/pack-'))
         db.db.prepare("UPDATE gallery_submissions SET state='expired',row_version=row_version+1 WHERE id=?").run(draft.submissionId); }; expect((await call(`/admin/submissions/${draft.submissionId}/approve`, 'POST', { expectedVersion: pending.version, digest: pending.digest }, { 'X-Test-Admin': 'yes' })).status).not.toBe(200); expect((await call(`/labels/${draft.submissionId}/pack`)).status).toBe(404); expect((await (await call(`/admin/submissions/${draft.submissionId}`,'GET',undefined,{'X-Test-Admin':'yes'})).json()).state).toBe('expired'); });
@@ -145,16 +145,16 @@ describe('private gallery workflow', () => {
  });
 
  it('accepts valid finished-trim oval geometry without treating it as its bounding box',()=>{
-  draft.writeInArea.geometry={shape:'oval',x:.272807,y:.70614,width:.449123,height:.209649,rotationDegrees:0};
-  expect(parseGalleryDraft(draft).writeInArea.geometry).toEqual(draft.writeInArea.geometry);
-  draft.writeInArea.geometry={...draft.writeInArea.geometry,y:.85};expect(()=>parseGalleryDraft(draft)).toThrow();
+  draft.writingArea={shape:'oval',x:.272807,y:.70614,width:.449123,height:.209649};
+  expect(parseGalleryDraft(draft).writingArea).toEqual(draft.writingArea);
+  draft.writingArea={...draft.writingArea,y:.85};expect(()=>parseGalleryDraft(draft)).toThrow();
  });
 
  it('preserves schema-valid rounded rectangle radii while using the importer perimeter clamp',()=>{
-  draft.writeInArea.geometry={shape:'rounded-rectangle',x:.268657,y:.737489,width:.459175,height:.113257,cornerRadius:.5,rotationDegrees:0};
-  expect(parseGalleryDraft(draft).writeInArea.geometry.cornerRadius).toBe(.5);
-  draft.writeInArea.geometry.cornerRadius=.51;expect(()=>parseGalleryDraft(draft)).toThrow();
-  draft.writeInArea.geometry.cornerRadius=NaN;expect(()=>parseGalleryDraft(draft)).toThrow();
+  draft.writingArea={shape:'rounded-rectangle',x:.268657,y:.737489,width:.459175,height:.113257,cornerRadius:.5};
+  expect(parseGalleryDraft(draft).writingArea.cornerRadius).toBe(.5);
+  draft.writingArea.cornerRadius=.51;expect(()=>parseGalleryDraft(draft)).toThrow();
+  draft.writingArea.cornerRadius=NaN;expect(()=>parseGalleryDraft(draft)).toThrow();
  });
 
  it.each(['correct','duplicate','approve','reject','unpublish','republish'])('rolls back %s when its audit insert fails, then retries with one event',async(action)=>{
@@ -275,7 +275,7 @@ describe('private gallery workflow', () => {
 
 it('requires v2 for new intake while preserving historical v1 retries, corrections and publication', async () => {
     expect((await (await call('/config')).json()).noticeVersion).toBe('2026-09-06-v2');
-    const legacy: GalleryLabelDraftV1 = { ...draft, acknowledgement: { version: '2026-09-06-v1', accepted: true } };
+    const legacy: GalleryLabelDraft = { ...draft, acknowledgement: { version: '2026-09-06-v1', accepted: true } };
     expect((await call('/submissions', 'POST', legacy)).status).toBe(400);
     const pending = await submit();
     // Model a record accepted before the notice change, without changing its consent.
@@ -296,7 +296,7 @@ it('requires v2 for new intake while preserving historical v1 retries, correctio
 // Replacement failures must leave the previously published resource usable.
 async function replacement(shade = 64) {
     const bytes = encode({ width: 825, height: 825, channels: 3, depth: 8, data: new Uint8Array(825 * 825 * 3).fill(shade) });
-    const metadata = { ...draft, submissionId: crypto.randomUUID(), description: `Replacement ${shade}`, image: { ...draft.image, bytes: bytes.length, sha256: await sha256(bytes) } };
+    const metadata = { ...draft, submissionId: crypto.randomUUID(), altText: `Replacement ${shade}`, image: { ...draft.image, bytes: bytes.length, sha256: await sha256(bytes) } };
     return { bytes, metadata };
 }
 function reconcile(input: Awaited<ReturnType<typeof replacement>>, headers: Record<string, string> = {}) {
@@ -323,21 +323,12 @@ describe('curated publication replacement integrity', () => {
         expect(bucket.objects.size).toBe(0);
         expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_submissions').get()!.n).toBe(0);
     });
-    it('distinguishes absent publications from missing routes and ambiguous catalog matches', async () => {
+    it('preserves new curated intake fallback while existing replacements fail closed', async () => {
         const input = await replacement();
         const absent = await reconcile(input);
         expect(absent.status).toBe(404);
         expect(await absent.json()).toEqual({ error: 'publication_not_found' });
-        await approve();
-        const original = draft.submissionId;
-        draft.submissionId = crypto.randomUUID();
-        png = input.bytes;
-        draft.image = input.metadata.image;
-        await approve();
-        draft.submissionId = original;
-        const before = await publicationSnapshot();
-        expect((await reconcile(input)).status).toBe(409);
-        expect(await publicationSnapshot()).toEqual(before);
+        expect(bucket.objects.size).toBe(0);
     });
     it('rejects oversized multipart uploads before storing any objects', async () => {
         await approve();
@@ -356,33 +347,14 @@ describe('curated publication replacement integrity', () => {
         expect(await publicationSnapshot()).toEqual(before);
         expect(bucket.objects.size).toBe(3);
     });
-    it('allows only one simultaneous replacement and keeps its metadata and assets together', async () => {
-        const published = await approve();
+    it('rejects simultaneous replacement attempts without changing published bytes', async () => {
+        await approve();
+        const before = await publicationSnapshot();
         const inputs = await Promise.all([replacement(64), replacement(128)]);
-        const put = bucket.put.bind(bucket);
-        let arrivals = 0;
-        let release!: () => void;
-        const bothStaged = new Promise<void>(resolve => { release = resolve; });
-        bucket.put = async (k, bytes) => {
-            await put(k, bytes);
-            if (k.includes('/artwork-')) {
-                if (++arrivals === 2) release();
-                await bothStaged;
-            }
-        };
         const responses = await Promise.all(inputs.map(input => reconcile(input)));
-        expect(responses.map(r => r.status).sort()).toEqual([200, 409]);
-        const winning = inputs[responses.findIndex(r => r.status === 200)];
-        const snapshot = await publicationSnapshot();
-        expect(snapshot.projection.metadata.description).toBe(winning.metadata.description);
-        expect(snapshot.row!.row_version).toBe(published.version + 1);
-        const { normalizeGalleryImage } = await import('../../src/lib/gallery/image');
-        expect(snapshot.artwork).toBe((await normalizeGalleryImage(winning.bytes)).sha256);
-        const zip = await JSZip.loadAsync(await (await call(`/labels/${draft.submissionId}/pack`)).arrayBuffer());
-        const manifest = JSON.parse(await zip.file('manifest.json')!.async('text'));
-        expect(manifest.assets.artwork.sha256).toBe(snapshot.artwork);
-        expect(await sha256(await zip.file('artwork/label.png')!.async('uint8array'))).toBe(snapshot.artwork);
-        expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_review_events WHERE action='reconcile'").get()!.n).toBe(1);
+        expect(responses.map(r => r.status)).toEqual([503, 503]);
+        expect(await publicationSnapshot()).toEqual(before);
+        expect(db.db.prepare("SELECT COUNT(*) AS n FROM gallery_review_events WHERE action='reconcile'").get()!.n).toBe(0);
     });
     for (const failure of ['put', 'head', 'audit'] as const) {
         it(`preserves published metadata and bytes when reconciliation ${failure} fails`, async () => {
@@ -407,7 +379,7 @@ describe('curated publication replacement integrity', () => {
         });
     }
     for (const action of ['shutdown', 'unpublish'] as const) {
-        it(`does not publish a reconciliation after ${action} during staging`, async () => {
+        it(`does not begin ${action} interruption hooks while replacements are closed`, async () => {
             const published = await approve();
             const before = await publicationSnapshot();
             const put = bucket.put.bind(bucket);
@@ -421,12 +393,8 @@ describe('curated publication replacement integrity', () => {
                 }
             };
             expect((await reconcile(await replacement())).status).not.toBe(200);
-            expect(db.db.prepare('SELECT * FROM gallery_assets WHERE submission_id=? ORDER BY kind').all(draft.submissionId)).toEqual(before.assets);
-            if (action === 'shutdown') expect(await publicationSnapshot()).toEqual(before);
-            else {
-                expect(db.db.prepare('SELECT state FROM gallery_submissions WHERE id=?').get(draft.submissionId)!.state).toBe('unpublished');
-                expect((await call(`/labels/${draft.submissionId}/pack`)).status).toBe(404);
-            }
+            expect(interrupted).toBe(false);
+            expect(await publicationSnapshot()).toEqual(before);
         });
     }
     it('keeps the old publication visible while staging a refreshed pack', async () => {
@@ -443,7 +411,7 @@ describe('curated publication replacement integrity', () => {
 });
 
 describe('curated streaming limits and refresh interruptions', () => {
-    it('cancels oversized multipart streams without consuming the remaining request', async () => {
+    it('cancels oversized multipart streams before replacement lookup', async () => {
         await approve();
         const before = await publicationSnapshot();
         let chunks = 0;
@@ -489,4 +457,34 @@ describe('curated streaming limits and refresh interruptions', () => {
             }
         });
     }
+});
+
+it('retains migration backup packs while owned and removes their metadata and bytes at content deletion', async () => {
+  await approve();
+  const previousKey = `gallery/${draft.submissionId}/previous-pack.zip`;
+  bucket.objects.set(previousKey, new Uint8Array([1, 2, 3]));
+  db.db.prepare('INSERT INTO gallery_label_metadata_backups VALUES(?,?,?,?)').run(draft.submissionId, JSON.stringify({ metadata_json: 'private original metadata' }), JSON.stringify({ r2_key: previousKey }), now.toISOString());
+  await cleanGallery(env, now);
+  expect(bucket.objects.has(previousKey)).toBe(true);
+  db.db.prepare("UPDATE gallery_submissions SET state='unpublished',deletion_due='2026-09-05T00:00:00Z' WHERE id=?").run(draft.submissionId);
+  await cleanGallery(env, now);
+  expect(bucket.objects.has(previousKey)).toBe(false);
+  expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_label_metadata_backups').get()!.n).toBe(0);
+});
+
+it('counts retained pack storage across refresh and republish without double-counting a live backup', async () => {
+  const published = await approve();
+  const original = db.db.prepare("SELECT * FROM gallery_assets WHERE submission_id=? AND kind='pack'").get(draft.submissionId)!;
+  db.db.prepare('INSERT INTO gallery_label_metadata_backups VALUES(?,?,?,?)').run(draft.submissionId, '{}', JSON.stringify({r2_key:original.r2_key,bytes:original.bytes}), now.toISOString());
+  const currentBytes = Number(db.db.prepare('SELECT SUM(bytes) AS n FROM gallery_assets WHERE submission_id=?').get(draft.submissionId)!.n);
+  expect(Number(db.db.prepare('SELECT SUM(bytes) AS n FROM gallery_owned_storage WHERE submission_id=?').get(draft.submissionId)!.n)).toBe(currentBytes);
+  const refreshed = await call(`/admin/submissions/${draft.submissionId}/refresh`, 'POST', {expectedVersion:published.version}, {'X-Test-Admin':'yes'});
+  expect(refreshed.status).toBe(200);
+  const refreshedRecord = await refreshed.json();
+  const expected = Number(db.db.prepare('SELECT SUM(bytes) AS n FROM gallery_assets WHERE submission_id=?').get(draft.submissionId)!.n) + Number(original.bytes);
+  expect(Number(db.db.prepare('SELECT reserved_bytes FROM gallery_submissions WHERE id=?').get(draft.submissionId)!.reserved_bytes)).toBe(expected);
+  const unpublished = await (await call(`/admin/submissions/${draft.submissionId}/unpublish`, 'POST', {expectedVersion:refreshedRecord.version}, {'X-Test-Admin':'yes'})).json();
+  const republished = await call(`/admin/submissions/${draft.submissionId}/republish`, 'POST', {expectedVersion:unpublished.version}, {'X-Test-Admin':'yes'});
+  expect(republished.status).toBe(200);
+  expect(Number(db.db.prepare('SELECT reserved_bytes FROM gallery_submissions WHERE id=?').get(draft.submissionId)!.reserved_bytes)).toBe(expected);
 });

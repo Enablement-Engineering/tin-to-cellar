@@ -1,33 +1,22 @@
-import type { LabelSurface, WriteInArea } from '../cellarpack/types';
 export const GALLERY_NOTICE_VERSION = '2026-09-06-v2';
-export interface GalleryLabelDraftV1 {
-    version: 1;
+export const GALLERY_ARTWORK_PROFILE = 'circle-2.5@1' as const
+export type GalleryTobacco = { catalogId: string } | { maker: string; blend: string }
+export interface GalleryEvidence {
+    package?: 'tin' | 'pouch' | 'box' | 'bulk' | 'other' | 'unknown';
+    variant?: 'current' | 'historical' | 'special' | 'unknown';
+    references?: { url: string; role: 'package-appearance' | 'variant-identification' }[];
+}
+export interface GalleryLabelDraft {
+    version: 2;
     submissionId: string;
-    catalogId: string | null;
-    proposedIdentity: {
-        maker: string;
-        blend: string;
-    } | null;
-    package: 'tin' | 'pouch' | 'box' | 'bulk' | 'other' | 'unknown';
-    variant: 'current' | 'historical' | 'special' | 'unknown';
-    edition: string;
-    description: string;
-    surface: LabelSurface;
-    writeInArea: WriteInArea;
-    references: {
-        url: string;
-        role: 'package-appearance' | 'variant-identification';
-    }[];
-    image: {
-        sha256: string;
-        bytes: number;
-        width: number;
-        height: number;
-    };
-    acknowledgement: {
-        version: typeof GALLERY_NOTICE_VERSION | '2026-09-06-v1';
-        accepted: true;
-    };
+    tobacco: GalleryTobacco;
+    artworkProfileId: typeof GALLERY_ARTWORK_PROFILE;
+    writingArea: import('../cellarpack/types').NormalizedWriteAreaGeometry;
+    edition?: string;
+    altText?: string;
+    evidence?: GalleryEvidence;
+    image: { sha256: string; bytes: number; width: number; height: number };
+    acknowledgement: { version: typeof GALLERY_NOTICE_VERSION | '2026-09-06-v1'; accepted: true };
 }
 export type GalleryState = 'reserved' | 'uploading' | 'pending' | 'preparing-publication' | 'published' | 'unpublished' | 'rejected' | 'withdrawn' | 'expired' | 'deleting' | 'deleted';
 export interface GalleryReceipt {
@@ -37,7 +26,7 @@ export interface GalleryReceipt {
     expiresAt: string;
     deletionDue: string | null;
     digest: string | null;
-    metadata: GalleryLabelDraftV1 | null;
+    metadata: GalleryLabelDraft | null;
     publicationId: string | null;
 }
 export interface GalleryPublicLabel {
@@ -45,10 +34,9 @@ export interface GalleryPublicLabel {
     catalogId: string;
     maker: string;
     blend: string;
-    edition: string;
-    description: string;
-    geometry: 'circle-2.5';
-    metadata: Pick<GalleryLabelDraftV1, 'surface' | 'writeInArea' | 'references' | 'package' | 'variant' | 'edition' | 'description'>;
+    edition?: string;
+    altText: string;
+    artworkProfileId: typeof GALLERY_ARTWORK_PROFILE;
     publishedAt: string;
 }
 
@@ -59,7 +47,7 @@ export interface GalleryAgentGrant {
 }
 export interface GalleryGrantDraft { clientId: string; label: string; scopes: GalleryAgentScope[]; selection: 'selected' | 'all-pending'; submissionIds: string[]; expiresAt: string }
 export type GalleryFindingCategory = 'catalog-match' | 'duplicate' | 'artwork' | 'writing-area' | 'geometry' | 'reference' | 'sharing-concern'
-export type GalleryEvidencePointer = { type: 'artwork'; region?: { x:number; y:number; width:number; height:number } } | { type: 'metadata'; field: 'catalogId' | 'edition' | 'package' | 'variant' | 'description' | 'surface' | 'writeInArea' } | { type: 'reference'; url: string } | { type: 'duplicate'; publicationId: string }
+export type GalleryEvidencePointer = { type: 'artwork'; region?: { x:number; y:number; width:number; height:number } } | { type: 'metadata'; field: 'tobacco' | 'edition' | 'evidence' | 'altText' | 'artworkProfileId' | 'writingArea' } | { type: 'reference'; url: string } | { type: 'duplicate'; publicationId: string }
 export interface GalleryRecommendationDraft {
   schemaVersion: 1; expectedVersion: number; digest: string; idempotencyKey: string;
   assessment: 'ready-for-human-review' | 'needs-attention' | 'unable-to-assess';
@@ -71,6 +59,6 @@ export interface GalleryReviewRecord extends GalleryReceipt {
   createdAt:string; maker:string|null; blend:string|null; mappingNeeded:boolean;
   canonicalHash:string|null; metadataHash:string|null; uploadedHash:string|null;
   publishedIdentity:{maker:string;blend:string}|null;
-  validation:{format:'gallery-v1'; geometry:'circle-2.5'; imageValidated:boolean; visualReviewRequired:true};
+  validation:{format:'gallery-v2'; geometry:'circle-2.5'; imageValidated:boolean; visualReviewRequired:true};
 }
 export interface GalleryHistoryEvent { id:string; action:string; actorType:'human'|'agent'|'contributor'|'system'; actor:string; version:number|null; digest:string|null; createdAt:string; result:string|null; beforeVersion?:number|null; beforeDigest?:string|null; requestId?:string|null; reason?:string|null }

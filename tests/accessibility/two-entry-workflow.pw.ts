@@ -14,9 +14,9 @@ async function library(context: BrowserContext) {
   const alternate = await fixture(825, 30)
   const labels = [...blends.slice(0, 6), blends[0]].map((entry, index) => ({
     ...entry, catalogId: entry.id, id: `43649b43-8094-4a32-b5ee-8be75208fb6${index + 1}`,
-    edition: index === 6 ? 'Alternate fixture' : 'Community fixture', description: 'Geometric artwork with an empty date-writing area', geometry: 'circle-2.5',
+    edition: index === 6 ? 'Alternate fixture' : 'Community fixture', altText: 'Geometric artwork with an empty date-writing area', artworkProfileId: 'circle-2.5@1',
   }))
-  const packs = await Promise.all(labels.map((label, index) => buildGalleryPack({ metadata: { ...(index === 6 ? alternate : source).draft, catalogId: label.catalogId, edition: label.edition }, ...label, packId: label.id, createdAt: '2026-09-07T00:00:00Z' }, index === 6 ? alternate.png : source.png)))
+  const packs = await Promise.all(labels.map((label, index) => buildGalleryPack({ metadata: { ...(index === 6 ? alternate : source).draft, tobacco: { catalogId: label.catalogId }, edition: label.edition }, ...label, packId: label.id, createdAt: '2026-09-07T00:00:00Z' }, index === 6 ? alternate.png : source.png)))
   const outgoing: string[] = []
   context.on('request', request => outgoing.push(request.url() + (request.postData() ?? '')))
   await context.route('**/api/gallery/v1/**', route => {

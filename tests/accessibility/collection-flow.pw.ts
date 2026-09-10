@@ -13,8 +13,8 @@ const known = ['Westminster', 'Autumn Evening', 'Nightcap'].map(blend => catalog
 
 async function installLibrary(context: BrowserContext) {
   const source = await fixture(825)
-  const labels = known.slice(0, 2).map((entry, index) => ({ ...entry, catalogId: entry.id, id: `43649b43-8094-4a32-b5ee-8be75208fb6${index + 3}`, edition: 'Synthetic test', description: 'Green label with a blank cream writing area', geometry: 'circle-2.5' }))
-  const packs = await Promise.all(labels.map(label => buildGalleryPack({ metadata: { ...source.draft, catalogId: label.catalogId }, ...label, packId: label.id, createdAt: '2026-09-06T00:00:00Z' }, source.png)))
+  const labels = known.slice(0, 2).map((entry, index) => ({ ...entry, catalogId: entry.id, id: `43649b43-8094-4a32-b5ee-8be75208fb6${index + 3}`, edition: 'Synthetic test', altText: 'Green label with a blank cream writing area', artworkProfileId: 'circle-2.5@1' }))
+  const packs = await Promise.all(labels.map(label => buildGalleryPack({ metadata: { ...source.draft, tobacco: { catalogId: label.catalogId } }, ...label, packId: label.id, createdAt: '2026-09-06T00:00:00Z' }, source.png)))
   const contributions: unknown[] = []
   const requests: string[] = []
   context.on('request', request => requests.push(request.url()))
@@ -126,6 +126,7 @@ test('mixed collection freezes only requested artwork and merges a returned ZIP 
   returnedManifest.packId = 'urn:uuid:43649b43-8094-4a32-b5ee-8be75208fb69'
   returnedManifest.labels[0].maker = third.maker
   returnedManifest.labels[0].blend = third.blend
+  returnedManifest.labels[0].research = { status: 'limited', observedPackage: { format: 'tin', variant: 'current', variantDateOrEdition: 'unknown' }, visualAnalysis: { palette: ['green'], motifs: [], border: 'plain', typography: 'serif', hierarchy: 'title', style: 'simple' }, sources: [], adaptationSummary: 'Blank date area' }
   returnedManifest.labels[0].research.sources = [{ id: 'reference', type: 'web', role: 'package-appearance', url: 'https://example.com/DO-NOT-FETCH', title: 'Fixture package reference', retrievedAt: returnedManifest.createdAt }]
   const returnedZip = await new JSZip().file('manifest.json', JSON.stringify(returnedManifest)).file('artwork/fixture-blend.png', source.png).generateAsync({ type: 'nodebuffer' })
   const returned = { name: 'new-artwork.cellarpack.zip', mimeType: 'application/zip', buffer: returnedZip }

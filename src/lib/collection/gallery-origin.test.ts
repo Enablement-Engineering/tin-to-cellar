@@ -14,7 +14,7 @@ describe('known community artwork receipts', () => {
     expect(saved.receipts[0].knownGalleryHashes).toEqual([hash])
     const removed = removeRow(saved, saved.rows[0].id)
     expect(Object.keys(removed.designs)).toHaveLength(0)
-    const local = await prepareImport(await collectionFixture(manifest => { manifest.labels[0].research.adaptationSummary = 'Different metadata for the same community bytes' }), { origin: 'local' })
+    const local = await prepareImport(await collectionFixture(manifest => { manifest.labels[0].research!.adaptationSummary = 'Different metadata for the same community bytes' }), { origin: 'local' })
     const restored = applyImport(removed, planImport(removed, local))
     expect(restored.receipts.flatMap(receipt => receipt.knownGalleryHashes ?? [])).toContain(restored.designs[restored.rows[0].designId!].item.artwork.asset.sha256)
     expect(() => assertCollection(restored)).not.toThrow()

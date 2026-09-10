@@ -15,9 +15,10 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.res
 it('loads on intersection, prevents concurrent requests, pauses after failure and allows retry', async () => {
   let intersect: IntersectionObserverCallback = () => {}
   const disconnect = vi.fn()
+  const observe = vi.fn()
   vi.stubGlobal('IntersectionObserver', class {
     constructor(callback: IntersectionObserverCallback) { intersect = callback }
-    observe() {}
+    observe = observe
     disconnect = disconnect
   })
   const search = vi.mocked(searchLabels)
@@ -26,6 +27,7 @@ it('loads on intersection, prevents concurrent requests, pauses after failure an
   search.mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectPage = reject }))
   render(<GalleryBrowse onAdd={vi.fn()} />)
   await screen.findByRole('button', { name: 'Show more labels' })
+  await waitFor(() => expect(observe).toHaveBeenCalled())
   const enter = () => intersect([{ isIntersecting: true }] as IntersectionObserverEntry[], {} as IntersectionObserver)
   enter(); enter()
   await waitFor(() => expect(search).toHaveBeenCalledTimes(2))
@@ -49,7 +51,7 @@ it('keeps manual pagination when IntersectionObserver is unavailable', async () 
   await waitFor(() => expect(search).toHaveBeenCalledTimes(2))
 })
 
-const label = { id: 'design-one', catalogId: 'peterson-nightcap', maker: 'Peterson', blend: 'Nightcap', edition: '', description: 'A dark blue evening design.', geometry: 'circle-2.5', metadata: {}, publishedAt: '2026-09-01' } as GalleryPublicLabel
+const label = { id: 'design-one', catalogId: 'peterson-nightcap', maker: 'Peterson', blend: 'Nightcap', edition: '', altText: 'A dark blue evening design.', artworkProfileId: 'circle-2.5@1', publishedAt: '2026-09-01' } as GalleryPublicLabel
 function mockDialog() {
   Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value: function () { this.setAttribute('open', '') } })
   Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value: function () { this.removeAttribute('open') } })

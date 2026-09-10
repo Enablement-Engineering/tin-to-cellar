@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import type { ImportedCellarLabel } from '../../lib/cellarpack/types'
 import { importCellarPack } from '../../lib/cellarpack/importer'
-import type { GalleryLabelDraftV1, GalleryReceipt } from '../../lib/gallery/types'
+import type { GalleryLabelDraft, GalleryReceipt } from '../../lib/gallery/types'
 import { API, errorText, request } from './client'
 import { buildDraft, initial, references } from './draft'
 
 type IntakeItem = {
   label: ImportedCellarLabel
   submissionId: string
-  draft?: GalleryLabelDraftV1
+  draft?: GalleryLabelDraft
   receipt?: GalleryReceipt
   error?: string
 }
@@ -16,10 +16,10 @@ type IntakeItem = {
 function choiceFor(label: ImportedCellarLabel) {
   const choice = initial(label)
   choice.references = references(label).map((source) => source.type === 'web' ? source.url : '')
-  const variant = label.label.research.observedPackage.variant.toLowerCase()
+  const variant = label.label.research?.observedPackage.variant.toLowerCase() ?? ''
   choice.variant = variant === 'current' || variant === 'historical' || variant === 'special' ? variant : 'unknown'
-  choice.edition = label.label.research.observedPackage.variantDateOrEdition
-  const format = label.label.research.observedPackage.format.toLowerCase()
+  choice.edition = label.label.edition ?? ''
+  const format = label.label.research?.observedPackage.format.toLowerCase() ?? ''
   choice.package = format.includes('pouch') || format.includes('bag')
     ? 'pouch'
     : format.includes('box')
@@ -103,6 +103,9 @@ export function CuratedIntake() {
           continue
         }
         const result = await reconciled.json().catch(() => null) as { error?: string } | null
+        if (reconciled.status === 503 && result?.error === 'replacement_review_required') {
+          throw new Error('A matching public label already exists. It was left unchanged because staged replacement review is not available yet.')
+        }
         if (reconciled.status !== 404 || result?.error !== 'publication_not_found') {
           throw new Error(result?.error ? `Published-resource reconciliation failed (${result.error.replaceAll('_', ' ')}).` : 'Published-resource reconciliation failed.')
         }
@@ -138,12 +141,12 @@ export function CuratedIntake() {
   const ready = items.filter((item) => item.receipt?.state === 'pending' || item.receipt?.state === 'published').length
   return <details className="panel gallery-curated-intake">
     <summary>Curated CellarPack intake</summary>
-    <p>For administrator-reviewed releases only. This updates matching public labels in place and adds new labels to private review. PNG metadata is removed without changing image pixels; downloadable packs are rebuilt.</p>
+    <p>For administrator-reviewed releases only. New labels are added to private review. Matching public labels remain unchanged until a separately reviewed replacement workflow is available.</p>
     <label>Validated CellarPacks<input type="file" accept=".zip,application/zip" multiple disabled={busy} onChange={(event) => void load(event.target.files)} /></label>
     {error && <p role="alert">{error}</p>}
     {items.length > 0 && <>
       <p>{items.length} unique labels ready from {filenames.length} {filenames.length === 1 ? 'pack' : 'packs'}.</p>
-      <label className="gallery-check"><input type="checkbox" checked={accepted} disabled={busy} onChange={(event) => setAccepted(event.target.checked)} />I reviewed the source evidence, artwork, blank writing areas, and print proofs. Apply these replacements to matching public labels and add new labels to private review.</label>
+      <label className="gallery-check"><input type="checkbox" checked={accepted} disabled={busy} onChange={(event) => setAccepted(event.target.checked)} />I reviewed the source evidence, artwork, blank writing areas, and print proofs. Add new labels to private review and leave matching public labels unchanged.</label>
       <button className="button primary" disabled={!accepted || busy || ready === items.length} onClick={() => void upload()}>{busy ? 'Preparing community resources…' : ready ? `Retry ${items.length - ready} unfinished labels` : `Prepare ${items.length} community resources`}</button>
       <p role="status">{ready} of {items.length} resources prepared or added to private review.</p>
       {items.some((item) => item.error) && <ul>{items.filter((item) => item.error).map((item) => <li key={item.submissionId}>{item.label.label.maker} {item.label.label.blend}: {item.error}</li>)}</ul>}
