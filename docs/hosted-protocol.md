@@ -22,7 +22,13 @@ Protocol 0.0.26 adds a proof link in the same message as a visual error and its 
 
 Revision 0.0.28 adds the sequential research/photo-paste/generation/proof cycle. Regression checks require the copy-image instruction, pasted-photo approval, next-tobacco research only after proof, deferred saved-source inspection, and one final ZIP. They also reject the prior batch-research and batch-review instructions. A fresh AI trial is still required to assess host image handoff and generation behavior.
 
-Validation passed: 546 tests, lint, production build, release verification and diff whitespace checks. The local server's portable prompt matched the built 0.0.28 artifact byte-for-byte by SHA-256. The local artwork page offers the updated-copy action while preserving the saved older handoff. Documentation follows the same per-label sequence. This revision has not been deployed.
+Validation passed: 546 tests in the shared workspace, lint, production build, release verification and diff whitespace checks. The local server's portable prompt matched the built 0.0.28 artifact byte-for-byte by SHA-256. The local artwork page offers the updated-copy action while preserving the saved older handoff. Documentation follows the same per-label sequence.
+
+### Production release: 2026-09-09
+
+Commit `14cde18` deployed protocol 0.0.28 through the [main release workflow](https://github.com/Enablement-Engineering/tin-to-cellar/actions/runs/34423899523). The isolated release checkout passed 541 application tests and 10 Python preparation/proof tests, plus lint, build and verification that all 23 previously published protocol snapshots were unchanged. The lower application count excludes unrelated local gallery and catalog tests that were not committed. GitHub's checks and deployment passed.
+
+Production verification confirmed healthy status with the diagnostic-budget, curated-intake and curated-reconcile capabilities, HTTP 403 from the protected budget endpoint, HTTP 200 from the artwork page, and exact equality between the deployed portable prompt and the tested artifact. Its SHA-256 is `7ee7599c237e56744aa34e874994116499a2f855c419df49040029dd71fd0bcd`. A fresh AI generation trial, artwork import and physical printing remain unverified for this revision.
 
 ### Revision 0.0.27 validation
 
