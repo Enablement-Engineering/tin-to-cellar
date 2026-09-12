@@ -2,6 +2,8 @@
 
 September 12, 2026. Implementation branch `codex/beta-readiness`, isolated checkout `/private/tmp/tin-beta-readiness`, based on freshly fetched `origin/main` at `f73760b`.
 
+The tested implementation is `740c38f05348495eace5d760113c4b995d4b97ea`. A fresh main fetch during release preparation still returned the same base. See the [durable evidence index](beta-acceptance-evidence.md) and [hosted acceptance and release package](beta-release-package.md). Later package documentation does not change the tested application.
+
 The beta implementation is local. No production deployment, remote migration, account notification change, analytics activation or artwork operation occurred. An active artwork publication slot was acknowledged; remote migration/deployment must wait for release coordination and authorization.
 
 ## Scope and ownership
@@ -45,12 +47,15 @@ The local load fixture uses real SQLite plus memory R2 and Cache API adapters. I
 | Warm repeat | 26 cache hits, zero SQL statements and zero R2 reads. |
 | Delayed cache writes, 410 KB thumbnails | First warm repeat still has 26 hits and zero SQL/R2 work. |
 | 20 sessions behind one simulated IP | 520 requests, no unexpected 429 or 5xx. |
+| 100 cold/warm same-image handler requests | Cold: three SQL statements, one R2 read and 99 hits. Warm: zero SQL/R2 and 100 hits. Immediate memory objects do not prove 100 overlapping hosted downloads. |
 | Ten intentional pages | 240 distinct thumbnails reachable through cursors. |
 | 130 metadata requests | Ten expected limiter rejections; image and pack buckets remain independent. |
 | 20 disconnected pack downloads | All 20 underlying stream cancellations observed. |
 | Public/admin cache isolation | Actual root dispatch plus shared cache fixture rejects unauthorized admin reads; authenticated/private responses remain no-store. Human verifier is mocked locally. |
 
 The query-plan comparison justified migration `0007`: unfiltered browse stops using a temporary sort while filtered browse retains its existing index. Migration `0006` adds anonymous rollups and an admission counter; both migrations are additive and have been exercised locally.
+
+Local timing records contain handler p95 only, excluding body consumption. Hosted p50/p95/p99/max and a numeric latency ceiling frozen before candidate measurement remain outstanding. The 20-session test advances a synthetic clock rather than running a real minute of traffic.
 
 Independent testing found and corrected a cache-write cap that left thumbnails uncached under delayed I/O. Review also corrected effective config-intake comparison, duplicate add-event paths and generated staging-host analytics dispatch. Existing gallery test fixtures were updated for v2 `writingArea`, current navigation text and exact intake identity; pixel comparisons retain exact decoded-byte equality through hashes without enormous failure diffs.
 

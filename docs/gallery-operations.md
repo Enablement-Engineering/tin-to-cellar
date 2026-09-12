@@ -66,9 +66,11 @@ Before an authorized staging release, supply actual resource/configuration value
 
 | Binding or setting | Required configuration |
 | --- | --- |
-| `GALLERY` | Separate D1 database; apply `migrations/gallery/0001_gallery.sql`, then the catalog seed. |
+| `GALLERY` | Separate D1 database; inspect migration history and apply all reviewed pending files in `migrations/gallery/` in order, then the reviewed catalog seed. Beta adds `0006` and `0007`; see the [migration and rollback package](beta-release-package.md). |
 | `GALLERY_ART` | Private R2 bucket; keep public custom domains and `r2.dev` access disabled. |
 | `GALLERY_RATE_LIMITER` | Worker rate-limit binding, five new reservations per 60 seconds per daily hashed IP key. |
+| Gallery read/upload/mutation limiters | Preserve the complete bindings in the reviewed `wrangler.jsonc` and generator: metadata 120/minute, images 2,400/minute, packs 60/minute, uploads 5/minute and mutations 20/minute. Read controls are approximate location-local limits. |
+| `ANALYTICS_RATE_LIMITER` / `ANALYTICS_ENABLED` / `ANALYTICS_DAILY_ALLOWANCE` | Separate 30/minute approximate IP limit, collection disabled for this candidate, and atomic daily admission allowance at most 1,000. See [beta operations](beta-operations.md). |
 | `GALLERY_IP_SALT` | Private unpredictable deployment secret, distinct from the local harness value. |
 | `GALLERY_TURNSTILE_SITE_KEY` / `GALLERY_TURNSTILE_SECRET` | Actual site key and secret for each permitted hostname. Server checks hostname, `gallery-submit` action and fresh challenge timestamp. |
 | `GALLERY_ACCESS_ISSUER` / `GALLERY_ACCESS_AUD` / `GALLERY_ADMIN_SUBJECT` | Actual Cloudflare Access issuer, audience and Dylan's chosen subject. Worker verifies signed RS256 JWTs, expiry and subject; a plain email header is insufficient. |
