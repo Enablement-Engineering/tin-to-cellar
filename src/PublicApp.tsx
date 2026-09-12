@@ -263,6 +263,7 @@ export default function PublicApp() {
   const navItems: { view: View; label: string }[] = [
     { view: 'create' as const, label: 'Your labels' }, { view: 'print' as const, label: 'Print labels' },
   ]
+  const showNotice = (view === 'print' || view === 'create' || view === 'artwork') && Boolean(notice) && !importing
   return <div className="app-shell tc-grain" onClick={event => {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     const anchor = event.target instanceof Element ? event.target.closest('a') : null
@@ -283,7 +284,10 @@ export default function PublicApp() {
       {previewError && <p className="panel screen-only" role="alert">{previewError}</p>}
       {view === 'print' && currentReceipt && diagnosticWarnings[currentReceipt.id] && <p className="field-hint screen-only" role="status">Some diagnostics could not be prepared. Your label import can continue.</p>}
       {storageError && !ready && <button className="button secondary screen-only" type="button" onClick={() => window.location.reload()}>Reload saved labels</button>}
-      <p className={(view === 'print' || view === 'create' || view === 'artwork') && notice ? 'field-hint screen-only' : 'visually-hidden screen-only'} role="status">{importing ? 'Checking your labels…' : notice}</p>
+      <div className={showNotice ? 'app-notice screen-only' : 'visually-hidden screen-only'}>
+        <p role="status">{importing ? 'Checking your labels…' : notice}</p>
+        {showNotice && <button className="button quiet" type="button" onClick={() => { setNotice(''); main.current?.focus({ preventScroll: true }) }}>Dismiss message</button>}
+      </div>
       {galleryMatch && candidate && <GalleryDesignReview current={galleryMatch} incoming={candidate.designs[0]} busy={busy} invalidated={reviewInvalidated} error={reviewInvalidated ? 'Your saved labels changed. Cancel and choose the design again.' : importError || storageError} onReplace={() => void acceptGalleryChoice('replace')} onAdd={() => void acceptGalleryChoice('add')} onCancel={cancelImport} />}
       {review && candidate && !galleryMatch && <CollectionImportReview unresolvedRequests={collection.rows.filter(row => row.createRequested && !Object.values(decisions).some(decision => decision.action === 'replace' && decision.rowId === row.id)).map(row => row.blend)} collection={collection} plan={review} decisions={decisions} onChange={setDecisions} onAccept={() => void acceptImport()} onReplace={() => void replaceImport()} onCancel={() => { focusAfterImport.current = true; setShowIntake(false); cancelImport() }} busy={busy} invalidated={reviewInvalidated} onRefresh={refreshDecisions} error={importError || storageError}>{summary && (summary.status !== 'ready' || summary.issues.length > 0 || summary.quarantined.length > 0) ? <ImportReport summary={summary} /> : null}</CollectionImportReview>}
       {legacyChoices.length > 0 && <section className="panel screen-only"><h2>Your previous community selection</h2><p>{legacyChoices.length} selected designs can be saved in Your labels. A design only becomes ready after its artwork downloads.</p><button type="button" className="button secondary" disabled={busy} onClick={() => void restoreLegacy()}>Restore selected labels</button></section>}

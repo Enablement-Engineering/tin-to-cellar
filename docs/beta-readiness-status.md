@@ -1,5 +1,19 @@
 # Beta implementation status
 
+## Hosted release update, September 12
+
+The beta implementation deployed through current main at `91c1fe00451f31bdca97c53a3dedb3cc8d693e1c`, successful workflow `34716896748`, Worker version `1005a998-7f93-4114-ab9c-791196eefff0`. Dylan explicitly authorized deployment and coordination with the artwork tasks. Both paused production writes. Production migrations `0006` and `0007` passed; catalog rows and aliases matched the release seed before execution. Existing gallery switches remain enabled; analytics remains disabled with zero rollup rows.
+
+Production verification passed 23 bounded HTTP checks, actual signed-in human admin rendering, machine queue access with no-store and denial of machine access to human administration, health capabilities, unauthenticated diagnostic-budget 403 and the authorized budget read. A published thumbnail/artwork/pack matched stored hashes and sizes. The thumbnail warm repeat hit cache; the 3.4 MB artwork and pack remained uncached as designed. The live print preview restored 17 existing local labels across two sheets without changing their quantities.
+
+Staging version `3e5a444c-c98c-428a-bebd-c5ccedc403d5` passed 720 HTTP requests with no 429, 5xx or transport failures at EWR. First/warm 100-request bursts returned 100 MISS/100 HIT; warm full-body p95 was 269.794 ms. Twenty landings over 60 real seconds returned 514 hits and six metadata misses, using one synthetic image repeated 24 times. Serving shutdown was observed within 6.384 seconds and unpublish within 43.471 seconds, with conditional and ordinary reads denied. The prior approved synthetic staging label is unpublished again and serving restored. Three legacy synthetic staging records were backed up and migrated with the existing metadata migration procedure before this test; production required no such backfill.
+
+This is deployed software with bounded hosted evidence, not completion of every beta gate. Multi-location cache/removal, 24 distinct hosted thumbnails, baseline-backed latency ceilings, hosted slow-consumer memory/disconnect stress, retained-log privacy/retention, account alert/manual-check acceptance, hosted analytics activation tests and physical printing remain unaccepted. A live-tail attempt captured no summaries and is not logging proof. P0-6 remains explicitly deferred. Analytics remains off.
+
+Dylan separately authorized the reset/status-notice fix from the task “Fix misplaced UI message.” Its exact three-file patch was integrated onto this release, preserving analytics callbacks; 42 application tests, lint and build passed. Its follow-up deployment identity and final verification will be recorded in the durable release evidence directory. Earlier sections below describe the original local milestone.
+
+## Original local milestone
+
 September 12, 2026. Implementation branch `codex/beta-readiness`, isolated checkout `/private/tmp/tin-beta-readiness`, based on freshly fetched `origin/main` at `f73760b`.
 
 The tested implementation is `740c38f05348495eace5d760113c4b995d4b97ea`. A fresh main fetch during release preparation still returned the same base. See the [durable evidence index](beta-acceptance-evidence.md) and [hosted acceptance and release package](beta-release-package.md). Later package documentation does not change the tested application.

@@ -757,6 +757,11 @@ it('identifies import history without changing the selected print job, and reset
   expect((await savedCollection())?.rows).toEqual([])
   expect((await savedCollection())?.receipts).toEqual([])
   expect(screen.queryByLabelText('Previous import')).not.toBeInTheDocument()
+  const notice = screen.getByRole('status').parentElement!
+  expect(notice).toHaveTextContent('Saved labels and requests reset. Downloaded ZIPs are unchanged.')
+  fireEvent.click(within(notice).getByRole('button', { name: 'Dismiss message' }))
+  expect(screen.queryByText('Saved labels and requests reset. Downloaded ZIPs are unchanged.')).not.toBeInTheDocument()
+  expect(screen.getByRole('main')).toHaveFocus()
 })
 
 it('returns to the saved print job when Cancel import is clicked, preserving quantities and alignment', async () => {
