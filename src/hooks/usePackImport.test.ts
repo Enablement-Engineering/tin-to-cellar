@@ -24,11 +24,13 @@ async function setup(replace = false, fromGallery = false) {
   mocks.prepare.mockResolvedValue({ incoming, retrospective: null, diagnosticWarning: false })
   let current = replace ? addRequests(createCollection(), [{ catalogId: null, maker: 'Fixture Maker', blend: 'Fixture Blend' }]) : createCollection()
   const commit = async (change: (value: Collection) => Collection) => current = { ...change(current), revision: current.revision + 1 }
-  const hook = renderHook(({ collection }) => usePackImport({ collection, ready: true, commit, onStart: () => {}, onImported: () => {} }), { initialProps: { collection: current } })
+  const onGalleryAdded = vi.fn()
+  const hook = renderHook(({ collection }) => usePackImport({ collection, ready: true, commit, onStart: () => {}, onImported: () => {}, onGalleryAdded }), { initialProps: { collection: current } })
   let operation!: Promise<unknown>
   await act(async () => { operation = hook.result.current.chooseCommunity({ id: 'community', maker: 'Fixture Maker', blend: 'Fixture Blend' }, replace && !fromGallery ? current.rows[0].id : undefined).catch(error => error) })
   return {
     hook,
+    onGalleryAdded,
     change(update: (value: Collection) => Collection) { current = { ...update(current), revision: current.revision + 1 }; hook.rerender({ collection: current }) },
     async complete() { let outcome: unknown; await act(async () => { finishDownload({ file: { name: 'community.zip' }, result: pack }); outcome = await operation }); return { outcome, current } },
   }
@@ -40,6 +42,7 @@ it('adds a downloaded gallery label after an unrelated print setting changes', a
   expect(outcome).toBeUndefined()
   expect(current.rows).toHaveLength(1)
   expect(current.printSettings.firstSlot).toBe(2)
+  expect(run.onGalleryAdded).toHaveBeenCalledOnce()
 })
 it('fills the same requested row after a quantity-only update and preserves that quantity', async () => {
   const run = await setup(true)
@@ -49,6 +52,7 @@ it('fills the same requested row after a quantity-only update and preserves that
   expect(current.rows).toHaveLength(1)
   expect(current.rows[0].quantity).toBe(7)
   expect(current.rows[0].designId).not.toBeNull()
+  expect(run.onGalleryAdded).toHaveBeenCalledOnce()
 })
 it.each(['identity', 'notes', 'removed'] as const)('rejects a replacement when its requested row changed: %s', async change => {
   const run = await setup(true)
@@ -56,9 +60,10 @@ it.each(['identity', 'notes', 'removed'] as const)('rejects a replacement when i
   const { outcome, current } = await run.complete()
   expect(outcome).toMatchObject({ code: 'conflict' })
   expect(Object.keys(current.designs)).toHaveLength(0)
+  expect(run.onGalleryAdded).not.toHaveBeenCalled()
 })
 
-async function replacementSetup(failSave = false) {
+async function replacementSetup(failSave = false, origin: 'example' | 'gallery' = 'example') {
   vi.stubGlobal('Blob', NodeBlob)
   const oldPack = await collectionFixture(manifest => { manifest.labels[0].blend = 'Old blend' })
   const oldArtwork = oldPack.labels[0].artwork
@@ -71,16 +76,23 @@ async function replacementSetup(failSave = false) {
   current = addRequests(current, [{ catalogId: null, maker: 'Maker', blend: 'Pending request' }])
   current.printSettings = { page: 1, firstSlot: 3, offset: { x: .1, y: 0 } }
   const pack = await collectionFixture()
-  const candidate = await prepareImport(pack, { origin: 'example' })
+  const candidate = await prepareImport(pack, { origin })
   const before = current
+  const onGalleryAdded = vi.fn()
   const hook = renderHook(({ collection }) => usePackImport({ collection, ready: true, commit: async change => {
     const next = change(current)
     if (failSave) throw new Error('Storage full')
     return current = { ...next, revision: current.revision + 1 }
-  }, onStart: () => {}, onImported: () => {} }), { initialProps: { collection: current } })
+  }, onStart: () => {}, onImported: () => {}, onGalleryAdded }), { initialProps: { collection: current } })
   act(() => hook.result.current.setCandidate(candidate))
-  return { hook, candidate, before, current: () => current, change: () => { current = { ...current, revision: current.revision + 1 } } }
+  return { hook, candidate, before, onGalleryAdded, current: () => current, change: () => { current = { ...current, revision: current.revision + 1 } } }
 }
+it('does not count opening review or replacing a row that already has artwork as an added label', async () => {
+  const run = await replacementSetup(false, 'gallery')
+  expect(run.onGalleryAdded).not.toHaveBeenCalled()
+  await act(async () => { await run.hook.result.current.saveCandidate(run.candidate, run.hook.result.current.review!, { [run.candidate.designs[0].id]: { action: 'replace', rowId: run.before.rows[0].id } }) })
+  expect(run.onGalleryAdded).not.toHaveBeenCalled()
+})
 it('atomically replaces saved artwork and pending requests, resetting quantities while keeping reports', async () => {
   const run = await replacementSetup()
   await act(async () => { await run.hook.result.current.replaceCandidate(run.candidate, run.hook.result.current.review!) })

@@ -7,6 +7,7 @@ export interface GalleryDatabase {
 export interface GalleryBucket {
     put(key: string, value: Uint8Array, options?: unknown): Promise<unknown>;
     get(key: string): Promise<{
+        body: ReadableStream<Uint8Array>;
         arrayBuffer(): Promise<ArrayBuffer>;
     } | null>;
     head(key: string): Promise<unknown | null>;
@@ -29,6 +30,9 @@ export interface GalleryRateLimiter {
 }
 export interface GalleryEnv {
     GALLERY_READ_RATE_LIMITER?: GalleryRateLimiter;
+    GALLERY_IMAGE_RATE_LIMITER?: GalleryRateLimiter;
+    GALLERY_PACK_RATE_LIMITER?: GalleryRateLimiter;
+    GALLERY_ADMIN_HOST?: string;
     GALLERY_UPLOAD_RATE_LIMITER?: GalleryRateLimiter;
     GALLERY_MUTATION_RATE_LIMITER?: GalleryRateLimiter;
     GALLERY_AGENT_ACCESS_AUD?: string;

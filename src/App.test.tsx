@@ -13,6 +13,7 @@ import { PROTOCOL_REVISION } from './lib/protocol'
 import type { CellarPackImportResult } from './lib/cellarpack/types'
 import * as contributions from './lib/contributions'
 import * as retrospectives from './lib/feedback/retrospective'
+import * as demand from './lib/analytics/client'
 const { importer } = vi.hoisted(() => ({ importer: vi.fn() }))
 vi.mock('./lib/cellarpack', () => ({ importCellarPack: importer }))
 let fixture: CellarPackImportResult
@@ -87,6 +88,54 @@ beforeEach(async () => {
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } })
 })
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
+
+it('counts explicit print entry and job requests without counting imported or restored labels', async () => {
+  const record = vi.spyOn(demand, 'recordDemand').mockImplementation(() => {})
+  const print = vi.spyOn(window, 'print').mockImplementation(() => {})
+  window.history.replaceState({}, '', '/labels/print')
+  const item = imported('Nightcap'); item.label.maker = 'Peterson'
+  importer.mockResolvedValue(ready([item]))
+  const first = render(<App />)
+  await upload()
+  await screen.findByRole('button', { name: 'Print 1 label' })
+  expect(record).not.toHaveBeenCalled()
+  first.unmount()
+  render(<App />)
+  await screen.findByRole('button', { name: 'Print 1 label' })
+  expect(record).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('link', { name: 'Your labels' }))
+  await screen.findByRole('heading', { name: 'Nightcap' })
+  fireEvent.click(screen.getByRole('link', { name: 'Print labels' }))
+  expect(record).toHaveBeenCalledTimes(1)
+  expect(record.mock.calls[0][0]).toBe('selected-for-print')
+  expect(record.mock.calls[0][1]).toEqual([expect.objectContaining({ catalogId: 'peterson-nightcap' })])
+  fireEvent.change(await screen.findByLabelText('Quantity for Nightcap'), { target: { value: '3' } })
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Print 3 labels' })).toBeEnabled())
+  expect(record).toHaveBeenCalledTimes(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Print alignment sheet' }))
+  window.dispatchEvent(new Event('afterprint'))
+  expect(record).toHaveBeenCalledTimes(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Print 3 labels' }))
+  expect(record).toHaveBeenCalledTimes(2)
+  expect(record.mock.calls[1][0]).toBe('print-job-requested')
+  expect(record.mock.calls[1][1]).toEqual([expect.objectContaining({ catalogId: 'peterson-nightcap', quantity: 3 })])
+  expect(print).toHaveBeenCalledTimes(2)
+})
+
+it('records a successful explicit add once and leaves empty print navigation uncounted', async () => {
+  const record = vi.spyOn(demand, 'recordDemand').mockImplementation(() => {})
+  render(<App />)
+  const input = await screen.findByRole('combobox', { name: 'Add a blend' })
+  await waitFor(() => expect(input).not.toHaveAttribute('readonly'))
+  fireEvent.change(input, { target: { value: 'Peterson Nightcap' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Add blend' }))
+  await screen.findByRole('heading', { name: 'Nightcap' })
+  await waitFor(() => expect(record).toHaveBeenCalledTimes(1))
+  expect(record).toHaveBeenCalledTimes(1)
+  expect(record.mock.calls[0][0]).toBe('added-to-labels')
+  fireEvent.click(screen.getByRole('link', { name: 'Print labels' }))
+  expect(record).toHaveBeenCalledTimes(1)
+})
 it.each(['throws', 'invalid'])('saves printable artwork when optional diagnostics preparation %s', async mode => {
   window.history.replaceState({}, '', '/labels/print')
   const prepare = vi.spyOn(contributions, 'contributionFromManifest')

@@ -29,7 +29,7 @@ class Bucket implements GalleryBucket {
     failDelete = false;
     async put(key: string, bytes: Uint8Array) { if (this.failPut)
         throw Error('injected'); this.objects.set(key, bytes.slice()); }
-    async get(key: string) { const bytes = this.objects.get(key); return bytes ? { arrayBuffer: async () => bytes.slice().buffer as ArrayBuffer } : null; }
+    async get(key: string) { const bytes = this.objects.get(key); return bytes ? { body: new Response(bytes.slice().buffer as ArrayBuffer).body!, arrayBuffer: async () => bytes.slice().buffer as ArrayBuffer } : null; }
     async head(key: string) { return this.objects.has(key) ? {} : null; }
     async delete(key: string) { if (this.failDelete)
         throw Error('injected'); this.objects.delete(key); }
@@ -47,7 +47,7 @@ it('distinguishes a serving library with no matches from disabled listing respon
   env.GALLERY_SERVING = 'false';
   expect(await (await call('/labels?catalogId=test-blend')).json()).toEqual({ serving: false, labels: [], nextCursor: null });
 });
-beforeEach(async () => { db = new DB(); bucket = new Bucket(); env = { GALLERY: db, GALLERY_ART: bucket, GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'fixture', GALLERY_MUTATION_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_READ_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_UPLOAD_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_RATE_LIMITER: { limit: async () => ({ success: true }) } }; png = encode({ width: 825, height: 825, channels: 3, depth: 8, data: new Uint8Array(825 * 825 * 3).fill(255) }); draft = { version: 2, submissionId: crypto.randomUUID(), tobacco: { catalogId: 'test-blend' }, artworkProfileId: 'circle-2.5@1', altText: 'Synthetic test label', writingArea: { shape: 'rectangle', x: .35, y: .6, width: .3, height: .1 }, image: { sha256: await sha256(png), bytes: png.length, width: 825, height: 825 }, acknowledgement: { version: '2026-09-06-v2', accepted: true } }; });
+beforeEach(async () => { db = new DB(); bucket = new Bucket(); env = { GALLERY: db, GALLERY_ART: bucket, GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'fixture', GALLERY_MUTATION_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_READ_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_IMAGE_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_PACK_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_UPLOAD_RATE_LIMITER: { limit: async () => ({ success: true }) }, GALLERY_RATE_LIMITER: { limit: async () => ({ success: true }) } }; png = encode({ width: 825, height: 825, channels: 3, depth: 8, data: new Uint8Array(825 * 825 * 3).fill(255) }); draft = { version: 2, submissionId: crypto.randomUUID(), tobacco: { catalogId: 'test-blend' }, artworkProfileId: 'circle-2.5@1', altText: 'Synthetic test label', writingArea: { shape: 'rectangle', x: .35, y: .6, width: .3, height: .1 }, image: { sha256: await sha256(png), bytes: png.length, width: 825, height: 825 }, acknowledgement: { version: '2026-09-06-v2', accepted: true } }; });
 describe('private gallery workflow', () => {
     it('pauses all gallery operations and cleanup until saved metadata is migrated', async () => {
         await submit();

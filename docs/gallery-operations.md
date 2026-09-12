@@ -1,6 +1,6 @@
 # Community gallery operations
 
-Implementation is available in the isolated development checkout. **No hosted gallery deployment or provisioning has occurred.** The production Wrangler configuration keeps gallery switches off and has no gallery D1/R2 bindings. Passing local checks does not establish hosted authentication, storage configuration, or physical printer alignment.
+The repository's production configuration contains gallery D1/R2 bindings and enabled gallery switches. The beta changes described here are an implementation candidate until the release record identifies their deployed commit. Configuration and local checks do not establish hosted authentication, storage behavior, or physical printer alignment.
 
 The [implementation plan](gallery-implementation-plan.md) records the design; this guide describes the implemented operational boundaries. Use npm for all project commands. Do not deploy the local test harness.
 
@@ -12,7 +12,9 @@ Contributors need no account. After successful upload, the website shows “Subm
 
 At `/admin/gallery`, the reviewer checks full-resolution canonical artwork, blank-area geometry, identity, optional edition and alternative text, and any private review evidence. Corrections invalidate the previous review digest. An unknown blend must be mapped to an active repository catalog entry before publication. Approval publishes that exact version; image replacement requires a separate submission. Exact published duplicates link to the existing publication and the duplicate submission is scheduled for removal.
 
-Public browsing at `/gallery` and downloads pass through `/api/gallery/v1/labels`. Every detail, thumbnail, artwork and pack request checks current publication state using a primary-consistent D1 session and returns `Cache-Control: no-store`. There are no public R2 URLs. Unpublish stops subsequent public requests, including previously copied URLs; an in-flight response or an earlier download cannot be recalled.
+Public browsing at `/gallery` and downloads pass through `/api/gallery/v1/labels`. Beta public reads use the classic Cache API inside the Worker, with full-origin keys and short absolute expiry deadlines. Front-of-Worker caching is not enabled. Authentication remains ahead of the public cache; authenticated/cookie/admin variants bypass it. Config is cached for at most 15 seconds, lists/details for 30 seconds, and images up to 2 MiB for 60 seconds. Larger images and packs stream without edge caching. Browsers must revalidate public responses; admin/private responses remain `no-store`. Public control-state validation can be reused for at most five seconds, while mutations use authoritative state. There are no public R2 URLs.
+
+Unpublish can leave a cached image available until its original 60-second deadline. A delayed cache fill does not extend that deadline. Serving shutdown is checked ahead of every cache hit and follows the five-second control-state window; failed expired control refresh closes serving. The conservative end-to-end removal target is 90 seconds and must be verified on the deployed release. Earlier downloads, already-rendered images and admitted in-flight responses cannot be recalled. See [beta operations](beta-operations.md) for verification and incident steps.
 
 PNG normalization validates signature, chunk order/CRC, complete bounded inflation, filters, dimensions and color format. It strips ancillary metadata, preserves decoded pixels and supported sRGB intent, and creates an alpha-aware 320px thumbnail. Conflicting profiles are rejected. Untagged RGB is interpreted under the sRGB submission contract. Private text drawn into pixels is still visible and must be reviewed.
 
@@ -88,7 +90,7 @@ Confirm the actual Cloudflare account plan, CPU allowance, budget, and private r
 | Admission | 20 labels/day per daily salted IP hash; 100/day site-wide; 500 reserved/uploading/pending/preparing items; 1 GiB active input bytes. |
 | Capacity accounting | Reserve 40 MiB per submission against an 8 GiB admission ceiling, reconcile published records to stored asset sizes. This is application accounting, not a provider-enforced spending cap; orphan files await cleanup. |
 | Pending / unpublished | Pending expires after 30 days; unpublished copy is retained for 30 days for explicit republication. |
-| Rejected | Object deletion becomes due after seven days. Admin unpublishing stops public access immediately and has its separate 30-day retention. |
+| Rejected | Object deletion becomes due after seven days. Admin unpublishing follows the bounded public-cache removal window and has its separate 30-day retention. |
 | Review records | Minimal private review records expire after 90 days from the terminal decision or expiry processing. Full metadata is redacted at its read-time retention deadline even if cleanup fails. |
 | Quota hashes / orphans | Daily admission counters expire within 48 hours; submissions do not retain quota hashes. Unreferenced objects have a 24-hour grace period. |
 
@@ -98,7 +100,7 @@ Deletion dates are due dates, not proof of completed erasure. Daily scheduling, 
 
 ## Rollback and release validation
 
-For an intake incident, disable `intake` in `gallery_settings`; for moderation pause disable `publication`; for immediate public serving shutdown disable `serving`. Matching environment flags provide an additional deployment-level gate. A stale frontend cannot bypass backend switches. Preserve admin access, cleanup, and ordinary local printing while intake is paused. Do not roll back to a Worker that abandons retention jobs, destructively reverse migrations, or make the bucket public.
+For an intake incident, disable `intake` in `gallery_settings`; for moderation pause disable `publication`; for public serving shutdown disable `serving`. Public reads follow the short control-state window above. Matching environment flags provide an additional deployment-level gate. Preserve admin access, cleanup, and already-loaded local printing while intake is paused. Do not roll back to a Worker that abandons retention jobs, destructively reverse migrations, or make the bucket public.
 
 Before separately authorized hosted release, verify the recorded deployment identity, actual Access/Turnstile behavior, private R2 settings, schema/seed separation, and flags. Use controlled original synthetic artwork to exercise unauthorized denial, explicit upload, admin private preview, stale-digest rejection, approval, download/reimport/print preview, admin unpublish, old direct URLs and conditional requests, cleanup failures and eventual deletion on both domains. Verify the real admin and contributor browser flows, narrow viewport and keyboard access. Remove synthetic staging data afterward.
 

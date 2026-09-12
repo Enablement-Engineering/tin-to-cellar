@@ -1,10 +1,16 @@
 import JSZip from 'jszip'
-import { encode } from 'fast-png'
+import { decode, encode } from 'fast-png'
 import { createHash, randomUUID } from 'node:crypto'
 import { makeTestManifest } from '../../src/lib/cellarpack/test-fixtures'
 import { readFileSync } from 'node:fs'
 import { GALLERY_NOTICE_VERSION, type GalleryLabelDraft } from '../../src/lib/gallery/types'
 export const tobacco = JSON.parse(readFileSync(new URL('../../src/lib/tobacco-catalog/catalog.json', import.meta.url), 'utf8'))[0] as { id: string; maker: string; blend: string }
+/** Compare all decoded pixels without generating multi-megabyte assertion diffs. */
+export function decodedPixelSignature(png: Uint8Array) {
+  const image = decode(png)
+  return { width: image.width, height: image.height, channels: image.channels, depth: image.depth,
+    sha256: createHash('sha256').update(Buffer.from(image.data.buffer, image.data.byteOffset, image.data.byteLength)).digest('hex') }
+}
 export async function fixture(size = 1024, variation = 0) {
   const pixels = new Uint8Array(size * size * 4)
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {

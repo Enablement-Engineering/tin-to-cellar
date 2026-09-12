@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test('workflow header fits narrow screens and keeps help in the footer', async ({ page }) => {
   await page.goto('/labels/print')
   const navigation = page.getByRole('navigation', { name: 'Workflow' })
-  await expect(navigation.getByRole('link', { name: 'Choose labels', exact: true })).toBeVisible()
+  await expect(navigation.getByRole('link', { name: 'Your labels', exact: true })).toBeVisible()
   await expect(navigation.getByRole('link', { name: 'Print labels', exact: true })).toBeVisible()
   await expect(navigation.getByRole('link', { name: 'Community labels' })).toHaveCount(0)
   await expect(navigation.getByRole('link', { name: 'How it works' })).toHaveCount(0)

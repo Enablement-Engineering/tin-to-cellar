@@ -56,7 +56,7 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
   const requestVersion = useRef(0), controller = useRef<AbortController | null>(null)
-  const loadMore = useRef<HTMLButtonElement>(null), loading = useRef(false)
+  const loading = useRef(false)
   const load = useCallback(async (next?: string) => {
     if (next && loading.current) return
     loading.current = true
@@ -77,16 +77,6 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
     const timer = config?.serving ? setTimeout(() => void load(), filter.typing ? 100 : 0) : undefined
     return () => { clearTimeout(timer); version.current++; requests.current?.abort() }
   }, [config?.serving, filter.typing, load])
-  useEffect(() => {
-    if (!config?.serving || !cursor || busy || error || !loadMore.current || typeof IntersectionObserver === 'undefined') return
-    const version = requestVersion.current
-    let active = true
-    const observer = new IntersectionObserver(entries => {
-      if (active && version === requestVersion.current && entries.some(entry => entry.isIntersecting)) void load(cursor)
-    }, { rootMargin: '1400px 0px' })
-    observer.observe(loadMore.current)
-    return () => { active = false; observer.disconnect() }
-  }, [config?.serving, cursor, busy, error, load])
   const changeFilter = (ids: string[] | null, typing: boolean) => {
     requestVersion.current++; controller.current?.abort(); setBusy(true); setError(''); setLabels([]); setCursor(null); setFilter({ ids, typing })
   }
@@ -118,7 +108,7 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
       <div className="gallery-pagination">
         <p role="status" aria-atomic="true">{labels.length > 0 && busy ? 'Loading more labels…' : ''}</p>
         {error && cursor && <p role="alert">{error}</p>}
-        {cursor && <button ref={loadMore} type="button" className="button secondary" disabled={busy} onClick={() => void load(cursor)}>{busy ? 'Loading more labels…' : error ? 'Retry loading labels' : 'Show more labels'}</button>}
+        {cursor && <button type="button" className="button secondary" disabled={busy} onClick={() => void load(cursor)}>{busy ? 'Loading more labels…' : error ? 'Retry loading labels' : 'Show more labels'}</button>}
       </div>
     </>}
     {!config?.serving && creationRoute}

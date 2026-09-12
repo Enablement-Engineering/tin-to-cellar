@@ -125,3 +125,56 @@ it('separates migration authorization from read-only exports and avoids migratio
   expect(await (await migrate('admin')).json()).toEqual({ status: 'migrated', copied: 2 })
   expect(new URL(fetch.mock.calls[0]![0].url).pathname).toBe('/migrate')
 })
+
+it('keeps analytics config separate from gallery availability and inaccessible on the admin host', async () => {
+  const db = { prepare: vi.fn(), batch: vi.fn() }
+  const env = { ...adminEnv(), ANALYTICS_ENABLED: 'true', GALLERY: db, ANALYTICS_RATE_LIMITER: { limit: vi.fn() } }
+  vi.spyOn(galleryAuth, 'verifyGalleryAdmin').mockResolvedValue(null)
+  for (const host of ['tintocellar.com', 'www.tintocellar.com']) {
+    const response = await worker.fetch(new Request(`https://${host}/api/analytics/v1/config`), env)
+    expect(response.status).toBe(200)
+    expect(response.headers.get('Cache-Control')).toBe('no-store')
+    expect(await response.json()).toEqual({ enabled: true })
+  }
+  expect((await worker.fetch(new Request('https://admin.tintocellar.com/api/analytics/v1/config'), env)).status).toBe(403)
+  vi.spyOn(galleryAuth, 'verifyGalleryAdmin').mockResolvedValue('human')
+  expect((await worker.fetch(new Request('https://admin.tintocellar.com/api/analytics/v1/config'), env)).status).toBe(404)
+  expect((await worker.fetch(new Request('https://unknown.example/api/analytics/v1/config'), env)).status).toBe(404)
+  expect((await worker.fetch(new Request('https://beta-check.tintocellar.com/api/analytics/v1/config'), { ...env, ANALYTICS_PUBLIC_HOST: 'beta-check.tintocellar.com' })).status).toBe(200)
+  expect(await (await worker.fetch(new Request('https://tintocellar.com/api/analytics/v1/config'), { ...env, ANALYTICS_ENABLED: 'false' })).json()).toEqual({ enabled: false })
+  expect(db.prepare).not.toHaveBeenCalled()
+  expect(env.ANALYTICS_RATE_LIMITER.limit).not.toHaveBeenCalled()
+})
+
+it('denies admin-host requests before gallery cache dispatch after public warming and in reverse order', async () => {
+  const env = adminEnv()
+  const verify = vi.spyOn(galleryAuth, 'verifyGalleryAdmin').mockResolvedValue(null)
+  const gallery = vi.spyOn(galleryRoutes, 'galleryResponse').mockImplementation(async () => Response.json({ serving: true }, { headers: { 'X-Gallery-Cache': 'HIT' } }))
+  for (const path of ['/api/gallery/v1/config', '/api/gallery/v1/labels']) {
+    for (const headers of [{}, { Authorization: 'Bearer invalid' }] as HeadersInit[]) {
+      expect((await worker.fetch(new Request('https://tintocellar.com' + path, { headers }), env)).status).toBe(200)
+      const calls = gallery.mock.calls.length
+      expect((await worker.fetch(new Request('https://admin.tintocellar.com' + path, { headers }), env)).status).toBe(403)
+      expect(gallery.mock.calls.length).toBe(calls)
+    }
+    verify.mockResolvedValue('human')
+    const admin = await worker.fetch(new Request('https://admin.tintocellar.com' + path), env)
+    expect(admin.status).toBe(path.endsWith('/config') ? 200 : 404)
+    verify.mockResolvedValue(null)
+    expect((await worker.fetch(new Request('https://admin.tintocellar.com' + path), env)).status).toBe(403)
+    expect((await worker.fetch(new Request('https://www.tintocellar.com' + path), env)).status).toBe(200)
+  }
+})
+
+it('fails closed with sanitized operational output when a dependency throws private data', async () => {
+  const env = adminEnv()
+  env.ASSETS.fetch.mockRejectedValue(new Error('private-token-and-input'))
+  const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+  const response = await worker.fetch(new Request('https://tintocellar.com/private-path?private=query'), { ...env, OPERATIONAL_METRICS_ENABLED: 'true' })
+  expect(response.status).toBe(503)
+  expect(response.headers.get('Cache-Control')).toBe('no-store')
+  expect(response.headers.get('X-Frame-Options')).toBe('DENY')
+  expect(await response.json()).toEqual({ error: 'temporarily_unavailable' })
+  expect(log).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ route: 'static', status: 503 }))
+  expect(JSON.stringify(log.mock.calls)).not.toContain('private')
+})

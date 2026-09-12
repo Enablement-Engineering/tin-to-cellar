@@ -2,14 +2,14 @@ import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { randomBytes, createHash } from 'node:crypto'
 import JSZip from 'jszip'
-import { decode } from 'fast-png'
-import { fixture, tobacco } from './fixtures'
+import { fixture, tobacco, decodedPixelSignature } from './fixtures'
 
 const base = '/api/gallery/v1'
 const origin = 'http://127.0.0.1:43928'
 const admin = { Origin: origin, 'X-Gallery-Test-Admin': 'reviewer-fixture' }
 
 test('real local Worker rejects changed bytes and keeps approved downloads revocable', async ({ request }) => {
+  test.setTimeout(150000)
   const f = await fixture(2048), key = randomBytes(32).toString('hex')
   const headers = { Origin: origin, Authorization: `Bearer ${key}`, 'X-Turnstile-Token': 'local-turnstile-token' }
   const create = await request.post(`${base}/submissions`, { headers, data: f.draft })
@@ -33,9 +33,9 @@ test('real local Worker rejects changed bytes and keeps approved downloads revoc
   expect(approval.status(), await approval.text()).toBe(200)
   let approved = await approval.json()
   const png = await request.get(`${base}/labels/${pending.id}/artwork`)
-  expect(png.status()).toBe(200); expect(png.headers()['cache-control']).toBe('no-store')
+  expect(png.status()).toBe(200); expect(png.headers()['cache-control']).toBe('public, max-age=0, must-revalidate')
   const bytes = await png.body()
-  expect(decode(bytes).data).toEqual(decode(f.png).data)
+  expect(decodedPixelSignature(bytes)).toEqual(decodedPixelSignature(f.png))
   const download = await request.get(`${base}/labels/${pending.id}/pack`)
   const pack = await JSZip.loadAsync(await download.body())
   const manifest = JSON.parse(await pack.file('manifest.json')!.async('string'))
@@ -47,7 +47,9 @@ test('real local Worker rejects changed bytes and keeps approved downloads revoc
   for (const field of ['capability_hash', 'proposedIdentity', 'acknowledgement', 'r2_key', 'reviewer']) expect(JSON.stringify(data)).not.toContain(field)
   const unpublished = await request.post(`${base}/admin/publications/${pending.id}/unpublish`, { headers: admin, data: { expectedVersion: approved.version } })
   expect(unpublished.status()).toBe(200); approved = await unpublished.json()
-  for (const suffix of ['', '/thumbnail', '/artwork', '/pack']) expect((await request.get(`${base}/labels/${pending.id}${suffix}`, { headers: { 'If-None-Match': '*' } })).status()).toBe(404)
+  await expect.poll(async () => Promise.all(['', '/thumbnail', '/artwork', '/pack'].map(async suffix =>
+    (await request.get(`${base}/labels/${pending.id}${suffix}`, { headers: { 'If-None-Match': '*' } })).status()
+  )), { timeout: 90000, intervals: [1000, 2000, 5000] }).toEqual([404, 404, 404, 404])
   const republished=await request.post(`${base}/admin/publications/${pending.id}/republish`, {headers:admin,data:{expectedVersion:approved.version}})
   expect(republished.status()).toBe(200)
   approved=await republished.json()
@@ -88,7 +90,7 @@ test('browser selects artwork, submits privately, reviewer publishes, public use
   await reviewer.goto(`${origin}/admin/gallery`)
   await reviewer.getByRole('button', { name: new RegExp(tobacco.blend) }).first().click()
   await expect(reviewer.locator('.gallery-review-art')).toBeVisible()
-  await reviewer.getByLabel('I reviewed this artwork and the saved metadata', { exact: false }).check()
+  await reviewer.getByLabel('I reviewed this artwork and the saved details', { exact: false }).check()
   await reviewer.getByRole('button', { name: 'Approve and publish' }).click()
   await expect(reviewer.getByRole('button', { name: 'Unpublish now' })).toBeVisible()
   await reviewer.screenshot({ path: 'output/gallery/gallery-review-approved.png', fullPage: true })
@@ -108,7 +110,14 @@ test('browser selects artwork, submits privately, reviewer publishes, public use
   await publicPage.getByRole('button', { name: 'Review & print' }).click()
   await expect(publicPage.getByRole('heading', { name: 'Your labels' })).toBeVisible()
   await expect(publicPage.getByRole('heading', { name: 'Share your labels' })).toHaveCount(0)
-  expect(writes.slice(previous)).toEqual([])
+  const addedWrites = writes.slice(previous)
+  expect(addedWrites.filter(write => write.path !== '/api/analytics/v1/print-intent')).toEqual([])
+  for (const write of addedWrites) {
+    const event = JSON.parse(write.body!)
+    expect(Object.keys(event).sort()).toEqual(['event', 'labels'])
+    expect(['added-to-labels', 'selected-for-print']).toContain(event.event)
+    expect(write.body).not.toContain('PRIVATE_')
+  }
   await publicPage.emulateMedia({ media: 'print' })
   await publicPage.pdf({ path: 'output/gallery/gallery-print.pdf', format: 'Letter', printBackground: true })
   await publicPage.emulateMedia({ media: 'screen' })

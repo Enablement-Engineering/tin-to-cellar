@@ -100,3 +100,8 @@ jobs:
             test "$attempt" = 6 || sleep 5
           done
           test "${capabilities_ready:-false}" = true || { echo '::error::Combined budget and curated-intake release is not serving'; exit 1; }
+          # The beta config route must exist even while collection is disabled.
+          # This performs no ingestion and writes no demand counters.
+          for public_host in tintocellar.com www.tintocellar.com; do
+            curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 "https://${public_host}/api/analytics/v1/config" | jq -e 'has("enabled") and (.enabled | type == "boolean")' >/dev/null
+          done

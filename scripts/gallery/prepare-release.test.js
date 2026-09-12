@@ -8,12 +8,13 @@ describe('local gallery release preparation', () => {
   const source={...base,services:[{binding:'LIVE',service:'production'}],r2_buckets:[{binding:'LIVE_ART',bucket_name:'live'}],vars:{PRIVATE_PRODUCTION_SETTING:'must-not-copy'}}
   const result=createReleaseConfig(source,options,'/tmp/checkout')
   expect(result.name).toBe('tin-to-cellar-gallery-staging')
+  expect(result.vars.ANALYTICS_PUBLIC_HOST).toBe(options.host)
   expect(result.durable_objects).toBeUndefined();expect(result.migrations).toBeUndefined();expect(result.services).toBeUndefined()
   expect(result.d1_databases).toHaveLength(1);expect(result.d1_databases[0].binding).toBe('GALLERY');expect(result.r2_buckets).toHaveLength(1)
   expect(JSON.stringify(result)).not.toContain('10c1a5a7-9884-46ad-86d0-2eedf5d8426a');expect(result.vars.PRIVATE_PRODUCTION_SETTING).toBeUndefined()
   expect(result.routes).toEqual([{pattern:'staging.tintocellar.com',custom_domain:true},{pattern:'admin-staging.tintocellar.com',custom_domain:true}]);expect(result.limits).toBeUndefined()
   expect(result.main).toBe('/tmp/checkout/worker/index.ts');expect(result.d1_databases[0].migrations_dir).toBe('/tmp/checkout/migrations/gallery')
-  expect(result.ratelimits.map(limit=>limit.namespace_id)).toEqual(['2005','2007','2008','2009'])
+  expect(result.ratelimits.map(limit=>limit.namespace_id)).toEqual(['2005','2007','2008','2009','2010','2011','2012'])
   expect(result.ratelimits.map(limit=>limit.namespace_id).some(id=>base.ratelimits.some(limit=>limit.namespace_id===id))).toBe(false)
  })
  it('preserves production diagnostics, DO history and routes, while keeping gallery off', () => {
@@ -21,7 +22,7 @@ describe('local gallery release preparation', () => {
   const result=createReleaseConfig(base,{...prod,target:'production','admin-host':'admin.tintocellar.com',bucket:'tin-to-cellar-gallery','paid-workers-confirmed':true},'/tmp/checkout')
   expect(result.routes).toEqual(expect.arrayContaining(base.routes));expect(result.durable_objects).toEqual(base.durable_objects);expect(result.migrations).toEqual(base.migrations)
   expect(result.d1_databases[0].database_id).toBe(base.d1_databases[0].database_id);expect(result.d1_databases[0].migrations_dir).toBe('/tmp/checkout/migrations')
-  expect(result.vars).toMatchObject({GALLERY_INTAKE:'false',GALLERY_PUBLICATION:'false',GALLERY_SERVING:'false'})
+  expect(result.vars).toMatchObject({GALLERY_INTAKE:'false',GALLERY_PUBLICATION:'false',GALLERY_SERVING:'false',ANALYTICS_ENABLED:'false'})
   expect(result.workers_dev).toBe(false);expect(result.preview_urls).toBe(false);expect(result.limits.cpu_ms).toBe(2000)
   expect(JSON.stringify(result)).not.toContain('GALLERY_TURNSTILE_SECRET');expect(JSON.stringify(result)).not.toContain('GALLERY_IP_SALT')
   expect(result.ratelimits).toEqual(expect.arrayContaining([
@@ -29,6 +30,8 @@ describe('local gallery release preparation', () => {
    {name:'GALLERY_READ_RATE_LIMITER',namespace_id:'1007',simple:{limit:120,period:60}},
    {name:'GALLERY_UPLOAD_RATE_LIMITER',namespace_id:'1008',simple:{limit:5,period:60}},
    {name:'GALLERY_MUTATION_RATE_LIMITER',namespace_id:'1009',simple:{limit:20,period:60}},
+   {name:'GALLERY_IMAGE_RATE_LIMITER',namespace_id:'1010',simple:{limit:2400,period:60}},
+   {name:'GALLERY_PACK_RATE_LIMITER',namespace_id:'1011',simple:{limit:60,period:60}},
   ]))
   expect(new Set(result.ratelimits.map(limit=>limit.namespace_id)).size).toBe(result.ratelimits.length)
  })
@@ -59,4 +62,13 @@ it('requires target-specific admin host and distinct optional machine audience w
  expect(c.vars.GALLERY_ADMIN_HOST).toBe('admin-staging.tintocellar.com');expect(c.vars.GALLERY_AGENT_ENABLED).toBe('false');expect(c.vars.GALLERY_AGENT_ACCESS_AUD).toBe('b'.repeat(64));expect(c.assets.run_worker_first).toBe(true)
  expect(()=>createReleaseConfig(base,{...options,'admin-host':'admin.tintocellar.com'},'/tmp/checkout')).toThrow()
  expect(()=>createReleaseConfig(base,{...options,'agent-access-aud':options['access-aud']},'/tmp/checkout')).toThrow()
+})
+
+it('keeps front-of-Worker caching disabled across production and generated configurations', () => {
+ expect(base.cache).toEqual({enabled:false})
+ expect(base.assets.run_worker_first).toBe(true)
+ const result=createReleaseConfig({...base,cache:{enabled:true}},options,'/tmp/checkout')
+ expect(result.cache).toEqual({enabled:false})
+ expect(result.assets.run_worker_first).toBe(true)
+ expect(base.observability.logs.invocation_logs).toBe(false)
 })

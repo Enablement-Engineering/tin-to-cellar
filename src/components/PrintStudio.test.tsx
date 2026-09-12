@@ -104,3 +104,16 @@ it('enables printing the updated job after saving finishes', () => {
   expect(print).toHaveBeenCalledOnce()
   expect(view.container.querySelectorAll('.production-slot img')).toHaveLength(3)
 })
+
+it('counts only the explicit label print action and keeps printing independent of collection', () => {
+  const onPrintRequested = vi.fn(() => { throw new Error('Optional collection failed') })
+  const print = vi.spyOn(window, 'print').mockImplementation(() => {})
+  render(<Studio labels={[label]} quantities={{ a: 2 }} onQuantityChange={() => undefined} onPrintRequested={onPrintRequested} />)
+  window.dispatchEvent(new Event('beforeprint'))
+  window.dispatchEvent(new Event('afterprint'))
+  fireEvent.click(screen.getByRole('button', { name: 'Print alignment sheet' }))
+  expect(onPrintRequested).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: 'Print 2 labels' }))
+  expect(onPrintRequested).toHaveBeenCalledOnce()
+  expect(print).toHaveBeenCalledTimes(2)
+})

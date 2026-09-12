@@ -5,8 +5,12 @@ import { cleanDiagnostics, diagnosticsExport, shareNotes, type DiagnosticsDataba
 import { galleryResponse, cleanGallery } from './gallery/routes'
 import { verifyGalleryAdmin } from './gallery/auth'
 import type { GalleryEnv } from './gallery/storage'
+import { analyticsEnabled, analyticsResponse, type AnalyticsEnv } from './analytics'
+import { operationalRecord } from './operations'
 export { CatalogContributions } from './contributions'
-export interface Env extends GalleryEnv, DiagnosticBudgetConfig {
+export interface Env extends GalleryEnv, DiagnosticBudgetConfig, AnalyticsEnv {
+  OPERATIONAL_METRICS_ENABLED?: string
+  ANALYTICS_PUBLIC_HOST?: string
   GALLERY_ADMIN_HOST?: string
   DIAGNOSTICS?: DiagnosticsDatabase
   DIAGNOSTICS_READ_TOKEN?: string
@@ -16,6 +20,7 @@ export interface Env extends GalleryEnv, DiagnosticBudgetConfig {
   SOURCES_RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> }
   ASSETS: { fetch(request: Request): Promise<Response> }
 }
+interface WorkerContext { waitUntil(promise: Promise<unknown>): void }
 const worker = {
   async scheduled(_event: unknown, env: Env) {
     const migrate = async () => {
@@ -36,7 +41,7 @@ const worker = {
     const failures = results.filter(result => result.status === 'rejected')
     if (failures.length) throw new AggregateError(failures.map(result => result.reason), 'Scheduled cleanup incomplete')
   },
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx?: WorkerContext): Promise<Response> {
     const url = new URL(request.url), path = url.pathname
     const adminHost = env.GALLERY_ADMIN_HOST
     const machineRoute = path === '/api/gallery/v1/agent' || path.startsWith('/api/gallery/v1/agent/')
@@ -62,7 +67,16 @@ const worker = {
         return new Response(response.body, { status: response.status, headers })
       }
     }
-    if (path.startsWith('/api/gallery/')) return galleryResponse(request, env)
+    if (path.startsWith('/api/gallery/')) return galleryResponse(request, env, { waitUntil: ctx ? promise => ctx.waitUntil(promise) : undefined })
+    if (path === '/api/analytics/v1/config' || path === '/api/analytics/v1/print-intent') {
+      // Production collection is confined to the public origins. Loopback supports isolated tests.
+      if (!['tintocellar.com', 'www.tintocellar.com', 'localhost', '127.0.0.1'].includes(url.hostname) && url.hostname !== env.ANALYTICS_PUBLIC_HOST) return notFound()
+      if (path.endsWith('/config')) {
+        if (request.method !== 'GET') return Response.json({ error: 'method_not_allowed' }, { status: 405, headers: { ...privateHeaders, Allow: 'GET' } })
+        return Response.json({ enabled: analyticsEnabled(env) }, { headers: privateHeaders })
+      }
+      return analyticsResponse(request, env)
+    }
     if (path === '/admin/gallery' || path.startsWith('/admin/gallery/')) {
       if (!await verifyGalleryAdmin(request, env)) return new Response('Reviewer sign-in required.', { status: 403, headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } })
       const response = await env.ASSETS.fetch(request)
@@ -96,8 +110,16 @@ const worker = {
 
 export default {
   ...worker,
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const response = await worker.fetch(request, env)
+  async fetch(request: Request, env: Env, ctx?: WorkerContext): Promise<Response> {
+    const start = performance.now()
+    let response: Response
+    try {
+      response = await worker.fetch(request, env, ctx)
+    } catch {
+      // Do not persist exception messages that may contain D1 values or private input.
+      response = Response.json({ error: 'temporarily_unavailable' }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
+    }
+    if (env.OPERATIONAL_METRICS_ENABLED === 'true') console.log(operationalRecord(request, response, performance.now() - start, env.GALLERY_ADMIN_HOST))
     const headers = new Headers(response.headers)
     // A separate CSP policy preserves any stricter policy set by assets/routes.
     headers.append('Content-Security-Policy', "frame-ancestors 'none'")

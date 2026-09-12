@@ -1,14 +1,15 @@
 import { agentResponse, adminAgentResponse, type AgentDependencies } from './agents'
 import { humanQueue, reviewRecord } from './review'
+import { gallerySwitches, publicGalleryRead, streamAsset, type PublicReadDependencies } from './public-read'
 import type { Statement } from '../diagnostics'
 import { GALLERY_NOTICE_VERSION, type GalleryLabelDraft, type GalleryReceipt, type GalleryState } from '../../src/lib/gallery/types';
-import { galleryCatalogId, galleryAltText, canonicalJson, MAX_IMAGE_BYTES, MAX_METADATA_BYTES, parseGalleryDraft, uuid } from '../../src/lib/gallery/schema';
+import { galleryCatalogId, canonicalJson, MAX_IMAGE_BYTES, MAX_METADATA_BYTES, parseGalleryDraft, uuid } from '../../src/lib/gallery/schema';
 import { normalizeGalleryImage } from '../../src/lib/gallery/image';
 import { buildGalleryPack } from '../../src/lib/gallery/pack';
 import { verifyGalleryAdmin, verifyGalleryTurnstile } from './auth';
 import { reserveGallery } from './admission';
 import { addDays, boundedBody, database, labelMetadataReady, responseHeaders, sha256, type GalleryDatabase, type GalleryEnv } from './storage';
-export interface GalleryDependencies extends AgentDependencies {
+export interface GalleryDependencies extends AgentDependencies, PublicReadDependencies {
     verifyAdmin?: typeof verifyGalleryAdmin;
     verifyTurnstile?: typeof verifyGalleryTurnstile;
     now?: () => Date;
@@ -49,11 +50,6 @@ const visible = (r: Row, now: Date) => r.state === 'published' || (!terminal.inc
 const capability = (r: Request) => { const h = r.headers.get('Authorization') ?? ''; return /^Bearer [a-f0-9]{64}$/.test(h) ? h.slice(7) : null; };
 async function body(request: Request) { if (request.headers.get('Content-Type') !== 'application/json')
     throw new Error('invalid_metadata'); return JSON.parse(new TextDecoder().decode(await boundedBody(request, MAX_METADATA_BYTES))) as Record<string, unknown>; }
-async function flags(db: GalleryDatabase, env: GalleryEnv) { const s = await db.prepare('SELECT * FROM gallery_settings WHERE id=1').first<{
-    intake: number;
-    serving: number;
-    publication: number;
-}>(); return { intake: !!s?.intake && env.GALLERY_INTAKE === 'true', serving: !!s?.serving && env.GALLERY_SERVING === 'true', publication: !!s?.publication && env.GALLERY_PUBLICATION === 'true' }; }
 async function digest(metadata: GalleryLabelDraft, imageHash: string) { return sha256(`gallery-v2:${imageHash}:${await sha256(canonicalJson(metadata))}:${galleryCatalogId(metadata) ?? ''}`); }
 async function auditedMutation(db: GalleryDatabase, mutation: Statement, id: string, actor: string, action: string, now: Date, beforeDigest?: string|null) {
     // D1 batch executes both statements in one SQLite transaction. changes() is
@@ -69,11 +65,9 @@ async function auditedMutation(db: GalleryDatabase, mutation: Statement, id: str
 }
 
 async function assetResponse(db: GalleryDatabase, env: GalleryEnv, id: string, kind: string) { const a = await db.prepare('SELECT * FROM gallery_assets WHERE submission_id=? AND kind=?').bind(id, kind).first<Asset>(); if (!a)
-    return json({ error: 'not_found' }, 404); const object = await env.GALLERY_ART!.get(a.r2_key); if (!object)
-    return json({ error: 'storage_unavailable' }, 503); return new Response(await object.arrayBuffer(), { headers: { ...responseHeaders, 'Content-Type': kind === 'pack' ? 'application/zip' : 'image/png', ...(kind === 'pack' ? { 'Content-Disposition': `attachment; filename="label-${id}.cellarpack.zip"` } : {}) } }); }
+    return json({ error: 'not_found' }, 404); return streamAsset(env, id, a); }
 async function putAsset(db: GalleryDatabase, env: GalleryEnv, id: string, kind: string, bytes: Uint8Array, version: number) { const hash = await sha256(bytes); const key = `gallery/${id}/${kind}-${version}-${hash}`; await env.GALLERY_ART!.put(key, bytes); const changed = await db.prepare(`INSERT INTO gallery_assets(id,submission_id,kind,r2_key,sha256,bytes) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM gallery_submissions WHERE id=? AND row_version=? AND state IN('uploading','preparing-publication')) ON CONFLICT(submission_id,kind) DO UPDATE SET r2_key=excluded.r2_key,sha256=excluded.sha256,bytes=excluded.bytes`).bind(crypto.randomUUID(), id, kind, key, hash, bytes.length, id, version).run(); if (!changed.meta.changes)
     throw new Error('review_changed'); return hash; }
-async function publicProjection(r: Row) { const metadata = parseGalleryDraft(JSON.parse(r.metadata_json!)); return { id: r.id, catalogId: r.catalog_id, maker: r.published_maker, blend: r.published_blend, ...(metadata.edition ? { edition: metadata.edition } : {}), altText: galleryAltText(metadata, r.published_maker!, r.published_blend!), artworkProfileId: metadata.artworkProfileId, publishedAt: r.published_at }; }
 export async function galleryResponse(request: Request, env: GalleryEnv, deps: GalleryDependencies = {}): Promise<Response> {
     if (!new URL(request.url).pathname.startsWith('/api/gallery/v1/'))
         return json({ error: 'not_found' }, 404);
@@ -101,13 +95,12 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                 return json({ intake: false, serving: false, noticeVersion: GALLERY_NOTICE_VERSION, turnstileSiteKey: '' });
             return json({ error: 'storage_unavailable' }, 503);
         }
-        // Admit every supported public request before body reads, D1, or Turnstile.
+        if (publicRead) return await publicGalleryRead(request, env, deps);
+        // Admit every supported mutation before body reads, D1, or Turnstile.
         // Reservation quotas and durable upload attempts remain separate limits.
-        const limiter = publicRead
-            ? env.GALLERY_READ_RATE_LIMITER
-            : publicUpload ? env.GALLERY_UPLOAD_RATE_LIMITER
+        const limiter = publicUpload ? env.GALLERY_UPLOAD_RATE_LIMITER
                 : publicSubmission ? env.GALLERY_MUTATION_RATE_LIMITER : null;
-        const limited = publicRead || publicUpload || publicSubmission;
+        const limited = publicUpload || publicSubmission;
         if (limited) {
             if (!limiter || !env.GALLERY_IP_SALT) return json({ error: 'rate_limit_unavailable' }, 503);
             const key = await sha256(`${env.GALLERY_IP_SALT}:${now.toISOString().slice(0, 10)}:${request.headers.get('CF-Connecting-IP') ?? 'unknown'}`);
@@ -115,9 +108,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
         }
     if (!await labelMetadataReady(env)) return json({ error: 'maintenance', message: 'Gallery maintenance is in progress. Please try again shortly.' }, 503);
         const db = database(env);
-        const switches = await flags(db, env);
-        if (path === '/config' && method === 'GET')
-            return json({ ...switches, intake: switches.intake && !!env.GALLERY_TURNSTILE_SITE_KEY && !!env.GALLERY_IP_SALT && !!env.GALLERY_RATE_LIMITER && !!env.GALLERY_UPLOAD_RATE_LIMITER && !!env.GALLERY_MUTATION_RATE_LIMITER && (!!env.GALLERY_TURNSTILE_SECRET || !!deps.verifyTurnstile), noticeVersion: GALLERY_NOTICE_VERSION, turnstileSiteKey: env.GALLERY_TURNSTILE_SITE_KEY ?? '' });
+        const switches = await gallerySwitches(db, env);
         if (path === '/submissions' && method === 'POST') {
             const token = capability(request);
             if (!token)
@@ -354,7 +345,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                     const prepared = (await db.prepare('SELECT r2_key FROM gallery_assets WHERE submission_id=?').bind(row.id).all<Asset>()).results;
                     if (prepared.length !== 3 || !(await Promise.all(prepared.map(a => env.GALLERY_ART!.head(a.r2_key)))).every(Boolean))
                         throw new Error('storage_unavailable');
-                    if (!(await flags(db, env)).publication)
+                    if (!(await gallerySwitches(db, env)).publication)
                         throw new Error('publication_closed');
                     const done = await auditedMutation(db, db.prepare("UPDATE gallery_submissions SET state='published',publication_id=id,published_at=?,approval_digest=digest,reviewer=?,published_maker=?,published_blend=?,lease_until=NULL,row_version=row_version+1,reserved_bytes=(SELECT COALESCE(SUM(bytes),0) FROM gallery_owned_storage WHERE submission_id=?) WHERE id=? AND row_version=? AND state='preparing-publication' AND EXISTS(SELECT 1 FROM gallery_settings WHERE id=1 AND publication=1) AND EXISTS(SELECT 1 FROM gallery_tobaccos WHERE id=gallery_submissions.catalog_id AND active=1)").bind(now.toISOString(), admin, tobacco.maker, tobacco.blend, row.id, row.id, version), row.id, admin, 'approve', now);
                     if (!done.meta.changes)
@@ -415,7 +406,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                 const assets = (await db.prepare('SELECT * FROM gallery_assets WHERE submission_id=?').bind(row.id).all<Asset>()).results;
                 if (assets.length !== 3 || !(await Promise.all(assets.map(a => env.GALLERY_ART!.head(a.r2_key)))).every(Boolean))
                     return json({ error: 'storage_unavailable' }, 503);
-                if(!(await flags(db,env)).publication)return json({error:'publication_closed'},503);
+                if(!(await gallerySwitches(db,env)).publication)return json({error:'publication_closed'},503);
                 const changed = await auditedMutation(db, db.prepare("UPDATE gallery_submissions SET state='published',deletion_due=NULL,row_version=row_version+1,reserved_bytes=(SELECT COALESCE(SUM(bytes),0) FROM gallery_owned_storage WHERE submission_id=gallery_submissions.id) WHERE id=? AND row_version=? AND state='unpublished' AND expires_at>? AND digest=approval_digest AND EXISTS(SELECT 1 FROM gallery_settings WHERE id=1 AND publication=1) AND EXISTS(SELECT 1 FROM gallery_tobaccos WHERE id=gallery_submissions.catalog_id AND active=1)").bind(row.id, row.row_version, now.toISOString()), row.id, admin, 'republish', now);
                 if (!changed.meta.changes)
                     return json({ error: 'review_changed' }, 409);
@@ -424,28 +415,6 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                 return json({ error: 'not_found' }, 404);
             row = (await get(db, row.id))!;
             return json(await reviewRecord(db,row,now));
-        }
-        if (path === '/labels' && method === 'GET') {
-            if (!switches.serving)
-                return json({ labels: [], nextCursor: null, serving: false });
-            const cursor = url.searchParams.get('cursor') ?? '';
-            const catalog = url.searchParams.get('catalogId') ?? '';
-            const edition = url.searchParams.get('edition') ?? '';
-            const geometry = url.searchParams.get('geometry');
-            if ((cursor && !uuid(cursor)) || catalog.length > 200 || edition.length > 120)
-                return json({ error: 'invalid_filter' }, 400);
-            if (geometry && geometry !== 'circle-2.5')
-                return json({ labels: [], nextCursor: null, serving: true });
-            const rows = (await db.prepare("SELECT * FROM gallery_submissions WHERE state='published' AND id>? AND (?='' OR catalog_id=?) AND (?='' OR json_extract(metadata_json,'$.edition')=?) ORDER BY id LIMIT 25").bind(cursor, catalog, catalog, edition, edition).all<Row>()).results;
-            return json({ labels: await Promise.all(rows.slice(0, 24).map(r => publicProjection(r))), nextCursor: rows.length > 24 ? rows[23].id : null, serving: true });
-        }
-        if (label && uuid(label[1]) && method === 'GET') {
-            if (!switches.serving)
-                return json({ error: 'not_found' }, 404);
-            const row = await get(db, label[1]);
-            if (!row || row.state !== 'published')
-                return json({ error: 'not_found' }, 404);
-            return label[2] ? assetResponse(db, env, row.id, label[2]) : json(await publicProjection(row));
         }
         return json({ error: 'not_found' }, 404);
     }

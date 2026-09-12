@@ -16,12 +16,13 @@ type Options = {
   commit: (change: (current: Collection) => Collection) => Promise<Collection>
   onStart: () => void
   onImported: () => void
+  onGalleryAdded?: (rows: Collection['rows']) => void
 }
 
 /** Own the pending review independently of saved collection state.
  * Review choices are invalidated whenever the collection or handoff changes.
  */
-export function usePackImport({ collection, ready, commit, onStart, onImported }: Options) {
+export function usePackImport({ collection, ready, commit, onStart, onImported, onGalleryAdded }: Options) {
   const [importing, setImporting] = useState(false)
   const importBusy = useRef(false)
   const [candidate, setCandidate] = useState<ImportCandidate | null>(null)
@@ -48,7 +49,16 @@ export function usePackImport({ collection, ready, commit, onStart, onImported }
     setNotice('Import canceled. Your saved selection is unchanged.')
   }
   const saveIncoming = async (incoming: ImportCandidate, change: (current: Collection) => Collection) => {
-    const saved = await commit(change)
+    let galleryRows: Collection['rows'] = []
+    const saved = await commit(current => {
+      const next = change(current)
+      const galleryDesigns = new Set(incoming.designs.filter(design => design.origin === 'gallery').map(design => design.id))
+      galleryRows = next.rows.filter(row => row.designId && galleryDesigns.has(row.designId) && !current.rows.some(previous => previous.id === row.id && previous.designId))
+      return next
+    })
+    if (galleryRows.length) {
+      try { onGalleryAdded?.(galleryRows) } catch { /* Optional collection counts cannot undo a saved label. */ }
+    }
     if (incoming.receipt.contribution && !collection.receipts.some(receipt => receipt.id === incoming.receipt.id || receipt.contribution?.submissionId === incoming.receipt.contribution?.submissionId)) setFreshReceipts(previous => new Set(previous).add(incoming.receipt.id))
     setReceiptId(incoming.receipt.id); setCandidate(null); setReviewChoices(null)
     const count = saved.rows.filter(row => row.designId).length

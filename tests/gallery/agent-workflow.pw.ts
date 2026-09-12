@@ -37,7 +37,7 @@ test('real D1 and R2 enforce advisory machine grants, versions, audit, and revoc
   expect(createHash('sha256').update(await image.body()).digest('hex')).toBe(reviewed.canonicalHash)
   const thumbnail=await request.get(`${base}/agent/submissions/${id}/thumbnail`,{headers:machine})
   expect(thumbnail.status()).toBe(200);expect(thumbnail.headers()['cache-control']).toBe('no-store')
-  const recommendation={schemaVersion:1,expectedVersion:reviewed.version,digest:reviewed.digest,idempotencyKey:randomUUID(),assessment:'needs-attention',findings:[{category:'writing-area',severity:'info',explanation:'Inspect this synthetic blank area before making the human decision.',evidence:[{type:'metadata',field:'writeInArea'}]}]}
+  const recommendation={schemaVersion:1,expectedVersion:reviewed.version,digest:reviewed.digest,idempotencyKey:randomUUID(),assessment:'needs-attention',findings:[{category:'writing-area',severity:'info',explanation:'Inspect this synthetic blank area before making the human decision.',evidence:[{type:'metadata',field:'writingArea'}]}]}
   const proposed=await request.post(`${base}/agent/submissions/${id}/recommendations`,{headers:machine,data:recommendation})
   expect(proposed.status(),await proposed.text()).toBe(201)
   const advice=await proposed.json()

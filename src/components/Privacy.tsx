@@ -1,9 +1,11 @@
+import { DemandPreference } from './DemandPreference'
+
 export function Privacy() {
   return <article className="editorial-page screen-only">
     <header className="editorial-header">
       <h1>Privacy</h1>
       <p className="editorial-lede">Your orders and label packs are read in your browser. Your AI chat makes the artwork. Importing a pack shares AI feedback and public package source observations to improve future labels.</p>
-      <p>Updated September 6, 2026</p>
+      <p>Updated September 12, 2026</p>
     </header>
     <div className="editorial-body">
       <section aria-labelledby="privacy-summary">
@@ -21,6 +23,13 @@ export function Privacy() {
         <p>Tin to Cellar is made by Dylan Isaac at Enablement Engineering. You do not need an account. The app reads imported order PDFs, screenshots, pasted text, label ZIPs, and feedback files on your device. Screenshot text recognition runs in your browser using software and language files served by this site. We do not upload those imported files for processing. After a pack with a readable manifest is imported, the app separately sends the limited feedback and source records described below.</p>
         <p>Your blend selections and special requests become a prompt. Copying puts that prompt on your clipboard. When you paste or attach material in an AI chat, that provider receives it under its own privacy and retention policies. Tin to Cellar does not receive your chat or connect to your AI account.</p>
         <p>Label previews, quantities, and sheet layout are handled in your browser. Selected artwork, blend identities, requests, the current prepared prompt, and the information needed to check and repair imported labels are saved in this browser so you can leave for your AI chat and return. We do not save this workspace to an account or synchronize it to another device. Original order files, raw screenshot text, and original ZIP files are not retained in this saved workspace. Clearing this site’s browser data removes the saved work. Downloaded files and clipboard text remain until you remove them. Printing uses your browser and chosen printer or PDF destination.</p>
+      </section>
+      <section>
+        <h2>Aggregate label demand</h2>
+        <p>When enabled, optional demand collection helps us decide which blends need community artwork. Explicitly adding a recognized blend or community design, choosing ready labels for printing, and pressing Print labels can send that action and the blend's catalog identifier. A print request also sends the requested quantity. Custom blend names, notes, artwork, imported files and account or browser identifiers are not included.</p>
+        <p>The service adds these actions directly to daily totals by catalog entry. We keep daily aggregate counts, without a user event history. Selecting labels counts intent; opening the print dialog does not tell us whether anything was physically printed. Repeated actions may count again, and these totals do not measure unique people. Importing or restoring a saved workspace does not send demand events.</p>
+        <p>Network addresses may be used temporarily to limit abuse, but are not stored in demand records. Demand delivery is best effort. Failed or offline requests are not queued or retried, and collection never needs to finish before you print.</p>
+        <DemandPreference />
       </section>
       <section>
         <h2>Print guides</h2>

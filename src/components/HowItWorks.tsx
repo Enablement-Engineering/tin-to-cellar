@@ -17,6 +17,20 @@ export function HowItWorks({ instructions }: { instructions: string }) {
       <li><span className="workflow-step-number" aria-hidden="true">03</span><div><h2>Add the artwork and print</h2><p>Open Print labels and import the new ZIP. Review additions and choose whether to replace an existing design or keep both. Choose quantities, then print at actual size or 100% scale with headers and footers off. You can also choose Save as PDF.</p><p className="spec-line">Avery 94502 · 2.5 in circles · 9 per US Letter sheet</p></div></li>
     </ol>
     </section>
+    <section className="help-answers" aria-labelledby="behind-scenes-title">
+      <h2 id="behind-scenes-title">What happens behind the scenes</h2>
+      <p>The production brief asks your chosen AI to follow these steps.</p>
+      <ol>
+        <li><strong>Research.</strong> Find authoritative packaging references and use them to establish the blend's identity.</li>
+        <li><strong>Art direction.</strong> Follow the label geometry, permitted text and writing-space requirements while preserving the package's character.</li>
+        <li><strong>Generation.</strong> Adapt the artwork to the label's shape and writing space.</li>
+        <li><strong>Proof.</strong> Inspect dimensions, bleed, safe areas, text, writing space and fidelity to the package.</li>
+        <li><strong>Repair.</strong> Use specific correction instructions when a check fails.</li>
+        <li><strong>Package.</strong> Return the reviewed artwork and structured metadata together in a CellarPack that the app can validate and print.</li>
+      </ol>
+      <p>The workflow is not tied to a particular image model. Tin to Cellar defines the job, constraints, checks and return format; your chosen creative system performs the work.</p>
+      <p>The app checks the returned files and print geometry. Review the artwork yourself for spelling, recognizable packaging and a usable writing area before printing.</p>
+    </section>
     <section className="help-reuse panel" aria-labelledby="reuse-title">
     <h2 id="reuse-title">Reuse the instructions</h2>
     <p>Copy prompt includes your request, all instructions and the proof program. Paste it once into your chat. There is no separate instruction page for your AI to retrieve.</p>

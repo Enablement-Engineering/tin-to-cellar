@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { createHash } from 'node:crypto'
 import JSZip from 'jszip'
-import { decode } from 'fast-png'
-import { fixture, tobacco } from './fixtures'
+import { fixture, tobacco, decodedPixelSignature } from './fixtures'
 
 const origin = 'http://127.0.0.1:43928'
 const api = '/api/gallery/v1'
@@ -21,11 +20,16 @@ test('curated browser intake publishes new artwork and keeps replacement review 
     await expect(page.getByText('1 unique labels ready from 1 pack.')).toBeVisible()
     expect(writes).toEqual([])
     await page.getByRole('checkbox', { name: /I reviewed the source evidence/ }).check()
+    const uploaded = page.waitForResponse(response => response.request().method() === 'PUT' && /^\/api\/gallery\/v1\/admin\/intake\/[^/]+\/artwork$/.test(new URL(response.url()).pathname))
     await page.getByRole('button', { name: 'Prepare 1 community resources' }).click()
     await expect(page.getByText('1 of 1 resources prepared or added to private review.')).toBeVisible()
-    const queue = await (await request.get(`${api}/admin/submissions`, { headers: admin })).json()
-    const pending = queue.submissions.find((r: { metadata: { tobacco: { catalogId: string } } }) => r.metadata.tobacco.catalogId === tobacco.id)
-    expect(pending).toBeTruthy()
+    const upload = await uploaded
+    expect(upload.status(), await upload.text()).toBe(200)
+    const receipt = await upload.json()
+    const detail = await request.get(`${api}/admin/submissions/${receipt.id}`, { headers: admin })
+    expect(detail.status(), await detail.text()).toBe(200)
+    const pending = await detail.json()
+    expect(pending).toMatchObject({ id: receipt.id, state: 'pending', metadata: { tobacco: { catalogId: tobacco.id } } })
     const approval = await request.post(`${api}/admin/submissions/${pending.id}/approve`, { headers: admin, data: { expectedVersion: pending.version, digest: pending.digest } })
     expect(approval.status(), await approval.text()).toBe(200)
     const replacement = await fixture(825, 17)
@@ -39,7 +43,7 @@ test('curated browser intake publishes new artwork and keeps replacement review 
     const listed = await (await request.get(`${api}/labels?catalogId=${tobacco.id}`)).json()
     expect(listed.labels.map((r: { id: string }) => r.id)).toEqual([pending.id])
     const art = await (await request.get(`${api}/labels/${pending.id}/artwork`)).body()
-    expect(decode(art).data).toEqual(decode(original.png).data)
+    expect(decodedPixelSignature(art)).toEqual(decodedPixelSignature(original.png))
     const pack = await JSZip.loadAsync(await (await request.get(`${api}/labels/${pending.id}/pack`)).body())
     const manifest = JSON.parse(await pack.file('manifest.json')!.async('text'))
     expect(manifest.assets.artwork.sha256).toBe(createHash('sha256').update(art).digest('hex'))

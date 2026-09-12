@@ -12,29 +12,23 @@ vi.mock('./GalleryThumbnail', () => ({ GalleryThumbnail: () => null }))
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.resetAllMocks() })
 
-it('loads on intersection, prevents concurrent requests, pauses after failure and allows retry', async () => {
-  let intersect: IntersectionObserverCallback = () => {}
-  const disconnect = vi.fn()
-  const observe = vi.fn()
-  vi.stubGlobal('IntersectionObserver', class {
-    constructor(callback: IntersectionObserverCallback) { intersect = callback }
-    observe = observe
-    disconnect = disconnect
-  })
+it('loads only on deliberate activation, prevents concurrent requests and allows retry', async () => {
+  const observer = vi.fn()
+  vi.stubGlobal('IntersectionObserver', observer)
   const search = vi.mocked(searchLabels)
   search.mockResolvedValueOnce({ labels: [], nextCursor: 'page-2' })
   let rejectPage: (error: Error) => void = () => {}
   search.mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectPage = reject }))
   render(<GalleryBrowse onAdd={vi.fn()} />)
-  await screen.findByRole('button', { name: 'Show more labels' })
-  await waitFor(() => expect(observe).toHaveBeenCalled())
-  const enter = () => intersect([{ isIntersecting: true }] as IntersectionObserverEntry[], {} as IntersectionObserver)
-  enter(); enter()
+  const more = await screen.findByRole('button', { name: 'Show more labels' })
+  fireEvent.scroll(window)
+  expect(observer).not.toHaveBeenCalled()
+  expect(search).toHaveBeenCalledTimes(1)
+  fireEvent.click(more); fireEvent.click(more)
   await waitFor(() => expect(search).toHaveBeenCalledTimes(2))
   expect(search.mock.calls[1][1]).toBe('page-2')
   rejectPage(new Error('Connection lost'))
   await screen.findByRole('button', { name: 'Retry loading labels' })
-  expect(disconnect).toHaveBeenCalled()
   search.mockResolvedValueOnce({ labels: [], nextCursor: null })
   fireEvent.click(screen.getByRole('button', { name: 'Retry loading labels' }))
   await waitFor(() => expect(search).toHaveBeenCalledTimes(3))

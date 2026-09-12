@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises'
 import { basename } from 'node:path'
 import { createHash } from 'node:crypto'
 import JSZip from 'jszip'
-import { decode } from 'fast-png'
+import { decodedPixelSignature } from './fixtures'
 import type { GalleryLabelDraft, GalleryReceipt } from '../../src/lib/gallery/types'
 import { galleryCatalogId } from '../../src/lib/gallery/schema'
 import { resolveTobaccoId } from '../../src/lib/tobacco-catalog'
@@ -66,7 +66,7 @@ for (const [index, path] of paths.entries()) test(`local Downloads submission: $
   const approval = await request.post(`${api}/admin/submissions/${receipt.id}/approve`, { headers: { Origin: 'http://127.0.0.1:43928', 'X-Gallery-Test-Admin': 'reviewer-fixture' }, data: { expectedVersion: receipt.version, digest: receipt.digest } })
   expect(approval.status(), await approval.text()).toBe(200)
   const canonical = await (await request.get(`${api}/labels/${receipt.id}/artwork`)).body()
-  expect(decode(canonical).data).toEqual(decode(originalPng).data)
+  expect(decodedPixelSignature(canonical)).toEqual(decodedPixelSignature(originalPng))
   const pack = await request.get(`${api}/labels/${receipt.id}/pack`)
   expect(pack.status()).toBe(200)
   const publicContext = await browser.newContext()

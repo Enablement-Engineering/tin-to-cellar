@@ -15,9 +15,10 @@ type PrintStudioProps = {
   onSettingsChange: (settings: PrintSettingsPatch) => void
   saving?: boolean
   intake?: ReactNode
+  onPrintRequested?: () => void
 }
 
-export function PrintStudio({ labels, quantities, onQuantityChange, settings, onSettingsChange, saving = false, intake }: PrintStudioProps) {
+export function PrintStudio({ labels, quantities, onQuantityChange, settings, onSettingsChange, saving = false, intake, onPrintRequested }: PrintStudioProps) {
   const { page, firstSlot, offset } = settings
   const setPage = (page: number) => onSettingsChange({ page })
   const setFirstSlot = (firstSlot: number) => onSettingsChange({ firstSlot })
@@ -47,6 +48,9 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
   const print = (mode: 'labels' | 'calibration') => {
     if (saving) return
     document.body.dataset.printMode = mode
+    if (mode === 'labels') {
+      try { onPrintRequested?.() } catch { /* Optional counts must not prevent printing. */ }
+    }
     window.print()
   }
   const position = (slot: typeof profile.slots[number], preview = false): CSSProperties =>

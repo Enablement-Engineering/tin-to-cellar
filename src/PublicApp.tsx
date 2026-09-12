@@ -33,6 +33,8 @@ import { usePrintLabels } from './hooks/usePrintLabels'
 import { usePromptModule } from './hooks/usePromptModule'
 import { formatTobacco } from './lib/tobacco-catalog'
 import { PROTOCOL_REVISION } from './lib/protocol'
+import { initializeDemandCollection, recordDemand } from './lib/analytics/client'
+import type { RequestInput } from './lib/collection/types'
 
 function issueText(issue: { message?: string; recovery?: string }) { return [issue.message ?? 'The label needs repair.', issue.recovery].filter(Boolean).join(' ') }
 const ignoreHandledError = () => undefined
@@ -43,6 +45,7 @@ export default function PublicApp() {
   const { collection, ready, saving, error: storageError, commit } = useCollection()
   const { labels, error: previewError, pending: previewPending } = usePrintLabels(collection)
   const { view, navigate, main } = usePublicNavigation()
+  useEffect(() => { void initializeDemandCollection() }, [])
   const promptModule = usePromptModule(view === 'artwork' || view === 'help')
   const focusAfterImport = useRef(false)
   const [repairStatus, setRepairStatus] = useState('')
@@ -53,6 +56,7 @@ export default function PublicApp() {
     collection, ready, commit,
     onStart: () => { setRepairStatus(''); setShowRepair(false) },
     onImported: () => { if (view !== 'artwork') navigate('print') },
+    onGalleryAdded: rows => recordDemand('added-to-labels', rows),
   })
   const [showIntake, setShowIntake] = useState(false)
   const openImport = () => { setShowIntake(true); navigate('print') }
@@ -190,6 +194,30 @@ export default function PublicApp() {
     : labels.length > 0 ? 'ready'
     : collection.rows.length > 0 ? 'needs-artwork' : 'empty'
   const quantities = Object.fromEntries(collection.rows.map(row => [row.id, row.quantity]))
+  const readyDemandRows = () => collection.rows.filter(row => row.quantity > 0 && labels.some(label => label.id === row.id))
+  const openReadyPrint = () => {
+    if (view !== 'print' && printState === 'ready' && !busy) recordDemand('selected-for-print', readyDemandRows())
+    navigate('print')
+  }
+  const addLabelRequests = async (identities: RequestInput[]) => {
+    let added: RequestInput[] = []
+    await commit(current => {
+      const next = addRequests(current, identities)
+      added = next.rows.filter(row => !current.rows.some(previous => previous.id === row.id))
+      return next
+    })
+    recordDemand('added-to-labels', added)
+  }
+  const addGalleryCreationRequest = async (identity: RequestInput) => {
+    let addedRows: RequestInput[] = []
+    await commit(current => {
+      const added = addRequests(current, [identity])
+      addedRows = added.rows.filter(row => !current.rows.some(previous => previous.id === row.id))
+      return added.rows.reduce((next, row) => row.catalogId === identity.catalogId && row.maker === identity.maker && row.blend === identity.blend && !row.edition && !row.notes ? updateRow(next, row.id, { createRequested: true }) : next, added)
+    })
+    recordDemand('added-to-labels', addedRows)
+    navigate('create')
+  }
   const communityHashes = new Set(collection.receipts.flatMap(receipt => receipt.knownGalleryHashes ?? []))
   const activeDesigns = Object.values(collection.designs).filter(design => collection.rows.some(row => row.designId === design.id))
   const shareableLabels = activeDesigns.filter(design => design.origin === 'local' && !communityHashes.has(design.item.artwork.asset.sha256)).map(design => ({ ...design.item, id: design.id, label: { ...design.item.label, id: design.id } }))
@@ -230,7 +258,7 @@ export default function PublicApp() {
   const titles: Record<View | 'not-found', string> = { labels: 'Labels for your tobacco jars', 'not-found': 'Page not found', create: 'Your labels', artwork: 'Create artwork', order: 'Add several blends', print: 'Print labels', help: 'How it works', about: 'About', inspiration: 'Inspiration', privacy: 'Privacy', gallery: 'Community labels', 'gallery-admin': 'Review submissions' }
   const routeClick = (next: View) => (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-    event.preventDefault(); navigate(next)
+    event.preventDefault(); if (next === 'print') openReadyPrint(); else navigate(next)
   }
   const navItems: { view: View; label: string }[] = [
     { view: 'create' as const, label: 'Your labels' }, { view: 'print' as const, label: 'Print labels' },
@@ -242,7 +270,7 @@ export default function PublicApp() {
     const url = new URL(anchor.href, window.location.href)
     if (url.origin !== window.location.origin || url.hash || url.search) return
     const next = (Object.keys(viewPaths) as View[]).find(key => viewPaths[key] === url.pathname)
-    if (next) { event.preventDefault(); navigate(next) }
+    if (next) { event.preventDefault(); if (next === 'print') openReadyPrint(); else navigate(next) }
   }}>
     <title>{`${titles[view]} | Tin to Cellar`}</title>
     <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); main.current?.focus(); main.current?.scrollIntoView({ block: 'start' }) }}>Skip to main content</a>
@@ -259,18 +287,18 @@ export default function PublicApp() {
       {galleryMatch && candidate && <GalleryDesignReview current={galleryMatch} incoming={candidate.designs[0]} busy={busy} invalidated={reviewInvalidated} error={reviewInvalidated ? 'Your saved labels changed. Cancel and choose the design again.' : importError || storageError} onReplace={() => void acceptGalleryChoice('replace')} onAdd={() => void acceptGalleryChoice('add')} onCancel={cancelImport} />}
       {review && candidate && !galleryMatch && <CollectionImportReview unresolvedRequests={collection.rows.filter(row => row.createRequested && !Object.values(decisions).some(decision => decision.action === 'replace' && decision.rowId === row.id)).map(row => row.blend)} collection={collection} plan={review} decisions={decisions} onChange={setDecisions} onAccept={() => void acceptImport()} onReplace={() => void replaceImport()} onCancel={() => { focusAfterImport.current = true; setShowIntake(false); cancelImport() }} busy={busy} invalidated={reviewInvalidated} onRefresh={refreshDecisions} error={importError || storageError}>{summary && (summary.status !== 'ready' || summary.issues.length > 0 || summary.quarantined.length > 0) ? <ImportReport summary={summary} /> : null}</CollectionImportReview>}
       {legacyChoices.length > 0 && <section className="panel screen-only"><h2>Your previous community selection</h2><p>{legacyChoices.length} selected designs can be saved in Your labels. A design only becomes ready after its artwork downloads.</p><button type="button" className="button secondary" disabled={busy} onClick={() => void restoreLegacy()}>Restore selected labels</button></section>}
-      {(galleryVisited || view === 'gallery') && <div hidden={view !== 'gallery'} className="screen-only"><DeferredPanel><GalleryBrowse selectedCount={collection.rows.length} readyCount={labels.length} onView={() => navigate('create')} onCreate={identity => commit(current => { const added = addRequests(current, [identity]); return added.rows.reduce((next, row) => row.catalogId === identity.catalogId && row.maker === identity.maker && row.blend === identity.blend && !row.edition && !row.notes ? updateRow(next, row.id, { createRequested: true }) : next, added) }).then(() => navigate('create'))} getActionLabel={label => { const matches = collection.rows.filter(row => row.catalogId === label.catalogId && !row.edition); return matches.length === 1 && !matches[0].designId ? `Use for your ${label.blend} label` : matches.some(row => row.designId) ? 'Review this design' : 'Add to your labels' }} onAdd={label => chooseCommunity(label)} selectedIds={activeDesigns.flatMap(design => design.publicationId ? [design.publicationId] : [])} onPrint={() => navigate('print')} /></DeferredPanel></div>}
-      {view === 'not-found' ? <div className="landing-page screen-only"><h1>Page not found</h1><p>This page doesn’t exist.</p><a href="/labels" onClick={routeClick('labels')}>Go to Labels</a></div> : view === 'labels' ? <Landing selectedCount={collection.rows.length} readyCount={labels.length} onNavigate={next => next === 'print' ? openImport() : navigate(next)} busy={busy} onFile={file => handlePack(file, 'example')} /> : view === 'gallery' ? null : view === 'order' ? <OrderPage rows={collection.rows} busy={busy} onAdd={async identities => { await commit(current => addRequests(current, identities)); navigate('create') }} onBrowse={() => navigate('gallery')} /> : view === 'gallery-admin' ? <DeferredPanel><GalleryAdmin /></DeferredPanel> : view === 'create' ? <PreparationWorkspace rows={workspaceRows} busy={busy}
-        onOrder={() => navigate('order')} onCreateMany={saveCreationList} onAdd={identities => commit(current => addRequests(current, identities)).then(() => undefined)}
+      {(galleryVisited || view === 'gallery') && <div hidden={view !== 'gallery'} className="screen-only"><DeferredPanel><GalleryBrowse selectedCount={collection.rows.length} readyCount={labels.length} onView={() => navigate('create')} onCreate={addGalleryCreationRequest} getActionLabel={label => { const matches = collection.rows.filter(row => row.catalogId === label.catalogId && !row.edition); return matches.length === 1 && !matches[0].designId ? `Use for your ${label.blend} label` : matches.some(row => row.designId) ? 'Review this design' : 'Add to your labels' }} onAdd={label => chooseCommunity(label)} selectedIds={activeDesigns.flatMap(design => design.publicationId ? [design.publicationId] : [])} onPrint={openReadyPrint} /></DeferredPanel></div>}
+      {view === 'not-found' ? <div className="landing-page screen-only"><h1>Page not found</h1><p>This page doesn’t exist.</p><a href="/labels" onClick={routeClick('labels')}>Go to Labels</a></div> : view === 'labels' ? <Landing selectedCount={collection.rows.length} readyCount={labels.length} onNavigate={next => next === 'print' ? openImport() : navigate(next)} busy={busy} onFile={file => handlePack(file, 'example')} /> : view === 'gallery' ? null : view === 'order' ? <OrderPage rows={collection.rows} busy={busy} onAdd={async identities => { await addLabelRequests(identities); navigate('create') }} onBrowse={() => navigate('gallery')} /> : view === 'gallery-admin' ? <DeferredPanel><GalleryAdmin /></DeferredPanel> : view === 'create' ? <PreparationWorkspace rows={workspaceRows} busy={busy}
+        onOrder={() => navigate('order')} onCreateMany={saveCreationList} onAdd={addLabelRequests}
         onRemove={id => { void commit(current => removeRow(current, id)).catch(ignoreHandledError) }}
         onCreate={setCreationRequested}
         onNotes={(id, value) => commit(current => updateRow(current, id, { notes: value })).then(() => undefined)}
         onResolve={(id, identity) => { void commit(current => updateRow(current, id, identity)).catch(ignoreHandledError) }}
-        onChooseCommunity={(id, label) => chooseCommunity(label, id)} onPrint={() => navigate('print')} onBrowse={() => navigate('gallery')} onImport={openImport} onGenericChat={() => { setGenericChat(true); navigate('artwork') }} onContinueCreation={() => navigate('artwork')} /> : view === 'artwork' ? <ArtworkCreationFlow rows={creationRows} allRows={workspaceRows} requestKey={requestedKey} copied={Boolean(frozen?.copied)} generic={genericChat} busy={busy} onBack={() => navigate('create')} onEdit={saveCreationList} onNotes={(id, notes) => commit(current => updateRow(current, id, { notes })).then(() => undefined)} onCancel={id => setCreationRequested(id, false)} handoff={handoff ?? promptLoading} intake={intake} /> : view === 'help' ? <>{instructions !== null ? <HowItWorks instructions={instructions} /> : promptLoading}<StandaloneFeedback /></> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
+        onChooseCommunity={(id, label) => chooseCommunity(label, id)} onPrint={openReadyPrint} onBrowse={() => navigate('gallery')} onImport={openImport} onGenericChat={() => { setGenericChat(true); navigate('artwork') }} onContinueCreation={() => navigate('artwork')} /> : view === 'artwork' ? <ArtworkCreationFlow rows={creationRows} allRows={workspaceRows} requestKey={requestedKey} copied={Boolean(frozen?.copied)} generic={genericChat} busy={busy} onBack={() => navigate('create')} onEdit={saveCreationList} onNotes={(id, notes) => commit(current => updateRow(current, id, { notes })).then(() => undefined)} onCancel={id => setCreationRequested(id, false)} handoff={handoff ?? promptLoading} intake={intake} /> : view === 'help' ? <>{instructions !== null ? <HowItWorks instructions={instructions} /> : promptLoading}<StandaloneFeedback /></> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
         <div className="page-heading screen-only"><h1>{reviewingPack ? 'Review imported labels' : 'Print labels'}</h1><p className="spec-line">Avery 94502 · 2.5 in circles · US Letter</p></div>
         {!reviewingPack && <div className="handoff-actions print-page-controls screen-only"><button className="button secondary" type="button" onClick={() => navigate('create')}>Add more labels</button>{labels.length > 0 && <button type="button" className="button secondary" disabled={downloading} onClick={() => void download()}>{downloading ? 'Preparing download…' : 'Download labels'}</button>}{(collection.rows.length > 0 || collection.receipts.length > 0) && <button type="button" className="button quiet" disabled={busy} onClick={resetLabels}>Reset labels</button>}</div>}
         {!reviewingPack && printState === 'ready' && collection.rows.some(row => !row.designId) && <p className="field-hint screen-only">{collection.rows.filter(row => !row.designId).length} labels still need artwork. {labels.length > 0 ? 'You can print the ready labels now.' : 'Choose a design or import a finished ZIP to start printing.'}</p>}
-        {reviewingPack ? <div className="screen-only"><p role="status">This pack has not changed your saved selection. Add its labels, replace your selection, or cancel to return to your print sheet.</p>{intake}</div> : printState === 'loading' ? <p className="panel screen-only" role="status">Loading your saved labels…</p> : printState === 'ready' ? <PrintStudio saving={saving} intake={showIntake || candidate || importing || importError || currentReceipt?.repairPrompt ? intake : <details className="print-add-labels"><summary>Add labels from a ZIP</summary>{intake}</details>} labels={labels} quantities={quantities} onQuantityChange={(id, change) => { void commit(current => {
+        {reviewingPack ? <div className="screen-only"><p role="status">This pack has not changed your saved selection. Add its labels, replace your selection, or cancel to return to your print sheet.</p>{intake}</div> : printState === 'loading' ? <p className="panel screen-only" role="status">Loading your saved labels…</p> : printState === 'ready' ? <PrintStudio onPrintRequested={() => recordDemand('print-job-requested', readyDemandRows())} saving={saving} intake={showIntake || candidate || importing || importError || currentReceipt?.repairPrompt ? intake : <details className="print-add-labels"><summary>Add labels from a ZIP</summary>{intake}</details>} labels={labels} quantities={quantities} onQuantityChange={(id, change) => { void commit(current => {
           const row = current.rows.find(row => row.id === id)
           if (!row) return current
           const otherCopies = current.rows.reduce((sum, item) => sum + (item.id !== id && item.designId ? item.quantity : 0), 0)
