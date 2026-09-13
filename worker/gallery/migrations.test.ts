@@ -23,6 +23,19 @@ it('applies migration batches using the installed Wrangler statement splitter, p
  expect(db.prepare('SELECT COUNT(*) AS n FROM gallery_submissions').get()!.n).toBe(20)
  expect(db.prepare("SELECT admissions FROM gallery_admission WHERE bucket='same-ip'").get()!.admissions).toBe(20)
  expect(db.prepare("SELECT COUNT(*) AS n FROM gallery_submissions WHERE quota_key<>''").get()!.n).toBe(0)
+ const owner=db.prepare("INSERT INTO gallery_submissions(id,capability_hash,request_hash,state,created_at,expires_at,input_bytes,quota_key,reviewer,publication_id,digest,approval_digest) VALUES(?,'cap','hash','published','2026-09-06T00:00:00.000Z','2027-09-06T00:00:00.000Z',100,'owner-pilot:2026-09-06','owner-authorized-cli',?,'approved','approved')")
+ for(let i=0;i<25;i++){const id=crypto.randomUUID();owner.run(id,id)}
+ expect(db.prepare('SELECT COUNT(*) AS n FROM gallery_submissions').get()!.n).toBe(45)
+ expect(db.prepare("SELECT admissions FROM gallery_admission WHERE bucket='site:2026-09-06'").get()!.admissions).toBe(20)
+ expect(db.prepare("SELECT COUNT(*) AS n FROM gallery_admission WHERE bucket='owner-pilot:2026-09-06'").get()!.n).toBe(0)
+ expect(()=>db.prepare("INSERT INTO gallery_submissions(id,capability_hash,request_hash,state,created_at,expires_at,input_bytes,quota_key,reviewer) VALUES(?,'cap','hash','reserved','2026-09-06T00:00:00.000Z','2026-09-07T00:00:00.000Z',100,'same-ip','owner-authorized-cli')").run(crypto.randomUUID())).toThrow('gallery_capacity')
+ const publicKey=db.prepare("INSERT INTO gallery_submissions(id,capability_hash,request_hash,state,created_at,expires_at,input_bytes,quota_key) VALUES(?,'cap','hash','reserved','2026-09-06T00:00:00.000Z','2026-09-07T00:00:00.000Z',100,?)")
+ for(let i=0;i<80;i++)publicKey.run(crypto.randomUUID(),`other-ip-${i}`)
+ expect(db.prepare("SELECT admissions FROM gallery_admission WHERE bucket='site:2026-09-06'").get()!.admissions).toBe(100)
+ expect(()=>publicKey.run(crypto.randomUUID(),'one-more-ip')).toThrow('gallery_capacity')
+ for(let i=0;i<79;i++){const id=crypto.randomUUID();owner.run(id,id)}
+ expect(db.prepare('SELECT COUNT(*) AS n FROM gallery_submissions').get()!.n).toBe(204)
+ {const id=crypto.randomUUID();expect(()=>owner.run(id,id)).toThrow('gallery_capacity')}
  db.prepare('INSERT INTO gallery_agent_quota VALUES(?,6,6,?)').run('fixture','2026-09-07')
  expect(()=>db.prepare('UPDATE gallery_agent_quota SET used=used+1 WHERE bucket=?').run('fixture')).toThrow('agent_limit')
  expect(db.prepare('SELECT used FROM gallery_agent_quota').get()!.used).toBe(6)
