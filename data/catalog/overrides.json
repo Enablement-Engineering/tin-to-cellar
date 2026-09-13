@@ -1,5 +1,19 @@
 [
   {
+    "maker": "Capstan",
+    "blend": "Original Flake Blue",
+    "toMaker": "Capstan",
+    "toBlend": "Original Flake",
+    "reason": "Retailer wording for Capstan's blue flake tin; Mac Baren names this blend Original Flake."
+  },
+  {
+    "maker": "Capstan",
+    "blend": "Flake Blue",
+    "toMaker": "Capstan",
+    "toBlend": "Original Flake",
+    "reason": "Retailer wording for Capstan's blue flake tin; Mac Baren names this blend Original Flake."
+  },
+  {
     "maker": "Lane Limited",
     "blend": "Lane #101 BCA",
     "toMaker": "Lane Limited",

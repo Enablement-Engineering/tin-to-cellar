@@ -1377,17 +1377,13 @@
     "aliases": [
       "Capstan Blue",
       "Blue Flake",
-      "Original Navy Cut"
+      "Original Navy Cut",
+      "Original Flake Blue",
+      "Flake Blue",
+      "Capstan Original Flake Blue",
+      "Capstan Flake Blue"
     ],
     "id": "capstan-original-flake"
-  },
-  {
-    "maker": "Capstan",
-    "blend": "Original Flake Blue",
-    "sourceUrl": "https://4noggins.com/products/capstan-flake-blue-50g",
-    "reviewedAt": "2026-09-05",
-    "aliases": [],
-    "id": "capstan-original-flake-blue"
   },
   {
     "maker": "Capstan",

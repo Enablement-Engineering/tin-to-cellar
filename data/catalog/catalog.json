@@ -3021,7 +3021,11 @@
     "aliases": [
       "Capstan Blue",
       "Blue Flake",
-      "Original Navy Cut"
+      "Original Navy Cut",
+      "Original Flake Blue",
+      "Flake Blue",
+      "Capstan Original Flake Blue",
+      "Capstan Flake Blue"
     ],
     "sources": [
       {
@@ -3047,17 +3051,7 @@
         "reviewedAt": "2026-09-05",
         "name": "Original Flake",
         "file": "wvsmokeshop.json"
-      }
-    ],
-    "id": "capstan-original-flake"
-  },
-  {
-    "maker": "Capstan",
-    "blend": "Original Flake Blue",
-    "sourceUrl": "https://4noggins.com/products/capstan-flake-blue-50g",
-    "reviewedAt": "2026-09-05",
-    "aliases": [],
-    "sources": [
+      },
       {
         "url": "https://4noggins.com/products/capstan-flake-blue-50g",
         "reviewedAt": "2026-09-05",
@@ -3065,7 +3059,7 @@
         "file": "4noggins.json"
       }
     ],
-    "id": "capstan-original-flake-blue"
+    "id": "capstan-original-flake"
   },
   {
     "maker": "Capstan",

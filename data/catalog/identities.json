@@ -980,12 +980,6 @@
       "previousNames": []
     },
     {
-      "id": "capstan-original-flake-blue",
-      "maker": "Capstan",
-      "blend": "Original Flake Blue",
-      "previousNames": []
-    },
-    {
       "id": "capstan-original-ready-rubbed",
       "maker": "Capstan",
       "blend": "Original Ready Rubbed",
@@ -8937,5 +8931,10 @@
       "previousNames": []
     }
   ],
-  "idAliases": []
+  "idAliases": [
+    {
+      "aliasId": "capstan-original-flake-blue",
+      "catalogId": "capstan-original-flake"
+    }
+  ]
 }
