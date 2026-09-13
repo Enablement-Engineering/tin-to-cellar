@@ -7,8 +7,8 @@ import { createCanvas } from '@napi-rs/canvas'
 import { writeFile } from 'node:fs/promises'
 import { printablePack } from './pack'
 
-test('printed circles match trim, leave gutters, and paginate at actual Letter size', async ({ page }, testInfo) => {
-  // A solid red asset makes excess bleed visible in rendered pixels.
+test('printing exposes 1mm of bleed without scaling artwork or overlapping neighbors', async ({ page }, testInfo) => {
+  // Red through the supplied bleed makes clipping visible in rendered pixels.
   const zip = await JSZip.loadAsync(await printablePack())
   const manifest = JSON.parse(await zip.file('manifest.json')!.async('string'))
   const data = new Uint8Array(825 * 825 * 4)
@@ -35,19 +35,43 @@ test('printed circles match trim, leave gutters, and paginate at actual Letter s
     const i = (y * shot.width + x) * shot.channels
     return shot.data[i] > 180 && shot.data[i + 1] < 50
   }
-  // First slot stays empty. Occupied slots are exactly 240px at 96px/in.
-  expect(red(156, 216)).toBe(false)
-  for (const x of [288, 540]) {
-    expect(red(x - 2, 216)).toBe(false)
-    expect(red(x + 2, 216)).toBe(true)
-    expect(red(x + 237, 216)).toBe(true)
-    expect(red(x + 241, 216)).toBe(false)
-    expect(red(x + 120, 94)).toBe(false)
-    expect(red(x + 120, 98)).toBe(true)
-    expect(red(x + 120, 333)).toBe(true)
-    expect(red(x + 120, 338)).toBe(false)
-    expect(red(x + 2, 98)).toBe(false) // Circular crop, not a square.
+  // The trim remains 240px and the supplied 2.75-inch image remains 264px.
+  // Only clipping changes; resizing either box would alter the composition.
+  const slot = page.locator('.production-slot').nth(1)
+  const trim = await slot.locator('.label-art').boundingBox()
+  const artwork = await slot.locator('img').boundingBox()
+  expect(trim).toEqual({ x: 288, y: 96, width: 240, height: 240 })
+  expect(artwork).toEqual({ x: 276, y: 84, width: 264, height: 264 })
+  const checkBleed = () => {
+    expect(red(156, 216)).toBe(false) // First slot stays empty.
+    for (const x of [288, 540]) {
+      // 1mm is about 3.78px at 96px/in, on every side of the finished circle.
+      expect(red(x - 2, 216)).toBe(true)
+      expect(red(x - 5, 216)).toBe(false)
+      expect(red(x + 241, 216)).toBe(true)
+      expect(red(x + 245, 216)).toBe(false)
+      expect(red(x + 120, 94)).toBe(true)
+      expect(red(x + 120, 91)).toBe(false)
+      expect(red(x + 120, 338)).toBe(true)
+      expect(red(x + 120, 341)).toBe(false)
+      expect(red(x + 2, 98)).toBe(false) // Circular crop, not a square.
+      // Simulate a die cut displaced by 1mm in eight directions. Sample just
+      // inside its edge to avoid judging raster antialiasing as a white rim.
+      for (let direction = 0; direction < 8; direction++) {
+        const angle = direction * Math.PI / 4
+        for (let sample = 0; sample < 48; sample++) {
+          const edge = sample * Math.PI / 24
+          // Select the pixel containing the point, rather than rounding into
+          // the next pixel at the antialiased outer edge.
+          expect(red(Math.floor(x + 120 + Math.cos(angle) * 96 / 25.4 + Math.cos(edge) * 119),
+            Math.floor(216 + Math.sin(angle) * 96 / 25.4 + Math.sin(edge) * 119))).toBe(true)
+        }
+      }
+    }
+    // A clear gutter separates adjacent designs, including on lower rows.
+    for (const y of [216, 528, 840]) expect(red(534, y)).toBe(false)
   }
+  checkBleed()
   const pdf = await page.pdf({ path: testInfo.outputPath('labels.pdf'), preferCSSPageSize: true, printBackground: true })
   const loadingTask = getDocument({ data: new Uint8Array(pdf) })
   const document = await loadingTask.promise
@@ -62,13 +86,7 @@ test('printed circles match trim, leave gutters, and paginate at actual Letter s
   const raster = canvas.toBuffer('image/png')
   await writeFile(testInfo.outputPath('labels-pdf.png'), raster)
   shot = decode(raster)
-  expect(red(156, 216)).toBe(false)
-  for (const x of [288, 540]) {
-    expect(red(x - 2, 216)).toBe(false)
-    expect(red(x + 2, 216)).toBe(true)
-    expect(red(x + 237, 216)).toBe(true)
-    expect(red(x + 241, 216)).toBe(false)
-  }
+  checkBleed()
   await loadingTask.destroy()
 
   // Calibration and artwork use the same physical coordinates and offsets.

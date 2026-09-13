@@ -86,7 +86,7 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
             <button className="button secondary" type="button" disabled={saving} onClick={() => print('calibration')}><Icon name="guide" size={17} />Print alignment sheet</button>
             <p className="field-hint">Print on plain paper at Actual Size. The ruler should measure two inches. Hold it behind your label stock to check the nine circles.</p>
           </details>
-          <p className="field-hint">Choose US Letter, no margins, and Actual Size / 100%. Turn off headers and footers. Use Paper and alignment to check a plain-paper sheet first. To save a PDF, choose Save as PDF.</p>
+          <p className="field-hint">Choose US Letter, no margins, and Actual Size / 100%. Turn off headers and footers. If labels look off-center, use Paper and alignment. To save a PDF, choose Save as PDF.</p>
         </div>
         </div>
         <div className="sheet-stage">

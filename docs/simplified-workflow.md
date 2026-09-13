@@ -48,9 +48,9 @@ The current workspace permits up to 100 rows and selected designs, 45 MiB of uni
 
 Print labels uses Avery 94502, nine 2.5-inch circles on US Letter. A zero quantity omits that row. Pending rows do not insert empty slots. Paper and alignment contains printer offsets, starting position and calibration controls.
 
-Print at Actual Size / 100%, with browser headers and footers disabled. Test alignment on plain paper and measure it with a ruler. Browser tests do not establish physical printer accuracy.
+Print at Actual Size / 100%, with browser headers and footers disabled. If labels look off-center, use the optional alignment sheet on plain paper to check position and scale. Browser tests do not establish physical printer accuracy.
 
-Artwork geometry remains separate from printer sheet geometry. The preview clips at the circular trim boundary; printing includes the original supplied bleed. Generated artwork owns the entire light, blank date-writing surface. The website adds no words, lines, overlays or replacement geometry.
+Artwork geometry remains separate from printer sheet geometry. The preview clips at the circular trim boundary; printing reveals up to 1 mm of the original supplied bleed beyond it without scaling the artwork. Generated artwork owns the entire light, blank date-writing surface. The website adds no words, lines, overlays or replacement geometry.
 
 ## Implementation boundaries
 
