@@ -33,6 +33,7 @@
 .gallery-creation-dialog::backdrop { background: rgb(30 27 22 / .45); }
 .gallery-creation-dialog h2 { margin-top: 0; }
 .gallery-creation-dialog .field { margin: 1rem 0; }
+.gallery-creation-dialog .tobacco-suggestions { position: static; margin-top: .5rem; }
 .gallery-confirmed-blend { display: grid; gap: .3rem; margin: 1.5rem 0; }
 .gallery-creation-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
 body:has(.gallery-creation-dialog[open]) { overflow: hidden; }

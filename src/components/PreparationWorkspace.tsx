@@ -5,6 +5,7 @@ import type { PrintLabel } from './ui-model'
 import { SelectionSummary } from './SelectionSummary'
 import { Icon } from './Icons'
 import { CreationSelection } from './CreationSelection'
+import { TobaccoSelector, type TobaccoIdentity } from './TobaccoSelector'
 import '../styles/label-workspace.css'
 import '../styles/preparation-actions.css'
 import { LabelArtwork } from './LabelArtwork'
@@ -12,7 +13,7 @@ import { GalleryThumbnail } from './gallery/GalleryThumbnail'
 import { API, errorText } from './gallery/client'
 import { searchExactLabels } from './gallery/search-labels'
 
-export type PreparationIdentity = { catalogId: string | null; maker: string; blend: string }
+export type PreparationIdentity = TobaccoIdentity
 export type PreparationRow = PreparationIdentity & { id: string; edition?: string; notes?: string; createRequested: boolean; designId?: string | null; previousDesignId?: string; artwork?: PrintLabel }
 export type PreparationWorkspaceProps = {
   rows: PreparationRow[]; busy?: boolean
@@ -29,25 +30,15 @@ export type PreparationWorkspaceProps = {
 const identity = (entry: TobaccoEntry): PreparationIdentity => ({ catalogId: entry.id, maker: entry.maker, blend: entry.blend })
 
 function BlendIntake({ busy, onAdd, rows }: Pick<PreparationWorkspaceProps, 'busy' | 'onAdd' | 'rows'>) {
-  const id = useId(), input = useRef<HTMLInputElement>(null)
-  const [draft, setDraft] = useState(''), [open, setOpen] = useState(false), [active, setActive] = useState(-1)
-  const [pending, setPending] = useState<PreparationIdentity | null>(null), [addError, setAddError] = useState('')
+  const input = useRef<HTMLInputElement>(null)
+  const [draft, setDraft] = useState('')
+  const [pending, setPending] = useState<PreparationIdentity | null>(null)
   const [confirmation, setConfirmation] = useState('')
   useEffect(() => { if (!confirmation) return; const timer = window.setTimeout(() => setConfirmation(''), 6000); return () => window.clearTimeout(timer) }, [confirmation])
-  const matches = searchTobaccos(draft, 6), visible = open && Boolean(draft.trim())
-  useEffect(() => { if (visible && active >= 0) document.getElementById(`${id}-${active}`)?.scrollIntoView?.({ block: 'nearest' }) }, [visible, active, id])
   const close = () => { setPending(null); input.current?.focus() }
-  const selected = active >= 0 ? active : matches.length === 1 ? 0 : -1
-  const submit = () => {
-    if (selected >= 0) add(matches[selected])
-    else if (!matches.length) add()
-    else { setOpen(true); setAddError('Choose a catalog match below, or use this name without a catalog match.') }
-  }
-  const add = (entry?: TobaccoEntry) => {
+  const add = (selectedIdentity: PreparationIdentity) => {
     if (busy || pending) return
-    if (!entry && !draft.trim()) return
-    const selectedIdentity = entry ? identity(entry) : { catalogId: null, maker: '', blend: draft.trim() }
-    setAddError(''); setConfirmation(''); setOpen(false); setActive(-1)
+    setConfirmation('')
     if (rows.some(row => row.catalogId === selectedIdentity.catalogId && row.maker === selectedIdentity.maker && row.blend === selectedIdentity.blend && !row.edition && !row.notes)) {
       setConfirmation(`${selectedIdentity.blend} is already saved. Change its artwork below.`)
       input.current?.focus(); return
@@ -55,33 +46,12 @@ function BlendIntake({ busy, onAdd, rows }: Pick<PreparationWorkspaceProps, 'bus
     setPending(selectedIdentity)
   }
   return <div className="preparation-intake">
-    <div className="field tobacco-picker">
-      <label htmlFor={id}>Add a blend</label>
-      <p id={`${id}-hint`} className="field-hint">Find a blend, then choose a community design or add it to your AI creation list.</p>
-      <div className="preparation-add-line"><div className="tobacco-editor">
-        <input id={id} ref={input} type="text" role="combobox" aria-autocomplete="list" aria-expanded={visible} aria-controls={visible ? `${id}-options` : undefined} aria-activedescendant={visible && selected >= 0 ? `${id}-${selected}` : undefined} aria-describedby={`${id}-hint`} autoComplete="off" value={draft} readOnly={busy} placeholder="Search or type a blend…" onFocus={() => setOpen(true)} onBlur={() => { setOpen(false); setActive(-1) }} onChange={event => { setDraft(event.target.value); setAddError(''); setOpen(true); setActive(-1) }} onKeyDown={event => {
-          if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && draft.trim()) { event.preventDefault(); setOpen(true); setActive(value => event.key === 'ArrowDown' ? Math.min(value + 1, matches.length) : value < 0 ? matches.length : Math.max(0, value - 1)) }
-          else if (event.key === 'Escape') { setOpen(false); setActive(-1) }
-          else if (event.key === 'Enter' && draft.trim()) { event.preventDefault(); submit() }
-        }} onPaste={event => {
-          if (busy) { event.preventDefault(); return }
-          const pasted = event.clipboardData.getData('text')
-          if (!/[\r\n]/.test(pasted)) return
-          event.preventDefault()
-          setAddError('Add one blend at a time here. To paste a list, choose Add several blends.')
-        }} />
-        {visible && <ul id={`${id}-options`} className="tobacco-suggestions" role="listbox" aria-label="Blend suggestions">
-          {matches.map((entry, index) => <li id={`${id}-${index}`} key={entry.id} role="option" aria-selected={selected === index} aria-label={`${entry.blend} by ${entry.maker}`} onMouseDown={event => event.preventDefault()} onClick={() => add(entry)}><strong>{entry.blend}</strong><span>{entry.maker}</span></li>)}
-          <li id={`${id}-${matches.length}`} role="option" aria-selected={selected === matches.length} onMouseDown={event => event.preventDefault()} onClick={() => add()}>Use “{draft.trim()}” without a catalog match</li>
-        </ul>}
-      </div><button type="button" className="button secondary" disabled={busy || !draft.trim()} onMouseDown={event => event.preventDefault()} onClick={submit}>Add blend</button></div>
-      <p className="selection-confirmation" role="status" aria-atomic="true">{confirmation && `${confirmation} · ${rows.length} ${rows.length === 1 ? 'blend' : 'blends'} selected.`}</p>
-      {addError && <p role="alert">{addError}</p>}
-    </div>
+    <TobaccoSelector value={draft} onChange={setDraft} onChoose={add} inputRef={input} disabled={busy} actionLabel="Add blend" hint="Find a blend, then choose a community design or add it to your AI creation list." multilineHint="Add one blend at a time here. To paste a list, choose Add several blends." />
+    <p className="selection-confirmation" role="status" aria-atomic="true">{confirmation && `${confirmation} · ${rows.length} ${rows.length === 1 ? 'blend' : 'blends'} selected.`}</p>
     {pending && <BlendArtworkDialog identity={pending} busy={busy} returnFocus={input} onClose={close} onSave={async choice => {
       await onAdd(pending, choice)
       setConfirmation(`${pending.blend} ${choice === 'ai' ? 'added to your AI creation list' : 'is ready to print'}`)
-      setDraft(''); setOpen(false); setActive(-1)
+      setDraft('')
       close()
     }} />}
   </div>

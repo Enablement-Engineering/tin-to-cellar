@@ -5,6 +5,8 @@ import { GalleryThumbnail } from './GalleryThumbnail'
 import { blendKey, browseResults, loadBrowseLabels, shuffleIds, type BrowseOrder } from './browse-model'
 import { API, errorText, useConfig } from './client'
 import { SelectionSummary } from '../SelectionSummary'
+import { TobaccoSelector } from '../TobaccoSelector'
+import { formatTobacco } from '../../lib/tobacco-catalog'
 import '../../styles/gallery-workflow.css'
 
 function CreationReview({ identity, query, onCreate, onClose }: {
@@ -13,8 +15,9 @@ function CreationReview({ identity, query, onCreate, onClose }: {
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const title = useRef<HTMLHeadingElement>(null)
-  const [maker, setMaker] = useState(identity?.maker ?? '')
-  const [blend, setBlend] = useState(identity?.blend ?? query.trim())
+  const [selected, setSelected] = useState(identity)
+  const [draft, setDraft] = useState(identity ? identity.maker ? formatTobacco(identity) : identity.blend : query.trim())
+  const inFlight = useRef(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   useEffect(() => {
@@ -23,22 +26,27 @@ function CreationReview({ identity, query, onCreate, onClose }: {
     modal.showModal(); title.current?.focus()
     return () => { modal.close(); if (previous?.isConnected) previous.focus({ preventScroll: true }) }
   }, [])
-  return <dialog ref={dialog} className="gallery-creation-dialog" aria-labelledby="gallery-creation-title" aria-describedby="gallery-creation-description" onCancel={event => { event.preventDefault(); if (!saving) onClose() }}>
+  return <dialog ref={dialog} className="gallery-creation-dialog" aria-labelledby="gallery-creation-title" aria-describedby="gallery-creation-description" onCancel={event => { event.preventDefault(); if (!inFlight.current) onClose() }} onKeyDown={event => {
+    if (event.key !== 'Tab') return
+    const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('input:not(:disabled), button:not(:disabled)')]
+    const first = controls[0], last = controls.at(-1)
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === title.current)) { event.preventDefault(); last?.focus() }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+  }}>
     <form onSubmit={async event => {
-      event.preventDefault(); if (saving || !blend.trim()) return
-      setSaving(true); setError('')
-      try { await onCreate(identity ?? { catalogId: null, maker: maker.trim(), blend: blend.trim() }); onClose() }
-      catch (failure) { setError(errorText(failure)); setSaving(false) }
+      event.preventDefault(); if (inFlight.current || !selected) return
+      inFlight.current = true; setSaving(true); setError('')
+      try { await onCreate({ ...selected, maker: selected.maker.trim() }); onClose() }
+      catch (failure) { setError(errorText(failure)); setSaving(false); inFlight.current = false }
     }}>
-      <h2 ref={title} tabIndex={-1} id="gallery-creation-title">Choose a blend for new artwork</h2>
-      <p id="gallery-creation-description">Confirm the blend for your AI request. You will review its design notes and copy the instructions next.</p>
-      {identity ? <p className="gallery-confirmed-blend"><strong>{identity.blend}</strong><span>{identity.maker}</span></p> : <>
-        <p className="field-hint">Enter the blend name and its maker, if known. This will be saved as a custom blend.</p>
-        <label className="field"><span>Maker <em>optional</em></span><input value={maker} maxLength={120} disabled={saving} onChange={event => setMaker(event.target.value)} /></label>
-        <label className="field"><span>Blend name</span><input value={blend} required maxLength={120} disabled={saving} onChange={event => setBlend(event.target.value)} /></label>
-      </>}
+      <h2 ref={title} tabIndex={-1} id="gallery-creation-title">Create artwork in your AI chat</h2>
+      <p id="gallery-creation-description">Choose a blend for your AI creation list. From Your labels, you can review the list and copy instructions into your own AI chat.</p>
+      <p className="field-hint">You make the artwork in your chat and bring back the finished ZIP to print. No request is sent to Tin to Cellar.</p>
+      <TobaccoSelector label="Find a blend" hint="Type part of a blend or maker name, then choose a match." value={draft} disabled={saving} onChange={value => { setDraft(value); setSelected(null); setError('') }} onChoose={choice => { setSelected(choice); setDraft(choice.maker ? formatTobacco(choice) : choice.blend); setError('') }} />
+      <div role="status" aria-atomic="true">{selected && <p className="gallery-confirmed-blend"><strong>{selected.blend}</strong><span>{selected.catalogId ? selected.maker : 'Custom blend'}</span></p>}</div>
+      {selected && !selected.catalogId && <label className="field"><span>Maker <em>optional</em></span><input value={selected.maker} maxLength={120} disabled={saving} onChange={event => setSelected({ ...selected, maker: event.target.value })} /></label>}
       {error && <p role="alert">{error} Your reviewed blend is still here. Try again.</p>}
-      <div className="gallery-creation-actions"><button className="button primary" type="submit" disabled={saving || !blend.trim()}>{saving ? 'Saving…' : 'Add to creation request'}</button><button className="button quiet" type="button" disabled={saving} onClick={onClose}>Cancel</button></div>
+      <div className="gallery-creation-actions"><button className="button primary" type="submit" disabled={saving || !selected} onMouseDown={event => event.preventDefault()}>{saving ? 'Saving…' : 'Add to my AI creation list'}</button><button className="button quiet" type="button" disabled={saving} onMouseDown={event => event.preventDefault()} onClick={onClose}>Cancel</button></div>
     </form>
   </dialog>
 }
@@ -106,7 +114,7 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
     setAdding(label.id); setAddError('')
     try { await onAdd(label) } catch (failure) { setAddError(errorText(failure)) } finally { setAdding(null) }
   }
-  const creationRoute = onCreate && <section className="gallery-create-route" aria-labelledby="gallery-create-heading"><div><h2 id="gallery-create-heading">{identity && !busy && !error && !results.length && !maker ? `Create artwork for ${identity.blend}` : 'Want a different design?'}</h2>{identity && <p>Create new artwork for {identity.maker} {identity.blend}, or keep browsing.</p>}</div><button className="button secondary" type="button" disabled={saving || adding !== null} onClick={() => setCreating(true)}>Choose artwork to create</button></section>
+  const creationRoute = onCreate && <section className="gallery-create-route" aria-labelledby="gallery-create-heading"><div><h2 id="gallery-create-heading">{identity && !busy && !error && !results.length && !maker ? `Create artwork for ${identity.blend}` : 'Want a different design?'}</h2><p>{identity ? `Make new artwork for ${formatTobacco(identity)} in your own AI chat, then bring back the finished ZIP.` : 'Choose a blend, copy instructions into your own AI chat, and bring back the finished label ZIP.'}</p></div><button className="button secondary" type="button" disabled={saving || adding !== null} onClick={() => setCreating(true)}>Create in my AI chat</button></section>
   return <section className="gallery-page screen-only" aria-labelledby="gallery-title">
     <header className="page-heading gallery-heading"><h1 id="gallery-title" tabIndex={-1}>Browse label designs</h1><p>Find your blends, compare the artwork, and add the designs you want to print. Community designs are ready to use without an AI chat.</p></header>
     {configError && <p role="alert">{configError}</p>}
