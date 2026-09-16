@@ -11,6 +11,7 @@ import { About } from './components/About'
 import { Inspiration } from './components/Inspiration'
 import { SiteFooter } from './components/SiteFooter'
 import { Wordmark } from './components/Wordmark'
+import { ThemeControl } from './components/ThemeControl'
 import { ProtocolWarning } from './components/ProtocolWarning'
 import { StandaloneFeedback } from './components/StandaloneFeedback'
 import { ExamplePack } from './components/ExamplePack'
@@ -279,6 +280,7 @@ export default function PublicApp() {
     <header className="site-header screen-only"><div className="site-header-inner">
       <a className="wordmark" href="/" onClick={routeClick('labels')} aria-label="Tin to Cellar home"><Wordmark /></a>
       <nav className="nav-tabs" aria-label="Workflow">{navItems.map(item => <a key={item.view} href={viewPaths[item.view]} aria-current={view === item.view ? 'page' : undefined} onClick={routeClick(item.view)}>{item.label}</a>)}</nav>
+      <ThemeControl />
     </div></header>
     <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
       {(storageError || importError) && <p className="panel screen-only" role="alert">{storageError || importError}</p>}

@@ -70,6 +70,7 @@ it('keeps past import warnings separate from suspended print readiness', async (
   expect(screen.queryByText(/selected for printing/)).not.toBeInTheDocument()
 })
 beforeEach(async () => {
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
   HTMLDialogElement.prototype.close = function () { this.removeAttribute('open') }
   vi.stubGlobal('crypto', webcrypto)

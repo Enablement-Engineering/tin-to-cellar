@@ -68,6 +68,20 @@ The landing page may have one inverse ink specification band. Other content uses
 
 ## Color tokens
 
+### Appearance preference
+
+The header's Theme button opens System, Light, and Dark radio options. System is the default and tracks live device changes. An explicit choice is saved locally as `tin-to-cellar:theme` and synchronized across tabs. Choosing System removes the override. If browser storage is unavailable, the choice lasts for the current visit. The document resolves the theme before the application loads to avoid a flash of the opposite palette.
+
+Dark mode uses the same typography, artwork and layout. Its core colors are warm charcoal `#24231f` for the page, `#2e2d27` for cards, parchment `#f3eddf` for headings, `#dcd5c6` for body text, sage `#b2c7a4` for actions, and brass `#d1b476` for focus and the brand mark. Muted text uses `#b5b0a2`; form borders use `#858675`. Status colors have separate dark backgrounds. These screen-only overrides live in `src/styles/theme.css`; components use semantic color tokens.
+
+The Theme button stays beside the wordmark on narrow screens, above navigation. Opening it focuses the selected radio; arrow keys change the choice, Tab leaves the control, and Escape closes it and returns focus to the button. It also closes when clicking outside.
+
+Sheet previews retain the light paper palette in both themes. Original images receive no color filters. Print styles use light color-scheme, white paper and black calibration text, independently of the selected screen theme.
+
+Theme regression coverage is in `tests/accessibility/theme.pw.ts`. Local validation on 2026-09-16 passed all 10 browser tests, including both palettes at 320px and 1280px, keyboard and forced-color focus, preference persistence, blocked storage, gallery dialog contrast, and identical printed-page screenshots. The App and PrintStudio suites passed 55 tests; build and lint passed. Browser checks used a separate local frontend server with mocked API responses. Physical printer and production verification were outside this change.
+
+### Light palette
+
 These are the source palette values. Prefer semantic roles in component styles so contrast and theme adjustments have one place to change.
 
 | Family | Tokens and hex values |

@@ -9,6 +9,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Keep the character of the tin with printable tobacco jar labels. Choose community designs or create artwork from the original packaging, with room for handwritten dates." />
     <meta name="theme-color" content="#f5f0e8" />
+    <script>
+      // Resolve before styles paint, including a saved override on a dark device.
+      (() => {
+        let preference = 'system';
+        try { preference = localStorage.getItem('tin-to-cellar:theme') || 'system'; } catch {}
+        const theme = preference === 'light' || preference === 'dark' ? preference : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = theme;
+        document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#24231f' : '#f5f0e8';
+      })();
+    </script>
     <link rel="preload" href="/fonts/newsreader-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/hanken-grotesk-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
     <title>Tin to Cellar</title>

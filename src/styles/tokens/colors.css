@@ -1,4 +1,5 @@
 :root{
+color-scheme:light;
 /* --- Paper: warm neutral surfaces, lightest to deepest --- */
 --paper-50:#fbf8f3;--paper-100:#f5f0e8;--paper-200:#eae3d7;--paper-300:#dcd3c4;--paper-400:#c4b9a6;--paper-500:#a89c87;
 /* --- Ink: warm near-black through muted --- */
@@ -54,4 +55,16 @@
 --action-quiet-border:var(--line-strong);
 --action-danger:var(--clay-600);
 --focus-ring:var(--brass-500);
+
+/* Screen roles keep palette swatches and physical paper independent. */
+--surface-header:rgb(245 240 232 / 88%);
+--surface-hover:var(--paper-100);
+--line-hover:var(--paper-500);
+--text-brass:var(--brass-600);
+--text-caution:var(--amber-700);
+--text-on-inverse-muted:var(--paper-300);
+--text-on-inverse-faint:var(--paper-400);
+--surface-sheet:var(--paper-50);
+--text-sheet:var(--ink-500);
+--line-sheet:var(--paper-400);
 }

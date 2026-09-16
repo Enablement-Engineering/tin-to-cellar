@@ -2,6 +2,7 @@ import PublicApp from './PublicApp'
 import { GalleryAdmin } from './components/gallery/deferred'
 import { DeferredPanel } from './components/DeferredPanel'
 import { Wordmark } from './components/Wordmark'
+import { ThemeControl } from './components/ThemeControl'
 import './styles/app.css'
 
 function isGalleryAdminHost(hostname: string): boolean {
@@ -12,7 +13,7 @@ export function GalleryAdminShell({ hostname }: { hostname: string }) {
   return <div className="app-shell tc-grain">
     <title>Review submissions | Tin to Cellar</title>
     <a className="skip-link" href="#main-content">Skip to main content</a>
-    <header className="site-header screen-only"><div className="site-header-inner"><a className="wordmark" href="/" aria-label="Tin to Cellar review home"><Wordmark /></a><nav aria-label="Review navigation"><a href={publicSite} rel="noreferrer">Open public site</a></nav></div></header>
+    <header className="site-header screen-only"><div className="site-header-inner"><a className="wordmark" href="/" aria-label="Tin to Cellar review home"><Wordmark /></a><nav aria-label="Review navigation"><a href={publicSite} rel="noreferrer">Open public site</a></nav><ThemeControl /></div></header>
     <main id="main-content" className="site-main view-gallery-admin" tabIndex={-1}><DeferredPanel><GalleryAdmin /></DeferredPanel></main>
   </div>
 }
