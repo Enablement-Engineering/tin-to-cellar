@@ -40,6 +40,8 @@ jobs:
         run: npm run test:recovery
       - name: Check mobile Safari theme interaction
         run: npm run test:theme -- --project iphone-webkit --grep 'theme responds to taps|keyboard focus leaving'
+      - name: Check mobile saved-design layout
+        run: npx playwright test --config playwright.mobile.config.ts --project iphone-webkit
 
   deploy:
     needs: check

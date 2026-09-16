@@ -23,9 +23,10 @@
 @media(max-width: 680px) {
   .label-workspace .preparation-row { padding: 16px; }
   .label-workspace .preparation-row-heading { display: flex; flex-wrap: wrap; }
-  .workspace-row-actions { flex-basis: 100%; }
+  .workspace-row-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; flex-basis: 100%; }
   .label-workspace .preparation-row-heading > .workspace-row-actions { flex-basis: 100%; }
-  .workspace-row-actions .secondary { flex: 1; }
+  .workspace-row-actions .button { min-width: 0; padding-inline: 12px; overflow-wrap: normal; white-space: normal; }
+  .workspace-row-actions > :first-child:nth-last-child(3) { grid-column: 1 / -1; }
   .workspace-art-placeholder { width: 48px; height: 48px; }
   .workspace-creation > .button { width: 100%; }
 }
