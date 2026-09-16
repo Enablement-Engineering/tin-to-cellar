@@ -9,6 +9,7 @@ import { startProgress, importProgress, printProgress, pruneProgress } from './p
 import { initializeDemandCollection, setDemandPreference } from './client'
 const now = new Date('2026-09-16T12:00:00Z')
 beforeEach(async () => {
+  vi.stubGlobal('localStorage', (globalThis as unknown as { jsdom: { window: Window } }).jsdom.window.localStorage)
   localStorage.clear()
   vi.stubGlobal('Blob', NodeBlob)
   vi.spyOn(Date, 'now').mockReturnValue(now.getTime())

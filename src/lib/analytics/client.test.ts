@@ -4,6 +4,8 @@ import { TOBACCO_CATALOG } from '../tobacco-catalog'
 
 const catalogId = TOBACCO_CATALOG[0].id
 beforeEach(() => {
+  // Use the browser environment's storage, not Node's host storage global.
+  vi.stubGlobal('localStorage', (globalThis as unknown as { jsdom: { window: Window } }).jsdom.window.localStorage)
   vi.resetModules()
   localStorage.clear()
   localStorage.setItem('tin-to-cellar:usage-choice-v2', 'on:00000000-0000-0000-0000-000000000000')

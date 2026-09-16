@@ -30,6 +30,12 @@ The technical, privacy, and data-usefulness critics confirmed closure of their m
 
 An exploratory run of the broader beta browser file exposed a pre-existing gallery-pagination test that mocks an older listing interface and expects a retired button. That unrelated case remains unchanged and is outside the focused usage suite. The default broader accessibility suite has not been certified by this work. The existing full gallery publication browser workflow was not rerun; only its default-consent assertion was updated to require no writes.
 
-## Deployment boundary
+## Implementation-phase deployment boundary
 
-All analytics flags remain false in production configuration and release generation. There is no traffic beacon, remote migration, publication, deployment, push, or activation in this work. Migration 0009 and production host/account verification belong to a later authorized release. Collection activation remains a separate decision.
+At completion of the implementation phase, all analytics flags remained false in production configuration and release generation. That phase included no traffic beacon, remote migration, publication, deployment, push, or activation. Collection activation remains separate from deployment.
+
+## Authorized release preflight
+
+The user subsequently requested testing, committing, and deployment. The current-main release keeps all analytics flags false and applies migration 0009 through the existing production workflow.
+
+The primary checkout uses Node 26, while CI uses Node 24. Release testing found that Node's host storage global could mask jsdom storage, and an archived harness in ignored `output/` was being discovered as a source test. The analytics tests now explicitly use jsdom storage; test discovery excludes archived output. Local preflight passed 780 tests, including eight tests in two pre-existing ignored local scripts. The committed source suite remains the CI authority. Build, lint, 30 immutable protocol releases, and all nine built-release recovery browser checks pass. The focused usage browser suite is rerun before push; production smoke results are recorded with the release workflow.

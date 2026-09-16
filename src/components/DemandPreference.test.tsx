@@ -5,7 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { DemandPreference } from './DemandPreference'
 import { PREFERENCE_KEY } from '../lib/analytics/preferences'
 
-beforeEach(() => { localStorage.clear(); vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ enabled: false }))) })
+beforeEach(() => { vi.stubGlobal('localStorage', (globalThis as unknown as { jsdom: { window: Window } }).jsdom.window.localStorage); localStorage.clear(); vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ enabled: false }))) })
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 it('defaults off, offers a labeled opt-in, and reflects another tab changing the preference', () => {
   render(<DemandPreference />)
