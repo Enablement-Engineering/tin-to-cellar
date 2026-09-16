@@ -313,7 +313,6 @@ export default function PublicApp() {
     </div></header>
     <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
       <AppRecoveryNotice />
-      {['create', 'artwork', 'print'].includes(view) && <UsageInvitation key={view} />}
       {(recoveryFile || recoveryFileError) && <section className="panel screen-only" aria-label="Selected ZIP recovery">
         <p>{recoveryFile ? `${recoveryFile.name} is selected for recovery. Resume its review when the app is ready. The ZIP stays on this device.` : recoveryFileError}</p>
         {recoveryFile && recoveryFileError && <p role="alert">{recoveryFileError}</p>}
@@ -363,6 +362,7 @@ export default function PublicApp() {
       </>}
       {view === 'create' && (collection.rows.length > 0 || collection.receipts.length > 0) && <div className="preparation-storage screen-only"><button type="button" className="button quiet" disabled={busy} onClick={resetLabels}>Clear saved labels</button></div>}
       {collection.receipts.map(receipt => <ContributionStatus key={receipt.id} contribution={receipt.contribution} retrospective={notes[receipt.id] ?? null} onDismissNotes={() => setNotes(current => { const next = { ...current }; delete next[receipt.id]; return next })} hidden={view !== 'print' || currentReceipt?.id !== receipt.id} autoSend={freshReceipts.has(receipt.id)} delivery={receipt.delivery} onDelivery={delivery => { void commit(current => setReceiptDelivery(current, receipt.id, delivery)).catch(ignoreHandledError) }} />)}
+      {['create', 'artwork', 'print'].includes(view) && <UsageInvitation key={view} />}
     </main>
     <SiteFooter currentView={view} onNavigate={navigate} />
   </div>
