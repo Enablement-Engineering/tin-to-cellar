@@ -165,7 +165,9 @@ Use the first elevation for chips and secondary buttons, the second for cards, a
 
 Standard controls are at least 44px tall. The source permits 34px dense controls, but compact appearance must not prevent touch or keyboard use. Hover changes color or border only. A primary action moves from moss 600 to 700 on hover and 800 when pressed. Do not move, scale, spring, or ripple controls.
 
-Control transitions use 140ms with `cubic-bezier(.35,.02,.25,1)`. Background and shadow transitions use 220ms with `cubic-bezier(.2,.6,.3,1)`. Reduced motion sets token durations to 1ms; the application also forces element transition and animation durations to 0.01ms and disables smooth scrolling. No entrance animations or shimmer are needed.
+Control transitions use 140ms with `cubic-bezier(.35,.02,.25,1)`. Disclosure indicators and non-destructive dialog entry use 220ms with `cubic-bezier(.2,.6,.3,1)`; dialog backdrops fade in over 140ms. Closing, focus, and pressed states are immediate. Keep route changes and restored scroll positions immediate as well. Do not animate page entrances, gallery thumbnails, or print geometry, and do not use shimmer.
+
+`src/styles/microinteractions.css` contains screen-only feedback. A successfully changed workspace row receives one 360ms moss emphasis; restored rows do not animate. Copy icons change to a check only after success, and saved gallery designs retain a readable Added state. Short Design notes and Paper and alignment disclosures progressively animate their height where supported; long reports open immediately. Native dialog and disclosure semantics remain intact. Reduced motion removes transitions and animations, including dialog backdrops, while preserving all status text and state changes. No business action waits for animation completion.
 
 Keep visible keyboard focus on fields, links, buttons, summaries, and the tobacco suggestions. The source uses a moss field border and brass ring. The application may darken the ring or field border to make the focused control clear against paper. Disabled controls use native disabled behavior where possible and expose their state to assistive technology.
 

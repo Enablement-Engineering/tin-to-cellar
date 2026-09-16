@@ -3,15 +3,19 @@ import type { CollectionDesign, ImportReceipt } from '../lib/collection/types'
 import { formatTobacco } from '../lib/tobacco-catalog'
 import { ImportReport } from './PackImporter'
 import { ProtocolWarning } from './ProtocolWarning'
+import { CopyFeedbackIcon } from './Icons'
 
 export function ReceiptReport({ receipt }: { receipt: ImportReceipt }) {
   const [copyStatus, setCopyStatus] = useState('')
+  const [copied, setCopied] = useState(false)
   const [showRepair, setShowRepair] = useState(false)
   const issues = receipt.issues.filter(issue => issue.code !== 'MISSING_PREVIEW')
   const needsRepair = receipt.repairPrompt || receipt.quarantined.length || issues.some(issue => issue.severity === 'error' || issue.severity === 'fatal')
   const copyRepair = async () => {
+    setCopied(false)
     try {
       await navigator.clipboard.writeText(receipt.repairPrompt)
+      setCopied(true)
       setCopyStatus('Copied. Paste this into the same AI chat, then add the corrected ZIP.')
     } catch {
       setShowRepair(true)
@@ -27,7 +31,7 @@ export function ReceiptReport({ receipt }: { receipt: ImportReceipt }) {
     <ProtocolWarning context={receipt.protocolContext} feedback={receipt.contribution?.feedback} compact />
     {receipt.repairPrompt && <div className="repair-panel import-repair">
       <p>Request corrections in the AI chat that made this ZIP, then import the corrected file.</p>
-      <button className="button secondary" type="button" onClick={() => void copyRepair()}>Copy repair request</button>
+      <button className="button secondary" type="button" onClick={() => void copyRepair()}><CopyFeedbackIcon copied={copied} />Copy repair request</button>
       <p className="copy-status" role="status">{copyStatus}</p>
       {showRepair && <textarea aria-label="Repair request" readOnly value={receipt.repairPrompt} rows={8} onFocus={event => event.currentTarget.select()} />}
     </div>}

@@ -53,3 +53,9 @@ export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
     </svg>
   )
 }
+
+export function CopyFeedbackIcon({ copied }: { copied: boolean }) {
+  return <span className="copy-feedback-icon" data-copied={copied} aria-hidden="true">
+    <Icon name="copy" /><Icon name="check" />
+  </span>
+}

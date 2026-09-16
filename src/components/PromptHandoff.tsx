@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Icon } from './Icons'
+import { CopyFeedbackIcon } from './Icons'
 
 type PromptHandoffProps = { prompt: string; request: string; copyLabel?: string; copied?: boolean; busy?: boolean; onCopy?: () => Promise<string>; onCopyLatest?: () => Promise<string>; onCopied?: (payload: string) => void }
 type CopyResult = { payload: string; source: string; failed: boolean }
@@ -21,6 +21,7 @@ export function PromptHandoff({ prompt, copyLabel = 'Copy instructions', copied 
     }
   }, [busy, saving])
   const currentResult = result && (result.payload === prompt || result.source === prompt) ? result : null
+  const copySucceeded = !saving && !saveError && (currentResult ? !currentResult.failed : copied)
   const copy = async (latest = false) => {
     if (busy || saving) return
     let payload = prompt
@@ -51,10 +52,10 @@ export function PromptHandoff({ prompt, copyLabel = 'Copy instructions', copied 
       <p className="field-hint">Your chat runs separately from this page.</p>
       <h3>Allow time for each label</h3>
       <p className="field-hint">Each label can take several minutes. The AI creates the artwork, checks it, and may make another attempt to correct problems. That back-and-forth is normal. Larger requests take longer because labels are made one at a time.</p>
-      <div className="handoff-actions"><button ref={copyButton} className={`button ${copied || currentResult && !currentResult.failed ? 'secondary' : 'primary'}`} type="button" disabled={busy || saving} onClick={() => void copy()}><Icon name="copy" />{saving ? 'Preparing request…' : copyLabel}</button></div>
+      <div className="handoff-actions"><button ref={copyButton} className={`button ${copySucceeded ? 'secondary' : 'primary'}`} type="button" disabled={busy || saving} onClick={() => void copy()}><CopyFeedbackIcon copied={copySucceeded} /><span className="copy-button-label"><span className="copy-button-width" aria-hidden="true">{copyLabel}</span><span className="copy-button-width" aria-hidden="true">Preparing request…</span><span>{saving ? 'Preparing request…' : copyLabel}</span></span></button></div>
       {onCopyLatest && <div className="handoff-update"><p>Newer instructions are available for a new chat. Use your saved instructions to continue an existing chat.</p><button type="button" className="button secondary" disabled={busy || saving} onClick={() => void copy(true)}>Copy updated instructions for a new chat</button></div>}
       {saveError && <p role="alert">{saveError}</p>}
-      <p className="copy-status" role="status">{currentResult?.failed ? 'Automatic copying did not work. Select and copy the text below.' : copied || currentResult ? 'Copied. Open your AI chat, paste, and send. Return here with the finished ZIP.' : ''}</p>
+      <p className="copy-status" role="status">{currentResult?.failed ? 'Automatic copying did not work. Select and copy the text below.' : copySucceeded ? 'Copied. Open your AI chat, paste, and send. Return here with the finished ZIP.' : ''}</p>
       </div>
       <div className="handoff-details">
       <details className="prompt-preview" open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>

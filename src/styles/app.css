@@ -6,6 +6,7 @@
 @import './tokens/elevation.css';
 @import './tokens/motion.css';
 @import './tokens/texture.css';
+@import './microinteractions.css';
 
 /* The source palette is preserved. Small readable text uses ink-500, and
    eyebrows meet the design system's 12px minimum rather than its 11px token. */
@@ -24,7 +25,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 96px; }
+html { scroll-behavior: auto; scroll-padding-top: 96px; }
 body { margin: 0; min-width: 320px; min-height: 100vh; font: var(--type-body); }
 button, input, select, textarea { font: inherit; color: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }

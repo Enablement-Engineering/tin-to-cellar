@@ -182,3 +182,17 @@ it('groups saved artwork correctly while its preview loads and keeps old undecid
   expect(within(screen.getByRole('region', { name: 'Ready to print' })).getByRole('article', { name: 'Downloaded design' })).toBeInTheDocument()
   expect(within(screen.getByRole('region', { name: 'Choose artwork' })).getByRole('article', { name: 'Old request' })).toBeInTheDocument()
 })
+
+it('does not mark artwork saved when choosing a replacement only opens its review', async () => {
+  const design = { id: 'replacement', catalogId: 'peterson-nightcap', maker: 'Peterson', blend: 'Nightcap', altText: 'Nightcap artwork', artworkProfileId: 'circle-2.5@1' as const, publishedAt: '2026-09-15T00:00:00Z' }
+  vi.mocked(searchExactLabels).mockResolvedValue({ labels: [design], nextCursor: null, serving: true })
+  const callbacks = props()
+  render(<PreparationWorkspace {...callbacks} rows={[{ id: 'saved', catalogId: design.catalogId, maker: design.maker, blend: design.blend, designId: 'original', createRequested: false }]} />)
+  const row = screen.getByRole('article', { name: 'Nightcap' })
+  expect(row).not.toHaveAttribute('data-confirmed')
+  fireEvent.click(within(row).getByRole('button', { name: 'Choose design' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Use this design' }))
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Close choices' })).not.toBeInTheDocument())
+  expect(callbacks.onChooseCommunity).toHaveBeenCalledWith('saved', design)
+  expect(row).not.toHaveAttribute('data-confirmed')
+})

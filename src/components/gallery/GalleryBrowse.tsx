@@ -6,6 +6,7 @@ import { GalleryArtworkPreview } from './GalleryArtworkPreview'
 import { blendKey, browseResults, loadBrowseLabels, shuffleIds, type BrowseOrder } from './browse-model'
 import { API, errorText, useConfig } from './client'
 import { SelectionSummary } from '../SelectionSummary'
+import { Icon } from '../Icons'
 import { TobaccoSelector } from '../TobaccoSelector'
 import { formatTobacco } from '../../lib/tobacco-catalog'
 import '../../styles/gallery-workflow.css'
@@ -144,7 +145,7 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
         <header className="gallery-card-heading"><h2 id={`gallery-blend-${label.id}`}>{label.blend}</h2><p id={`gallery-maker-${label.id}`} className="gallery-card-maker">{label.maker}</p></header>
         {variantText(label) && <p id={`gallery-variant-${label.id}`} className="gallery-edition">{variantText(label)}</p>}
         {blend !== blendKey(label) && (alternatives.get(blendKey(label)) ?? 0) > 1 && <button className="gallery-alternatives" type="button" aria-label={`View all ${alternatives.get(blendKey(label))} designs for ${label.blend} by ${label.maker}`} onClick={() => chooseBlend(label)}>{alternatives.get(blendKey(label))} designs for this blend</button>}
-        <div className="gallery-actions"><button type="button" className="button primary" aria-describedby={`gallery-blend-${label.id} gallery-maker-${label.id}${variantText(label) ? ` gallery-variant-${label.id}` : ''}`} disabled={saving || adding !== null || selectedIds.includes(label.id)} onClick={() => void add(label)}>{selectedIds.includes(label.id) ? 'Added to your labels' : adding === label.id ? 'Adding design…' : getActionLabel?.(label) ?? 'Add to your labels'}</button></div>
+        <div className="gallery-actions"><button type="button" className={`button ${selectedIds.includes(label.id) ? 'secondary gallery-added' : 'primary'}`} aria-describedby={`gallery-blend-${label.id} gallery-maker-${label.id}${variantText(label) ? ` gallery-variant-${label.id}` : ''}`} disabled={saving || adding !== null || selectedIds.includes(label.id)} onClick={() => void add(label)}>{selectedIds.includes(label.id) && <Icon name="check" />}{selectedIds.includes(label.id) ? 'Added to your labels' : adding === label.id ? 'Adding design…' : getActionLabel?.(label) ?? 'Add to your labels'}</button></div>
       </article>)}</div>
       {adding && <p role="status">Downloading and checking the selected design…</p>}
       {shown.length < results.length && <div className="gallery-pagination"><button type="button" className="button secondary" onClick={() => setVisible(value => value + 24)}>Show more labels</button></div>}

@@ -32,6 +32,19 @@ it('reveals selectable complete text if clipboard access fails', async () => {
   expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Complete fallback text')
   expect(screen.getByText('Read prompt').closest('details')).toHaveAttribute('open')
 })
+
+it('replaces earlier copy success with the manual fallback when copying again fails', async () => {
+  const writeText = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('denied'))
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+  render(<PromptHandoff prompt="Saved instructions" request="Request" copied />)
+  const button = screen.getByRole('button', { name: 'Copy instructions' })
+  fireEvent.click(button)
+  await waitFor(() => expect(button.querySelector('[data-copied="true"]')).not.toBeNull())
+  fireEvent.click(button)
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Automatic copying did not work'))
+  expect(button.querySelector('[data-copied="true"]')).toBeNull()
+  expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Saved instructions')
+})
 it('renders untrusted prompt Markdown without fetching images or executing HTML', () => {
   const request = '# Task\n\n![Reference](https://example.com/tracker.png)\n\n<script>alert(1)</script>\n\n[Unsafe](javascript:alert(1))'
   render(<PromptHandoff prompt={request} request="Request summary" />)
