@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { GalleryBrowse } from './GalleryBrowse'
 const labels = [
@@ -16,7 +16,8 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.resetAllMocks() })
 it('adds through the shared collection callback and displays only committed selections', async () => {
   const onAdd = vi.fn().mockResolvedValue(undefined), onPrint = vi.fn()
   const view = render(<GalleryBrowse onAdd={onAdd} onPrint={onPrint} />)
-  fireEvent.click((await screen.findAllByRole('button', { name: 'Add to your labels' }))[0])
+  const design = await screen.findByRole('article', { name: 'One Maker' })
+  fireEvent.click(within(design).getByRole('button', { name: 'Add to your labels' }))
   await waitFor(() => expect(onAdd).toHaveBeenCalledWith(labels[0]))
   expect(sessionStorage.getItem('gallery-pack-selection')).toBeNull()
   expect(screen.queryByText('Added to your labels')).not.toBeInTheDocument()
