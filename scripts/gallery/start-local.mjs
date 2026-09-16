@@ -1,16 +1,24 @@
 // Local-only harness. Never provisions or deploys Cloudflare resources.
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { execFileSync, spawn } from 'node:child_process'
 
 const root = process.cwd()
 mkdirSync('.wrangler', { recursive: true })
-const work = mkdtempSync(resolve('.wrangler/gallery-'))
+const reuseIndex = process.argv.indexOf('--reuse')
+const reuse = reuseIndex !== -1
+if (reuse && !process.argv[reuseIndex + 1]) throw Error('--reuse requires a local gallery directory')
+const work = reuse ? resolve(process.argv[reuseIndex + 1]) : mkdtempSync(resolve('.wrangler/gallery-'))
 const config = resolve(work, 'wrangler.json')
 const state = resolve(work, 'state')
 const testMode = process.argv.includes('--test')
+if (reuse && (testMode || !work.startsWith(resolve('.wrangler/gallery-')))) throw Error('Reuse requires a normal local gallery directory')
 const port = process.argv.includes('--port') ? process.argv[process.argv.indexOf('--port') + 1] : '43928'
-writeFileSync(config, JSON.stringify({
+if (reuse) {
+  const saved = JSON.parse(readFileSync(config, 'utf8'))
+  if (saved.name !== 'tin-to-cellar-local-gallery' || saved.main !== resolve('worker/index.ts') || saved.d1_databases?.[0]?.database_id !== '00000000-0000-0000-0000-000000000001') throw Error('Refusing to reuse a non-local gallery configuration')
+}
+if (!reuse) writeFileSync(config, JSON.stringify({
   name: 'tin-to-cellar-local-gallery', main: resolve(testMode ? 'tests/gallery/test-worker.ts' : 'worker/index.ts'),
   compatibility_date: '2026-09-05', workers_dev: false, preview_urls: false,
   cache: { enabled: false },
@@ -32,10 +40,13 @@ writeFileSync(config, JSON.stringify({
 const wrangler = (...args) => execFileSync('npm', ['exec', '--', 'wrangler', ...args, '--config', config, '--persist-to', state], { cwd: root, stdio: 'inherit' })
 wrangler('d1', 'migrations', 'apply', 'GALLERY', '--local')
 const seed = resolve(work, 'catalog.sql')
-execFileSync('npm', ['exec', '--', 'node', 'scripts/gallery/seed-catalog.mjs', seed], { cwd: root, stdio: 'inherit' })
-wrangler('d1', 'execute', 'GALLERY', '--local', '--file', seed)
-wrangler('d1', 'execute', 'GALLERY', '--local', '--command', 'UPDATE gallery_settings SET intake=1,publication=1,serving=1 WHERE id=1')
+if (!reuse) {
+  execFileSync('npm', ['exec', '--', 'node', 'scripts/gallery/seed-catalog.mjs', seed], { cwd: root, stdio: 'inherit' })
+  wrangler('d1', 'execute', 'GALLERY', '--local', '--file', seed)
+  wrangler('d1', 'execute', 'GALLERY', '--local', '--command', 'UPDATE gallery_settings SET intake=1,publication=1,serving=1 WHERE id=1')
+}
 console.log(testMode ? 'Local gallery E2E harness: synthetic authentication is confined to tests/gallery/test-worker.ts.' : 'Local gallery: production authentication remains required. No remote resources were changed.')
+console.log(`Local gallery state: ${work}\nReopen with: npm run gallery:dev -- --reuse ${work}`)
 const child = spawn('npm', ['exec', '--', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', port, '--inspector-port', '0', '--config', config, '--persist-to', state], { cwd: root, stdio: 'inherit' })
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal))
 child.on('exit', code => { process.exitCode = code ?? 1 })
