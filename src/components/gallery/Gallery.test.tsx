@@ -16,7 +16,7 @@ beforeEach(() => { vi.stubGlobal('crypto', webcrypto); URL.createObjectURL = vi.
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); history.replaceState({}, '', '/') })
 const config = { intake: true, serving: true, turnstileSiteKey: 'test', noticeVersion: '2026-09-06-v2' }
 it('searches blends with keyboard suggestions and clears the catalog filter without an edition field', async () => {
-  const fetcher = vi.fn(async (url: string) => ({ ok: true, json: async () => url.endsWith('/config') ? config : { labels: [], nextCursor: null } }))
+  const fetcher = vi.fn(async (url: string) => ({ ok: true, json: async () => url.endsWith('/config') ? config : { labels: [], nextCursor: null, serving: true } }))
   vi.stubGlobal('fetch', fetcher)
   render(<GalleryBrowse onAdd={vi.fn()} />)
   const input = await screen.findByRole('combobox', { name: 'Maker or blend' })
@@ -26,14 +26,15 @@ it('searches blends with keyboard suggestions and clears the catalog filter with
   expect(screen.queryByLabelText('Edition')).toBeNull()
   fireEvent.change(input, { target: { value: 'Peterson Nightcap' } })
   expect(screen.queryByRole('button', { name: 'Search' })).toBeNull()
-  expect(screen.getByRole('option', { name: /Nightcap by Peterson/ })).toBeInTheDocument()
+  expect(screen.getByRole('option', { name: /Nightcap.*Peterson/ })).toBeInTheDocument()
   fireEvent.keyDown(input, { key: 'ArrowDown' })
   fireEvent.keyDown(input, { key: 'Enter' })
   expect(input).toHaveValue('Peterson — Nightcap')
-  await waitFor(() => expect(fetcher.mock.calls.at(-1)?.[0]).toContain('catalogId='))
+  await waitFor(() => expect(fetcher.mock.calls.at(-1)?.[0]).toContain('/browse'))
   expect(fetcher.mock.calls.at(-1)?.[0]).not.toContain('edition=')
   fireEvent.click(screen.getByRole('button', { name: 'Clear search' }))
-  await waitFor(() => expect(fetcher.mock.calls.at(-1)?.[0]).toMatch(/labels\?geometry=circle-2.5$/))
+  expect(input).toHaveValue('')
+  expect(fetcher).toHaveBeenCalledTimes(2)
 })
 it('previews locally, then uploads only explicitly selected artwork and allowlisted metadata', async () => {
   const calls: { url: string; init?: RequestInit }[] = []

@@ -13,6 +13,10 @@ const makerAliases: Record<string, string[]> = {
   'G. L. Pease': ['GL Pease', 'GLP', 'G L Pease'],
 }
 
+export function tobaccoSearchFields(entry: Pick<TobaccoEntry, 'maker' | 'blend' | 'aliases'>): string[] {
+  return [entry.maker, entry.blend, ...(entry.aliases ?? []), ...(makerAliases[entry.maker] ?? [])]
+}
+
 export function formatTobacco(entry: Pick<TobaccoEntry, 'maker' | 'blend'>): string {
   return `${entry.maker} — ${entry.blend}`
 }

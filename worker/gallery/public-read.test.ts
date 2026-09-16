@@ -244,3 +244,36 @@ it('limits cache stream tees during a concurrent cold-image burst', async () => 
   release(); await drain()
   expect((await call()).headers.get('X-Gallery-Cache')).toBe('HIT')
 })
+
+it('pages the complete public browse index without private fields or artwork reads', async () => {
+  const copy = db.raw.prepare("INSERT INTO gallery_submissions(id,capability_hash,request_hash,state,created_at,expires_at,metadata_json,catalog_id,input_bytes,quota_key,published_maker,published_blend,published_at) SELECT ?,'private-cap','private-hash',?,'2026-09-12','2027-01-01',metadata_json,catalog_id,4,'fixture',published_maker,published_blend,published_at FROM gallery_submissions WHERE id=?")
+  for (let i = 0; i < 253; i++) {
+    // This read fixture spans many publication days; admission quotas are tested separately.
+    db.raw.exec('DELETE FROM gallery_admission; UPDATE gallery_submissions SET reserved_bytes=0')
+    copy.run(`bbbbbbbb-bbbb-4bbb-8bbb-${String(i).padStart(12, '0')}`, i === 252 ? 'pending' : 'published', id)
+  }
+  const first = await call('/browse')
+  const page = await first.json() as { labels: { id: string }[]; nextCursor: string; serving: boolean }
+  expect(page.serving).toBe(true); expect(page.labels).toHaveLength(250)
+  expect(JSON.stringify(page)).not.toMatch(/private-cap|private-hash|metadata_json|quota_key/)
+  expect(page.labels[0]).toEqual({ id, catalogId: 'test-blend', maker: 'Test', blend: 'Blend', altText: 'Synthetic label', artworkProfileId: 'circle-2.5@1', publishedAt: '2026-09-12' })
+  const second = await (await call(`/browse?cursor=${page.nextCursor}`)).json() as { labels: { id: string }[]; nextCursor: null }
+  expect(second.labels).toHaveLength(3); expect(second.nextCursor).toBeNull()
+  expect(new Set([...page.labels, ...second.labels].map(label => label.id)).size).toBe(253)
+  expect(reads).not.toHaveBeenCalled()
+  await drain()
+  expect((await call('/browse')).headers.get('X-Gallery-Cache')).toBe('HIT')
+  time += 5000; db.raw.exec('UPDATE gallery_settings SET serving=0')
+  expect(await (await call('/browse')).json()).toEqual({ labels: [], nextCursor: null, serving: false })
+})
+it('validates browse parameters and keeps its cache private for authenticated requests', async () => {
+  expect((await call('/browse?cursor=invalid')).status).toBe(400)
+  expect((await call('/browse?catalogId=test-blend')).status).toBe(400)
+  expect((await call(`/browse?cursor=${id}&cursor=${id}`)).status).toBe(400)
+  expect(db.queries).toEqual([])
+  const response = await call('/browse', { Cookie: 'private' })
+  expect(response.headers.get('Cache-Control')).toBe('no-store')
+  await response.arrayBuffer(); await drain(); expect(cache.entries.size).toBe(0)
+  env.GALLERY_READ_RATE_LIMITER = { limit: async () => ({ success: false }) }
+  expect((await call('/browse')).status).toBe(429)
+})

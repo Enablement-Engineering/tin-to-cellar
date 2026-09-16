@@ -4,8 +4,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { GalleryBrowse } from './GalleryBrowse'
 const labels = [
-  { id: '43649b43-8094-4a32-b5ee-8be75208fb63', maker: 'Maker', blend: 'One', description: 'First design' },
-  { id: '43649b43-8094-4a32-b5ee-8be75208fb64', maker: 'Maker', blend: 'Two', description: 'Second design' },
+  { id: '43649b43-8094-4a32-b5ee-8be75208fb63', maker: 'Maker', blend: 'One', catalogId: 'one', publishedAt: '2026-09-01', altText: 'First design' },
+  { id: '43649b43-8094-4a32-b5ee-8be75208fb64', maker: 'Maker', blend: 'Two', catalogId: 'two', publishedAt: '2026-09-01', altText: 'Second design' },
 ]
 beforeEach(() => {
   sessionStorage.clear()

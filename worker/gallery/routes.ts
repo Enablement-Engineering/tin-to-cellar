@@ -81,7 +81,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
     const method = request.method;
     const own = path.match(/^\/submissions\/([a-f0-9-]+)\/(artwork)$/);
     const label = path.match(/^\/labels\/([a-f0-9-]+)(?:\/(artwork|thumbnail|pack))?$/);
-    const publicRead = method === 'GET' && (path === '/config' || path === '/labels' || !!(label && uuid(label[1])));
+    const publicRead = method === 'GET' && (path === '/config' || path === '/labels' || path === '/browse' || !!(label && uuid(label[1])));
     const publicSubmission = method === 'POST' && path === '/submissions';
     const publicUpload = method === 'PUT' && !!(own && uuid(own[1]));
     try {

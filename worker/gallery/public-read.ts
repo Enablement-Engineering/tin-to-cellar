@@ -81,7 +81,7 @@ export async function publicGalleryRead(request: Request, env: GalleryEnv, deps:
   const path = url.pathname.slice('/api/gallery/v1'.length)
   const label = path.match(/^\/labels\/([a-f0-9-]+)(?:\/(artwork|thumbnail|pack))?$/)
   const kind = label?.[2]
-  const allowed = path === '/labels' ? ['cursor', 'catalogId', 'edition', 'geometry'] : []
+  const allowed = path === '/browse' ? ['cursor'] : path === '/labels' ? ['cursor', 'catalogId', 'edition', 'geometry'] : []
   if ([...url.searchParams.keys()].some(key => !allowed.includes(key) || url.searchParams.getAll(key).length !== 1)) return json({ error: 'invalid_filter' }, 400)
   const cursor = url.searchParams.get('cursor') ?? '', catalog = url.searchParams.get('catalogId') ?? '', edition = url.searchParams.get('edition') ?? '', geometry = url.searchParams.get('geometry')
   if ((cursor && !uuid(cursor)) || catalog.length > 200 || edition.length > 120) return json({ error: 'invalid_filter' }, 400)
@@ -99,7 +99,7 @@ export async function publicGalleryRead(request: Request, env: GalleryEnv, deps:
   if (!control.ready) return json({ error: 'maintenance', message: 'Gallery maintenance is in progress. Please try again shortly.' }, 503)
   const switches = control.switches
   const config = { ...switches, intake: switches.intake && !!env.GALLERY_TURNSTILE_SITE_KEY && !!env.GALLERY_IP_SALT && !!env.GALLERY_RATE_LIMITER && !!env.GALLERY_UPLOAD_RATE_LIMITER && !!env.GALLERY_MUTATION_RATE_LIMITER && (!!env.GALLERY_TURNSTILE_SECRET || !!deps.verifyTurnstile), noticeVersion: GALLERY_NOTICE_VERSION, turnstileSiteKey: env.GALLERY_TURNSTILE_SITE_KEY ?? '' }
-  if (!switches.serving && path !== '/config') return path === '/labels' ? json({ labels: [], nextCursor: null, serving: false }) : json({ error: 'not_found' }, 404)
+  if (!switches.serving && path !== '/config') return path === '/labels' || path === '/browse' ? json({ labels: [], nextCursor: null, serving: false }) : json({ error: 'not_found' }, 404)
   const ttl = path === '/config' ? 15 : kind === 'pack' ? 0 : kind ? 60 : 30
   if (cache && ttl) {
     let hit: Response | undefined
@@ -116,6 +116,11 @@ export async function publicGalleryRead(request: Request, env: GalleryEnv, deps:
   let response: Response
   if (path === '/config') {
     response = json(config)
+  } else if (path === '/browse') {
+    // Public metadata only. Bounded pages let browsing search the complete set
+    // without fetching packs/images or issuing a request for each keystroke.
+    const rows = (await db.prepare(`SELECT ${columns} FROM gallery_submissions WHERE state='published' AND id>? ORDER BY id LIMIT 251`).bind(cursor).all<PublicRow>()).results
+    response = json({ labels: rows.slice(0, 250).map(projection), nextCursor: rows.length > 250 ? rows[249].id : null, serving: true })
   } else if (path === '/labels') {
     if (geometry && geometry !== 'circle-2.5') response = json({ labels: [], nextCursor: null, serving: true })
     else {
