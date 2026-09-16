@@ -153,7 +153,7 @@ it('presents each blend as a heading and gives card actions accessible identity 
   expect(await screen.findByRole('heading', { level: 2, name: 'Nightcap' })).toBeVisible()
   expect(screen.getByRole('article', { name: 'Nightcap Peterson' })).toBeVisible()
   expect(screen.getByRole('button', { name: 'Add to your labels' })).toHaveAccessibleDescription('Nightcap Peterson')
-  expect(screen.getByRole('link', { name: /Nightcap by Peterson artwork.*opens in a new tab/ })).toHaveAttribute('target', '_blank')
+  expect(screen.getByRole('button', { name: /Nightcap by Peterson artwork/ })).toHaveAttribute('aria-haspopup', 'dialog')
   expect(screen.queryByText('About this design')).not.toBeInTheDocument()
   expect(screen.queryByText('2026-09-06')).not.toBeInTheDocument()
 })

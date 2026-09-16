@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { GalleryPublicLabel } from '../../lib/gallery/types'
 import { GalleryBlendSearch, type GalleryBlendIdentity } from './GalleryBlendSearch'
 import { GalleryThumbnail } from './GalleryThumbnail'
+import { GalleryArtworkPreview } from './GalleryArtworkPreview'
 import { blendKey, browseResults, loadBrowseLabels, shuffleIds, type BrowseOrder } from './browse-model'
 import { API, errorText, useConfig } from './client'
 import { SelectionSummary } from '../SelectionSummary'
@@ -64,6 +65,7 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
   const [query, setQuery] = useState(''), [maker, setMaker] = useState(''), [blend, setBlend] = useState<string | null>(null)
   const [order, setOrder] = useState<BrowseOrder>('shuffle'), [shuffled, setShuffled] = useState<string[]>([])
   const [visible, setVisible] = useState(24), [creating, setCreating] = useState(false)
+  const [preview, setPreview] = useState<GalleryPublicLabel | null>(null)
   const resultCount = useRef<HTMLParagraphElement>(null), focusResults = useRef(false)
   const requestVersion = useRef(0), controller = useRef<AbortController | null>(null)
   const load = useCallback(async () => {
@@ -138,7 +140,7 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
       {!onCreate && !busy && !error && !results.length && <a className="button secondary" href="/labels/create">Choose labels to create</a>}
       {addError && <p role="alert">{addError} Your existing labels are unchanged. Try adding the design again.</p>}
       <div className="gallery-grid" role="region" aria-label="Label results" aria-busy={busy}>{shown.map((label, index) => <article className="gallery-card" key={label.id} aria-labelledby={`gallery-blend-${label.id} gallery-maker-${label.id}`}>
-        <a href={`${API}/labels/${label.id}/artwork`} target="_blank" rel="noreferrer" className="gallery-artwork-link" aria-label={`View full-resolution ${label.blend} by ${label.maker} artwork (opens in a new tab)`}><GalleryThumbnail src={`${API}/labels/${label.id}/thumbnail`} alt={label.altText || `${label.maker} ${label.blend} artwork`} eager={index < 4} /></a>
+        <button type="button" className="gallery-artwork-link" aria-haspopup="dialog" aria-label={`View full-resolution ${label.blend} by ${label.maker} artwork`} onClick={() => setPreview(label)}><GalleryThumbnail src={`${API}/labels/${label.id}/thumbnail`} alt={label.altText || `${label.maker} ${label.blend} artwork`} eager={index < 4} /></button>
         <header className="gallery-card-heading"><h2 id={`gallery-blend-${label.id}`}>{label.blend}</h2><p id={`gallery-maker-${label.id}`} className="gallery-card-maker">{label.maker}</p></header>
         {variantText(label) && <p id={`gallery-variant-${label.id}`} className="gallery-edition">{variantText(label)}</p>}
         {blend !== blendKey(label) && (alternatives.get(blendKey(label)) ?? 0) > 1 && <button className="gallery-alternatives" type="button" aria-label={`View all ${alternatives.get(blendKey(label))} designs for ${label.blend} by ${label.maker}`} onClick={() => chooseBlend(label)}>{alternatives.get(blendKey(label))} designs for this blend</button>}
@@ -149,6 +151,7 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
       {creationRoute}
     </>}
     {!config?.serving && creationRoute}
+    {preview && <GalleryArtworkPreview label={preview} onClose={() => setPreview(null)} />}
     {creating && onCreate && <CreationReview identity={identity} query={query} onCreate={onCreate} onClose={() => setCreating(false)} />}
     <footer className="gallery-disclaimer"><p className="field-hint">Shared by community members for personal cellaring. Tin to Cellar is independent of tobacco brands.</p><p className="field-hint">Questions about a label or source link? <a href="mailto:dylan@enablement.engineering">Email Dylan</a> with a link and a short note.</p></footer>
   </section>

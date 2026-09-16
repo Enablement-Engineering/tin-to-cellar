@@ -1,0 +1,34 @@
+.gallery-artwork-dialog {
+  width: min(64rem, calc(100dvh - 1rem), calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100dvh - 2rem);
+  height: min(calc(100dvh - 2rem), calc(100vw + 8rem));
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 1rem;
+  box-shadow: 0 24px 80px rgb(0 0 0 / .28);
+  background: var(--surface-card);
+  color: var(--text-body);
+  overflow: auto;
+}
+.gallery-artwork-dialog[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.gallery-artwork-dialog::backdrop { background: rgb(30 27 22 / .65); }
+.gallery-artwork-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--line-strong); }
+.gallery-artwork-heading h2, .gallery-artwork-heading p { margin: 0; overflow-wrap: anywhere; }
+.gallery-artwork-heading h2 { font-size: 1.5rem; line-height: 1.2; }
+.gallery-artwork-heading p { margin-top: .25rem; font-size: .875rem; color: var(--text-muted); }
+.gallery-artwork-close { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; border: 1px solid transparent; border-radius: 50%; color: var(--text-body); background: transparent; cursor: pointer; }
+.gallery-artwork-close:hover { background: var(--surface-page); border-color: var(--line-strong); }
+.gallery-artwork-close:focus-visible { outline: 2px solid var(--line-focus); outline-offset: 2px; }
+.gallery-artwork-original { display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain; padding: 1rem; }
+.gallery-artwork-footer { display: flex; justify-content: flex-end; padding: .75rem 1.25rem; border-top: 1px solid var(--line-strong); }
+.gallery-artwork-footer a { display: inline-flex; align-items: center; gap: .4rem; min-height: 32px; font-size: .875rem; text-underline-offset: .2em; }
+.gallery-artwork-new-tab { color: var(--text-muted); }
+@media (max-width: 480px) {
+  .gallery-artwork-heading { padding: .75rem 1rem; }
+  .gallery-artwork-original { padding: .75rem; }
+  .gallery-artwork-footer { padding: .5rem 1rem; }
+}
+body:has(.gallery-artwork-dialog[open]) { overflow: hidden; }
+button.gallery-artwork-link { width: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; }
+@media print { .gallery-artwork-dialog { display: none !important; } }
