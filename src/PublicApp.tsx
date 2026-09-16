@@ -256,7 +256,7 @@ export default function PublicApp() {
       window.location.reload()
     }}>Reload instructions</button>}
   </section>
-  const titles: Record<View | 'not-found', string> = { labels: 'Labels for your tobacco jars', 'not-found': 'Page not found', create: 'Your labels', artwork: 'Create artwork', order: 'Add several blends', print: 'Print labels', help: 'How it works', about: 'About', inspiration: 'Inspiration', privacy: 'Privacy', gallery: 'Community labels', 'gallery-admin': 'Review submissions' }
+  const titles: Record<View | 'not-found', string> = { labels: 'Labels for your tobacco jars', 'not-found': 'Page not found', create: 'Your labels', artwork: 'Create artwork', order: 'Add several blends', print: 'Print labels', help: 'How it works', about: 'About', inspiration: 'Inspiration', privacy: 'Privacy', gallery: 'Gallery', 'gallery-admin': 'Review submissions' }
   const routeClick = (next: View) => (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault(); if (next === 'print') openReadyPrint(); else navigate(next)

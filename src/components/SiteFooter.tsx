@@ -6,7 +6,7 @@ interface SiteFooterProps {
 }
 
 const pages: { page: FooterPage; label: string }[] = [
-  { page: 'gallery', label: 'Community labels' },
+  { page: 'gallery', label: 'Gallery' },
   { page: 'help', label: 'How it works' },
   { page: 'privacy', label: 'Privacy' },
   { page: 'about', label: 'About' },

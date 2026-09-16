@@ -146,7 +146,7 @@ export function GalleryAdmin() {
   const position = current ? items.findIndex(item => item.id === current.id) : -1
 
   return <section className="gallery-page gallery-admin screen-only">
-    <header className="review-heading"><div><h1>Review community labels</h1><p>Check the artwork and tobacco match, then publish or reject.</p></div></header>
+    <header className="review-heading"><div><h1>Review gallery submissions</h1><p>Check the artwork and tobacco match, then publish or reject.</p></div></header>
     <nav className="gallery-admin-tabs" aria-label="Administration">{(['review', 'operations', 'agents'] as const).map(value => <button key={value} className="button secondary" disabled={busy} aria-pressed={tab === value} onClick={() => setTab(value)}>{value === 'review' ? 'Review queue' : value === 'operations' ? 'Operations' : 'Agent permissions'}</button>)}</nav>
     {tab === 'operations' && <AdminOperations />}{tab === 'agents' && <AgentGrants />}
     {tab === 'review' && <>

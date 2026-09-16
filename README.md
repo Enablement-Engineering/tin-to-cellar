@@ -25,7 +25,7 @@ Saved requests retain the instructions originally copied. When newer instruction
 - Uses label quantities to arrange 2.5-inch circles automatically across Avery 94502 sheets.
 - Prints a calibration proof and physically sized US Letter sheets, with Save as PDF available through the browser print dialog.
 
-The root opens the Labels introduction. Choose labels and Print labels are the main working views; Community labels adds to the same saved work. How it works remains available through the footer. The [design system guide](docs/design-system.md) records visual tokens, components and adaptation decisions.
+The root opens the Labels introduction. Choose labels and Print labels are the main working views; Gallery adds to the same saved work. How it works remains available through the footer. The [design system guide](docs/design-system.md) records visual tokens, components and adaptation decisions.
 
 How it works covers the AI handoff, hosting costs, local file handling, and printing instructions. Artwork uses 0.125-inch bleed by default, with an integrated light writing surface; the website prints the artwork without adding any label overlays. Artwork geometry remains separate from sheet geometry. Other profiles exist in the format modules, but the current print UI supports Avery 94502 only.
 

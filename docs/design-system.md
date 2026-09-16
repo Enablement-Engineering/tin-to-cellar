@@ -33,7 +33,7 @@ Preparation shortcuts use equal-width outlined buttons with 18px decorative acti
 | Home | `/`, `/labels`, wordmark | First-visit introduction, community-first flow, explicitly optional AI creation, shared printing and a sample pack; `/` resolves to `/labels` |
 | Your labels | `/labels/create` | Saved blend rows, community choices, and explicit creation targets |
 | Create artwork | `/labels/artwork` | Review the request, copy instructions into an external AI chat, and return with the finished ZIP |
-| Community labels | `/gallery` | Discovery that adds to the same saved labels, without a separate basket |
+| Gallery | `/gallery` | Discovery that adds to the same saved labels, without a separate basket |
 | Print labels | `/labels/print` | Reviewed additive ZIP import, original import reports, quantities, download, sheet preview, printing and alignment |
 | How it works | `/labels/help` | AI handoff instructions, portable instructions, file handling, local review guide explanation, printing guidance |
 | About | `/about`, footer | Dylan Isaac’s introduction, the reason for the app, and a short Enablement Engineering description |
@@ -44,7 +44,7 @@ The wordmark returns to the site root. Navigation must remain usable with the ke
 
 The home page explains the product; Choose labels is the working area. Access home through the wordmark, without a redundant Labels or Overview tab. The home's numbered path is choose then print, with creation marked Optional between them. Existing designs need no AI chat. The primary action opens Choose labels; Import a label ZIP goes directly to import review on Print labels. Keep the existing `/labels` URL.
 
-The top navigation contains Choose labels and Print labels on every public page. Community browsing is a secondary discovery route from Browse community labels inside Choose labels, not another workflow tab. Keep `/gallery` and existing deep links working; browsing still adds to the same saved set.
+The top navigation contains Choose labels and Print labels on every public page. Community browsing is a secondary discovery route from Browse gallery inside Choose labels, not another workflow tab. Keep `/gallery` and existing deep links working; browsing still adds to the same saved set.
 
 The preparation workspace is a vertical sequence of committed blend rows, not a required wizard. Existing thumbnails and their editions appear before the optional Create my own action. A replacement request leaves the current design off the print sheet while retaining it and its quantity for Use previous design. A compact count separates ready designs, creation requests and unresolved choices. Do not imply that copying starts a remote job.
 
