@@ -3,6 +3,13 @@ export const PROGRESS_KEY = 'tin-to-cellar:local-progress-v2'
 export const PROGRESS_LOCK = 'tin-to-cellar:progress-v2'
 const CHANGE = 'tin-to-cellar:usage-choice-change'
 let storageFailed = false
+/** Do not repeat the invitation after any saved choice, including an older refusal. */
+export function shouldOfferUsageChoice(): boolean {
+  try {
+    const legacy = localStorage.getItem('tin-to-cellar:aggregate-demand')
+    return !storageFailed && localStorage.getItem(PREFERENCE_KEY) === null && (legacy === null || legacy === 'on')
+  } catch { storageFailed = true; return false }
+}
 export function demandPreference(): { allowed: boolean; storageFailed: boolean } {
   try { return { allowed: !storageFailed && /^on:[a-f0-9-]{36}$/.test(localStorage.getItem(PREFERENCE_KEY) ?? ''), storageFailed } }
   catch { storageFailed = true; return { allowed: false, storageFailed: true } }

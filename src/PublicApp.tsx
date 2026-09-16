@@ -2,6 +2,7 @@ import { usePublicNavigation, viewPaths, type View } from './hooks/usePublicNavi
 import { usePackImport } from './hooks/usePackImport'
 import { useRecoveryBlocker } from './hooks/useAppRecovery'
 import { AppRecoveryNotice } from './components/AppRecoveryNotice'
+import { UsageInvitation } from './components/UsageInvitation'
 import { appRecovery } from './lib/app-recovery'
 import { isUploadedReceipt } from './lib/collection/history'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -312,6 +313,7 @@ export default function PublicApp() {
     </div></header>
     <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
       <AppRecoveryNotice />
+      {['create', 'artwork', 'print'].includes(view) && <UsageInvitation key={view} />}
       {(recoveryFile || recoveryFileError) && <section className="panel screen-only" aria-label="Selected ZIP recovery">
         <p>{recoveryFile ? `${recoveryFile.name} is selected for recovery. Resume its review when the app is ready. The ZIP stays on this device.` : recoveryFileError}</p>
         {recoveryFile && recoveryFileError && <p role="alert">{recoveryFileError}</p>}

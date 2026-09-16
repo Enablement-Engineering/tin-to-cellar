@@ -9,6 +9,65 @@ const summary = {
   progress: [{ cohort: '2026-09-14', milestone: 'started', elapsed: 'same-day', count: 12 }, { cohort: '2026-09-14', milestone: 'imported', elapsed: 'same-day', count: 5 }],
   collection: [{ period_start: '2026-09-16', admitted: 29, recorded: 27, allowance: 1000, allowance_reached: 0 }], cleanup: null,
 }
+for (const width of [1280, 320]) test(`quiet workspace invitation supports keyboard choice at ${width}px`, async ({ page }) => {
+  const analytics: string[] = []
+  page.on('request', request => { if (request.url().includes('/api/analytics/')) analytics.push(request.url()) })
+  await page.setViewportSize({ width, height: 900 })
+  await page.goto('/labels/create')
+  const invitation = page.locator('.usage-invitation')
+  const toggle = invitation.locator('summary')
+  await expect(toggle).toBeVisible()
+  await expect(invitation).not.toHaveAttribute('open', '')
+  await toggle.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('button', { name: 'Allow usage counts', exact: true })).toBeVisible()
+  expect(analytics).toEqual([])
+  expect((await new AxeBuilder({ page }).include('.usage-invitation').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze()).violations).toEqual([])
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.screenshot({ path: `test-results/usage-invitation-${width}.png`, fullPage: true })
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('button', { name: 'Allow usage counts', exact: true })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('button', { name: 'No thanks', exact: true })).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('link', { name: 'Change data choices' })).toBeFocused()
+  expect(analytics).toEqual([])
+  await page.reload()
+  await expect(invitation).toHaveCount(0)
+  await page.getByRole('link', { name: 'Print labels', exact: true }).click()
+  await expect(invitation).toHaveCount(0)
+})
+
+test('direct print entry allows opting in without visiting Privacy and hides invitation in print output', async ({ page }) => {
+  await page.goto('/labels/print')
+  const invitation = page.locator('.usage-invitation')
+  await expect(invitation).toBeVisible()
+  await page.emulateMedia({ media: 'print' })
+  await expect(invitation).not.toBeVisible()
+  await page.emulateMedia({ media: 'screen' })
+  await invitation.locator('summary').click()
+  const config = page.waitForResponse('**/api/analytics/v2/config')
+  await page.getByRole('button', { name: 'Allow usage counts', exact: true }).click()
+  await config
+  await expect(page.getByRole('status').filter({ hasText: 'Usage counts allowed' })).toBeVisible()
+  await page.getByRole('link', { name: 'Change data choices' }).click()
+  await expect(page.getByRole('checkbox', { name: 'Allow app-action, request-progress, and label-demand counts' })).toBeChecked()
+  await page.getByRole('checkbox').uncheck()
+  await page.getByRole('link', { name: 'Your labels', exact: true }).click()
+  await expect(invitation).toHaveCount(0)
+})
+
+test('invitation privacy link uses app navigation without reloading', async ({ page }) => {
+  await page.goto('/labels/print')
+  await page.locator('.usage-invitation summary').click()
+  const navigations: string[] = []
+  page.on('request', request => { if (request.isNavigationRequest()) navigations.push(request.url()) })
+  await page.getByRole('link', { name: 'Privacy details', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Privacy', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'Print labels', exact: true }).click()
+  await expect(page.getByLabel('Label ZIP')).toBeAttached()
+  expect(navigations).toEqual([])
+})
 for (const width of [1280,320]) test(`Usage report is accessible without mounting review at ${width}px`, async ({ page, request }) => {
   const shell = await (await request.get('/')).text(), reviewRequests: string[] = [], external: string[] = []
   await page.route('https://**/*', route => { external.push(route.request().url()); return route.abort() })

@@ -1,0 +1,14 @@
+.usage-invitation { max-width: 1040px; margin: 16px auto 0; padding: 0 24px; color: var(--text-muted); font: var(--type-body-sm); }
+.usage-invitation summary { width: fit-content; max-width: 100%; padding-block: 12px; cursor: pointer; color: var(--text-body); }
+.usage-invitation summary span { color: var(--text-muted); margin-left: 12px; }
+.usage-invitation-content { max-width: 76ch; padding-bottom: 16px; }
+.usage-invitation-content p { margin: 0 0 12px; }
+.usage-invitation-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
+.usage-invitation-actions a, .usage-invitation-receipt a { display: inline-flex; align-items: center; min-height: 44px; }
+.usage-invitation-receipt { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.usage-invitation-receipt p { margin: 0; }
+.view-print > .usage-invitation { margin: 0 0 24px; padding: 0; }
+@media (max-width: 600px) {
+  .usage-invitation { padding-inline: 16px; }
+  .usage-invitation summary span { display: block; margin-left: 0; }
+}
