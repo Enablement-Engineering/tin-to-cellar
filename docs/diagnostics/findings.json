@@ -1,4 +1,102 @@
 {
   "version": 1,
-  "findings": []
+  "findings": [
+    {
+      "reviewedAt": "2026-09-14T14:55:46.589Z",
+      "denominator": {
+        "newSubmittedReports": 7,
+        "newAiReports": 3,
+        "newReportsWithNotes": 0,
+        "retainedReports": 22
+      },
+      "releaseReferences": [
+        "0.0.23",
+        "0.0.28",
+        "0.0.29"
+      ],
+      "limitations": "Three new self-reported AI runs, with no optional notes, artwork or transcript. Submitted packs are not unique users or all attempted runs. Website import acceptance does not certify visual fidelity.",
+      "id": "D-0003",
+      "title": "Preserve proof checks without treating import acceptance as artwork acceptance",
+      "status": "monitor-unresolved-recovery",
+      "reportIds": [
+        "2b7a1295ecc5bd2da9f699c6d8a99d2b174ac8310e6b23f86a55d141ff6f8739",
+        "ac6ac94d4565c2e429b27823f3d4d8364e64244a1771f30658c4cacf78eb7acf",
+        "be6ff5a73959f62097df0acf91893f3b461652c519fbd7c15e9830422fcf3015"
+      ],
+      "observedFacts": "All three new AI reports record geometry issues. Each has at least one resolved geometry entry, and the 0.0.28 report also has an unresolved geometry entry and unresolved artwork fidelity, with failed visual review, proof and validation. All seven new website checks are ready. Resolved and unresolved report counts overlap and must not be added as disjoint groups.",
+      "hypothesis": "A successful subset may have been delivered while failures from omitted labels remain in request-level feedback, as the protocol requires. Alternatively, deficient artwork may have reached the pack; the collected fields cannot distinguish these cases.",
+      "recommendation": "Preserve proof and visual-review checks. Reproduce or inspect the selected run with authorization before changing acceptance rules. Evaluate whether bounded delivered/omitted-label counts would clarify partial delivery without collecting artwork.",
+      "reproductionSteps": [
+        "Use a controlled multi-label run with one deliberately failed label.",
+        "Deliver only passing artwork and retain request-level unresolved issues in feedback.",
+        "Verify website acceptance applies to delivered files and the user sees unresolved request failures."
+      ],
+      "expectedMeasure": "Passing delivered files remain accepted, omitted failures remain visible, and no claim equates ZIP acceptance with full-request completion.",
+      "continuityNote": "D-0003 reused from prior review history; its local register entry was missing at review start."
+    },
+    {
+      "id": "D-0005",
+      "title": "Restore durable continuity of diagnostic findings",
+      "status": "needs-maintenance",
+      "reviewedAt": "2026-09-14T14:55:46.589Z",
+      "reportIds": [],
+      "denominator": {
+        "reviewRegistersInspected": 1,
+        "priorResultFindingIds": 2,
+        "matchingRegisterEntriesAtStart": 0
+      },
+      "observedFacts": "The findings register was an empty array. The saved completed review result referenced D-0003 and D-0004, and conversation history also recorded D-0001 and D-0002. Git history for the register showed only its initial empty creation. The cause of the local loss is not established.",
+      "hypothesis": "Uncommitted review findings may have been replaced during checkout reconciliation. This is a hypothesis, not evidence of who or what changed the file.",
+      "recommendation": "Recover the prior findings from verified review history and choose persistent storage for sanitized findings that survives checkout changes. Add a review-start consistency check against the prior result before future tooling advances the cursor. Do not restore private raw snapshots.",
+      "reproductionSteps": [
+        "Compare the prior review result findingIds with the current register before running completion.",
+        "In an isolated fixture, replace the register with its initial empty version and verify the mismatch is detected.",
+        "Verify a recovered register preserves stable IDs and release status across checkout updates."
+      ],
+      "expectedMeasure": "Every prior completed finding ID resolves to a retained finding or explicit archived/tombstoned record; no silent reset.",
+      "releaseReferences": [],
+      "limitations": "No source or review-tool changes made. This review records the inconsistency; it does not fully recover the missing register."
+    },
+    {
+      "reviewedAt": "2026-09-14T14:55:46.589Z",
+      "denominator": {
+        "newSubmittedReports": 7,
+        "newAiReports": 3,
+        "newReportsWithNotes": 0,
+        "retainedReports": 22
+      },
+      "releaseReferences": [
+        "0.0.23",
+        "0.0.28",
+        "0.0.29"
+      ],
+      "limitations": "Three new self-reported AI runs, with no optional notes, artwork or transcript. Submitted packs are not unique users or all attempted runs. Website import acceptance does not certify visual fidelity.",
+      "id": "D-0006",
+      "title": "Explain partial outcomes when all recorded issues are resolved",
+      "status": "needs-reproduction",
+      "reportIds": [
+        "be6ff5a73959f62097df0acf91893f3b461652c519fbd7c15e9830422fcf3015"
+      ],
+      "observedFacts": "One of three new AI reports, protocol0.0.29 for five requested labels, reports partial while every attempted stage passed and every recorded issue is resolved. It lists16 generation and16 proof attempts. The website accepted the delivered pack. No delivered-label count or process note explains the partial outcome.",
+      "hypothesis": "One or more labels may have been omitted without retaining their failure in the final feedback, or the partial outcome may have remained stale after successful repair. Neither can be determined from this report.",
+      "recommendation": "Inspect or reproduce partial-pack completion using current0.0.29. Keep original request count and unresolved omitted-label issues as instructed. Consider bounded delivered/omitted counts only if the gap repeats; do not infer completion from resolved issue flags alone.",
+      "reproductionSteps": [
+        "Run a controlled five-label request with one omitted label and verify partial feedback retains its unresolved issue.",
+        "Complete a later repair and verify final outcome and issue flags reflect actual delivery.",
+        "Compare requested and delivered counts locally without uploading images or raw manifests."
+      ],
+      "expectedMeasure": "Every partial report has an observable explanation such as unresolved omitted-label issues or bounded delivery counts. Preserve successful recovery without inventing failure details."
+    }
+  ],
+  "continuity": {
+    "missingPriorIds": [
+      "D-0001",
+      "D-0002",
+      "D-0004"
+    ],
+    "reconstructedUpdatedIds": [
+      "D-0003"
+    ],
+    "note": "Prior entries were absent at review start. Do not reuse missing IDs. D-0004 version contradiction was previously fixed in0.0.23; no new packaging-conflict issue appears in the three new AI reports."
+  }
 }
