@@ -11,6 +11,7 @@ export function About() {
         <p>Choose a community design or use your own AI chat to adapt the original packaging. Tin to Cellar arranges the labels for printing.</p>
         <p>The labels are designed for jar lids, with a 2.5-inch round shape and room for a handwritten date.</p>
         <p><a href="/inspiration">Hobbiton Piper's guide</a> was the starting point. Tin to Cellar builds on his idea so you can make a set of labels without laying out every sheet by hand.</p>
+        <p>Tin to Cellar is open source. You can explore the project and suggest improvements on <a href="https://github.com/enablement-Engineering/tin-to-cellar">GitHub</a>.</p>
       </section>
       <section>
         <h2>Enablement Engineering</h2>

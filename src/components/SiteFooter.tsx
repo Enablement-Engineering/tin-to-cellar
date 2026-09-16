@@ -26,6 +26,7 @@ export function SiteFooter({ currentView, onNavigate }: SiteFooterProps) {
           onNavigate(page)
         }}
       >{label}</a>)}
+      <a href="https://github.com/enablement-Engineering/tin-to-cellar">Source code</a>
     </nav>
     <p className="footer-credit">Made with ❤️ by <a href="https://www.enablement.engineering/">Enablement Engineering</a></p>
     <div className="footer-legal">

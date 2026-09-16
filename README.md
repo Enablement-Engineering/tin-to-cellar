@@ -2,6 +2,8 @@
 
 Tin to Cellar helps people choose tobacco jar labels from community artwork, create missing designs in their own AI chat, and print them together. One browser-saved workspace retains the selected artwork, quantities and unfinished requests.
 
+Tin to Cellar is open source. You can browse the code and suggest improvements on [GitHub](https://github.com/enablement-Engineering/tin-to-cellar).
+
 **[Open the live site](https://tintocellar.com/)** · [Choose labels](https://tintocellar.com/labels/create) · [Print labels](https://tintocellar.com/labels/print)
 
 ## Use it
