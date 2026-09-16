@@ -59,6 +59,7 @@ When a creation action prepares a request, say so before the user selects it. Ke
 ## Claims and workflow boundaries
 
 - Community designs can go straight to printing. AI creation is optional and happens in the user's own chat.
+- Say "Designed for ChatGPT" on the instructions screen and in Help. Other agents may work if they can browse the web, inspect and generate images, run code, and return downloadable ZIP files. Do not promise compatibility with every agent that has those tools. Keep "your AI chat" in the remaining steps.
 - For new designs, the AI shows the packaging reference. The user confirms it by copying and pasting the photo into the chat. Say "Copy Image" when giving the browser action, never "Copy Image Address." Each label is created and checked before the next. An artwork repair requires the user's decision.
 - The app checks imported files and dimensions. The user reviews spelling, fidelity to the original, and usable writing space. Do not call automated checks proof of artistic accuracy.
 - The artwork contains the whole blank writing area. The website adds no date text or lines to the label.

@@ -45,7 +45,7 @@ export function HowItWorks({ instructions }: { instructions: string }) {
         <li><strong>Repair.</strong> Ask you before trying to correct a confirmed artwork problem.</li>
         <li><strong>Package.</strong> Return the artwork and print details in a CellarPack, the label ZIP you import here.</li>
       </ol>
-      <p>Tin to Cellar checks the returned files and dimensions. Before printing, check the names, compare the artwork with the original packaging, and make sure the blank area is large enough for your dates.</p>
+      <p>Tin to Cellar checks the returned files and dimensions. Finishing the checks does not guarantee every detail is right. Review the artwork against the original packaging before printing. Check the names and make sure the blank area is large enough for your dates.</p>
     </section>
     <section className="help-reuse panel" aria-labelledby="reuse-title">
     <h2 id="reuse-title">Reuse the instructions</h2>
@@ -55,8 +55,12 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     </section>
     <section className="help-answers" aria-label="Common questions">
     <article>
+    <h2>Designed for ChatGPT</h2>
+    <p>These instructions are designed for ChatGPT. Other AI agents may also work if they can browse the web, inspect and generate images, run code, and return downloadable ZIP files.</p>
+    </article>
+    <article>
     <h2>Why use a separate AI chat?</h2>
-    <p>New artwork is made in your own AI chat using the account you already have, within its usual limits. Choose a chat that can browse the web, generate images, and create a ZIP download. Community designs can be printed without one.</p>
+    <p>New artwork is made in your own AI chat using the account you already have, within its usual limits. Community designs can be printed without one.</p>
     </article>
     <article>
     <h2>What if I cannot copy the packaging photo?</h2>

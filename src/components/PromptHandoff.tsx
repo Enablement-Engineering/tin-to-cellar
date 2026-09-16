@@ -46,7 +46,11 @@ export function PromptHandoff({ prompt, request, copyLabel = 'Copy instructions'
       <div className="handoff-content">
       <div className="creation-step-heading"><span className="creation-step-number" aria-hidden="true">2</span><h2 id="handoff-title" tabIndex={-1}>Create in your AI chat</h2></div>
       <ol className="creation-chat-instructions"><li>Copy the instructions below and send them in your AI chat.</li><li>Check the packaging photo for each blend. If it is the one you want, use Copy Image and paste the photo into the chat.</li><li>Review the label your AI makes. When the set is finished, download its label ZIP.</li></ol>
-      <p className="field-hint">Use a chat that can browse, generate images, and create ZIP files. Creation may take several minutes. Your chat runs separately from this page.</p>
+      <h3>Designed for ChatGPT</h3>
+      <p className="field-hint">These instructions are designed for ChatGPT. Other AI agents may also work if they can browse the web, inspect and generate images, run code, and return downloadable ZIP files.</p>
+      <p className="field-hint">Your chat runs separately from this page.</p>
+      <h3>Allow time for each label</h3>
+      <p className="field-hint">Each label can take several minutes. The AI creates the artwork, checks it, and may make another attempt to correct problems. That back-and-forth is normal. Larger requests take longer because labels are made one at a time.</p>
       <div className="handoff-actions"><button ref={copyButton} className={`button ${copied || currentResult && !currentResult.failed ? 'secondary' : 'primary'}`} type="button" disabled={busy || saving} onClick={() => void copy()}><Icon name="copy" />{saving ? 'Preparing request…' : copyLabel}</button></div>
       {onCopyLatest && <div className="handoff-update"><p>Newer instructions are available for a new chat. Use your saved instructions to continue an existing chat.</p><button type="button" className="button secondary" disabled={busy || saving} onClick={() => void copy(true)}>Copy updated instructions for a new chat</button></div>}
       {saveError && <p role="alert">{saveError}</p>}
