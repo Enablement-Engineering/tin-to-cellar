@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useRecoveryBlocker } from '../hooks/useAppRecovery'
 import { collectionFeedback, type Contribution } from '../lib/contributions'
 import { ContributionStatus } from './ContributionStatus'
 import { parseRetrospective, type Retrospective } from '../lib/feedback/retrospective'
@@ -9,7 +10,9 @@ export function StandaloneFeedback() {
   const [prepared, setPrepared] = useState<Contribution | null>(null)
   const [notes, setNotes] = useState<Retrospective | null>(null)
   const [shared, setShared] = useState(false)
+  const [sending, setSending] = useState(false)
   const [message, setMessage] = useState('')
+  useRecoveryBlocker(prepared || message === 'Opening report…' ? 'Finish your failure report, or leave this report page, before updating.' : null)
   const sequence = useRef(0)
   const receipt = useRef<HTMLDivElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -51,8 +54,10 @@ export function StandaloneFeedback() {
       <span className="field-hint">JSON file · Up to 32 KB</span>
     </div>
     <p className="field-hint standalone-feedback-status" role="status">{message || 'Choosing a file does not send it.'}</p>
-    {prepared && !shared && <><pre className="standalone-preview" tabIndex={0} aria-label="Failure report submission">{JSON.stringify(prepared, null, 2)}</pre><button className="button secondary" type="button" onClick={event => { restoreShareFocus.current = document.activeElement === event.currentTarget; setShared(true) }}>Share failure report</button></>}
-    {prepared && shared && <div ref={receipt}><ContributionStatus key={prepared.submissionId} contribution={prepared} retrospective={notes} autoSend /></div>}
+    {prepared && !shared && <><pre className="standalone-preview" tabIndex={0} aria-label="Failure report submission">{JSON.stringify(prepared, null, 2)}</pre><button className="button secondary" type="button" onClick={event => { restoreShareFocus.current = document.activeElement === event.currentTarget; setSending(true); setShared(true) }}>Share failure report</button></>}
+    {prepared && shared && <div ref={receipt}><ContributionStatus key={prepared.submissionId} contribution={prepared} retrospective={notes} onDismissNotes={() => setNotes(null)} autoSend onDelivery={() => setSending(false)} /></div>}
+    {prepared && !shared && <button type="button" className="button quiet" onClick={() => { sequence.current++; setPrepared(null); setNotes(null); setMessage('Report closed. Nothing was sent.') }}>Close report</button>}
+    {prepared && shared && !notes && <button type="button" className="button quiet" disabled={sending} onClick={() => { sequence.current++; setPrepared(null); setShared(false); setMessage('Report closed.') }}>Close report</button>}
     </div>
   </details>
 }

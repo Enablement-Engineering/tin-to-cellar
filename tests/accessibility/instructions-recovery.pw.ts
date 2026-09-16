@@ -4,7 +4,9 @@ test('instruction download failure recovers after deliberate reload without losi
   await page.route('**/api/gallery/v1/config', route => route.fulfill({ json: { intake: false, serving: false } }))
   let fail = true
   let attempts = 0
-  await page.route('**/assets/prompt-*.js', route => {
+  // This suite uses the Vite development server. Production hashed chunks are
+  // covered separately by tests/recovery/releases.pw.ts.
+  await page.route('**/src/lib/prompt/index.ts*', route => {
     attempts++
     return fail ? route.abort('failed') : route.continue()
   })
@@ -15,7 +17,7 @@ test('instruction download failure recovers after deliberate reload without losi
   await page.getByRole('button', { name: 'Create with AI', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'My saved blend' })).toBeVisible()
   await page.getByRole('link', { name: 'How it works', exact: true }).click()
-  const retry = page.getByRole('button', { name: 'Reload instructions' })
+  const retry = page.getByRole('region', { name: 'App recovery' }).getByRole('button', { name: 'Reload app' })
   await expect(retry).toBeVisible()
   fail = false
   await retry.focus()

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { RECOVERY_FOCUS_KEY } from '../lib/app-recovery'
 
 export const viewPaths = { labels: '/labels', create: '/labels/create', artwork: '/labels/artwork', order: '/labels/order', print: '/labels/print', help: '/labels/help', about: '/about', inspiration: '/inspiration', privacy: '/privacy', gallery: '/gallery', 'gallery-admin': '/admin/gallery' } as const
 export type View = keyof typeof viewPaths
@@ -15,7 +16,8 @@ export function usePublicNavigation() {
   const galleryScroll = useRef(0)
   useEffect(() => {
     try {
-      if (sessionStorage.getItem('tin-to-cellar:instructions-reload-focus') === '1') {
+      if (sessionStorage.getItem('tin-to-cellar:instructions-reload-focus') === '1' || sessionStorage.getItem(RECOVERY_FOCUS_KEY) === '1') {
+        sessionStorage.removeItem(RECOVERY_FOCUS_KEY)
         sessionStorage.removeItem('tin-to-cellar:instructions-reload-focus')
         main.current?.focus({ preventScroll: true })
       }

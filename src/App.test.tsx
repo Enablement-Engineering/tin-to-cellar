@@ -5,6 +5,7 @@ import { Blob as NodeBlob } from 'node:buffer'
 import { IDBFactory, IDBObjectStore } from 'fake-indexeddb'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { appRecovery } from './lib/app-recovery'
 import App, { GalleryAdminShell } from './App'
 import { collectionFixture } from './lib/collection/test-fixtures'
 import { addRequests, createCollection, createCollectionStore, setHandoff, updateRow } from './lib/collection'
@@ -70,6 +71,7 @@ it('keeps past import warnings separate from suspended print readiness', async (
   expect(screen.queryByText(/selected for printing/)).not.toBeInTheDocument()
 })
 beforeEach(async () => {
+  appRecovery.dismiss()
   vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
   HTMLDialogElement.prototype.close = function () { this.removeAttribute('open') }
@@ -834,8 +836,12 @@ it('identifies import history without changing the selected print job, and reset
   expect(screen.getByLabelText('Quantity for Blend A')).toHaveValue(1)
   expect(screen.getByLabelText('Quantity for Blend B')).toHaveValue(1)
   const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+  // Background receipt delivery also commits to the saved collection. Wait for
+  // those writes before exercising reset, whose button is disabled while saving.
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Reset labels' })).toBeEnabled())
   fireEvent.click(screen.getByRole('button', { name: 'Reset labels' }))
-  expect(screen.getByRole('button', { name: 'Print 2 labels' })).toBeEnabled()
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Print 2 labels' })).toBeEnabled())
+  expect(confirm).toHaveBeenCalledTimes(1)
   confirm.mockReturnValue(true)
   fireEvent.click(screen.getByRole('button', { name: 'Reset labels' }))
   await waitFor(() => expect(screen.queryByLabelText('Quantity for Blend A')).not.toBeInTheDocument())

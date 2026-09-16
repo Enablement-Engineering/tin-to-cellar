@@ -3,10 +3,19 @@ import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { ContributionStatus } from './ContributionStatus'
+import { appRecovery } from '../lib/app-recovery'
 import type { Contribution } from '../lib/contributions'
 import { TOBACCO_CATALOG } from '../lib/tobacco-catalog'
 const contribution: Contribution = { version: 1, submissionId: 'a'.repeat(64), feedback: { format: 'tin-to-cellar/feedback', schemaVersion: '0.2.0', protocolRevision: '0.0.14', request: { labelCount: 1, shape: 'circle' }, outcome: 'complete', steps: [], issues: [] }, sources: [] }
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers() })
+it('blocks recovery during a hidden report submission and releases the guard after receipt', async () => {
+  let complete!: (value: Response) => void
+  vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(resolve => { complete = resolve })))
+  render(<ContributionStatus contribution={contribution} autoSend hidden />)
+  expect(appRecovery.getSnapshot().blocked).toBe('Wait for report sharing to finish before updating.')
+  await act(async () => complete(Response.json({ status: 'collected' })))
+  expect(appRecovery.getSnapshot().blocked).not.toBe('Wait for report sharing to finish before updating.')
+})
 it('restores confirmed and uncertain receipts without resending them', async () => {
   const fetcher = vi.fn().mockResolvedValue(Response.json({ status: 'duplicate' }))
   vi.stubGlobal('fetch', fetcher)

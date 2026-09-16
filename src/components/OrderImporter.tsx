@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { useRecoveryBlocker } from '../hooks/useAppRecovery'
 import { matchOrder, readOrderPdf, type OrderMatch } from '../lib/order-import'
 import { Icon } from './Icons'
 import { formatTobacco, searchTobaccos, TOBACCO_CATALOG } from '../lib/tobacco-catalog'
@@ -46,6 +47,7 @@ export function OrderImporter({ onAdd, standalone = false, busy: externalBusy = 
   const controller = useRef<AbortController | null>(null)
   const input = useRef<HTMLInputElement>(null)
   const busy = reading || adding || externalBusy
+  useRecoveryBlocker(reading || adding ? 'Wait for the blend list to finish before updating.' : text || sourceText || matches.length || manual || sourceUrl ? 'Save or cancel your blend-list review before updating.' : null)
   const identities = reviewedIdentities(matches, selected)
   const existingCount = identities.filter(identity => rows.some(row => row.catalogId === identity.catalogId && row.maker === identity.maker && row.blend === identity.blend && !row.edition && !row.notes)).length
   const manualMatches = manual.trim() ? searchTobaccos(manual, 5) : []

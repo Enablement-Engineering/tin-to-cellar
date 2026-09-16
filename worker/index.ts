@@ -67,6 +67,12 @@ const worker = {
         return new Response(response.body, { status: response.status, headers })
       }
     }
+    if (path === '/app-version.json') {
+      const response = await env.ASSETS.fetch(request)
+      const headers = new Headers(response.headers)
+      headers.set('Cache-Control', 'no-store')
+      return new Response(response.body, { status: response.status, headers })
+    }
     if (path.startsWith('/api/gallery/')) return galleryResponse(request, env, { waitUntil: ctx ? promise => ctx.waitUntil(promise) : undefined })
     if (path === '/api/analytics/v1/config' || path === '/api/analytics/v1/print-intent') {
       // Production collection is confined to the public origins. Loopback supports isolated tests.

@@ -1,6 +1,20 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import worker from './index'
 
+it('serves the build marker without caching and keeps the admin host authenticated', async () => {
+  const env = adminEnv()
+  env.ASSETS.fetch.mockImplementation(async () => Response.json({ buildId: 'release-A' }, { headers: { 'Cache-Control': 'public, max-age=3600' } }))
+  for (const host of ['tintocellar.com', 'www.tintocellar.com']) {
+    const response = await worker.fetch(new Request(`https://${host}/app-version.json`), env)
+    expect(response.headers.get('Cache-Control')).toBe('no-store')
+    expect(await response.json()).toEqual({ buildId: 'release-A' })
+  }
+  vi.spyOn(galleryAuth, 'verifyGalleryAdmin').mockResolvedValue(null)
+  const denied = await worker.fetch(new Request('https://admin.tintocellar.com/app-version.json'), env)
+  expect(denied.status).toBe(403)
+  expect(env.ASSETS.fetch).toHaveBeenCalledTimes(2)
+})
+
 it('prevents framing of public, private, error and conditional responses without replacing route policy', async () => {
   const env = adminEnv()
   vi.spyOn(galleryAuth, 'verifyGalleryAdmin').mockResolvedValue('human')

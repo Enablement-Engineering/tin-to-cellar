@@ -1,4 +1,7 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { appRecovery, isModuleLoadFailure } from '../lib/app-recovery'
+import { clearRecoveryFile, loadRecoveryFile, saveRecoveryFile } from '../lib/app-recovery-file'
+import { useRecoveryBlocker } from './useAppRecovery'
 import { CollectionError, planImport, applyImport, type Collection, type CollectionOrigin, type ImportCandidate, type ImportDecisions, type ImportPlan } from '../lib/collection'
 import type { CellarPackImportResult } from '../lib/cellarpack'
 import type { Retrospective } from '../lib/feedback/retrospective'
@@ -41,6 +44,18 @@ export function usePackImport({ collection, ready, commit, onStart, onImported, 
   const [freshReceipts, setFreshReceipts] = useState<Set<string>>(() => new Set())
   const [notes, setNotes] = useState<Record<string, Retrospective>>({})
   const [diagnosticWarnings, setDiagnosticWarnings] = useState<Record<string, boolean>>({})
+  const [recoveryFile, setRecoveryFile] = useState<File | null>(null)
+  const [recoveryFileError, setRecoveryFileError] = useState('')
+  const [recoveringFile, setRecoveringFile] = useState(true)
+  const durableRecoveryFile = useRef(false)
+  useRecoveryBlocker(recoveringFile ? 'Preparing your selected ZIP for recovery…' : recoveryFileError ? 'Keep this page open. The selected ZIP could not be preserved; dismiss it before updating.' : null)
+  useEffect(() => {
+    let active = true
+    void loadRecoveryFile().then(file => { if (active) { durableRecoveryFile.current = Boolean(file); setRecoveryFile(file) } }).catch(() => {
+      if (active) { durableRecoveryFile.current = true; setRecoveryFileError('The selected ZIP could not be restored. Choose the original ZIP again, or dismiss this recovery.') }
+    }).finally(() => { if (active) setRecoveringFile(false) })
+    return () => { active = false }
+  }, [])
   // Cancel is a review-only transition. It never writes the saved collection.
   const cancelImport = () => {
     if (importBusy.current) return
@@ -119,14 +134,51 @@ export function usePackImport({ collection, ready, commit, onStart, onImported, 
     if (importBusy.current || !ready) return
     importBusy.current = true; setImporting(true); setImportError(''); setImportLoadError(false); onStart(); setNotice('')
     try {
-      const { importCellarPack } = await import('../lib/cellarpack')
+      if (durableRecoveryFile.current) {
+        await clearRecoveryFile(); durableRecoveryFile.current = false; setRecoveryFile(null); setRecoveryFileError('')
+      }
+      let reader: typeof import('../lib/cellarpack')
+      try { reader = await import('../lib/cellarpack') }
+      catch (failure) {
+        if (!isModuleLoadFailure(failure)) throw failure
+        setImportLoadError(true); setRecoveryFile(file); setRecoveringFile(true)
+        try { await saveRecoveryFile(file); durableRecoveryFile.current = true; setRecoveryFileError('') }
+        catch { setRecoveryFileError('The ZIP could not be kept for the update. Keep the original file and dismiss this recovery to choose it again after updating.') }
+        finally { setRecoveringFile(false) }
+        appRecovery.report(failure)
+        return
+      }
+      const { importCellarPack } = reader
       await processResult(await importCellarPack(await file.arrayBuffer()), file.name, origin)
       onImported()
     } catch (failure) {
       const message = failure instanceof Error ? failure.message : 'The selected ZIP could not be read.'
-      if (/Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(message)) setImportLoadError(true)
+      if (isModuleLoadFailure(failure)) { setImportLoadError(true); appRecovery.report(failure) }
       else setImportError(message)
     } finally { importBusy.current = false; setImporting(false) }
+  }
+  const dismissRecoveryFile = async () => {
+    setRecoveringFile(true)
+    try {
+      // If saving never committed, there is no durable file to erase. Explicit
+      // dismissal must still work when storage was denied or full.
+      if (durableRecoveryFile.current) await clearRecoveryFile()
+      durableRecoveryFile.current = false; setRecoveryFile(null); setRecoveryFileError(''); setImportLoadError(false)
+    }
+    catch { setRecoveryFileError('The temporary ZIP could not be removed. Keep this page open and try again.') }
+    finally { setRecoveringFile(false) }
+  }
+  const resumeRecoveryFile = async () => {
+    if (!recoveryFile || importBusy.current || recoveringFile || !ready) return
+    const file = recoveryFile
+    setRecoveringFile(true)
+    try {
+      // Consume before parsing: never replay imports or diagnostic writes after a crash.
+      if (durableRecoveryFile.current) await clearRecoveryFile()
+      durableRecoveryFile.current = false; setRecoveryFile(null); setRecoveryFileError('')
+      await handlePack(file)
+    } catch { setRecoveryFileError('The ZIP could not be prepared for review. Keep this page open and try again.') }
+    finally { setRecoveringFile(false) }
   }
   const chooseCommunity = async (choice: PackChoice, rowId?: string, newIdentity?: RequestInput) => {
     if (importBusy.current || !ready) throw new Error('Wait for the current label to finish saving, then try again.')
@@ -148,6 +200,7 @@ export function usePackImport({ collection, ready, commit, onStart, onImported, 
   }
   const refreshDecisions = () => { if (review) setDecisions(defaultDecisions(review)) }
   return { importing, candidate, setCandidate, cancelImport, review, decisions, setDecisions, reviewInvalidated, refreshDecisions,
+    recoveryFile, recoveryFileError, recoveringFile, dismissRecoveryFile, resumeRecoveryFile,
     notice, setNotice, importError, setImportError, importLoadError, receiptId, setReceiptId,
     freshReceipts, setFreshReceipts, notes, setNotes, diagnosticWarnings, saveCandidate, replaceCandidate, handlePack, chooseCommunity }
 }

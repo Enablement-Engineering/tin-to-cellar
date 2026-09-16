@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
+import { useRecoveryBlocker } from '../../hooks/useAppRecovery'
 import type { ImportedCellarLabel } from '../../lib/cellarpack/types'
 import type { GalleryReceipt } from '../../lib/gallery/types'
 import { MAX_SUBMISSION_LABELS } from '../../lib/gallery/schema'
@@ -13,6 +14,7 @@ export function GallerySubmission({ labels }: { labels: ImportedCellarLabel[] })
   const [accepted, setAccepted] = useState(false), [attempts, setAttempts] = useState<Attempt[]>([]), [active, setActive] = useState<number | null>(null)
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [challenge, setChallenge] = useState(0)
   const [verification, setVerification] = useState<number[] | null>(null)
+  useRecoveryBlocker(busy || active !== null ? 'Wait for your gallery submission to finish before updating.' : selected.length || attempts.some(attempt => attempt.error) ? 'Finish your gallery submission, or leave this page, before updating.' : null)
   const inFlight = useRef(false)
   const [previousLabels, setPreviousLabels] = useState(labels)
   if (previousLabels !== labels) { setPreviousLabels(labels); setSelected([]); setChoices({}); setAccepted(false) }

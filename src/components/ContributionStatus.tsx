@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useRecoveryBlocker } from '../hooks/useAppRecovery'
 import { toSharedContribution, type Contribution } from '../lib/contributions'
 import { diagnosticCapability } from '../lib/contributions/capability'
 import type { Retrospective } from '../lib/feedback/retrospective'
@@ -27,7 +28,7 @@ function pauseMessage(resetAt: number | null) {
   return `Diagnostic sharing is paused. You can still use and print your saved labels.${resetAt === null ? ' Try sharing again later.' : ` You can retry after ${new Date(resetAt).toLocaleString()}.`}`
 }
 
-export function ContributionStatus({ contribution, retrospective = null, hidden = false, autoSend = false, delivery = 'pending', onDelivery }: { contribution: Contribution | null; retrospective?: Retrospective | null; hidden?: boolean; autoSend?: boolean; delivery?: 'none' | 'pending' | 'sent' | 'failed'; onDelivery?: (delivery: 'sent' | 'failed') => void }) {
+export function ContributionStatus({ contribution, retrospective = null, hidden = false, autoSend = false, delivery = 'pending', onDelivery, onDismissNotes }: { contribution: Contribution | null; retrospective?: Retrospective | null; hidden?: boolean; autoSend?: boolean; delivery?: 'none' | 'pending' | 'sent' | 'failed'; onDelivery?: (delivery: 'sent' | 'failed') => void; onDismissNotes?: () => void }) {
   const titleId = useId(), notesId = useId()
   const [attempt, setAttempt] = useState(0)
   const [status, setStatus] = useState<'sending' | 'collected' | 'failed' | 'partial' | 'unavailable' | 'paused' | 'ineligible'>(delivery === 'sent' ? 'collected' : autoSend ? 'sending' : 'failed')
@@ -39,6 +40,7 @@ export function ContributionStatus({ contribution, retrospective = null, hidden 
   const submissionId = contribution?.submissionId
   const [notesStatus, setNotesStatus] = useState<'idle' | 'sending' | 'collected' | 'failed' | 'paused'>('idle')
   const [notesAllowed, setNotesAllowed] = useState(true)
+  useRecoveryBlocker(contribution && (status === 'sending' || notesStatus === 'sending') ? 'Wait for report sharing to finish before updating.' : contribution && retrospective && notesStatus !== 'collected' ? 'Your unshared process notes are still open in this tab. Open Print labels to share or dismiss them before updating.' : null)
   const receiptButton = useRef<HTMLButtonElement>(null)
   const closeButton = useRef<HTMLButtonElement>(null)
   const dialog = useRef<HTMLDialogElement>(null)
@@ -102,6 +104,7 @@ export function ContributionStatus({ contribution, retrospective = null, hidden 
       {retrospective && <section aria-labelledby={notesId}><h3 id={notesId}>Optional process notes</h3>
         <p>These AI-written notes stay in this tab until you share them. Read them for personal information before sharing. Shared notes are kept for 90 days.</p>
         <pre tabIndex={0} aria-label="Optional process notes">{JSON.stringify(retrospective, null, 2)}</pre>
+        {onDismissNotes && notesStatus !== 'collected' && <button type="button" className="button quiet" disabled={notesStatus === 'sending'} onClick={onDismissNotes}>Dismiss unshared notes</button>}
         <button className="button secondary" type="button" disabled={!notesAllowed || !['collected', 'partial'].includes(status) || ['sending', 'collected'].includes(notesStatus) || (notesStatus === 'paused' && !notesPause.ready)} onClick={event => { if (document.activeElement === event.currentTarget) closeButton.current?.focus(); void share() }}>{notesStatus === 'collected' ? 'Process notes shared' : notesStatus === 'sending' ? 'Sharing…' : notesStatus === 'failed' || notesStatus === 'paused' ? 'Retry sharing process notes' : 'Share process notes'}</button>
         {!notesAllowed && <p role="status">This tab does not have the original receipt for these diagnostics. Open the tab that first shared them to attach notes. If that receipt is gone, these notes can only be kept locally.</p>}
         {notesStatus === 'paused' && <p role="status">{pauseMessage(notesPause.resetAt)} Process note receipt has not been confirmed.</p>}

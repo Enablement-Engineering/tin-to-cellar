@@ -1,5 +1,8 @@
 import { usePublicNavigation, viewPaths, type View } from './hooks/usePublicNavigation'
 import { usePackImport } from './hooks/usePackImport'
+import { useRecoveryBlocker } from './hooks/useAppRecovery'
+import { AppRecoveryNotice } from './components/AppRecoveryNotice'
+import { appRecovery } from './lib/app-recovery'
 import { isUploadedReceipt } from './lib/collection/history'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSavedSources } from './lib/prompt/use-saved-sources'
@@ -53,6 +56,7 @@ export default function PublicApp() {
   const promptModule = usePromptModule(view === 'artwork' || view === 'help')
   const focusAfterImport = useRef(false)
   const { importing, candidate, setCandidate, cancelImport, review, decisions, setDecisions, reviewInvalidated, refreshDecisions,
+    recoveryFile, recoveryFileError, recoveringFile, dismissRecoveryFile, resumeRecoveryFile,
     notice, setNotice, importError, setImportError, importLoadError, receiptId, setReceiptId,
     freshReceipts, setFreshReceipts, notes, setNotes, diagnosticWarnings, saveCandidate, replaceCandidate, handlePack, chooseCommunity } = usePackImport({
     collection, ready, commit,
@@ -64,7 +68,17 @@ export default function PublicApp() {
   const openImport = () => { setShowIntake(true); navigate('print') }
   const [galleryVisited, setGalleryVisited] = useState(view === 'gallery')
   if (view === 'gallery' && !galleryVisited) setGalleryVisited(true)
-  const [genericChat, setGenericChat] = useState(false)
+  const [genericChat, setGenericChat] = useState(() => {
+    try { return sessionStorage.getItem('tin-to-cellar:generic-chat') === '1' } catch { return false }
+  })
+  const genericRecovery = useRef(Symbol('generic-chat-recovery'))
+  useEffect(() => {
+    try {
+      if (genericChat) sessionStorage.setItem('tin-to-cellar:generic-chat', '1')
+      else sessionStorage.removeItem('tin-to-cellar:generic-chat')
+      return appRecovery.guard(genericRecovery.current, null)
+    } catch { return appRecovery.guard(genericRecovery.current, genericChat ? 'This browser could not preserve your new AI chat. Add a blend to leave this empty chat before updating.' : null) }
+  }, [genericChat])
   const [downloading, setDownloading] = useState(false)
   const [legacyRestoring, setLegacyRestoring] = useState(false)
   const [legacyChoices, setLegacyChoices] = useState<PackChoice[]>(() => {
@@ -73,7 +87,11 @@ export default function PublicApp() {
       return Array.isArray(value) && value.length <= MAX_PACK_LABELS && value.every(validChoice) ? value : []
     } catch { return [] }
   })
-  const busy = importing || saving || legacyRestoring || !ready
+  const busy = importing || saving || legacyRestoring || recoveringFile || !ready
+  useRecoveryBlocker(busy || downloading ? 'Wait for your current work to finish saving before updating.'
+    : storageError ? 'Resolve the saved-label error before updating.'
+    : candidate ? 'Save or cancel your imported-label review before updating.'
+    : view === 'gallery-admin' ? 'Finish reviewing and save your corrections before reloading.' : null, true)
   useEffect(() => {
     if (!/^\d+ labels? ready\.$/.test(notice)) return
     const timer = window.setTimeout(() => {
@@ -234,7 +252,7 @@ export default function PublicApp() {
   const intake = <div className="import-section screen-only">
     {!candidate && <PackImporter compact={view === 'artwork'} busy={busy} summary={null} onFile={handlePack} history={<ImportHistory receipts={uploadedReceipts} designs={collection.designs} />} />}
     {candidate && <ProtocolWarning context={candidate.receipt.protocolContext} feedback={candidate.receipt.contribution?.feedback} />}
-    {importLoadError && <div className="panel" role="alert"><h3>The label reader couldn’t load</h3><p>The app may have updated, or the connection was interrupted. Reload the page, then choose the same ZIP again. Your saved labels will remain.</p><button className="button secondary" type="button" onClick={() => window.location.reload()}>Reload app</button></div>}
+    {importLoadError && <div className="panel" role="alert"><h3>The label reader couldn’t load</h3><p>Use the app recovery controls above to check the connection or update the app. Your saved labels remain available.</p></div>}
   </div>
   const importProblem = !reviewingPack && currentReceipt && (currentReceipt.repairPrompt || summary?.status !== 'ready') && <aside className="import-problem screen-only" aria-label="Import needs attention">
     <p>{currentReceipt.quarantined.length ? `${currentReceipt.quarantined.length} ${currentReceipt.quarantined.length === 1 ? 'label was' : 'labels were'} excluded from your last ZIP import.` : 'Your last ZIP import needs attention.'}</p>
@@ -249,13 +267,8 @@ export default function PublicApp() {
     <PromptHandoff prompt={handoffDraft.prompt} request={handoffDraft.request} copyLabel={targets.length ? `Copy instructions for ${targets.length} ${targets.length === 1 ? 'label' : 'labels'}` : 'Copy instructions for my AI chat'} copied={Boolean(frozen?.copied)} busy={busy || !promptModule.module} onCopy={() => copyHandoff()} onCopyLatest={frozen && String(frozen.protocolRevision) !== PROTOCOL_REVISION ? () => copyHandoff(true) : undefined} onCopied={payload => { void commit(current => current.handoff?.prompt === payload ? setHandoff(current, { ...current.handoff, copied: true }) : current).catch(ignoreHandledError) }} />
   </>
   const promptLoading = <section className="panel screen-only" aria-label="Instructions">
-    <p role="status">{promptModule.failed ? 'Instructions could not load. Reload to try again. Your saved labels remain available.' : 'Loading instructions…'}</p>
-    {promptModule.failed && <button type="button" className="button secondary" onClick={event => {
-      if (document.activeElement === event.currentTarget) {
-        try { sessionStorage.setItem('tin-to-cellar:instructions-reload-focus', '1') } catch { /* Recovery does not require focus storage. */ }
-      }
-      window.location.reload()
-    }}>Reload instructions</button>}
+    <p role="status">{promptModule.failed ? 'Instructions could not load. Use the app recovery controls above. Your saved labels remain available.' : 'Loading instructions…'}</p>
+    {promptModule.failed && <button type="button" className="button secondary" onClick={() => void appRecovery.check()}>Check app update</button>}
   </section>
   const titles: Record<View | 'not-found', string> = { labels: 'Labels for your tobacco jars', 'not-found': 'Page not found', create: 'Your labels', artwork: 'Create artwork', order: 'Add several blends', print: 'Print labels', help: 'How it works', about: 'About', inspiration: 'Inspiration', privacy: 'Privacy', gallery: 'Gallery', 'gallery-admin': 'Review submissions' }
   const routeClick = (next: View) => (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -283,6 +296,15 @@ export default function PublicApp() {
       <ThemeControl />
     </div></header>
     <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
+      <AppRecoveryNotice />
+      {(recoveryFile || recoveryFileError) && <section className="panel screen-only" aria-label="Selected ZIP recovery">
+        <p>{recoveryFile ? `${recoveryFile.name} is selected for recovery. Resume its review when the app is ready. The ZIP stays on this device.` : recoveryFileError}</p>
+        {recoveryFile && recoveryFileError && <p role="alert">{recoveryFileError}</p>}
+        <div className="handoff-actions">
+          {recoveryFile && <button type="button" className="button primary" disabled={busy || recoveringFile || Boolean(candidate)} onClick={() => void resumeRecoveryFile()}>Resume ZIP review</button>}
+          <button type="button" className="button secondary" disabled={busy || recoveringFile} onClick={() => void dismissRecoveryFile()}>Dismiss selected ZIP</button>
+        </div>
+      </section>}
       {(storageError || importError) && <p className="panel screen-only" role="alert">{storageError || importError}</p>}
       {previewError && <p className="panel screen-only" role="alert">{previewError}</p>}
       {(view === 'artwork' || view === 'create') && importProblem}
@@ -323,7 +345,7 @@ export default function PublicApp() {
         {!reviewingPack && shareableLabels.length > 0 && <DeferredPanel><GallerySubmission labels={shareableLabels} /></DeferredPanel>}
       </>}
       {view === 'create' && (collection.rows.length > 0 || collection.receipts.length > 0) && <div className="preparation-storage screen-only"><button type="button" className="button quiet" disabled={busy} onClick={resetLabels}>Clear saved labels</button></div>}
-      {collection.receipts.map(receipt => <ContributionStatus key={receipt.id} contribution={receipt.contribution} retrospective={notes[receipt.id] ?? null} hidden={view !== 'print' || currentReceipt?.id !== receipt.id} autoSend={freshReceipts.has(receipt.id)} delivery={receipt.delivery} onDelivery={delivery => { void commit(current => setReceiptDelivery(current, receipt.id, delivery)).catch(ignoreHandledError) }} />)}
+      {collection.receipts.map(receipt => <ContributionStatus key={receipt.id} contribution={receipt.contribution} retrospective={notes[receipt.id] ?? null} onDismissNotes={() => setNotes(current => { const next = { ...current }; delete next[receipt.id]; return next })} hidden={view !== 'print' || currentReceipt?.id !== receipt.id} autoSend={freshReceipts.has(receipt.id)} delivery={receipt.delivery} onDelivery={delivery => { void commit(current => setReceiptDelivery(current, receipt.id, delivery)).catch(ignoreHandledError) }} />)}
     </main>
     <SiteFooter currentView={view} onNavigate={navigate} />
   </div>

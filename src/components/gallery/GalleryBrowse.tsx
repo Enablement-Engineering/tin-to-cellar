@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRecoveryBlocker } from '../../hooks/useAppRecovery'
 import type { GalleryPublicLabel } from '../../lib/gallery/types'
 import { GalleryBlendSearch, type GalleryBlendIdentity } from './GalleryBlendSearch'
 import { GalleryThumbnail } from './GalleryThumbnail'
@@ -67,6 +68,7 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
   const [order, setOrder] = useState<BrowseOrder>('shuffle'), [shuffled, setShuffled] = useState<string[]>([])
   const [visible, setVisible] = useState(24), [creating, setCreating] = useState(false)
   const [preview, setPreview] = useState<GalleryPublicLabel | null>(null)
+  useRecoveryBlocker(adding || creating ? 'Finish choosing your gallery artwork before updating.' : null)
   const resultCount = useRef<HTMLParagraphElement>(null), focusResults = useRef(false)
   const requestVersion = useRef(0), controller = useRef<AbortController | null>(null)
   const load = useCallback(async () => {

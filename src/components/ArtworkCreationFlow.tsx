@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useRecoveryBlocker } from '../hooks/useAppRecovery'
 import { CreationSelection } from './CreationSelection'
 import { RowNotes, type PreparationRow } from './PreparationWorkspace'
 import '../styles/artwork-creation.css'
@@ -12,6 +13,7 @@ export function ArtworkCreationFlow({ rows, allRows, requestKey, copied, generic
   const [editingRequest, setEditingRequest] = useState(false)
   const [editing, setEditing] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  useRecoveryBlocker(editing ? 'Save or cancel your artwork selection before updating.' : null)
   const [error, setError] = useState('')
   const copyStep = useRef<HTMLDivElement>(null)
   const returnHeading = useRef<HTMLHeadingElement>(null)

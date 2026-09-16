@@ -34,6 +34,10 @@ jobs:
       - run: npm test
       - run: npm run lint
       - run: npm run build
+      - name: Install browser for deployment recovery regression
+        run: npx playwright install --with-deps chromium
+      - name: Check recovery between built app releases
+        run: npm run test:recovery
 
   deploy:
     needs: check
@@ -43,6 +47,9 @@ jobs:
     environment:
       name: production
       url: https://tintocellar.com
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -60,6 +67,14 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo '::error::Set the CLOUDFLARE_ACCOUNT_ID repository variable.'; exit 1; }
       - run: npm ci
       - run: npm run build
+        env:
+          BUILD_ID: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Snapshot this build's hashed assets
+        run: npm run app-release:prepare
+      - name: Retain three previous deployments' hashed assets
+        run: npm run app-release:retain
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - name: Apply diagnostics migrations
         run: npm run diagnostics:migrate:remote
         env:
@@ -78,7 +93,18 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      # Record a deployment even if a later smoke check fails. This artifact
+      # contains only the current build's assets, never the merged generations.
+      - name: Save deployed asset generation
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: app-assets-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/app-release/current/
+          if-no-files-found: error
+          retention-days: 90
       - name: Check production responses
+        env:
+          BUILD_ID: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 https://tintocellar.com/labels --output /dev/null
           curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 https://www.tintocellar.com/labels --output /dev/null
@@ -104,4 +130,13 @@ jobs:
           # This performs no ingestion and writes no demand counters.
           for public_host in tintocellar.com www.tintocellar.com; do
             curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 "https://${public_host}/api/analytics/v1/config" | jq -e 'has("enabled") and (.enabled | type == "boolean")' >/dev/null
+            version_ready=false
+            for attempt in 1 2 3 4 5 6; do
+              if curl --fail --silent --show-error --max-time 15 "https://${public_host}/app-version.json" | jq -e --arg expected "$BUILD_ID" '.buildId == $expected' >/dev/null; then
+                version_ready=true
+                break
+              fi
+              test "$attempt" = 6 || sleep 5
+            done
+            test "$version_ready" = true || { echo "::error::Expected app build is not serving on ${public_host}"; exit 1; }
           done

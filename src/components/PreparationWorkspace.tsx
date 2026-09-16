@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type RefObject } from 'react'
+import { useRecoveryBlocker } from '../hooks/useAppRecovery'
 import { formatTobacco, searchTobaccos, type TobaccoEntry } from '../lib/tobacco-catalog'
 import type { GalleryPublicLabel } from '../lib/gallery/types'
 import type { PrintLabel } from './ui-model'
@@ -34,6 +35,7 @@ function BlendIntake({ busy, onAdd, rows }: Pick<PreparationWorkspaceProps, 'bus
   const [draft, setDraft] = useState('')
   const [pending, setPending] = useState<PreparationIdentity | null>(null)
   const [confirmation, setConfirmation] = useState('')
+  useRecoveryBlocker(draft || pending ? 'Finish adding your blend, or clear the blend search, before updating.' : null)
   useEffect(() => { if (!confirmation) return; const timer = window.setTimeout(() => setConfirmation(''), 6000); return () => window.clearTimeout(timer) }, [confirmation])
   const close = () => { setPending(null); input.current?.focus() }
   const add = (selectedIdentity: PreparationIdentity) => {
@@ -137,6 +139,7 @@ function ArtworkChoices({ row, busy, onChooseCommunity }: Pick<PreparationWorksp
 export function RowNotes({ row, onNotes }: { row: PreparationRow; onNotes: NonNullable<PreparationWorkspaceProps['onNotes']> }) {
   const [editor, setEditor] = useState<{ source: string; value: string; submitted: string | null }>({ source: row.notes ?? '', value: row.notes ?? '', submitted: null })
   const [error, setError] = useState('')
+  useRecoveryBlocker(editor.value !== (row.notes ?? '') ? 'Save your label notes before updating.' : null)
   if (editor.source !== (row.notes ?? '')) setEditor({ ...editor, source: row.notes ?? '', value: editor.value === editor.source || editor.value === editor.submitted ? row.notes ?? '' : editor.value })
   const save = async () => {
     if (editor.value === (row.notes ?? '')) return
@@ -153,6 +156,7 @@ export function PreparationWorkspace({ rows, busy, onAdd, onRemove, onCreate, on
   const [filter, setFilter] = useState<'all' | 'pending' | 'ready'>('all')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [creationOpen, setCreationOpen] = useState(false)
+  useRecoveryBlocker(creationOpen ? 'Save or cancel your artwork selection before updating.' : null)
   const [creationNotice, setCreationNotice] = useState('')
   const [creationError, setCreationError] = useState('')
   const [confirmed, setConfirmed] = useState<{ id: string; designBefore?: string | null } | { identity: PreparationIdentity } | null>(null)

@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { StandaloneFeedback } from './StandaloneFeedback'
+import { appRecovery } from '../lib/app-recovery'
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 it('previews a failure locally and sends only after an explicit share action', async () => {
   const fetcher = vi.fn().mockResolvedValue(Response.json({ status: 'collected' }))
@@ -13,6 +14,7 @@ it('previews a failure locally and sends only after an explicit share action', a
   fireEvent.change(screen.getByLabelText('Open failure report'), { target: { files: [file] } })
   fireEvent.click(screen.getByText('Report a failed AI run'))
   const button = await screen.findByRole('button', { name: 'Share failure report' })
+  expect(appRecovery.getSnapshot().blocked).toContain('failure report')
   expect(fetcher).not.toHaveBeenCalled()
   button.focus()
   fireEvent.click(button)
