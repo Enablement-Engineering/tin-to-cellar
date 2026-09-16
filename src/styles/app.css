@@ -115,16 +115,17 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 
 /* The landing page pairs the workflow with a finished label example. */
 .landing-page { display: grid; gap: 72px; max-width: var(--width-content); margin: 0 auto; padding: 56px 40px 72px; }
-.landing-hero { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(240px, .85fr); gap: 40px; align-items: center; }
-.landing-hero-copy { display: grid; justify-items: start; gap: 20px; }
+.landing-hero { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(240px, .85fr); grid-template-areas: 'copy art' 'start start'; gap: 32px 40px; align-items: center; }
+.landing-hero-copy { grid-area: copy; display: grid; justify-items: start; gap: 20px; min-width: 0; }
+.landing-start { grid-area: start; display: grid; gap: 16px; min-width: 0; }
 .landing-hero h1 { max-width: 22ch; font: var(--type-hero); letter-spacing: var(--tracking-display); text-wrap: balance; }
 .landing-hero-copy > p:not(.landing-specs):not(.landing-privacy) { max-width: var(--measure-narrow); color: var(--text-muted); }
 .landing-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; }
 .landing-actions .button { min-height: 48px; padding: 12px 16px; gap: 10px; font-size: 16px; text-align: left; }
 .landing-actions .button .icon { flex: 0 0 auto; }
-.landing-privacy { display: flex; align-items: flex-start; gap: 8px; max-width: var(--measure-narrow); color: var(--text-muted); font: var(--type-hint); }
+.landing-privacy { display: flex; align-items: flex-start; gap: 8px; color: var(--text-muted); font: var(--type-hint); }
 .landing-privacy .icon { margin-top: 2px; }
-.landing-hero-art { aspect-ratio: 1; margin: 0; border: 1px solid var(--line-hairline); border-radius: var(--radius-card); box-shadow: var(--shadow-3); overflow: hidden; }
+.landing-hero-art { grid-area: art; aspect-ratio: 1; margin: 0; border: 1px solid var(--line-hairline); border-radius: var(--radius-card); box-shadow: var(--shadow-3); overflow: hidden; }
 .landing-hero-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 58%; }
 .landing-steps-heading { margin-bottom: 24px; font: var(--type-title); }
 .landing-process-intro { max-width: 64ch; margin-bottom: 24px; color: var(--text-muted); }
@@ -351,6 +352,7 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
 @media (max-width: 900px) {
   .site-header-inner { padding-inline: 24px; }
   .landing-page, .create-workspace, .view-print { padding-inline: 24px; }
+  .landing-page { padding-top: 40px; }
   .print-intake, .print-job { grid-template-columns: 1fr; }
   .create-workspace { max-width: 760px; }
   .sheet-stage { position: relative; top: auto; width: 100%; max-width: 620px; margin: 0 auto; }
@@ -371,7 +373,7 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
   .site-header .nav-tabs > a:only-child { grid-column: 1 / -1; }
   .site-header nav a { text-decoration: none; padding: 8px; font-size: 14px; white-space: normal; text-align: center; }
   .landing-page { gap: 40px; padding: 32px 16px 48px; }
-  .landing-hero { grid-template-columns: 1fr; gap: 32px; }
+  .landing-hero { grid-template-columns: 1fr; grid-template-areas: 'copy' 'start' 'art'; gap: 24px; }
   .landing-hero h1 { max-width: 21ch; font-size: 42px; }
   .landing-hero-art { width: 100%; aspect-ratio: 1.1; }
   .landing-steps { grid-template-columns: 1fr; gap: 16px; }
