@@ -16,7 +16,7 @@ type QueueCounts = { pending: number; reservedBytes: number; oldestPendingAt: st
 type Queue = { submissions: GalleryReviewRecord[]; nextCursor: string | null; counts?: QueueCounts }
 type SavedDraft = { version: number; draft: GalleryLabelDraft }
 
-export function GalleryAdmin() {
+export function GalleryAdmin({ onNavigationState }: { onNavigationState?: (state: { busy: boolean; dirty: boolean }) => void } = {}) {
   const [tab, setTab] = useState<'review' | 'operations' | 'agents'>('review')
   const [filters, setFilters] = useState(initialFilters)
   const applied = useRef(initialFilters)
@@ -144,6 +144,7 @@ export function GalleryAdmin() {
   const locked = busy || loading || detailLoading
   const setBatchBusy = (value: boolean) => { inFlight.current = value; setBusy(value) }
   const position = current ? items.findIndex(item => item.id === current.id) : -1
+  useEffect(() => { onNavigationState?.({ busy, dirty: dirty || drafts.size > 0 }) }, [busy, dirty, drafts.size, onNavigationState])
 
   return <section className="gallery-page gallery-admin screen-only">
     <header className="review-heading"><div><h1>Review gallery submissions</h1><p>Check the artwork and tobacco match, then publish or reject.</p></div></header>

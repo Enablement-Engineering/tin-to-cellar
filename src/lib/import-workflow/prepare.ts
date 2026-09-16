@@ -22,7 +22,7 @@ export async function preparePackImport(result: CellarPackImportResult, title: s
     issues.push(...failures); quarantinedLabels.push({ id: item.id, label: item.label, issues: failures })
     return false
   })
-  const status = usable.length ? (quarantinedLabels.length || result.status !== 'ready' || issues.some(issue => ['fatal', 'error'].includes(issue.severity)) ? 'partial' : 'ready') : 'rejected'
+  const status: CellarPackImportResult['status'] = usable.length ? (quarantinedLabels.length || result.status !== 'ready' || issues.some(issue => ['fatal', 'error'].includes(issue.severity)) ? 'partial' : 'ready') : 'rejected'
   let contribution: Contribution | null = null
   let retrospective: Retrospective | null = null
   let diagnosticWarning = false
@@ -49,5 +49,5 @@ export async function preparePackImport(result: CellarPackImportResult, title: s
   }
   const incoming = await prepareImport({ ...result, labels: usable, quarantinedLabels, issues, status }, { origin, publicationId, protocolContext: context, repairPrompt, contribution })
   incoming.receipt.title = (result.manifest?.title ?? title).slice(0, 300)
-  return { incoming, retrospective, diagnosticWarning }
+  return { incoming, retrospective, diagnosticWarning, status }
 }

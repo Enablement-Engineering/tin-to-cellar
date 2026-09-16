@@ -5,10 +5,12 @@ import { cleanDiagnostics, diagnosticsExport, shareNotes, type DiagnosticsDataba
 import { galleryResponse, cleanGallery } from './gallery/routes'
 import { verifyGalleryAdmin } from './gallery/auth'
 import type { GalleryEnv } from './gallery/storage'
-import { analyticsEnabled, analyticsResponse, type AnalyticsEnv } from './analytics'
+import { analyticsResponse } from './analytics'
+import { cleanUsage, usageCapabilities, usageResponse, type UsageEnv } from './analytics/usage'
+import { usageAdminResponse } from './analytics/admin'
 import { operationalRecord } from './operations'
 export { CatalogContributions } from './contributions'
-export interface Env extends GalleryEnv, DiagnosticBudgetConfig, AnalyticsEnv {
+export interface Env extends GalleryEnv, DiagnosticBudgetConfig, UsageEnv {
   OPERATIONAL_METRICS_ENABLED?: string
   ANALYTICS_PUBLIC_HOST?: string
   GALLERY_ADMIN_HOST?: string
@@ -37,6 +39,7 @@ const worker = {
       migrate(),
       env.DIAGNOSTICS ? cleanDiagnostics(env.DIAGNOSTICS) : Promise.resolve(),
       galleryCleanup(),
+      cleanUsage(env),
     ])
     const failures = results.filter(result => result.status === 'rejected')
     if (failures.length) throw new AggregateError(failures.map(result => result.reason), 'Scheduled cleanup incomplete')
@@ -44,6 +47,8 @@ const worker = {
   async fetch(request: Request, env: Env, ctx?: WorkerContext): Promise<Response> {
     const url = new URL(request.url), path = url.pathname
     const adminHost = env.GALLERY_ADMIN_HOST
+    const usageAdminRoute = path.startsWith('/api/analytics/v2/admin/')
+    if (usageAdminRoute && (!adminHost || url.hostname !== adminHost || !['admin.tintocellar.com', 'admin-staging.tintocellar.com'].includes(adminHost))) return Response.json({ error: 'Not found' }, { status: 404, headers: { 'Cache-Control': 'no-store' } })
     const machineRoute = path === '/api/gallery/v1/agent' || path.startsWith('/api/gallery/v1/agent/')
     const humanRoute = path === '/api/gallery/v1/admin' || path.startsWith('/api/gallery/v1/admin/')
     const legacyAdminPage = path === '/admin/gallery' || path.startsWith('/admin/gallery/')
@@ -60,6 +65,7 @@ const worker = {
       if (url.hostname === adminHost) {
         if (machineRoute) return galleryResponse(request, env)
         if (!await verifyGalleryAdmin(request, env)) return new Response('Reviewer sign-in required.', { status: 403, headers: privateHeaders })
+        if (usageAdminRoute) return usageAdminResponse(request, env)
         if (humanRoute || (path === '/api/gallery/v1/config' && request.method === 'GET')) return galleryResponse(request, env)
         if (path.startsWith('/api/') || !['GET', 'HEAD'].includes(request.method)) return notFound()
         const response = await env.ASSETS.fetch(request), headers = new Headers(response.headers)
@@ -74,14 +80,15 @@ const worker = {
       return new Response(response.body, { status: response.status, headers })
     }
     if (path.startsWith('/api/gallery/')) return galleryResponse(request, env, { waitUntil: ctx ? promise => ctx.waitUntil(promise) : undefined })
-    if (path === '/api/analytics/v1/config' || path === '/api/analytics/v1/print-intent') {
+    if (['/api/analytics/v1/config', '/api/analytics/v1/print-intent', '/api/analytics/v2/config', '/api/analytics/v2/print-intent', '/api/analytics/v2/events', '/api/analytics/v2/progress'].includes(path)) {
       // Production collection is confined to the public origins. Loopback supports isolated tests.
       if (!['tintocellar.com', 'www.tintocellar.com', 'localhost', '127.0.0.1'].includes(url.hostname) && url.hostname !== env.ANALYTICS_PUBLIC_HOST) return notFound()
       if (path.endsWith('/config')) {
         if (request.method !== 'GET') return Response.json({ error: 'method_not_allowed' }, { status: 405, headers: { ...privateHeaders, Allow: 'GET' } })
-        return Response.json({ enabled: analyticsEnabled(env) }, { headers: privateHeaders })
+        return Response.json(path.includes('/v1/') ? { enabled: false } : usageCapabilities(env), { headers: privateHeaders })
       }
-      return analyticsResponse(request, env)
+      if (path.includes('/v1/')) return new Response(null, { status: 204, headers: privateHeaders })
+      return path.endsWith('/print-intent') ? analyticsResponse(request, env) : usageResponse(request, env)
     }
     if (path === '/admin/gallery' || path.startsWith('/admin/gallery/')) {
       if (!await verifyGalleryAdmin(request, env)) return new Response('Reviewer sign-in required.', { status: 403, headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } })

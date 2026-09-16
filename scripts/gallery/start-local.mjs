@@ -34,7 +34,7 @@ if (!reuse) writeFileSync(config, JSON.stringify({
     { name: 'GALLERY_UPLOAD_RATE_LIMITER', namespace_id: '9003', simple: { limit: 5, period: 60 } },
     { name: 'GALLERY_MUTATION_RATE_LIMITER', namespace_id: '9004', simple: { limit: 20, period: 60 } },
   ],
-  vars: { ANALYTICS_ENABLED: testMode ? 'true' : 'false', ANALYTICS_DAILY_ALLOWANCE: '1000', OPERATIONAL_METRICS_ENABLED: 'false', GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'local-test-only-no-production-value', GALLERY_TURNSTILE_SITE_KEY: testMode ? 'local-test-widget' : '' },
+  vars: { ANALYTICS_ENABLED: testMode ? 'true' : 'false', WORKFLOW_ANALYTICS_ENABLED: testMode ? 'true' : 'false', PROGRESS_ANALYTICS_ENABLED: testMode ? 'true' : 'false', ANALYTICS_DAILY_ALLOWANCE: '1000', OPERATIONAL_METRICS_ENABLED: 'false', GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'local-test-only-no-production-value', GALLERY_TURNSTILE_SITE_KEY: testMode ? 'local-test-widget' : '' },
   observability: { enabled: false },
 }, null, 2))
 const wrangler = (...args) => execFileSync('npm', ['exec', '--', 'wrangler', ...args, '--config', config, '--persist-to', state], { cwd: root, stdio: 'inherit' })

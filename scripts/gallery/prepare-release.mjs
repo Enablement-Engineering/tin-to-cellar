@@ -60,6 +60,8 @@ export function createReleaseConfig(base, options, root) {
   config.assets = { ...structuredClone(base.assets), directory: resolve(root, 'dist'), run_worker_first: true }
   config.vars = { ...(config.vars ?? {}), ANALYTICS_ENABLED: 'false', ANALYTICS_DAILY_ALLOWANCE: '1000', OPERATIONAL_METRICS_ENABLED: target === 'production' ? 'true' : 'false', GALLERY_ADMIN_HOST: adminHost, GALLERY_AGENT_ENABLED: 'false', GALLERY_AGENT_ACCESS_AUD: options['agent-access-aud'] ?? '', GALLERY_INTAKE: 'false', GALLERY_SERVING: 'false', GALLERY_PUBLICATION: 'false', GALLERY_ACCESS_ISSUER: issuer.origin, GALLERY_ACCESS_AUD: options['access-aud'], GALLERY_ADMIN_SUBJECT: options['admin-subject'], GALLERY_TURNSTILE_SITE_KEY: siteKey }
   config.vars.ANALYTICS_PUBLIC_HOST = target === 'staging' ? options.host : 'tintocellar.com'
+  config.vars.WORKFLOW_ANALYTICS_ENABLED = 'false'
+  config.vars.PROGRESS_ANALYTICS_ENABLED = 'false'
   config.d1_databases = [...(config.d1_databases ?? []).filter(db => db.binding !== 'GALLERY').map(db => ({ ...db, migrations_dir: resolve(root, db.migrations_dir ?? 'migrations') })), { binding: 'GALLERY', database_name: bucket, database_id: options['database-id'], migrations_dir: resolve(root, 'migrations/gallery') }]
   config.r2_buckets = [...(config.r2_buckets ?? []).filter(bucket => bucket.binding !== 'GALLERY_ART'), { binding: 'GALLERY_ART', bucket_name: bucket }]
   const galleryLimits = [

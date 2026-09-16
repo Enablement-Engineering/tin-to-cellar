@@ -73,7 +73,23 @@ it('rejects retired proof operations before consuming image bytes or calling ser
 
 import * as galleryAuth from './gallery/auth'
 import * as galleryRoutes from './gallery/routes'
+import { DB as UsageDB } from './analytics/test-db'
 afterEach(() => vi.restoreAllMocks())
+it('dispatches private usage reads only after human authentication on the configured host', async () => {
+  const db = new UsageDB()
+  try {
+    const env = { ...adminEnv(), GALLERY: db, ANALYTICS_RATE_LIMITER: { limit: vi.fn(async () => ({ success: true })) } }
+    const verify = vi.spyOn(galleryAuth, 'verifyGalleryAdmin').mockResolvedValue(null)
+    const request = new Request('https://admin.tintocellar.com/api/analytics/v2/admin/summary')
+    expect((await worker.fetch(request, env)).status).toBe(403)
+    expect(env.ANALYTICS_RATE_LIMITER.limit).not.toHaveBeenCalled()
+    verify.mockResolvedValue('human')
+    const response = await worker.fetch(request, env)
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ events: [], progress: [], capabilities: { demandEnabled: false } })
+    expect(env.ASSETS.fetch).not.toHaveBeenCalled()
+  } finally { db.sql.close() }
+})
 const adminEnv = () => ({ GALLERY_ADMIN_HOST: 'admin.tintocellar.com', ASSETS: { fetch: vi.fn(async () => new Response('private app', { headers: { 'Content-Type': 'text/html' } })) } })
 it('rejects privileged APIs cross-host before auth, bytes or gallery dispatch', async () => {
   const env=adminEnv(), verify=vi.spyOn(galleryAuth, 'verifyGalleryAdmin'), gallery=vi.spyOn(galleryRoutes, 'galleryResponse')
@@ -148,7 +164,7 @@ it('keeps analytics config separate from gallery availability and inaccessible o
     const response = await worker.fetch(new Request(`https://${host}/api/analytics/v1/config`), env)
     expect(response.status).toBe(200)
     expect(response.headers.get('Cache-Control')).toBe('no-store')
-    expect(await response.json()).toEqual({ enabled: true })
+    expect(await response.json()).toEqual({ enabled: false })
   }
   expect((await worker.fetch(new Request('https://admin.tintocellar.com/api/analytics/v1/config'), env)).status).toBe(403)
   vi.spyOn(galleryAuth, 'verifyGalleryAdmin').mockResolvedValue('human')
@@ -191,4 +207,18 @@ it('fails closed with sanitized operational output when a dependency throws priv
   expect(await response.json()).toEqual({ error: 'temporarily_unavailable' })
   expect(log).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ route: 'static', status: 503 }))
   expect(JSON.stringify(log.mock.calls)).not.toContain('private')
+})
+
+it('sunsets stale analytics clients and confines v2 reports to verified human admin requests', async () => {
+  const db = { prepare: vi.fn(), batch: vi.fn() }
+  const env = { ...adminEnv(), GALLERY: db, ANALYTICS_ENABLED: 'true', WORKFLOW_ANALYTICS_ENABLED: 'true', PROGRESS_ANALYTICS_ENABLED: 'true', ANALYTICS_RATE_LIMITER: { limit: vi.fn(async () => ({ success: true })) } }
+  expect(await (await worker.fetch(new Request('https://tintocellar.com/api/analytics/v2/config'), env)).json()).toMatchObject({ version: 2, demandEnabled: true, workflowEnabled: true, progressEnabled: true, webTrafficEnabled: false })
+  const old = new Request('https://tintocellar.com/api/analytics/v1/print-intent', { method: 'POST', body: 'private stale payload' })
+  expect((await worker.fetch(old, env)).status).toBe(204)
+  expect(old.bodyUsed).toBe(false)
+  for (const host of ['tintocellar.com','www.tintocellar.com','unknown.example']) expect((await worker.fetch(new Request(`https://${host}/api/analytics/v2/admin/summary`), env)).status).toBe(404)
+  vi.spyOn(galleryAuth, 'verifyGalleryAdmin').mockResolvedValue(null)
+  expect((await worker.fetch(new Request('https://admin.tintocellar.com/api/analytics/v2/admin/summary'), env)).status).toBe(403)
+  expect((await worker.fetch(new Request('https://admin.tintocellar.com/api/analytics/v2/admin/summary'), { ...env, GALLERY_ADMIN_HOST: undefined })).status).toBe(404)
+  expect(db.prepare).not.toHaveBeenCalled()
 })

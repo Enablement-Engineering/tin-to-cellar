@@ -1,6 +1,7 @@
 import { parsePrintIntent, PRINT_INTENT_LIMITS } from '../../src/lib/analytics/schema'
 import type { GalleryDatabase, GalleryRateLimiter } from '../gallery/storage'
 import { BodyReadError, boundedJson } from '../http'
+import { isRecord, hasKeys } from '../../src/lib/analytics/events'
 
 export interface AnalyticsEnv {
   GALLERY?: GalleryDatabase
@@ -21,17 +22,17 @@ export function analyticsDailyAllowance(env: AnalyticsEnv): number {
 
 /** Strict global admission: failed downstream validation/writes do not refund it. */
 export async function reservePrintIntent(db: GalleryDatabase, period: string, limit: number): Promise<boolean> {
-  const admitted = await db.prepare(`INSERT INTO print_intent_admission(id,period_start,admissions)
-    SELECT 1,?,1 WHERE ?>0
-    ON CONFLICT(id) DO UPDATE SET period_start=excluded.period_start,
+  const admitted = await db.prepare(`INSERT INTO print_intent_admission(id,period_start,admissions,allowance)
+    SELECT 1,?,1,? WHERE ?>0
+    ON CONFLICT(id) DO UPDATE SET period_start=excluded.period_start,allowance=excluded.allowance,
       admissions=CASE WHEN print_intent_admission.period_start<excluded.period_start THEN 1 ELSE print_intent_admission.admissions+1 END
     WHERE print_intent_admission.period_start<excluded.period_start
       OR (print_intent_admission.period_start=excluded.period_start AND print_intent_admission.admissions<?)
-    RETURNING admissions`).bind(period, limit, limit).first<{ admissions: number }>()
+    RETURNING admissions`).bind(period, limit, limit, limit).first<{ admissions: number }>()
   return !!admitted
 }
 
-/** Root routes only POST /api/analytics/v1/print-intent on the public host here. */
+/** Only the consent-aware v2 endpoint reaches this handler. Legacy ingestion is a root no-op. */
 export async function analyticsResponse(request: Request, env: AnalyticsEnv, now = new Date()): Promise<Response> {
   if (!analyticsEnabled(env)) return response(204)
   if (request.method !== 'POST') return response(405)
@@ -42,7 +43,8 @@ export async function analyticsResponse(request: Request, env: AnalyticsEnv, now
   try {
     // Cloudflare's location-local approximate limiter is an abuse filter, not the global allowance.
     if (!(await env.ANALYTICS_RATE_LIMITER!.limit({ key: request.headers.get('CF-Connecting-IP') ?? 'unknown' })).success) return response(429)
-    const payload = parsePrintIntent(await boundedJson(request, { maxBytes: PRINT_INTENT_LIMITS.bodyBytes }))
+    const raw = await boundedJson(request, { maxBytes: PRINT_INTENT_LIMITS.bodyBytes })
+    const payload = isRecord(raw) && hasKeys(raw, ['version', 'event', 'labels']) && raw.version === 2 ? parsePrintIntent({ event: raw.event, labels: raw.labels }) : null
     if (!payload) return response(400)
     const period = now.toISOString().slice(0, 10)
     const db = env.GALLERY!.withSession?.('first-primary') ?? env.GALLERY!
@@ -66,8 +68,9 @@ export async function analyticsResponse(request: Request, env: AnalyticsEnv, now
       .bind(ids[index], period, Number(payload.event === 'added-to-labels'), Number(payload.event === 'selected-for-print'), job ? label.quantity : 0, Number(job)))
     if (job) statements.push(db.prepare(`INSERT INTO print_intent_job_totals(period_start,print_job_count) VALUES(?,1)
       ON CONFLICT(period_start) DO UPDATE SET print_job_count=print_job_count+1`).bind(period))
+    statements.push(db.prepare('UPDATE usage_collection_daily SET recorded=recorded+1 WHERE period_start=?').bind(period))
     await db.batch(statements)
-    return response(204)
+    return Response.json({ recorded: true }, { headers })
   } catch (error) {
     // Never log request bodies, canonical demand or ordinary network information.
     return response(error instanceof BodyReadError ? error.status : 503)

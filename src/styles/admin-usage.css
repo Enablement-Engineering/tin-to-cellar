@@ -1,0 +1,9 @@
+.usage-page { max-width: 76rem; margin-inline: auto; }
+.usage-page > .panel { margin-block: 1.5rem; }
+.usage-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-block: 1rem; }
+.usage-table { overflow-x: auto; max-width: 100%; }
+.usage-table table { width: 100%; border-collapse: collapse; }
+.usage-table th, .usage-table td { text-align: left; padding: .65rem; border-bottom: 1px solid currentColor; }
+.usage-table caption { text-align: left; padding-block: .75rem; }
+.usage-totals { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,16rem),1fr)); gap: 1rem; }
+.usage-totals dd { font-size: 1.5rem; margin: .25rem 0; }

@@ -6,8 +6,9 @@ const catalogId = TOBACCO_CATALOG[0].id
 beforeEach(() => {
   vi.resetModules()
   localStorage.clear()
+  localStorage.setItem('tin-to-cellar:usage-choice-v2', 'on:00000000-0000-0000-0000-000000000000')
   vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true)
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ enabled: true })))
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ version: 2, demandEnabled: true, workflowEnabled: true, progressEnabled: true })))
 })
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
@@ -24,8 +25,8 @@ it('waits for enabled configuration and sends only canonical merged quantities o
   client.recordDemand('print-job-requested', [{ catalogId, quantity: 5 }], action)
   expect(fetch).toHaveBeenCalledTimes(2)
   const [url, options] = vi.mocked(fetch).mock.calls[1]
-  expect(url).toBe('/api/analytics/v1/print-intent')
-  expect(JSON.parse(options!.body as string)).toEqual({ event: 'print-job-requested', labels: [{ catalogId, quantity: 5 }] })
+  expect(url).toBe('/api/analytics/v2/print-intent')
+  expect(JSON.parse(options!.body as string)).toEqual({ version: 2, event: 'print-job-requested', labels: [{ catalogId, quantity: 5 }] })
   expect(options).toMatchObject({ credentials: 'omit', referrerPolicy: 'no-referrer' })
 })
 
@@ -34,14 +35,14 @@ it('does not snapshot quantities for add or print-selection intent', async () =>
   await client.initializeDemandCollection()
   for (const event of ['added-to-labels', 'selected-for-print'] as const) {
     client.recordDemand(event, [{ catalogId, quantity: 99 }, { catalogId, quantity: 25 }])
-    expect(JSON.parse(vi.mocked(fetch).mock.lastCall![1]!.body as string)).toEqual({ event, labels: [{ catalogId, quantity: 1 }] })
+    expect(JSON.parse(vi.mocked(fetch).mock.lastCall![1]!.body as string)).toEqual({ version: 2, event, labels: [{ catalogId, quantity: 1 }] })
   }
 })
 
 it('reads opt-out immediately before each send, including another tab changing the preference', async () => {
   const client = await import('./client')
   await client.initializeDemandCollection()
-  localStorage.setItem('tin-to-cellar:aggregate-demand', 'off')
+  localStorage.setItem('tin-to-cellar:usage-choice-v2', 'off')
   client.recordDemand('added-to-labels', [{ catalogId }])
   expect(fetch).toHaveBeenCalledTimes(1)
 })

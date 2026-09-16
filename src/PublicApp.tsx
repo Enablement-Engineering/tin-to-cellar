@@ -39,7 +39,8 @@ import { usePrintLabels } from './hooks/usePrintLabels'
 import { usePromptModule } from './hooks/usePromptModule'
 import { formatTobacco } from './lib/tobacco-catalog'
 import { PROTOCOL_REVISION } from './lib/protocol'
-import { initializeDemandCollection, recordDemand } from './lib/analytics/client'
+import { initializeDemandCollection, recordDemand, recordUsage } from './lib/analytics/client'
+import { pruneProgress, startProgress, importProgress, printProgress } from './lib/analytics/progress'
 import type { RequestInput } from './lib/collection/types'
 import { addManualLabel } from './lib/collection/manual-add'
 
@@ -52,7 +53,7 @@ export default function PublicApp() {
   const { collection, ready, saving, error: storageError, commit } = useCollection()
   const { labels, error: previewError, pending: previewPending } = usePrintLabels(collection)
   const { view, navigate, main } = usePublicNavigation()
-  useEffect(() => { void initializeDemandCollection() }, [])
+  useEffect(() => { pruneProgress(); void initializeDemandCollection() }, [])
   const promptModule = usePromptModule(view === 'artwork' || view === 'help')
   const focusAfterImport = useRef(false)
   const { importing, candidate, setCandidate, cancelImport, review, decisions, setDecisions, reviewInvalidated, refreshDecisions,
@@ -63,6 +64,18 @@ export default function PublicApp() {
     onStart: () => undefined,
     onImported: () => { if (view !== 'artwork') navigate('print') },
     onGalleryAdded: rows => recordDemand('added-to-labels', rows),
+    onChecked: outcome => recordUsage({ version: 2, event: 'pack-check-result', outcome }),
+    onFailed: outcome => recordUsage({ version: 2, event: 'workflow-failed', outcome }),
+    onApplied: (before, after, incoming) => {
+      if (!['local', 'gallery'].includes(incoming.receipt.origin ?? '')) return
+      const ids = new Set(incoming.designs.map(design => design.id))
+      const changed = after.rows.some(row => {
+        const old = before.rows.find(old => old.id === row.id)
+        return row.designId && ids.has(row.designId) && (old?.designId !== row.designId || old.createRequested && !row.createRequested)
+      })
+      if (changed) recordUsage({ version: 2, event: incoming.receipt.origin === 'local' ? 'pack-import-applied' : 'gallery-design-applied', outcome: 'saved' })
+      void importProgress(before, after, incoming)
+    },
   })
   const [showIntake, setShowIntake] = useState(false)
   const openImport = () => { setShowIntake(true); navigate('print') }
@@ -181,8 +194,9 @@ export default function PublicApp() {
       const file = await exportCollection(collection)
       const url = URL.createObjectURL(file)
       const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'your-labels.cellarpack.zip'; anchor.click()
+      recordUsage({ version: 2, event: 'labels-download-requested', outcome: 'requested' })
       setTimeout(() => URL.revokeObjectURL(url), 30000)
-    } catch (failure) { setImportError(failure instanceof Error ? failure.message : 'The labels could not be downloaded. Your saved work is unchanged.') }
+    } catch (failure) { recordUsage({ version: 2, event: 'workflow-failed', outcome: 'labels-export' }); setImportError(failure instanceof Error ? failure.message : 'The labels could not be downloaded. Your saved work is unchanged.') }
     finally { setDownloading(false) }
   }
   const acceptImport = async () => {
@@ -218,6 +232,7 @@ export default function PublicApp() {
   const quantities = Object.fromEntries(collection.rows.map(row => [row.id, row.quantity]))
   const readyDemandRows = () => collection.rows.filter(row => row.quantity > 0 && labels.some(label => label.id === row.id))
   const openReadyPrint = () => {
+    recordUsage({ version: 2, event: 'print-preparation-result', outcome: printState === 'unavailable' ? 'preview-unavailable' : printState })
     if (view !== 'print' && printState === 'ready' && !busy) recordDemand('selected-for-print', readyDemandRows())
     navigate('print')
   }
@@ -264,7 +279,7 @@ export default function PublicApp() {
   </aside>
   const handoff = handoffDraft && <>
     {collection.handoff && !frozen && <p role="status">Your creation choices changed. Copy the updated prompt before starting a new chat.</p>}
-    <PromptHandoff prompt={handoffDraft.prompt} request={handoffDraft.request} copyLabel={targets.length ? `Copy instructions for ${targets.length} ${targets.length === 1 ? 'label' : 'labels'}` : 'Copy instructions for my AI chat'} copied={Boolean(frozen?.copied)} busy={busy || !promptModule.module} onCopy={() => copyHandoff()} onCopyLatest={frozen && String(frozen.protocolRevision) !== PROTOCOL_REVISION ? () => copyHandoff(true) : undefined} onCopied={payload => { void commit(current => current.handoff?.prompt === payload ? setHandoff(current, { ...current.handoff, copied: true }) : current).catch(ignoreHandledError) }} />
+    <PromptHandoff prompt={handoffDraft.prompt} request={handoffDraft.request} copyLabel={targets.length ? `Copy instructions for ${targets.length} ${targets.length === 1 ? 'label' : 'labels'}` : 'Copy instructions for my AI chat'} copied={Boolean(frozen?.copied)} busy={busy || !promptModule.module} onCopy={() => copyHandoff()} onCopyLatest={frozen && String(frozen.protocolRevision) !== PROTOCOL_REVISION ? () => copyHandoff(true) : undefined} onCopyResult={outcome => recordUsage({ version: 2, event: 'instructions-copy-result', outcome })} onCopied={payload => { void commit(current => current.handoff?.prompt === payload ? setHandoff(current, { ...current.handoff, copied: true }) : current).then(saved => { if (saved.handoff?.prompt === payload) void startProgress(saved.id, saved.handoff) }).catch(ignoreHandledError) }} />
   </>
   const promptLoading = <section className="panel screen-only" aria-label="Instructions">
     <p role="status">{promptModule.failed ? 'Instructions could not load. Use the app recovery controls above. Your saved labels remain available.' : 'Loading instructions…'}</p>
@@ -335,7 +350,7 @@ export default function PublicApp() {
         {!reviewingPack && printState === 'ready' && collection.rows.some(row => !row.designId) && <p className="field-hint screen-only">{collection.rows.filter(row => !row.designId).length} labels still need artwork. {labels.length > 0 ? 'You can print the ready labels now.' : 'Choose a design or import a finished ZIP to start printing.'}</p>}
         {!reviewingPack && collection.receipts.filter(receipt => activeDesigns.some(design => design.receiptId === receipt.id)).map(receipt => <ProtocolWarning key={receipt.id} context={receipt.protocolContext} feedback={receipt.contribution?.feedback} />)}
         {importProblem}
-        {reviewingPack ? <div className="screen-only"><p role="status">This pack has not changed your saved selection. Add its labels, replace your selection, or cancel to return to your print sheet.</p>{intake}</div> : printState === 'loading' ? <p className="panel screen-only" role="status">Loading your saved labels…</p> : printState === 'ready' ? <PrintStudio onPrintRequested={() => recordDemand('print-job-requested', readyDemandRows())} saving={saving} intake={showIntake || candidate || importing || importError ? intake : <details className="print-add-labels"><summary>Add labels from a ZIP</summary>{intake}</details>} labels={labels} quantities={quantities} onQuantityChange={(id, change) => { void commit(current => {
+        {reviewingPack ? <div className="screen-only"><p role="status">This pack has not changed your saved selection. Add its labels, replace your selection, or cancel to return to your print sheet.</p>{intake}</div> : printState === 'loading' ? <p className="panel screen-only" role="status">Loading your saved labels…</p> : printState === 'ready' ? <PrintStudio onPrintRequested={() => { const rows = readyDemandRows(); recordDemand('print-job-requested', rows); recordUsage({ version: 2, event: 'print-requested', outcome: 'requested' }); void printProgress(collection, rows.map(row => row.id)) }} saving={saving} intake={showIntake || candidate || importing || importError ? intake : <details className="print-add-labels"><summary>Add labels from a ZIP</summary>{intake}</details>} labels={labels} quantities={quantities} onQuantityChange={(id, change) => { void commit(current => {
           const row = current.rows.find(row => row.id === id)
           if (!row) return current
           const otherCopies = current.rows.reduce((sum, item) => sum + (item.id !== id && item.designId ? item.quantity : 0), 0)

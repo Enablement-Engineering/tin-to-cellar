@@ -16,7 +16,7 @@ it('applies migration batches using the installed Wrangler statement splitter, p
   try{for(const sql of statements)db.exec(sql);db.exec('COMMIT')}catch(error){db.exec('ROLLBACK');throw error}
  }
  expect(db.prepare('SELECT COUNT(*) AS n FROM d1_migrations').get()!.n).toBe(files.length)
- expect(db.prepare("SELECT name FROM sqlite_master WHERE type='trigger' ORDER BY name").all().map(r=>r.name)).toEqual(['gallery_admit','gallery_agent_quota_insert','gallery_agent_quota_update','gallery_clear_quota','gallery_grant_limit','gallery_recommendation_guard'])
+ expect(db.prepare("SELECT name FROM sqlite_master WHERE type='trigger' ORDER BY name").all().map(r=>r.name)).toEqual(['gallery_admit','gallery_agent_quota_insert','gallery_agent_quota_update','gallery_clear_quota','gallery_grant_limit','gallery_recommendation_guard','usage_admission_insert','usage_admission_update'])
  const insert=db.prepare("INSERT INTO gallery_submissions(id,capability_hash,request_hash,state,created_at,expires_at,input_bytes,quota_key) VALUES(?,'cap','hash','reserved','2026-09-06T00:00:00.000Z','2026-09-07T00:00:00.000Z',100,'same-ip')")
  for(let i=0;i<20;i++)insert.run(crypto.randomUUID())
  expect(()=>insert.run(crypto.randomUUID())).toThrow('gallery_capacity')

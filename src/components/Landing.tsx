@@ -68,7 +68,7 @@ export function Landing({ onNavigate, selectedCount = 0, readyCount = 0, busy, o
           <button className="button secondary" type="button" onClick={() => onNavigate('print')}><Icon name="upload" size={20} /><span>Import a label ZIP</span></button>
           <button className="button secondary" type="button" onClick={() => onNavigate('help')}><Icon name="book" size={20} /><span>How it works</span></button>
         </div>
-        <p className="landing-privacy"><Icon name="lock" size={16} />No Tin to Cellar account needed. Imported files stay on your device.</p>
+        <p className="landing-privacy"><Icon name="lock" size={16} />No Tin to Cellar account needed. Imported files stay on your device. Usage measurement is optional. <a href="/privacy">Privacy and data choices</a></p>
       </div>
       <div className="landing-hero-art">
         <img src="/assets/tin-to-cellar-jar-collection.jpg" alt="Illustration of a small collection of tobacco jars, including a stack of two, with Quiet Nights, Early Morning Pipe, and Escudo labels on their lids. Escudo coins are visible through the front jar." width={1254} height={1254} fetchPriority="high" />

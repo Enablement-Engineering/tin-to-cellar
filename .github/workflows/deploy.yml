@@ -129,7 +129,8 @@ jobs:
           # The beta config route must exist even while collection is disabled.
           # This performs no ingestion and writes no demand counters.
           for public_host in tintocellar.com www.tintocellar.com; do
-            curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 "https://${public_host}/api/analytics/v1/config" | jq -e 'has("enabled") and (.enabled | type == "boolean")' >/dev/null
+            curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 "https://${public_host}/api/analytics/v1/config" | jq -e '.enabled == false' >/dev/null
+            curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 "https://${public_host}/api/analytics/v2/config" | jq -e '.version == 2 and .demandEnabled == false and .workflowEnabled == false and .progressEnabled == false' >/dev/null
             version_ready=false
             for attempt in 1 2 3 4 5 6; do
               if curl --fail --silent --show-error --max-time 15 "https://${public_host}/app-version.json" | jq -e --arg expected "$BUILD_ID" '.buildId == $expected' >/dev/null; then

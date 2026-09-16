@@ -3,10 +3,11 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { CopyFeedbackIcon } from './Icons'
 
-type PromptHandoffProps = { prompt: string; request: string; copyLabel?: string; copied?: boolean; busy?: boolean; onCopy?: () => Promise<string>; onCopyLatest?: () => Promise<string>; onCopied?: (payload: string) => void }
+type PromptHandoffProps = { prompt: string; request: string; copyLabel?: string; copied?: boolean; busy?: boolean; onCopy?: () => Promise<string>; onCopyLatest?: () => Promise<string>; onCopied?: (payload: string) => void; onCopyResult?: (result: 'copied' | 'preparation-failed' | 'clipboard-failed') => void }
 type CopyResult = { payload: string; source: string; failed: boolean }
 
-export function PromptHandoff({ prompt, copyLabel = 'Copy instructions', copied = false, busy, onCopy, onCopyLatest, onCopied }: PromptHandoffProps) {
+export function PromptHandoff({ prompt, copyLabel = 'Copy instructions', copied = false, busy, onCopy, onCopyLatest, onCopied, onCopyResult }: PromptHandoffProps) {
+  const observe = (result: 'copied' | 'preparation-failed' | 'clipboard-failed') => { try { onCopyResult?.(result) } catch { /* Optional measurement. */ } }
   const copyButton = useRef<HTMLButtonElement>(null)
   const restoreCopyFocus = useRef(false)
   const [result, setResult] = useState<CopyResult | null>(null)
@@ -29,13 +30,15 @@ export function PromptHandoff({ prompt, copyLabel = 'Copy instructions', copied 
     const prepare = latest ? onCopyLatest : onCopy
     if (prepare) {
       try { payload = await prepare() }
-      catch (error) { setSaveError(error instanceof Error ? error.message : 'Your request could not be saved. Try copying again before leaving this page.'); setSaving(false); return }
+      catch (error) { observe('preparation-failed'); setSaveError(error instanceof Error ? error.message : 'Your request could not be saved. Try copying again before leaving this page.'); setSaving(false); return }
     }
     try {
       await navigator.clipboard.writeText(payload)
       setResult({ payload, source: prompt, failed: false })
+      observe('copied')
       onCopied?.(payload)
     } catch {
+      observe('clipboard-failed')
       setResult({ payload, source: prompt, failed: true })
       setExpanded(true)
       setSource(true)

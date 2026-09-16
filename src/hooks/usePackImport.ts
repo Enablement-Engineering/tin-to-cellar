@@ -22,12 +22,17 @@ type Options = {
   onStart: () => void
   onImported: () => void
   onGalleryAdded?: (rows: Collection['rows']) => void
+  onChecked?: (outcome: 'ready' | 'partial' | 'rejected' | 'read-failed' | 'module-unavailable') => void
+  onApplied?: (before: Collection, after: Collection, incoming: ImportCandidate) => void
+  onFailed?: (stage: 'import-save' | 'gallery-add') => void
 }
 
 /** Own the pending review independently of saved collection state.
  * Review choices are invalidated whenever the collection or handoff changes.
  */
-export function usePackImport({ collection, ready, commit, onStart, onImported, onGalleryAdded }: Options) {
+export function usePackImport({ collection, ready, commit, onStart, onImported, onGalleryAdded, onChecked, onApplied, onFailed }: Options) {
+  const checked = useRef(false)
+  const observe = (call: () => void) => { try { call() } catch { /* Measurement cannot change saved work. */ } }
   const [importing, setImporting] = useState(false)
   const importBusy = useRef(false)
   const [candidate, setCandidate] = useState<ImportCandidate | null>(null)
@@ -67,12 +72,15 @@ export function usePackImport({ collection, ready, commit, onStart, onImported, 
   }
   const saveIncoming = async (incoming: ImportCandidate, change: (current: Collection) => Collection) => {
     let galleryRows: Collection['rows'] = []
+    let before = collection
     const saved = await commit(current => {
+      before = current
       const next = change(current)
       const galleryDesigns = new Set(incoming.designs.filter(design => design.origin === 'gallery').map(design => design.id))
       galleryRows = next.rows.filter(row => row.designId && galleryDesigns.has(row.designId) && !current.rows.some(previous => previous.id === row.id && previous.designId))
       return next
-    })
+    }).catch(error => { if (incoming.receipt.origin !== 'example') observe(() => onFailed?.(incoming.receipt.origin === 'gallery' ? 'gallery-add' : 'import-save')); throw error })
+    observe(() => onApplied?.(before, saved, incoming))
     if (galleryRows.length) {
       try { onGalleryAdded?.(galleryRows) } catch { /* Optional collection counts cannot undo a saved label. */ }
     }
@@ -93,7 +101,8 @@ export function usePackImport({ collection, ready, commit, onStart, onImported, 
     return applyImport(empty, planImport(empty, incoming))
   })
   const processResult = async (result: CellarPackImportResult, title: string, origin: CollectionOrigin, publicationId?: string, target?: { id: string; revision: number }) => {
-    const { incoming, retrospective, diagnosticWarning } = await preparePackImport(result, title, origin, publicationId)
+    const { incoming, retrospective, diagnosticWarning, status } = await preparePackImport(result, title, origin, publicationId)
+    if (origin === 'local') { checked.current = true; observe(() => onChecked?.(status)) }
     if (retrospective) setNotes(previous => ({ ...previous, [incoming.receipt.id]: retrospective }))
     setDiagnosticWarnings(previous => ({ ...previous, [incoming.receipt.id]: diagnosticWarning }))
     const reviewIncoming = () => {
@@ -132,6 +141,7 @@ export function usePackImport({ collection, ready, commit, onStart, onImported, 
   }
   const handlePack = async (file: File, origin: CollectionOrigin = 'local') => {
     if (importBusy.current || !ready) return
+    checked.current = false
     importBusy.current = true; setImporting(true); setImportError(''); setImportLoadError(false); onStart(); setNotice('')
     try {
       if (durableRecoveryFile.current) {
@@ -141,6 +151,7 @@ export function usePackImport({ collection, ready, commit, onStart, onImported, 
       try { reader = await import('../lib/cellarpack') }
       catch (failure) {
         if (!isModuleLoadFailure(failure)) throw failure
+        if (origin === 'local') { checked.current = true; observe(() => onChecked?.('module-unavailable')) }
         setImportLoadError(true); setRecoveryFile(file); setRecoveringFile(true)
         try { await saveRecoveryFile(file); durableRecoveryFile.current = true; setRecoveryFileError('') }
         catch { setRecoveryFileError('The ZIP could not be kept for the update. Keep the original file and dismiss this recovery to choose it again after updating.') }
@@ -153,6 +164,7 @@ export function usePackImport({ collection, ready, commit, onStart, onImported, 
       onImported()
     } catch (failure) {
       const message = failure instanceof Error ? failure.message : 'The selected ZIP could not be read.'
+      if (origin === 'local' && !checked.current) observe(() => onChecked?.(isModuleLoadFailure(failure) ? 'module-unavailable' : 'read-failed'))
       if (isModuleLoadFailure(failure)) { setImportLoadError(true); appRecovery.report(failure) }
       else setImportError(message)
     } finally { importBusy.current = false; setImporting(false) }
@@ -187,7 +199,7 @@ export function usePackImport({ collection, ready, commit, onStart, onImported, 
     importBusy.current = true; setImporting(true); setImportError('')
     try {
       const { downloadPublishedPack } = await import('../components/gallery/pack-builder')
-      const { file, result } = await downloadPublishedPack(choice)
+      const { file, result } = await downloadPublishedPack(choice).catch(error => { observe(() => onFailed?.('gallery-add')); throw error })
       if (newIdentity) {
         const { incoming } = await preparePackImport(result, file.name, 'gallery', choice.id)
         await saveIncoming(incoming, current => {

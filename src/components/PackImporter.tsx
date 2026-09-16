@@ -60,7 +60,7 @@ export function PackImporter({ busy, summary, onFile, compact = false, history }
         </button>
       </div>
 
-      <p className="import-privacy"><Icon name="lock" size={15} />Your ZIP and artwork stay on this device. Importing automatically shares structured AI feedback, file-check results, and eligible public packaging links. Those links may be suggested to other users. Process notes are shared only when you choose. <a href="/privacy">Privacy details</a></p>
+      <p className="import-privacy"><Icon name="lock" size={15} />Your ZIP and artwork stay on this device. Importing automatically shares structured AI feedback, file-check results, and eligible public packaging links. Those links may be suggested to other users. Process notes are shared only when you choose. If you enable optional usage measurement, import outcomes and locally matched request milestones can also be counted. <a href="/privacy">Privacy and data choices</a></p>
 
 
       <ImportReport summary={summary} />

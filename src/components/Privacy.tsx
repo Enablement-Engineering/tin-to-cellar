@@ -5,7 +5,7 @@ export function Privacy() {
     <header className="editorial-header">
       <h1>Privacy</h1>
       <p className="editorial-lede">Your files are read on your device. Importing a label ZIP shares limited feedback and public packaging links. Artwork is uploaded only when you submit it for community review.</p>
-      <p>Updated September 15, 2026</p>
+      <p>Updated September 16, 2026</p>
     </header>
     <div className="editorial-body">
       <section aria-labelledby="privacy-summary">
@@ -15,6 +15,7 @@ export function Privacy() {
           <li>Importing a readable pack automatically shares limited AI feedback, file-check results, and eligible public packaging links and observations. Those links and observations can help other users make labels.</li>
           <li>AI feedback and file-check results are kept for 12 months. Optional process notes and packaging observations expire after 90 days. Process notes require a separate sharing action.</li>
           <li>We do not receive your AI chat. Hosting, AI, and video providers handle data under their own policies, as described below.</li>
+          <li>Optional app usage and request-progress measurement is off until you enable it. It sends limited counts, not files or request identifiers.</li>
         </ul>
       </section>
       <section>
@@ -24,9 +25,12 @@ export function Privacy() {
         <p>Clearing this site's browser data removes saved work. Downloaded files and copied prompts remain until you remove them. Printing uses your browser and chosen printer or PDF destination.</p>
       </section>
       <section>
-        <h2>Optional counts of label requests</h2>
-        <p>When enabled, optional counts help us decide which blends need community artwork. Adding a recognized blend or design, selecting labels for printing, or pressing Print labels can send the action and blend's catalog identifier. Print requests also include quantity.</p>
-        <p>We keep daily totals by blend, without a history of your activity. These counts exclude custom blend names, notes, artwork, files, and account or browser identifiers. Importing or restoring saved work does not send these counts.</p>
+        <h2>Optional app usage and label-request counts</h2>
+        <p>If you enable measurement and collection is available, the app sends limited counts when you copy instructions, check a local ZIP, save imported or gallery artwork, open print preparation, request printing, or request a labels download. Unsuccessful actions can send a fixed outcome or problem category. Adding a recognized blend, selecting it for printing, or requesting a print also sends its catalog identifier; print demand includes quantity.</p>
+        <p>Our Cloudflare-hosted service combines these into daily totals. They exclude custom blend names, notes, artwork, files, filenames, prompts, chats, and account or browser identifiers. Restoring saved work does not send action counts. Delivery failures are not retried or queued for later.</p>
+        <h3>Progress matched on your device</h3>
+        <p>After a measured instruction copy, this browser can remember the saved request and which requested labels later receive usable local artwork. Once all requested labels match, it can send an import milestone and, later, a print-request milestone. Only the starting week, milestone, and broad elapsed-time range are sent. The matching request and row identifiers stay on your device. A match does not prove that the artwork came from a particular AI chat.</p>
+        <p>Local measurement records stop being used after 30 days and are removed when the app next checks them. Turning measurement off removes them in this browser. Changing requests, using another browser or device, clearing site data, or failed delivery can prevent later milestones from being observed. We do not keep individual journeys on the server or treat missing milestones as confirmed abandonment.</p>
         <DemandPreference />
       </section>
       <section>
@@ -54,12 +58,13 @@ export function Privacy() {
           <li>Shared process notes and packaging observations expire after 90 days. Packaging links can remain available if someone contributes them again.</li>
           <li>Unreviewed gallery submissions expire after 30 days. Rejected artwork is scheduled for deletion after 7 days. Limited review records are kept for 90 days after the decision.</li>
           <li>Published labels remain available until unpublished. Unpublished artwork is scheduled for deletion after 30 days unless republished.</li>
+          <li>Usage and label-demand reports cover the latest 365 UTC calendar days. Request-progress totals use the starting week. Expired aggregate rows are removed by daily scheduled cleanup; failures can delay physical deletion.</li>
         </ul>
-        <p>Aggregate counts and improvement findings without personal information or raw process notes may be kept longer. Provider backups may take longer to expire.</p>
+        <p>Diagnostic improvement findings without personal information or raw process notes may be kept longer. This exception does not apply to optional usage, request-progress, or label-demand totals. Provider backups may take longer to expire.</p>
       </section>
       <section>
         <h2>Service providers and external links</h2>
-        <p>We use Cloudflare to host and protect the site, check gallery submissions for abuse, and store information shared with us. It processes ordinary network information under <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a>. IP addresses may be used to limit abuse but are not stored in our feedback, source, or label-request records.</p>
+        <p>We use Cloudflare to host and protect the site, check gallery submissions for abuse, and store information shared with us. It processes ordinary network information under <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a>. IP addresses may be used to limit abuse but are not stored in our feedback, source, usage, request-progress, or label-request records. Cloudflare Web Analytics traffic measurement is not included in this release.</p>
         <p>Material you paste or attach in an AI chat is handled under that provider's policies. Your AI also creates print guides in its own environment, which may be hosted by the provider. Tin to Cellar does not receive your chat or guide artwork, or connect to your AI account.</p>
         <p>Loading or playing the Inspiration page's YouTube video contacts YouTube under <a href="https://policies.google.com/privacy">Google's privacy policy</a>. Its privacy-enhanced mode does not prevent all requests or cookies. External websites your AI or you visit, and services you use to send us feedback, handle those interactions under their own policies.</p>
       </section>

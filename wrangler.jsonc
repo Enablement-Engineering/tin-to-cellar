@@ -7,6 +7,8 @@
   "cache": { "enabled": false },
   "vars": {
     "ANALYTICS_ENABLED": "false",
+    "WORKFLOW_ANALYTICS_ENABLED": "false",
+    "PROGRESS_ANALYTICS_ENABLED": "false",
     "ANALYTICS_DAILY_ALLOWANCE": "1000",
     "OPERATIONAL_METRICS_ENABLED": "true",
     "DIAGNOSTIC_COLLECTION_ENABLED": "true",

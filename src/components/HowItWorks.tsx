@@ -78,7 +78,7 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     <article>
     <h2>What stays in my browser?</h2>
     <p>Your artwork, quantities, and requests are saved in this browser. Another device starts separately, and clearing site data removes this saved work. Download labels keeps the finished artwork in a ZIP; it does not save quantities or unfinished requests.</p>
-    <p>Imported orders and ZIPs are read on your device. Importing a label ZIP automatically shares valid AI feedback, file-check results, and eligible public packaging links. It does not upload your artwork or open the reference links. Submitting artwork to the community is a separate action. See <a href="/privacy">Privacy</a> for details.</p>
+    <p>Imported orders and ZIPs are read on your device. Importing a label ZIP automatically shares valid AI feedback, file-check results, and eligible public packaging links. It does not upload your artwork or open the reference links. Submitting artwork to the community is a separate action. Optional usage measurement counts actions and request milestones only when you enable it. See <a href="/privacy">Privacy and data choices</a> for details.</p>
     </article>
     <article>
     <h2>How do I bring labels back from my chat?</h2>

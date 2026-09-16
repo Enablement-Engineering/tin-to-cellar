@@ -8,7 +8,7 @@ interface SiteFooterProps {
 const pages: { page: FooterPage; label: string }[] = [
   { page: 'gallery', label: 'Gallery' },
   { page: 'help', label: 'How it works' },
-  { page: 'privacy', label: 'Privacy' },
+  { page: 'privacy', label: 'Privacy and data choices' },
   { page: 'about', label: 'About' },
   { page: 'inspiration', label: 'Inspiration' },
 ]
