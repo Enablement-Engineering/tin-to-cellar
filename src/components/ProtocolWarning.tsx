@@ -1,6 +1,6 @@
 import { collectionFeedback } from '../lib/contributions'
 import type { ProtocolContext } from '../lib/protocol'
-export function ProtocolWarning({ context, feedback }: { context: ProtocolContext; feedback: unknown }) {
+export function ProtocolWarning({ context, feedback, compact = false }: { context: ProtocolContext; feedback: unknown; compact?: boolean }) {
   const report = collectionFeedback(feedback)
   const messages = {
     conflict: 'The pack and its feedback refer to different instructions. Use the original AI chat when requesting repairs.',
@@ -9,7 +9,8 @@ export function ProtocolWarning({ context, feedback }: { context: ProtocolContex
   }
   const actionable = report?.issues.some(issue => !issue.resolved && ['artwork-fidelity', 'text-legibility', 'write-area', 'geometry'].includes(issue.code))
   if (!['conflict', 'invalid', 'unknown'].includes(context.status) && !actionable) return null
-  return <aside className="field-hint screen-only" aria-label="Label review notes">
+  return <aside className={`field-hint screen-only${compact ? ' receipt-review-note' : ''}`} aria-label="Label review notes">
+    {compact && <strong>{actionable ? 'Artwork review' : 'Import notes'}</strong>}
     {context.status in messages && <p>{messages[context.status as keyof typeof messages]}</p>}
     {actionable && <p>The AI reported an unresolved artwork or layout concern. Inspect the sheet preview and request repairs in the original chat if needed.</p>}
   </aside>

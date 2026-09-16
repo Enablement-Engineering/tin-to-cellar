@@ -1,4 +1,6 @@
 type IconName =
+  | 'check'
+  | 'alert'
   | 'arrow'
   | 'copy'
   | 'download'
@@ -15,6 +17,8 @@ type IconName =
   | 'upload'
 
 const paths: Record<IconName, React.ReactNode> = {
+  check: <path d="m5 12 4 4L19 6" />,
+  alert: <><circle cx="12" cy="12" r="9" /><path d="M12 7v6m0 4h.01" /></>,
   pencil: <><path d="m15 4 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14zM4 14l5 5" /></>,
   book: <><path d="M12 5v15M12 5C9 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-2-1-6-1-9 1Z" /></>,
   arrow: <path d="m5 12 7-7 7 7M12 5v14" />,

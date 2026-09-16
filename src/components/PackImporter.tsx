@@ -1,4 +1,4 @@
-import { useRef, useState, type DragEvent } from 'react'
+import { useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { Icon } from './Icons'
 import type { ImportSummary } from './ui-model'
 
@@ -7,9 +7,10 @@ type PackImporterProps = {
   summary: ImportSummary | null
   onFile: (file: File) => Promise<void>
   compact?: boolean
+  history?: ReactNode
 }
 
-export function PackImporter({ busy, summary, onFile, compact = false }: PackImporterProps) {
+export function PackImporter({ busy, summary, onFile, compact = false, history }: PackImporterProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
 
@@ -63,7 +64,7 @@ export function PackImporter({ busy, summary, onFile, compact = false }: PackImp
 
 
       <ImportReport summary={summary} />
-
+      {history}
     </section>
   )
 }
@@ -71,17 +72,18 @@ export function PackImporter({ busy, summary, onFile, compact = false }: PackImp
 export function ImportReport({ summary, showReady = false, historical = false }: { summary: ImportSummary | null; showReady?: boolean; historical?: boolean }) {
   return <>
       {summary && (showReady || summary.status !== 'ready' || summary.issues.length > 0 || summary.quarantined.length > 0) && (
-        <div className={`import-report status-${summary.status}`}>
+        <div className={`import-report status-${summary.status}${historical ? ' import-report-historical' : ''}`}>
           <div className="report-topline">
+            {historical && <span className="report-status-icon"><Icon name={summary.status === 'ready' ? 'check' : 'alert'} size={18} /></span>}
             <div>
-              <p>{historical ? summary.status === 'ready' ? 'Import checks passed' : summary.status === 'partial' ? 'Import has issues' : 'Import needs repair' : summary.status === 'ready' ? 'Labels ready to print' : summary.status === 'partial' ? 'Some labels need repair' : 'ZIP needs repair'}</p>
+              <p>{historical ? summary.status === 'ready' ? 'File checks passed' : 'File checks need attention' : summary.status === 'ready' ? 'Labels ready to print' : summary.status === 'partial' ? 'Some labels need repair' : 'ZIP needs repair'}</p>
               <h3>{summary.title}</h3>
             </div>
-            <span>{summary.labels.length} {summary.labels.length === 1 ? 'label' : 'labels'} {historical ? 'selected for printing' : 'ready'}</span>
+            {!historical && <span>{summary.labels.length} {summary.labels.length === 1 ? 'label' : 'labels'} ready</span>}
           </div>
 
           {summary.issues.length > 0 && (
-            <details open={summary.status === 'rejected'}>
+            <details open={historical || summary.status === 'rejected'}>
               <summary>{summary.issues.length} {summary.issues.length === 1 ? 'issue' : 'issues'} to review</summary>
               <ul>{summary.issues.map((issue, index) => <li key={`${issue}-${index}`}>{issue}</li>)}</ul>
             </details>
@@ -89,7 +91,7 @@ export function ImportReport({ summary, showReady = false, historical = false }:
 
           {summary.quarantined.length > 0 && (
             <div className="quarantine-note">
-              <strong>{summary.quarantined.length} {summary.quarantined.length === 1 ? 'label was' : 'labels were'} left off the sheet</strong>
+              <strong>{summary.quarantined.length} {summary.quarantined.length === 1 ? 'label was' : 'labels were'} {historical ? 'excluded from this import' : 'left off the sheet'}</strong>
               <ul>
                 {summary.quarantined.map((label) => <li key={label.id}>{label.id}: {label.reason}</li>)}
               </ul>

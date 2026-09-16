@@ -15,6 +15,7 @@ import { ProtocolWarning } from './components/ProtocolWarning'
 import { StandaloneFeedback } from './components/StandaloneFeedback'
 import { ExamplePack } from './components/ExamplePack'
 import { PackImporter, ImportReport } from './components/PackImporter'
+import { ImportHistory, ReceiptReport } from './components/ImportHistory'
 import { PrintStudio } from './components/PrintStudio'
 import { GalleryDesignReview } from './components/GalleryDesignReview'
 import { OrderPage } from './components/OrderPage'
@@ -50,13 +51,11 @@ export default function PublicApp() {
   useEffect(() => { void initializeDemandCollection() }, [])
   const promptModule = usePromptModule(view === 'artwork' || view === 'help')
   const focusAfterImport = useRef(false)
-  const [repairStatus, setRepairStatus] = useState('')
-  const [showRepair, setShowRepair] = useState(false)
   const { importing, candidate, setCandidate, cancelImport, review, decisions, setDecisions, reviewInvalidated, refreshDecisions,
     notice, setNotice, importError, setImportError, importLoadError, receiptId, setReceiptId,
     freshReceipts, setFreshReceipts, notes, setNotes, diagnosticWarnings, saveCandidate, replaceCandidate, handlePack, chooseCommunity } = usePackImport({
     collection, ready, commit,
-    onStart: () => { setRepairStatus(''); setShowRepair(false) },
+    onStart: () => undefined,
     onImported: () => { if (view !== 'artwork') navigate('print') },
     onGalleryAdded: rows => recordDemand('added-to-labels', rows),
   })
@@ -74,6 +73,14 @@ export default function PublicApp() {
     } catch { return [] }
   })
   const busy = importing || saving || legacyRestoring || !ready
+  useEffect(() => {
+    if (!/^\d+ labels? ready\.$/.test(notice)) return
+    const timer = window.setTimeout(() => {
+      // Leave the dismiss control in place while someone is using it.
+      if (!document.activeElement?.closest('.app-notice')) setNotice('')
+    }, 10000)
+    return () => window.clearTimeout(timer)
+  }, [notice, setNotice])
   useEffect(() => {
     if (!focusAfterImport.current || view !== 'print' || candidate || busy) return
     if (previewPending) return
@@ -159,11 +166,6 @@ export default function PublicApp() {
     } catch (failure) { setImportError(failure instanceof Error ? failure.message : 'The labels could not be downloaded. Your saved work is unchanged.') }
     finally { setDownloading(false) }
   }
-  const copyRepair = async () => {
-    if (!currentReceipt?.repairPrompt) return
-    try { await navigator.clipboard.writeText(currentReceipt.repairPrompt); setRepairStatus('Copied. Paste this into the same AI chat, then add the corrected ZIP.') }
-    catch { setShowRepair(true); setRepairStatus('Select and copy the repair request below, then paste it into the same chat.') }
-  }
   const acceptImport = async () => {
     if (!candidate || !review || reviewInvalidated) return
     focusAfterImport.current = true
@@ -178,7 +180,7 @@ export default function PublicApp() {
   }
   const clearLabels = async () => {
     await commit(current => ({ ...current, rows: [], designs: {}, receipts: [], handoff: null, printSettings: { page: 0, firstSlot: 1, offset: { x: 0, y: 0 } } })).then(() => {
-      setCandidate(null); setReceiptId(null); setNotes({}); setFreshReceipts(new Set()); setImportError(''); setRepairStatus(''); setShowRepair(false); setGenericChat(false)
+      setCandidate(null); setReceiptId(null); setNotes({}); setFreshReceipts(new Set()); setImportError(''); setGenericChat(false)
       setNotice('Saved labels and requests reset. Downloaded ZIPs are unchanged.')
       main.current?.focus()
     })
@@ -186,10 +188,6 @@ export default function PublicApp() {
   const resetLabels = () => {
     if (!window.confirm('Reset all labels, requests, print settings and import history saved in this browser? Download your ready labels first. This cannot be undone.')) return
     void clearLabels().catch(ignoreHandledError)
-  }
-  const receiptName = (id: string, title: string, index: number) => {
-    const blends = [...new Set(Object.values(collection.designs).filter(design => design.receiptId === id).map(design => formatTobacco(design.item.label)))]
-    return `${index + 1}. ${blends.length ? blends.slice(0, 2).join(', ') + (blends.length > 2 ? ` + ${blends.length - 2} more` : '') : title}`
   }
   const reviewingPack = candidate !== null || importing
   // Saved rows determine whether a selection exists. Blob previews only decide
@@ -233,20 +231,18 @@ export default function PublicApp() {
     catch (failure) { setImportError(failure instanceof Error ? failure.message : 'The selected design could not be saved.') }
   }
   const intake = <div className="import-section screen-only">
-    {!candidate && <PackImporter compact={view === 'artwork'} busy={busy} summary={null} onFile={handlePack} />}
-
-    {!candidate && currentReceipt && <details className="panel import-history" open={!!currentReceipt.repairPrompt || summary?.status !== 'ready'}>
-      <summary>Import history and checks</summary>
-      <p>Review checks for label ZIPs you imported from your device. Community designs and the example pack are not listed. Choosing a report keeps your current print sheet.</p>
-      <label>Previous import<select value={currentReceipt.id} onChange={event => { setReceiptId(event.target.value); setRepairStatus(''); setShowRepair(false) }}>{uploadedReceipts.map((receipt, index) => <option key={receipt.id} value={receipt.id}>{receiptName(receipt.id, receipt.title, index)}</option>)}</select></label>
-      <p className="field-hint">Imported {new Date(currentReceipt.createdAt).toLocaleString()}. The selected count refers to artwork from this import currently on your print sheet.</p>
-      <ImportReport summary={summary} showReady historical />
-    </details>}
-    {currentReceipt && <ProtocolWarning context={currentReceipt.protocolContext} feedback={currentReceipt.contribution?.feedback} />}
-    {summary?.status === 'rejected' && <StandaloneFeedback />}
+    {!candidate && <PackImporter compact={view === 'artwork'} busy={busy} summary={null} onFile={handlePack} history={<ImportHistory receipts={uploadedReceipts} designs={collection.designs} />} />}
+    {candidate && <ProtocolWarning context={candidate.receipt.protocolContext} feedback={candidate.receipt.contribution?.feedback} />}
     {importLoadError && <div className="panel" role="alert"><h3>The label reader couldn’t load</h3><p>The app may have updated, or the connection was interrupted. Reload the page, then choose the same ZIP again. Your saved labels will remain.</p><button className="button secondary" type="button" onClick={() => window.location.reload()}>Reload app</button></div>}
-    {currentReceipt?.repairPrompt && <div className="panel repair-panel"><h3>Repair this import</h3><p>Copy this import's repair request into the AI chat that made the ZIP. Bring back the corrected file when it is ready. Your saved labels remain available to print.</p><button className="button secondary" type="button" onClick={() => void copyRepair()}>Copy repair request</button><p className="copy-status" role="status">{repairStatus}</p>{showRepair && <textarea aria-label="Repair request" readOnly value={currentReceipt.repairPrompt} rows={8} onFocus={event => event.currentTarget.select()} />}</div>}
   </div>
+  const importProblem = !reviewingPack && currentReceipt && (currentReceipt.repairPrompt || summary?.status !== 'ready') && <aside className="import-problem screen-only" aria-label="Import needs attention">
+    <p>{currentReceipt.quarantined.length ? `${currentReceipt.quarantined.length} ${currentReceipt.quarantined.length === 1 ? 'label was' : 'labels were'} excluded from your last ZIP import.` : 'Your last ZIP import needs attention.'}</p>
+    <details key={currentReceipt.id}>
+      <summary>View details</summary>
+      <ReceiptReport key={currentReceipt.id} receipt={currentReceipt} />
+      {summary?.status === 'rejected' && <StandaloneFeedback />}
+    </details>
+  </aside>
   const handoff = handoffDraft && <>
     {collection.handoff && !frozen && <p role="status">Your creation choices changed. Copy the updated prompt before starting a new chat.</p>}
     <PromptHandoff prompt={handoffDraft.prompt} request={handoffDraft.request} copyLabel={targets.length ? `Copy instructions for ${targets.length} ${targets.length === 1 ? 'label' : 'labels'}` : 'Copy instructions for my AI chat'} copied={Boolean(frozen?.copied)} busy={busy || !promptModule.module} onCopy={() => copyHandoff()} onCopyLatest={frozen && String(frozen.protocolRevision) !== PROTOCOL_REVISION ? () => copyHandoff(true) : undefined} onCopied={payload => { void commit(current => current.handoff?.prompt === payload ? setHandoff(current, { ...current.handoff, copied: true }) : current).catch(ignoreHandledError) }} />
@@ -287,6 +283,7 @@ export default function PublicApp() {
     <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
       {(storageError || importError) && <p className="panel screen-only" role="alert">{storageError || importError}</p>}
       {previewError && <p className="panel screen-only" role="alert">{previewError}</p>}
+      {(view === 'artwork' || view === 'create') && importProblem}
       {view === 'print' && currentReceipt && diagnosticWarnings[currentReceipt.id] && <p className="field-hint screen-only" role="status">Some diagnostics could not be prepared. Your label import can continue.</p>}
       {storageError && !ready && <button className="button secondary screen-only" type="button" onClick={() => window.location.reload()}>Reload saved labels</button>}
       <div className={showNotice ? 'app-notice screen-only' : 'visually-hidden screen-only'}>
@@ -311,9 +308,10 @@ export default function PublicApp() {
         onChooseCommunity={(id, label) => chooseCommunity(label, id)} onPrint={openReadyPrint} onBrowse={() => navigate('gallery')} onImport={openImport} onGenericChat={() => { setGenericChat(true); navigate('artwork') }} onContinueCreation={() => navigate('artwork')} /> : view === 'artwork' ? <ArtworkCreationFlow rows={creationRows} allRows={workspaceRows} requestKey={requestedKey} copied={Boolean(frozen?.copied)} generic={genericChat} busy={busy} onBack={() => navigate('create')} onEdit={saveCreationList} onNotes={(id, notes) => commit(current => updateRow(current, id, { notes })).then(() => undefined)} onCancel={id => setCreationRequested(id, false)} handoff={handoff ?? promptLoading} intake={intake} /> : view === 'help' ? <>{instructions !== null ? <HowItWorks instructions={instructions} /> : promptLoading}<StandaloneFeedback /></> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
         <div className="page-heading print-page-heading screen-only"><h1>{reviewingPack ? 'Review imported labels' : 'Print labels'}</h1><LabelPaperGuidance /></div>
         {!reviewingPack && <div className="handoff-actions print-page-controls screen-only"><button className="button secondary" type="button" onClick={() => navigate('create')}>Add more labels</button>{labels.length > 0 && <button type="button" className="button secondary" disabled={downloading} onClick={() => void download()}>{downloading ? 'Preparing download…' : 'Download labels'}</button>}{(collection.rows.length > 0 || collection.receipts.length > 0) && <button type="button" className="button quiet" disabled={busy} onClick={resetLabels}>Reset labels</button>}</div>}
-        {!reviewingPack && labels.length > 0 && <p className="field-hint screen-only">Download labels saves the artwork in a ZIP. Quantities and unfinished requests stay in this browser.</p>}
         {!reviewingPack && printState === 'ready' && collection.rows.some(row => !row.designId) && <p className="field-hint screen-only">{collection.rows.filter(row => !row.designId).length} labels still need artwork. {labels.length > 0 ? 'You can print the ready labels now.' : 'Choose a design or import a finished ZIP to start printing.'}</p>}
-        {reviewingPack ? <div className="screen-only"><p role="status">This pack has not changed your saved selection. Add its labels, replace your selection, or cancel to return to your print sheet.</p>{intake}</div> : printState === 'loading' ? <p className="panel screen-only" role="status">Loading your saved labels…</p> : printState === 'ready' ? <PrintStudio onPrintRequested={() => recordDemand('print-job-requested', readyDemandRows())} saving={saving} intake={showIntake || candidate || importing || importError || currentReceipt?.repairPrompt ? intake : <details className="print-add-labels"><summary>Add labels from a ZIP</summary>{intake}</details>} labels={labels} quantities={quantities} onQuantityChange={(id, change) => { void commit(current => {
+        {!reviewingPack && collection.receipts.filter(receipt => activeDesigns.some(design => design.receiptId === receipt.id)).map(receipt => <ProtocolWarning key={receipt.id} context={receipt.protocolContext} feedback={receipt.contribution?.feedback} />)}
+        {importProblem}
+        {reviewingPack ? <div className="screen-only"><p role="status">This pack has not changed your saved selection. Add its labels, replace your selection, or cancel to return to your print sheet.</p>{intake}</div> : printState === 'loading' ? <p className="panel screen-only" role="status">Loading your saved labels…</p> : printState === 'ready' ? <PrintStudio onPrintRequested={() => recordDemand('print-job-requested', readyDemandRows())} saving={saving} intake={showIntake || candidate || importing || importError ? intake : <details className="print-add-labels"><summary>Add labels from a ZIP</summary>{intake}</details>} labels={labels} quantities={quantities} onQuantityChange={(id, change) => { void commit(current => {
           const row = current.rows.find(row => row.id === id)
           if (!row) return current
           const otherCopies = current.rows.reduce((sum, item) => sum + (item.id !== id && item.designId ? item.quantity : 0), 0)
