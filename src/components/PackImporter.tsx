@@ -33,7 +33,7 @@ export function PackImporter({ busy, summary, onFile, compact = false }: PackImp
         </div>
       </div>
 
-      <p className="field-hint">Add finished artwork to your labels. You’ll review additions and any replacements before saving.</p></>}
+      <p className="field-hint">Choose a CellarPack, the label ZIP from your AI chat or a previous download. Review additions and replacements before saving.</p></>}
 
       <div
         className={`drop-zone ${dragging ? 'is-dragging' : ''}`}
@@ -59,7 +59,7 @@ export function PackImporter({ busy, summary, onFile, compact = false }: PackImp
         </button>
       </div>
 
-      <p className="import-privacy"><Icon name="lock" size={15} />Importing automatically shares structured AI feedback, ZIP-check results, and eligible package-source links. Those links may appear in public source suggestions. This does not share your artwork. Process notes require a separate sharing action. <a href="/privacy">Privacy details</a></p>
+      <p className="import-privacy"><Icon name="lock" size={15} />Your ZIP and artwork stay on this device. Importing automatically shares structured AI feedback, file-check results, and eligible public packaging links. Those links may be suggested to other users. Process notes are shared only when you choose. <a href="/privacy">Privacy details</a></p>
 
 
       <ImportReport summary={summary} />

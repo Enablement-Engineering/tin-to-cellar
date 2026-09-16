@@ -8,7 +8,7 @@ beforeEach(() => { localStorage.clear(); vi.stubGlobal('fetch', vi.fn().mockReso
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 it('offers a labeled opt-out and reflects another tab changing the preference', () => {
   render(<DemandPreference />)
-  const checkbox = screen.getByRole('checkbox', { name: 'Allow aggregate label-demand counts' })
+  const checkbox = screen.getByRole('checkbox', { name: 'Allow counts of blend selections and print requests' })
   expect(checkbox).toBeChecked()
   fireEvent.click(checkbox)
   expect(checkbox).not.toBeChecked()

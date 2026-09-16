@@ -45,17 +45,17 @@ export function PromptHandoff({ prompt, request, copyLabel = 'Copy instructions'
     <section className="handoff" aria-labelledby="handoff-title">
       <div className="handoff-content">
       <div className="creation-step-heading"><span className="creation-step-number" aria-hidden="true">2</span><h2 id="handoff-title" tabIndex={-1}>Create in your AI chat</h2></div>
-      <ol className="creation-chat-instructions"><li>Copy the instructions below.</li><li>Open your AI chat, paste the instructions, and send.</li><li>When the artwork is ready, download the label ZIP it produces.</li></ol>
-      <p className="field-hint">Creating the images and ZIP may take several minutes. This page does not start or track your AI chat.</p>
+      <ol className="creation-chat-instructions"><li>Copy the instructions below and send them in your AI chat.</li><li>Check the packaging photo for each blend. If it is the one you want, use Copy Image and paste the photo into the chat.</li><li>Review the label your AI makes. When the set is finished, download its label ZIP.</li></ol>
+      <p className="field-hint">Use a chat that can browse, generate images, and create ZIP files. Creation may take several minutes. Your chat runs separately from this page.</p>
       <div className="handoff-actions"><button ref={copyButton} className={`button ${copied || currentResult && !currentResult.failed ? 'secondary' : 'primary'}`} type="button" disabled={busy || saving} onClick={() => void copy()}><Icon name="copy" />{saving ? 'Preparing request…' : copyLabel}</button></div>
-      {onCopyLatest && <div className="handoff-update"><p>Updated instructions are available. Keep the saved copy for your existing chat, or use the update to start a new chat with the same request.</p><button type="button" className="button secondary" disabled={busy || saving} onClick={() => void copy(true)}>Copy updated instructions for a new chat</button></div>}
+      {onCopyLatest && <div className="handoff-update"><p>Newer instructions are available for a new chat. Use your saved instructions to continue an existing chat.</p><button type="button" className="button secondary" disabled={busy || saving} onClick={() => void copy(true)}>Copy updated instructions for a new chat</button></div>}
       {saveError && <p role="alert">{saveError}</p>}
       <p className="copy-status" role="status">{currentResult?.failed ? 'Automatic copying did not work. Select and copy the text below.' : copied || currentResult ? 'Copied. Open your AI chat, paste, and send. Return here with the finished ZIP.' : ''}</p>
       </div>
       <div className="handoff-details">
       <details className="prompt-preview" open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>
         <summary>Read prompt</summary>
-        <p className="handoff-inspection-note">Preview shows your request. Full copied text includes the protocol, schemas and proof program sent with it.</p>
+        <p className="handoff-inspection-note">Preview shows your blends and design notes. Full copied text also includes the instructions your AI needs to create, check, and package the labels.</p>
         <div className="prompt-view-switch" role="group" aria-label="Prompt view">
           <button type="button" aria-pressed={!source} onClick={() => setSource(false)}>Preview</button>
           <button type="button" aria-pressed={source} onClick={() => setSource(true)}>Full copied text</button>

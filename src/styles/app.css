@@ -79,6 +79,8 @@ a:hover { color: var(--text-link-hover); }
 .page-heading h1 { font-size: 42px; }
 .page-heading p { max-width: var(--measure-narrow); color: var(--text-muted); font: var(--type-body-sm); }
 .page-heading .spec-line { font: var(--type-spec); }
+.print-page-heading { display: grid; gap: 12px; }
+.print-page-heading p { max-width: 70ch; margin: 0; }
 
 /* Shared surfaces, actions and form rhythm. */
 .panel { min-width: 0; padding: var(--pad-card); border: 1px solid var(--line-hairline); border-radius: var(--radius-card); background: var(--surface-card); box-shadow: var(--shadow-2); }
@@ -378,7 +380,9 @@ input:disabled, textarea:disabled, select:disabled { color: var(--text-muted); b
   .landing-hero-art { width: 100%; aspect-ratio: 1.1; }
   .landing-steps { grid-template-columns: 1fr; gap: 16px; }
   .landing-step { padding: 24px; }
-  .landing-specs { padding: 20px; gap: 16px; }
+  .landing-specs { grid-template-columns: 1fr; padding: 20px; gap: 24px; }
+  .landing-label-previews { max-width: 220px; }
+  .preparation-add-line .tobacco-suggestions { position: static; margin-top: 8px; }
   .landing-print-note .button { padding-inline: 12px; }
   .landing-spec-grid { gap: 16px; }
   .landing-spec dd { font-size: 18px; }

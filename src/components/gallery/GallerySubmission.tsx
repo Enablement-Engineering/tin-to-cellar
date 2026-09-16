@@ -50,7 +50,7 @@ export function GallerySubmission({ labels }: { labels: ImportedCellarLabel[] })
   if (!config.intake) return <p className="field-hint">Community submissions are closed for now. Your labels are still available to print.</p>
   return <section className="panel gallery-submission screen-only" aria-labelledby="share-labels-title">
     <h2 id="share-labels-title">Share your labels</h2><p>{SHARING_NOTICE}</p>
-    <p className="field-hint">Choose up to five designs. Sharing supports square PNG artwork, 825–2048 pixels per side, up to 8 MiB, for 2.5-inch circles. Your writing area stays part of the artwork.</p>
+    <p className="field-hint">Choose up to five designs to submit for review. Each needs a square PNG, 825–2048 pixels per side and up to 8 MiB, for a 2.5-inch circle with a blank writing area.</p>
     <div className="gallery-grid">{labels.map(item => { const choice = choices[item.id] ?? initial(item), checked = selected.includes(item.id); return <article className="gallery-card" key={item.id}>
       <Artwork data={item.artwork.data} alt={`${item.label.maker} ${item.label.blend} artwork`} />
       <label className="gallery-check"><input type="checkbox" checked={checked} disabled={busy || active !== null || (!checked && selected.length >= 5)} onChange={() => setSelected(old => checked ? old.filter(id => id !== item.id) : [...old, item.id])} />Share {item.label.maker} {item.label.blend}</label>
@@ -59,7 +59,7 @@ export function GallerySubmission({ labels }: { labels: ImportedCellarLabel[] })
         <label>Artwork description, optional<input maxLength={320} value={choice.description} onChange={event => change(item, { description: event.target.value })} /></label>
         <p>Reference links are optional. Select only public product pages you want to share. A link does not grant reuse permission.</p>
         {references(item).map(source => source.type === 'web' && <label className="gallery-check gallery-reference" key={source.id}><input type="checkbox" checked={choice.references.includes(source.url)} disabled={!choice.references.includes(source.url) && choice.references.length >= 3} onChange={() => change(item, { references: choice.references.includes(source.url) ? choice.references.filter(url => url !== source.url) : [...choice.references, source.url] })} />{source.url}</label>)}
-        <p className="field-hint">Your ZIP, private notes, and other research are excluded.</p>
+        <p className="field-hint">Only the selected artwork and details are uploaded. Your ZIP, private notes, and other research stay on this device.</p>
       </fieldset>}
     </article> })}</div>
     <label className="gallery-check"><input type="checkbox" checked={accepted} disabled={busy || active !== null} onChange={event => setAccepted(event.target.checked)} />{ACKNOWLEDGEMENT}</label>

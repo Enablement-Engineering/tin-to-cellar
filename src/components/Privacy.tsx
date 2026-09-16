@@ -4,12 +4,12 @@ export function Privacy() {
   return <article className="editorial-page screen-only">
     <header className="editorial-header">
       <h1>Privacy</h1>
-      <p className="editorial-lede">Your orders and label packs are read in your browser. Your AI chat makes the artwork. Importing a pack shares AI feedback and public package source observations to improve future labels.</p>
-      <p>Updated September 12, 2026</p>
+      <p className="editorial-lede">Your files are read on your device. Importing a label ZIP shares limited feedback and public packaging links. Artwork is uploaded only when you submit it for community review.</p>
+      <p>Updated September 15, 2026</p>
     </header>
     <div className="editorial-body">
       <section aria-labelledby="privacy-summary">
-        <h2 id="privacy-summary">TL;DR</h2>
+        <h2 id="privacy-summary">What stays local and what is shared</h2>
         <ul>
           <li>Your imported orders and ZIPs stay on your device. Artwork uploads only when you explicitly submit selected labels for gallery review.</li>
           <li>Importing a readable pack automatically shares structured AI feedback, website ZIP-check results, and public package source observations. Those links can help other users make labels.</li>
@@ -20,12 +20,14 @@ export function Privacy() {
       </section>
       <section>
         <h2>Orders, prompts, and printing</h2>
-        <p>Tin to Cellar is made by Dylan Isaac at Enablement Engineering. You do not need an account. The app reads imported order PDFs, screenshots, pasted text, label ZIPs, and feedback files on your device. Screenshot text recognition runs in your browser using software and language files served by this site. We do not upload those imported files for processing. After a pack with a readable manifest is imported, the app separately sends the limited feedback and source records described below.</p>
+        <p>Tin to Cellar is made by Dylan Isaac at Enablement Engineering. You do not need an account. The app reads order PDFs, screenshots, pasted text, label ZIPs, and feedback files on your device. It does not upload these files for processing.</p>
+        <p>Screenshot text recognition runs in your browser, using software and language files downloaded from this site. Importing a label ZIP with a readable manifest separately sends the limited feedback and source records described below.</p>
         <p>Your blend selections and special requests become a prompt. Copying puts that prompt on your clipboard. When you paste or attach material in an AI chat, that provider receives it under its own privacy and retention policies. Tin to Cellar does not receive your chat or connect to your AI account.</p>
-        <p>Label previews, quantities, and sheet layout are handled in your browser. Selected artwork, blend identities, requests, the current prepared prompt, and the information needed to check and repair imported labels are saved in this browser so you can leave for your AI chat and return. We do not save this workspace to an account or synchronize it to another device. Original order files, raw screenshot text, and original ZIP files are not retained in this saved workspace. Clearing this site’s browser data removes the saved work. Downloaded files and clipboard text remain until you remove them. Printing uses your browser and chosen printer or PDF destination.</p>
+        <p>Your browser saves selected artwork, blend names, quantities, requests, prepared instructions, and the information needed to check and repair imported labels. This lets you return to your work in the same browser. We do not save it to an account or synchronize it to another device.</p>
+        <p>The saved work does not retain your original order files, raw screenshot text, or original ZIP files. Clearing this site's browser data removes the saved work. Downloaded files and clipboard text remain until you remove them. Printing uses your browser and chosen printer or PDF destination.</p>
       </section>
       <section>
-        <h2>Aggregate label demand</h2>
+        <h2>Optional counts of label requests</h2>
         <p>When enabled, optional demand collection helps us decide which blends need community artwork. Explicitly adding a recognized blend or community design, choosing ready labels for printing, and pressing Print labels can send that action and the blend's catalog identifier. A print request also sends the requested quantity. Custom blend names, notes, artwork, imported files and account or browser identifiers are not included.</p>
         <p>The service adds these actions directly to daily totals by catalog entry. We keep daily aggregate counts, without a user event history. Selecting labels counts intent; opening the print dialog does not tell us whether anything was physically printed. Repeated actions may count again, and these totals do not measure unique people. Importing or restoring a saved workspace does not send demand events.</p>
         <p>Network addresses may be used temporarily to limit abuse, but are not stored in demand records. Demand delivery is best effort. Failed or offline requests are not queued or retried, and collection never needs to finish before you print.</p>
@@ -37,12 +39,14 @@ export function Privacy() {
         <p>Cloudflare processes ordinary network information to deliver and protect this site. See <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a> for its handling of that information.</p>
       </section>
       <section>
-        <h2>Prompt feedback</h2>
-        <p>The prompt asks your AI to include a diagnostic report in the label pack, or return a separate report if it cannot finish the pack. The report records which instructions the AI used, requested label count and shape, overall outcome, steps attempted, attempt counts, and categorized problems and whether they were resolved.</p>
+        <h2>AI feedback and file-check results</h2>
+        <p>The instructions ask your AI to include a diagnostic report in the label ZIP, or return a separate report if it cannot finish. The report records the instruction version, requested label count and shape, outcome, steps and attempts, and categories of problems. It also records whether the AI says those problems were resolved.</p>
         <p>Importing a label pack with a readable manifest automatically sends its valid AI feedback to Tin to Cellar, along with recognized website validation codes and counts. We use these reports to improve instructions and supplied tools. View shared diagnostics shows the exact fields and whether receipt was confirmed. A daily allowance can pause diagnostic sharing while your local labels and printing remain available. Opening a standalone failure JSON stays local until you choose Share failure report.</p>
         <p>The app accepts only fixed categories and bounded counts in these reports. It rejects extra fields and malformed reports. The feedback format excludes free text, names, tobacco names, email addresses, source URLs, artwork, credentials, filenames, raw prompts, and chat logs. This restriction applies to validated feedback exports. It does not remove personal information from the rest of a pack or from your AI chat.</p>
-        <p>A separate optional process retrospective can describe what helped, what caused friction, and possible improvements, in up to five short AI-written observations. It can also report tool versions and available capabilities. These notes stay local until you preview them and choose Share process notes. Read them for personal information before sharing; validation limits their structure and length but cannot certify that free text contains no personal information. The AI is instructed not to include personal details, URLs, filenames, prompts, logs, or chat excerpts.</p>
-        <p>Import-check results, bounded structured diagnostic payloads, and their delivery status are saved with the local workspace. Restoring that workspace does not submit another report. Optional freeform process notes and standalone open reports stay in browser memory and clear when you reload. Downloaded reports remain on your device. Collected reports are available to the maintainer through a protected export, not the public source lookup. Repeated imports of the same pack are stored once, so counts do not represent unique people or runs. Reports describe what the AI says it did; they are not independent quality checks or counts of unique users. If you send a report by email or another service, that service also handles your message and sender information.</p>
+        <p>Optional process notes contain up to five short AI-written observations about what helped, what went wrong, and possible improvements. They can also include tool versions and capabilities. These notes stay local until you preview them and choose Share process notes.</p>
+        <p>Read the notes for personal information before sharing. The app limits their structure and length, but cannot guarantee that free text contains no personal information. The AI is instructed to leave out personal details, URLs, filenames, prompts, logs, and chat excerpts.</p>
+        <p>File-check results, validated diagnostics, and delivery status are saved with your local work. Restoring saved work does not send another report. Optional process notes and separate open reports clear when you reload; downloaded reports remain on your device.</p>
+        <p>Collected reports are available to the maintainer through a protected export. They are not public source suggestions. Repeated imports of the same pack are stored once. Reports describe what the AI says it did, so they are not independent quality checks or counts of unique people or runs. If you send a report by email or another service, that service also handles your message and sender information.</p>
       </section>
       <section>
         <h2>Package images and sources</h2>
@@ -59,7 +63,7 @@ export function Privacy() {
         <p>Unreviewed submissions expire after 30 days. Rejected artwork is scheduled for deletion after 7 days. We keep a limited review record for 90 days after the decision. Published labels stay available until unpublished. Unpublished artwork is scheduled for deletion after 30 days unless republished. Copies already downloaded by others cannot be recalled. Provider backups may take longer to expire.</p>
       </section>
       <section>
-        <h2>Collection storage and retention</h2>
+        <h2>How long shared data is kept</h2>
         <p>We store contributions in Cloudflare storage with a receipt date and a one-way fingerprint of the pack manifest to detect repeat imports. Standalone failure submissions use a random submission identifier. New structured diagnostics and website checks expire after 12 months; reports collected under the previous policy keep their original 90-day expiry. Optional process notes expire after 90 days. Daily cleanup deletes expired records, and exports exclude them immediately. Monthly aggregate counts and sanitized improvement findings may be kept longer without raw process notes.</p>
         <p>Package source observations keep their separate 90-day freshness window. Public suggestions exclude older records immediately. A source can remain available if a later contribution reports it again. Capacity limits may temporarily stop source collection.</p>
         <p>The shared source catalog contains product identifiers and eligible source links, not user profiles. We do not collect the ZIP, generated artwork, order file, chat, or free-text special requests through this endpoint. Network IP addresses are used for rate limits but are not included in contribution records. The source record is separate from the diagnostic feedback, whose schema does not allow URLs or tobacco names.</p>

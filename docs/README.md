@@ -25,6 +25,8 @@ The app handles orders and packs locally, renders untrusted manifest text as tex
 
 - [User workflow](simplified-workflow.md)
 - [Design system and UI guidance](design-system.md)
+- [Writer's guide](copy-guide.md) and [public-copy assessment](copy-assessment-2026-09-15.md)
+- [Copy overhaul and user-flow critiques](copy-flow-critique-2026-09-15.md)
 - [Deployment and local review guides](cloudflare-deployment.md)
 - [CellarPack specification](../public/spec/cellarpack-v1.md) and [schema](../public/spec/cellarpack-v1.schema.json)
 - [Portable AI instructions](../public/agent/tin-to-cellar-prompt.md)

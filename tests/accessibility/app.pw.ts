@@ -29,6 +29,23 @@ for (const width of [1280, 320]) {
     })
   }
 }
+for (const width of [1280, 320]) {
+  test(`paper guidance is reachable from the landing page at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/labels')
+    await page.getByRole('link', { name: 'Paper and printing guidance' }).click()
+    await expect(page).toHaveURL(/\/labels\/help#label-paper$/)
+    await expect(page.getByRole('heading', { name: "What you'll need" })).toBeInViewport()
+    const link = page.getByRole('link', { name: /^Buy label sheets from Avery/ })
+    await expect(link).toHaveCount(1)
+    await expect(link).toHaveAttribute('href', 'https://www.avery.com/blank/labels/94502')
+    await expect(page.getByText(/This is not an affiliate link/)).toBeVisible()
+    await expect(page.getByText(/You can also print on plain printer paper/)).toContainText('glue stick')
+    await page.screenshot({ path: `test-results/paper-guidance-help-${width}.png`, fullPage: true })
+    await page.goto('/labels/print')
+    await page.screenshot({ path: `test-results/paper-guidance-print-${width}.png`, fullPage: true })
+  })
+}
 test('skip link is first, preserves the route, and route changes set focus and title', async ({ page }) => {
   await page.goto('/labels/create')
   await page.keyboard.press('Tab')
@@ -51,7 +68,8 @@ for (const width of [831, 320]) {
     await page.goto('/labels/create')
     const input = page.getByRole('combobox', { name: 'Add a blend' })
     await input.fill('Clear confirmation test blend')
-    await input.press('Enter')
+    // The open suggestions must not cover the pointer target on narrow screens.
+    await page.getByRole('button', { name: 'Add blend', exact: true }).click()
     await page.getByRole('button', { name: 'Create with AI', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Clear confirmation test blend', exact: true })).toBeVisible()
     await page.getByRole('link', { name: 'Tin to Cellar home' }).click()

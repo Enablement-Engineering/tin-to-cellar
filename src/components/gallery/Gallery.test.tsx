@@ -20,8 +20,8 @@ it('searches blends with keyboard suggestions and clears the catalog filter with
   vi.stubGlobal('fetch', fetcher)
   render(<GalleryBrowse onAdd={vi.fn()} />)
   const input = await screen.findByRole('combobox', { name: 'Maker or blend' })
-  expect(screen.getByText('Choose designs shared by the community. Add them to your labels and print them alongside your own artwork.')).toBeInTheDocument()
-  expect(screen.getByText('2.5-inch circles')).toBeInTheDocument()
+  expect(screen.getByText('Find your blends, compare the artwork, and add the designs you want to print. Community designs are ready to use without an AI chat.')).toBeInTheDocument()
+  expect(screen.getByText('2.5-inch round labels for jar lids')).toBeInTheDocument()
   expect(screen.queryByRole('combobox', { name: 'Label shape' })).toBeNull()
   expect(screen.queryByLabelText('Edition')).toBeNull()
   fireEvent.change(input, { target: { value: 'Peterson Nightcap' } })
@@ -97,7 +97,7 @@ it('caps each selection at five while preserving local rendering', async () => {
 it('closed serving does not fetch listings or artwork', async () => {
   const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...config, serving: false }) }); vi.stubGlobal('fetch', fetcher)
   render(<GalleryBrowse onAdd={vi.fn()} />)
-  await screen.findByText(/community library is closed/)
+  await screen.findByText(/Community designs are unavailable for now/)
   expect(fetcher).toHaveBeenCalledOnce(); expect(screen.queryByRole('img')).toBeNull()
 })
 

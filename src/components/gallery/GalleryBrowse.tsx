@@ -31,9 +31,9 @@ function CreationReview({ identity, query, onCreate, onClose }: {
       catch (failure) { setError(errorText(failure)); setSaving(false) }
     }}>
       <h2 ref={title} tabIndex={-1} id="gallery-creation-title">Choose a blend for new artwork</h2>
-      <p id="gallery-creation-description">Confirm the blend to add to your creation request. You’ll review the request in Your labels before taking it to your AI chat.</p>
+      <p id="gallery-creation-description">Confirm the blend for your AI request. You will review its design notes and copy the instructions next.</p>
       {identity ? <p className="gallery-confirmed-blend"><strong>{identity.blend}</strong><span>{identity.maker}</span></p> : <>
-        <p className="field-hint">Search text can be a maker or a blend. Check the full blend name below; it will be saved as a custom name.</p>
+        <p className="field-hint">Enter the blend name and its maker, if known. This will be saved as a custom blend.</p>
         <label className="field"><span>Maker <em>optional</em></span><input value={maker} maxLength={120} disabled={saving} onChange={event => setMaker(event.target.value)} /></label>
         <label className="field"><span>Blend name</span><input value={blend} required maxLength={120} disabled={saving} onChange={event => setBlend(event.target.value)} /></label>
       </>}
@@ -86,14 +86,13 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
   }
   const creationRoute = onCreate && <section className="gallery-create-route" aria-labelledby="gallery-create-heading"><div><h2 id="gallery-create-heading">Want a different design?</h2>{identity && <p>Create new artwork for {identity.maker} {identity.blend}, or keep browsing.</p>}</div><button className="button secondary" type="button" disabled={saving || adding !== null} onClick={() => setCreating(true)}>Choose artwork to create</button></section>
   return <section className="gallery-page screen-only" aria-labelledby="gallery-title">
-    <header className="page-heading gallery-heading"><h1 id="gallery-title" tabIndex={-1}>Browse label designs</h1><p>Choose designs shared by the community. Add them to your labels and print them alongside your own artwork.</p></header>
+    <header className="page-heading gallery-heading"><h1 id="gallery-title" tabIndex={-1}>Browse label designs</h1><p>Find your blends, compare the artwork, and add the designs you want to print. Community designs are ready to use without an AI chat.</p></header>
     {configError && <p role="alert">{configError}</p>}
-    {!config && !configError && <p role="status">Loading library…</p>}
-    {config && !config.serving && <p>The community library is closed for now. You can still create your own designs or import and print a label ZIP.</p>}
+    {!config && !configError && <p role="status">Loading community designs…</p>}
+    {config && !config.serving && <p>Community designs are unavailable for now. You can still print saved labels, import a label ZIP, or create new artwork in your AI chat.</p>}
     {selectedCount > 0 && <SelectionSummary selectedCount={selectedCount} readyCount={readyCount} onView={onView} onPrint={onPrint} busy={saving || adding !== null} />}
     {config?.serving && <>
-      <section className="gallery-browser" aria-labelledby="gallery-browser-title"><div className="gallery-browser-heading"><h2 id="gallery-browser-title">Find a label</h2><p className="gallery-format">2.5-inch circles</p></div><GalleryBlendSearch onChange={changeFilter} onIdentityChange={setIdentity} onQueryChange={setQuery} /></section>
-      {creationRoute}
+      <section className="gallery-browser" aria-labelledby="gallery-browser-title"><div className="gallery-browser-heading"><h2 id="gallery-browser-title">Find a label</h2><p className="gallery-format">2.5-inch round labels for jar lids</p></div><GalleryBlendSearch onChange={changeFilter} onIdentityChange={setIdentity} onQueryChange={setQuery} /></section>
       {!labels.length && <p role="status" aria-atomic="true">{busy ? 'Loading labels…' : error || cursor ? '' : 'No labels match your search. Try another maker or blend, or create your own design.'}</p>}
       {error && !cursor && <p role="alert">{error}</p>}
       {error && !cursor && <button className="button secondary" type="button" disabled={busy} onClick={() => void load()}>Retry loading designs</button>}
@@ -110,9 +109,10 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
         {error && cursor && <p role="alert">{error}</p>}
         {cursor && <button type="button" className="button secondary" disabled={busy} onClick={() => void load(cursor)}>{busy ? 'Loading more labels…' : error ? 'Retry loading labels' : 'Show more labels'}</button>}
       </div>
+      {creationRoute}
     </>}
     {!config?.serving && creationRoute}
     {creating && onCreate && <CreationReview identity={identity} query={query} onCreate={onCreate} onClose={() => setCreating(false)} />}
-    <footer className="gallery-disclaimer"><p className="field-hint">Shared by community members for personal cellaring. Tin to Cellar is independent of tobacco brands.</p><p className="field-hint">Questions about a label or source link? <a href="mailto:dylan@enablement.engineering">Email this address</a> with a link and a short note.</p></footer>
+    <footer className="gallery-disclaimer"><p className="field-hint">Shared by community members for personal cellaring. Tin to Cellar is independent of tobacco brands.</p><p className="field-hint">Questions about a label or source link? <a href="mailto:dylan@enablement.engineering">Email Dylan</a> with a link and a short note.</p></footer>
   </section>
 }

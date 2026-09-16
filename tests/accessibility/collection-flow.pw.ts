@@ -214,7 +214,7 @@ test('an empty collection opens the home template directly in print preview with
   page.once('dialog', dialog => dialog.accept())
   await page.getByRole('button', { name: 'Reset labels', exact: true }).click()
   await expect(page.getByRole('spinbutton', { name: /^Quantity for / })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Import preview pack with ten labels', exact: true }).click()
+  await page.getByRole('button', { name: 'Import example pack with ten labels', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Print 10 labels', exact: true })).toBeEnabled()
   await page.reload()
   await expect(page.getByRole('button', { name: 'Print 10 labels', exact: true })).toBeEnabled()

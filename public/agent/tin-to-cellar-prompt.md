@@ -1,9 +1,9 @@
 # Tin to Cellar technical instructions
 
-Protocol version: 0.0.29
+Protocol version: 0.0.30
 CellarPack version: 0.1.0
 Feedback version: 0.2.0
-The complete protocol, all JSON schemas and canonical proof program are included below. Use this revision throughout this run and repairs. Do not fetch protocol instructions or schemas. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":"0.0.29","cellarpackVersion":"0.1.0","feedbackVersion":"0.2.0"}.
+The complete protocol, all JSON schemas and canonical proof program are included below. Use this revision throughout this run and repairs. Do not fetch protocol instructions or schemas. Record manifest.extensions["tin-to-cellar:protocol"] as {"revision":"0.0.30","cellarpackVersion":"0.1.0","feedbackVersion":"0.2.0"}.
 
 # Task
 Create one researched pipe-tobacco cellar label per requested blend and return a .cellarpack.zip for Tin to Cellar. Keep research, generation, revisions and ZIP repairs in this chat.
@@ -65,6 +65,9 @@ Example: correcting a reference
 User: "Pirate Kake should have the skull on wood."
 Assistant: "I'll replace that reference and show you the corrected package before making its label."
 Find and display the replacement. Do not repair layout against the rejected reference.
+
+# Paper and jar-lid use
+The default artwork is a 2.5-inch round label designed for jar lids. The website's supported adhesive-sheet layout is Avery 94502, nine labels per US Letter sheet. If the user asks where to buy sticker paper or label sheets, provide this direct purchase link: https://www.avery.com/blank/labels/94502. This is not an affiliate link. Other 2.5-inch label sheets may have different spacing and are not necessarily compatible. Plain printer paper and a glue stick are also an option: print at Actual Size / 100%, cut out the labels, and glue them to the jar lids. Ask the user to check that a 2.5-inch circle fits the flat area of their lid before buying sheets or printing. Do not promise a perfect fit or infer lid size from jar capacity. Paper choice does not change the artwork geometry, bleed, safe inset, blank writing area, or CellarPack requirements. This shopping link is not a packaging reference; do not include it in label research sources or fetch it as part of artwork research.
 
 # Workflow and artwork requirements
 - Research the requested blends together before generation. For each, open and visually inspect an actual image of its current or requested historical package. Do not substitute memory, search snippets, captions, or descriptions. Prefer a manufacturer image, then a specialist retailer. Record sources and variant; use 1–2 sources unless ambiguous.
@@ -563,4 +566,4 @@ If no ZIP can be produced, return a single tin-to-cellar-feedback.json containin
 {"$schema":"http://json-schema.org/draft-07/schema#","type":"object","additionalProperties":false,"required":["format","schemaVersion","protocolRevision","capabilities","tools","observations"],"properties":{"format":{"const":"tin-to-cellar/retrospective"},"schemaVersion":{"const":"0.1.0"},"protocolRevision":{"type":"string","pattern":"^(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})$"},"capabilities":{"type":"object","additionalProperties":false,"properties":{"browsing":{"$ref":"#/$defs/capability"},"image-generation":{"$ref":"#/$defs/capability"},"file-creation":{"$ref":"#/$defs/capability"},"local-execution":{"$ref":"#/$defs/capability"}}},"tools":{"type":"array","maxItems":2,"items":{"type":"object","additionalProperties":false,"required":["id","version"],"properties":{"id":{"enum":["local-proof","pack-builder"]},"version":{"type":"string","pattern":"^(unknown|(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5}))$"}}}},"observations":{"type":"array","minItems":1,"maxItems":5,"items":{"type":"object","additionalProperties":false,"required":["stage","kind","explanation"],"properties":{"stage":{"enum":["research","generation","visual-review","proof","packaging","validation","protocol-retrieval"]},"kind":{"enum":["helped","friction","recovery","suggestion"]},"explanation":{"type":"string","minLength":1,"maxLength":600,"pattern":"\\S"},"result":{"enum":["worked","partly-worked","failed","not-tested"]}},"if":{"properties":{"kind":{"const":"recovery"}}},"then":{"required":["result"]},"else":{"not":{"required":["result"]}}}}},"$defs":{"capability":{"enum":["available","unavailable","unknown"]}}}
 ```
 
-END TIN TO CELLAR PROTOCOL 0.0.29
+END TIN TO CELLAR PROTOCOL 0.0.30

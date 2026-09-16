@@ -74,7 +74,7 @@ function BlendIntake({ busy, onAdd, rows }: Pick<PreparationWorkspaceProps, 'bus
           {matches.map((entry, index) => <li id={`${id}-${index}`} key={entry.id} role="option" aria-selected={selected === index} aria-label={`${entry.blend} by ${entry.maker}`} onMouseDown={event => event.preventDefault()} onClick={() => add(entry)}><strong>{entry.blend}</strong><span>{entry.maker}</span></li>)}
           <li id={`${id}-${matches.length}`} role="option" aria-selected={selected === matches.length} onMouseDown={event => event.preventDefault()} onClick={() => add()}>Use “{draft.trim()}” without a catalog match</li>
         </ul>}
-      </div><button type="button" className="button secondary" disabled={busy || !draft.trim()} onClick={submit}>Add blend</button></div>
+      </div><button type="button" className="button secondary" disabled={busy || !draft.trim()} onMouseDown={event => event.preventDefault()} onClick={submit}>Add blend</button></div>
       <p className="selection-confirmation" role="status" aria-atomic="true">{confirmation && `${confirmation} · ${rows.length} ${rows.length === 1 ? 'blend' : 'blends'} selected.`}</p>
       {addError && <p role="alert">{addError}</p>}
     </div>
@@ -146,16 +146,16 @@ function ArtworkChoices({ row, busy, onChooseCommunity }: Pick<PreparationWorksp
     setChoosing(label.id); setChoiceError('')
     try { await onChooseCommunity(row.id, label) } catch (failure) { setChoiceError(errorText(failure)) } finally { setChoosing(null) }
   }
-  if (!row.catalogId) return <p className="field-hint">This is a custom name. Create your own design, or browse community labels to find one.</p>
+  if (!row.catalogId) return <p className="field-hint">This custom name has no catalog match. To look for community designs, close these choices and use Browse label designs.</p>
   return <div className="preparation-choices" aria-busy={loading}>
-    <h3>Community examples</h3>
-    <p className="field-hint">Choose one design for this label. If several examples are available, open the artwork to compare them before choosing.</p>
+    <h3>Community designs</h3>
+    <p className="field-hint">Choose one design for this label. If several designs are available, open the artwork to compare them before choosing.</p>
     {loading && <p className="field-hint" role="status">Checking community designs…</p>}
     {(error || page?.serving === false) && <div className="preparation-notice"><p>Community designs are unavailable right now. You can still create your own.</p><button type="button" className="button quiet" onClick={() => { setLoading(true); setPage(null); setError(''); setAttempt(value => value + 1) }} disabled={loading}>Retry community lookup</button></div>}
     {!loading && !error && page?.serving && !page.labels.length && <p className="field-hint">No community designs for this blend yet.</p>}
-    {page?.serving && page.labels.length > 0 && <ul className="preparation-designs" aria-label={`Community examples for ${row.blend}`}>{page.labels.map((label, index) => <li key={label.id}>
-      <a className="preparation-design-preview" href={`${API}/labels/${label.id}/artwork`} target="_blank" rel="noreferrer" aria-label={`View community example ${index + 1} for ${label.blend}`}><GalleryThumbnail src={`${API}/labels/${label.id}/thumbnail`} alt={label.altText} eager={false} /></a>
-      <div className="preparation-design-action"><p>Community example {index + 1}</p>
+    {page?.serving && page.labels.length > 0 && <ul className="preparation-designs" aria-label={`Community designs for ${row.blend}`}>{page.labels.map((label, index) => <li key={label.id}>
+      <a className="preparation-design-preview" href={`${API}/labels/${label.id}/artwork`} target="_blank" rel="noreferrer" aria-label={`View community design ${index + 1} for ${label.blend}`}><GalleryThumbnail src={`${API}/labels/${label.id}/thumbnail`} alt={label.altText} eager={false} /></a>
+      <div className="preparation-design-action"><p>Community design {index + 1}</p>
         <button type="button" className="button primary" disabled={busy || choosing !== null} onClick={() => void choose(label)}>{choosing === label.id ? 'Adding design…' : 'Use this design'}</button>
       </div>
     </li>)}</ul>}
@@ -206,7 +206,7 @@ export function PreparationWorkspace({ rows, busy, onAdd, onRemove, onCreate, on
   const focusList = () => { selectedHeading.current?.scrollIntoView({ block: 'start' }); selectedHeading.current?.focus({ preventScroll: true }) }
   const choose = async (id: string, label: GalleryPublicLabel) => { await onChooseCommunity(id, label); setExpanded(null); selectedHeading.current?.focus({ preventScroll: true }) }
   return <section ref={workspace} className="create-workspace preparation-workspace label-workspace screen-only" aria-labelledby="preparation-title">
-    <header className="page-heading"><h1 id="preparation-title">Your labels</h1><p>Choose artwork for each blend. Your community designs and new artwork stay together here.</p></header>
+    <header className="page-heading"><h1 id="preparation-title">Your labels</h1><p>Choose designs for your blends and keep track of artwork still to create. Print the labels that are ready.</p></header>
     {rows.length > 0 && <SelectionSummary selectedCount={rows.length} readyCount={ready} creationCount={requested.length} onView={requested.length ? undefined : focusList} onPrint={onPrint} busy={busy}>{requested.length > 0 && onContinueCreation && <button className="button primary" type="button" disabled={busy} onClick={onContinueCreation}>Continue to creation</button>}</SelectionSummary>}
     <section className="panel preparation-start" aria-label="Add labels">
       <BlendIntake busy={busy} onAdd={async (identity, choice) => { await onAdd(identity, choice); setFilter('all') }} rows={rows} />

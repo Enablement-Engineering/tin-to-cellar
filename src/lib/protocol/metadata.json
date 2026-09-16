@@ -1,5 +1,5 @@
 {
-  "current": "0.0.29",
+  "current": "0.0.30",
   "revisions": [
     "1",
     "2",
@@ -29,7 +29,8 @@
     "0.0.26",
     "0.0.27",
     "0.0.28",
-    "0.0.29"
+    "0.0.29",
+    "0.0.30"
   ],
   "integrity": {
     "algorithm": "SHA-256",
@@ -645,12 +646,36 @@
             "bytes": 1921
           }
         }
+      },
+      "0.0.30": {
+        "files": {
+          "instructions.md": {
+            "sha256": "58a59c5af49d8e7be97f9b83e78f261e88850d2575391bfec11df15dc5b16615",
+            "bytes": 71335
+          },
+          "instructions.html": {
+            "sha256": "ba3c61d088237b2fdf73db9da212d1bc6b2f4f3a8cc0a1d24f44e20e550499fb",
+            "bytes": 83979
+          },
+          "cellarpack.schema.json": {
+            "sha256": "a22839abd32327cada4320d0b72f3dbc61e7a0d38ca0e66a563cc623b4fbc5ca",
+            "bytes": 10762
+          },
+          "feedback.schema.json": {
+            "sha256": "dcbc8ed246a7bf3da998a8a19a9a53c1d4d4f4eaba12253bd23370a811089683",
+            "bytes": 2133
+          },
+          "retrospective.schema.json": {
+            "sha256": "b4b21008bf74958ec83c8767688738d756574212ae4fa8bc0a8709d47ed52bf0",
+            "bytes": 1921
+          }
+        }
       }
     },
     "currentComponents": {
       "instructions.md": {
-        "sha256": "d17f37394703f378e09728c55f5dbb6b08adf8be97815280d660db1d46f701e8",
-        "bytes": 70320
+        "sha256": "58a59c5af49d8e7be97f9b83e78f261e88850d2575391bfec11df15dc5b16615",
+        "bytes": 71335
       },
       "local-proof.py": {
         "sha256": "9ddccb90c97825a54e8318b99f61d0d01c18392b0eda77a122e3cf3febdbfdd5",

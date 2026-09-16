@@ -26,7 +26,7 @@ export function Inspiration() {
       </section>
       <section>
         <h2>From that guide to this app</h2>
-        <p>Tin to Cellar follows that idea. Use your own AI chat to adapt the tin artwork, then bring the finished labels here to lay out and print. The labels leave room to add the date by hand.</p>
+        <p>Tin to Cellar follows that idea. Choose community designs or adapt the tin artwork in your own AI chat, then print the labels together. Each label leaves room to add the date by hand.</p>
         <p>Thank you, Hobbiton Piper, for sharing the method that inspired this project.</p>
       </section>
     </div>

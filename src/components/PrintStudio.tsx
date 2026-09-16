@@ -66,7 +66,7 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
         <div className="print-sidebar">
         {intake}
         <div className="panel quantity-panel">
-          <h2 tabIndex={-1}>Your labels</h2><p>Choose how many of each to print. Set a quantity to zero to leave it out.</p>
+          <h2 tabIndex={-1}>Your labels</h2><p>Set the number of copies for each design. Use zero to leave a label off this print job.</p>
           {labels.map((label) => <div className="quantity-row" key={label.id}>
             <div className="label-thumbnail"><LabelArtwork label={label} /></div>
             <div><strong>{label.blend}</strong><small>{label.maker}</small></div>
@@ -80,17 +80,18 @@ export function PrintStudio({ labels, quantities, onQuantityChange, settings, on
           <details className="alignment-options"><summary>Paper and alignment</summary>
             <p>Avery 94502 · US Letter · 2.5-inch circles</p>
             <label>Start at slot <select aria-describedby="slot-hint" aria-label="Start at slot" value={firstSlot} onChange={(event) => setFirstSlot(Number(event.target.value))}>{Array.from({ length: profile.slots.length }, (_, index) => <option key={index} value={index + 1}>{index + 1}</option>)}</select></label>
-            <p className="field-hint" id="slot-hint">Slots run left to right, then down. Use this for a partly used first sheet.</p>
+            <p className="field-hint" id="slot-hint">For a partly used sheet, choose the first unused slot. Slots run left to right, then down.</p>
             <div className="offset-grid">{(['x', 'y'] as const).map((axis) => <label key={axis}>{axis === 'x' ? 'Horizontal' : 'Vertical'} adjustment (in)<input aria-describedby="offset-hint" aria-label={`${axis === 'x' ? 'Horizontal' : 'Vertical'} adjustment`} type="number" min="-0.25" max="0.25" step="0.01" value={offset[axis]} onChange={(event) => setOffset({ [axis]: Math.max(-0.25, Math.min(0.25, Number(event.target.value) || 0)) })} /></label>)}</div>
             <p className="field-hint" id="offset-hint">Positive values move labels right or down. Negative values move them left or up.</p>
             <button className="button secondary" type="button" disabled={saving} onClick={() => print('calibration')}><Icon name="guide" size={17} />Print alignment sheet</button>
-            <p className="field-hint">Print on plain paper at Actual Size. The ruler should measure two inches. Hold it behind your label stock to check the nine circles.</p>
+            <p className="field-hint">Print a test on plain paper at Actual Size / 100%. Check that the ruler measures two inches, then hold the sheet behind your label stock to compare the circles.</p>
           </details>
-          <p className="field-hint">Choose US Letter, no margins, and Actual Size / 100%. Turn off headers and footers. If labels look off-center, use Paper and alignment. To save a PDF, choose Save as PDF.</p>
+          <p className="field-hint">In the print dialog, choose US Letter, no margins, and Actual Size / 100%. Turn off headers and footers. Choose Save as PDF to keep a copy of the sheets.</p>
+          <p className="field-hint">Check alignment on plain paper before using label stock. Open Paper and alignment if you need to adjust the position.</p>
         </div>
         </div>
         <div className="sheet-stage">
-          <div className="sheet-meta"><span role="status">{copies.length} {copies.length === 1 ? 'label' : 'labels'} · {copies.length ? pageCount : 0} {copies.length && pageCount === 1 ? 'sheet' : 'sheets'}</span><span>Avery 94502</span></div>
+          <div className="sheet-meta"><span role="status">{copies.length} {copies.length === 1 ? 'label' : 'labels'} · {copies.length ? pageCount : 0} {copies.length && pageCount === 1 ? 'sheet' : 'sheets'}</span><span>US Letter · 9 labels per sheet</span></div>
           {pageCount > 1 && <div className="page-controls"><button type="button" onClick={() => setPage(currentPage - 1)} disabled={currentPage === 0}>Previous sheet</button><span>Sheet {currentPage + 1} of {pageCount}</span><button type="button" onClick={() => setPage(currentPage + 1)} disabled={currentPage === pageCount - 1}>Next sheet</button></div>}
           <p className="visually-hidden" role="status">Preview sheet {currentPage + 1} of {pageCount}</p>
           <div className="avery-sheet simple-sheet" style={{ aspectRatio: `${profile.page.width} / ${profile.page.height}` }} role="region" aria-label={`Preview sheet ${currentPage + 1}`}>

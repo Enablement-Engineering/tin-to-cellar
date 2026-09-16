@@ -40,11 +40,11 @@ export function StandaloneFeedback() {
     } catch { if (token === sequence.current) setMessage('This file is not a supported feedback report. No data was sent.') }
   }
   return <details className="screen-only standalone-feedback"><summary>
-    <span><strong>Report a failed AI run</strong><span className="field-hint">Help improve the label-making process.</span></span>
+    <span><strong>Report a failed AI run</strong><span className="field-hint">Share a report when your chat could not finish the labels.</span></span>
     <span className="standalone-feedback-toggle" aria-hidden="true" />
   </summary>
     <div className="standalone-feedback-content">
-    <p>If your AI could not create a ZIP, choose the feedback JSON it provided. You can review the report before sharing it.</p>
+    <p>Choose the feedback JSON file your AI provided when it could not finish the label ZIP. Review what it contains, then choose whether to share it.</p>
     <div className="standalone-feedback-picker">
       <input ref={fileInput} className="visually-hidden" tabIndex={-1} aria-label="Open failure report" type="file" accept=".json,application/json" onChange={event => { void open(event.target.files?.[0]); event.target.value = '' }} />
       <button className="button secondary" type="button" onClick={() => fileInput.current?.click()}><Icon name="upload" size={18} />Choose report</button>

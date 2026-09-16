@@ -48,13 +48,13 @@ test('gallery pagination waits for keyboard activation and preserves retry', asy
 test('editorial pages and demand opt-out remain readable and keyboard accessible at 320px', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 320, height: 900 })
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  for (const [path, heading] of [['/about', 'Behind the labels'], ['/labels/help', 'What happens behind the scenes'], ['/privacy', 'Aggregate label demand']]) {
+  for (const [path, heading] of [['/about', 'Why use AI?'], ['/labels/help', "How the artwork keeps the tin's character"], ['/privacy', 'Optional counts of label requests']]) {
     await page.goto(path)
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([])
   }
-  const preference = page.getByRole('checkbox', { name: 'Allow aggregate label-demand counts' })
+  const preference = page.getByRole('checkbox', { name: 'Allow counts of blend selections and print requests' })
   await preference.focus()
   await expect(preference).toBeFocused()
   await page.keyboard.press('Space')
@@ -92,7 +92,7 @@ test('canonical print intent is best effort, opt-out is silent and loaded printi
   expect(events[1]).toEqual({ event: 'print-job-requested', labels: [{ catalogId: 'peterson-nightcap', quantity: 3 }] })
   await expect(page.locator('html')).toHaveAttribute('data-test-prints', '1')
   await page.getByRole('link', { name: 'Privacy', exact: true }).click()
-  await page.getByRole('checkbox', { name: 'Allow aggregate label-demand counts' }).uncheck()
+  await page.getByRole('checkbox', { name: 'Allow counts of blend selections and print requests' }).uncheck()
   await page.getByRole('link', { name: 'Print labels', exact: true }).click()
   await context.setOffline(true)
   await print.click()

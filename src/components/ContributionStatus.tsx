@@ -24,7 +24,7 @@ function usePause() {
 }
 
 function pauseMessage(resetAt: number | null) {
-  return `Diagnostic sharing is paused. Your labels remain available locally, including printing.${resetAt === null ? ' Try again after collection resumes.' : ` You can retry after ${new Date(resetAt).toLocaleString()}.`}`
+  return `Diagnostic sharing is paused. You can still use and print your saved labels.${resetAt === null ? ' Try sharing again later.' : ` You can retry after ${new Date(resetAt).toLocaleString()}.`}`
 }
 
 export function ContributionStatus({ contribution, retrospective = null, hidden = false, autoSend = false, delivery = 'pending', onDelivery }: { contribution: Contribution | null; retrospective?: Retrospective | null; hidden?: boolean; autoSend?: boolean; delivery?: 'none' | 'pending' | 'sent' | 'failed'; onDelivery?: (delivery: 'sent' | 'failed') => void }) {
@@ -97,7 +97,7 @@ export function ContributionStatus({ contribution, retrospective = null, hidden 
     <dialog className="diagnostics-dialog" ref={dialog} aria-labelledby={titleId}>
       <h2 id={titleId}>{prepared ? 'Prepared diagnostics' : 'Shared diagnostics'}</h2>
       <p>{status === 'paused' ? 'Collection is paused; receipt has not been confirmed.' : status === 'unavailable' ? 'Collection is unavailable on this site; these diagnostics have not been shared.' : status === 'collected' ? 'Receipt confirmed.' : status === 'partial' ? 'Feedback received; source receipt unconfirmed.' : 'Receipt has not been confirmed.'} This diagnostics submission does not upload your ZIP or artwork.</p>
-      <p className="field-hint">These are the exact structured fields prepared for submission. AI feedback describes the AI’s account; validation describes website checks. Source links are agent-reported leads.</p>
+      <p className="field-hint">These are the exact fields prepared for sharing. AI feedback records what the AI says happened. File-check results come from this app. Packaging links are suggestions that still need to be checked.</p>
       {sharedContribution && <pre tabIndex={0} aria-label="Structured submission">{JSON.stringify(sharedContribution, null, 2)}</pre>}
       {retrospective && <section aria-labelledby={notesId}><h3 id={notesId}>Optional process notes</h3>
         <p>These AI-written notes stay in this tab until you share them. Read them for personal information before sharing. Shared notes are kept for 90 days.</p>

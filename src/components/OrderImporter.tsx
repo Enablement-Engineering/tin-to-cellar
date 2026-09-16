@@ -58,7 +58,7 @@ export function OrderImporter({ onAdd, standalone = false, busy: externalBusy = 
       reviewHeading.current.scrollIntoView?.({ block: 'start' })
     }
   }, [matches])
-  const cancel = () => { request.current++; controller.current?.abort(); setReading(false); setMessage('Import cancelled.') }
+  const cancel = () => { request.current++; controller.current?.abort(); setReading(false); setMessage('Reading cancelled. Choose another file or paste a blend list.') }
   const review = (value: string) => {
     const found = matchOrder(value)
     focusReview.current = standalone && found.length > 0
@@ -123,23 +123,23 @@ export function OrderImporter({ onAdd, standalone = false, busy: externalBusy = 
     {(standalone || open) && <div className="order-import-panel" id={panelId}>
       <div className="order-intake-source">
         {standalone && <h2>Use an image or PDF</h2>}
-        <p className="order-upload-guidance" id={`${panelId}-upload-help`}>Use a screenshot of a recent order, a cellar inventory list, a receipt, or a packing slip. Make sure the maker and blend names are visible.</p>
+        <p className="order-upload-guidance" id={`${panelId}-upload-help`}>Choose an order, receipt, or inventory list with the maker and blend names visible.</p>
         <input ref={input} className="visually-hidden" tabIndex={-1} aria-label="Blend list file" type="file" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp" disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void load(file) }} />
         <button ref={fileTrigger} type="button" aria-describedby={`${panelId}-upload-help ${panelId}-upload-tip`} className={`order-file-drop${dragging ? ' is-dragging' : ''}`} disabled={busy} onClick={() => input.current?.click()} onDragOver={event => { event.preventDefault(); if (!busy) setDragging(true) }} onDragLeave={() => setDragging(false)} onDrop={event => { event.preventDefault(); setDragging(false); const files = event.dataTransfer.files; if (files.length !== 1) { setMessage('Choose one file at a time.'); return } void load(files[0]) }}>
           <Icon name="file" size={28} /><strong>{reading ? 'Reading your blends…' : 'Choose an image or PDF'}</strong><span className="order-drop-instruction">or drop it here</span><span>PDF · PNG · JPEG · WebP · up to 10 MB</span>
         </button>
-        <p className="field-hint" id={`${panelId}-upload-tip`}>Capture the blend names. A shipping label showing only an address and barcode won’t identify your blends.</p>
+        <p className="field-hint" id={`${panelId}-upload-tip`}>Include the product list. An address or shipping barcode alone cannot identify a blend.</p>
         <p className="order-local-note"><Icon name="lock" size={13} /> Files are read on this device. Use a screenshot for scanned PDFs.</p>
         {filename && <p className="order-filename">{filename}</p>}
         <p role="status" className="field-hint">{message}</p>
         {reading && <button type="button" className="button quiet" onClick={() => { cancel(); (trigger.current ?? fileTrigger.current)?.focus() }}>Cancel reading</button>}
         {standalone ? <div className="order-paste">{paste}</div> : (!filename || fileFailed) && paste}
         {sourceUrl && <a className="order-original-source" href={sourceUrl} target="_blank" rel="noopener noreferrer">Open original file to check for missing blends</a>}
-        {standalone && sourceText && <details className="order-source-reference"><summary>Check the text read from your file</summary><p className="field-hint">Compare with your original file for names the reader may have missed. This text stays here only while you review.</p><pre>{sourceText}</pre></details>}
+        {standalone && sourceText && <details className="order-source-reference"><summary>Review the source text</summary><p className="field-hint">Check for missing or misread names. This text is available only during this review.</p><pre>{sourceText}</pre></details>}
         {standalone && !matches.length && <button type="button" className="button quiet" onClick={() => { setManualOpen(true); window.requestAnimationFrame(() => manualInput.current?.focus()) }}>Enter blends manually</button>}
       </div>
       {(matches.length > 0 || standalone && manualOpen) && <section className="order-review" aria-labelledby={standalone ? `${panelId}-review` : undefined}>
-        {standalone && <><h2 ref={reviewHeading} tabIndex={-1} id={`${panelId}-review`}>Review your blends</h2><p className="field-hint">Check the matches and add anything missing. Quantities in your list do not set print quantities.</p></>}
+        {standalone && <><h2 ref={reviewHeading} tabIndex={-1} id={`${panelId}-review`}>Review your blends</h2><p className="field-hint">Choose the right match for each name, skip unwanted items, and add missing blends. You will set print quantities later.</p></>}
         {matches.map((match, index) => <label className="field" key={`${index}-${match.source}`}><span>{match.source}</span><select aria-label={`Match for ${match.source}`} value={selected[index]} disabled={busy} onChange={event => setSelected(selected.map((value, i) => i === index ? event.target.value : value))}>
           <option value="">Skip this item</option>
           {match.suggestions.map(suggestion => <option key={suggestion} value={suggestion}>{suggestion}</option>)}
@@ -151,7 +151,7 @@ export function OrderImporter({ onAdd, standalone = false, busy: externalBusy = 
         </div>
         {addError && <p role="alert">{addError} Your reviewed choices are still here. Try saving them again.</p>}
         {standalone && identities.length > 0 && <p className="order-reviewed-count">{identities.length - existingCount} new {identities.length - existingCount === 1 ? 'blend' : 'blends'}{existingCount > 0 ? ` · ${existingCount} already saved` : ''}. Your existing artwork and print quantities stay.</p>}
-        <div className="order-review-actions"><button className="button primary" type="button" disabled={busy || !identities.length} onClick={() => void save()}>{adding ? 'Saving…' : standalone ? `Save ${identities.length} ${identities.length === 1 ? 'blend' : 'blends'} and choose designs` : 'Add selected tobaccos'}</button>
+        <div className="order-review-actions"><button className="button primary" type="button" disabled={busy || !identities.length} onClick={() => void save()}>{adding ? 'Saving…' : standalone ? `Save ${identities.length} ${identities.length === 1 ? 'blend' : 'blends'} and choose designs` : 'Add selected blends'}</button>
           {standalone && <button className="button quiet" type="button" disabled={busy} onClick={() => { clearReview(); fileTrigger.current?.focus() }}>Cancel review</button>}
         </div>
       </section>}

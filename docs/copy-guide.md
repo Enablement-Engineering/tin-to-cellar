@@ -1,37 +1,83 @@
-# Website copy
+# Tin to Cellar writer's guide
 
-Tin to Cellar should sound like someone explaining a useful hobby tool. Use familiar words, name the action the reader can take, and leave out claims the app cannot support. Keep the personal voice on About; keep instructions direct in the tools.
+Use this guide for public website copy, page descriptions, instructions, and status messages. Check behavior against the [current workflow](simplified-workflow.md) and the component being edited. This guide does not change the AI protocol or file format.
 
-## Enablement Engineering
+## Purpose
 
-The owner's direction is a philosophy and practice of expanding what people can do with technology, with care for human needs and equitable access to its benefits. Accessibility and education are central. Describe this broader purpose instead of reducing the practice to AI services or a list of industries.
+Moving tobacco into jars should carry its visual identity with it. Tin to Cellar helps people keep the recognizable character of the packaging in practical jar labels, with room for handwritten dates and sheet layout handled by the app.
 
-The About page connects that purpose to Dylan and this small project. Avoid invented personal stories, corporate sales language, or promises of outcomes for every user.
+The artwork is adapted to a label shape. Describe keeping the original's character, illustration, colors, and lettering. Avoid promising an exact reproduction, archival preservation, better tobacco storage, or guaranteed print alignment.
 
-## Wording choices
+## Approved hero
 
-- Use “AI chat” for the general workflow. Use “ChatGPT” when naming or linking that specific product.
-- Introduce CellarPack as the ZIP containing the labels. Technical terms belong where they explain a file requirement or help repair a problem.
-- “Copy prompt” includes the complete request and instructions. The request preview stays readable; “Full copied text” reveals the entire payload.
-- Keep instruction version information in the advanced choices and feedback reports, in plain language. Do not hide differences that affect which instructions a chat uses.
-- Imported ZIPs and artwork are read in the browser. Import separately shares validated feedback and public source links with fixed observations. Print-guide access starts automatically in Make a prompt; the AI can use that service or make guide images in its own environment. That environment is not necessarily the user's device.
-- Tell people what failed and what they can do next. Keep precise file errors available for the AI repair request.
-- Explain print settings using the names people will recognize in a print dialog. Horizontal and vertical adjustments include directions and inch units.
-- Avoid guarantees about tobacco preservation, exact physical print results, or an AI service's success. Encourage a plain-paper alignment check where it is useful.
-- Keep maker attribution in the footer: automatic-year copyright, About and Inspiration links, and a centered “Made with ❤️ by Enablement Engineering” credit.
+**Keep the character of the tin.**
 
-## Audit coverage
+Bring your blends' familiar artwork to the jars in your cellar, with labels adapted for printing and space to write your dates. Choose community designs or create the ones you need.
 
-Reviewed all six views: Home, Make a prompt, Print labels, How it works, About, and Inspiration. The pass included site metadata, navigation, input hints, order reading, prompt copying and recovery, optional hosted checks, ZIP import results, feedback reports, quantities, and alignment instructions. Shared order-reading and pack-import recovery messages were checked against the controls the app actually provides.
+The headline explains why the tool exists. The subtext names the useful result and the two ways to obtain artwork. Nearby controls explain how to start; the hero need not list input formats or print settings.
 
-The audit removed an unsupported preservation claim and an exact-print promise. It corrected the outdated full-prompt instruction, recovery directions for nonexistent sheet-selection controls, scanned-PDF recovery, and print-capacity guidance. It also clarified where AI guide images are created and fixed singular/plural report and label counts.
+## Voice
 
-The changes affect presentation and explanatory text. AI instruction contracts, schemas, file validation rules, and physical print geometry retain their existing behavior. Existing tests keep checking those behaviors; text assertions change only where the visible wording changed.
+Write like a fellow collector explaining a useful tool. Be warm in introductions and direct in working screens. Use concrete language and short sentences. Avoid sales language, elaborate metaphors, invented personal stories, and technical vocabulary that does not help the reader decide or act.
 
-## Verification
+Keep Dylan's first-person voice on About. Describe Enablement Engineering as a philosophy and practice of helping people do more with technology, with accessibility, education, and human needs central to the work. Preserve the existing attribution to Hobbiton Piper and the maker credit.
 
-All 156 tests across 27 files passed after the copy changes, along with lint and typecheck/build. Browser review covered all six views, the advanced prompt choices and copy status, feedback guidance, and print instructions with ten labels across two sheets. The maker credit is centered at 320px and 1440px; reviewed pages fit without horizontal scrolling. The older label fixture contained obsolete overlay settings, so a separate local review copy retained only its blank overlay mode. Original artwork and the source ZIP were unchanged. No physical printing or deployment was performed for this pass.
+Keep the "Why use AI?" section at the end of About. Lead with the motivation for making familiar packaging artwork more approachable to adapt into personal jar labels, without presuming the reader's reaction to AI. Recognize the original artists and explain reference confirmation and human review. Keep the discussion specific to this use; do not dismiss concerns, claim AI makes better art, or suggest that care alone settles questions of permission.
 
-## Automatic guides and shared source collection
+## Give each kind of copy a job
 
-Print guide access now starts automatically in Make a prompt. ZIP import separately submits validated AI feedback and public source links with fixed observations; the ZIP and artwork remain on the device. Do not describe all import data or feedback as browser-only. Separate JSON report imports are still local. Privacy is linked from the footer and import notice.
+| Location | Job |
+| --- | --- |
+| Hero | Explain the purpose and what the user gets. |
+| Page introduction | Explain the decision or task on this page. |
+| Button | Name the action it performs, such as Choose ZIP or Use this design. |
+| Field hint | Explain the expected input or a consequence that matters now. |
+| Empty state | Explain how to get started from the current state. |
+| Status or error | Say what happened, what remains available when relevant, and the next action. |
+| Help | Explain the full workflow, including reference confirmation and printing. |
+| Privacy and sharing | Say exactly what stays local, what is sent, and what action sends it. |
+
+Keep button names consistent with instructions that refer to them. Use input-neutral language such as "Choose" or "Import" instead of "Click." Keep accessible names aligned with visible labels.
+
+When a creation action prepares a request, say so before the user selects it. Keep optional creation choices after the community designs on the browsing page. Explain what a download preserves beside its control.
+
+## Terms
+
+| Term | Meaning and use |
+| --- | --- |
+| Blend | The tobacco being identified or selected. |
+| Design | A choice of artwork for a blend. Use "community design" for selectable artwork shared by others. |
+| Label | The jar label being selected, prepared, or printed. Use quantities when discussing printed copies. |
+| Artwork | The image itself, including its blank writing space. |
+| Example pack | The bundled ten-label sample. Reserve "example" for this sample, not all community designs. |
+| Label ZIP | The file users bring back from their AI chat or download here. Introduce its format as "CellarPack, the label ZIP" when explaining import. |
+| AI chat | The user's separate creative tool. Name ChatGPT only for that specific product or link. |
+| Instructions | The complete copied text for the AI. "Copy instructions" is the current action; "request" means the user's blends and design notes. |
+| Preview | A view of artwork, a request, or a print sheet. It is not another name for the example pack. |
+| Ready to print | Artwork has passed the app's import checks and is available for printing. It does not certify visual fidelity or printer alignment. |
+
+## Claims and workflow boundaries
+
+- Community designs can go straight to printing. AI creation is optional and happens in the user's own chat.
+- For new designs, the AI shows the packaging reference. The user confirms it by copying and pasting the photo into the chat. Say "Copy Image" when giving the browser action, never "Copy Image Address." Each label is created and checked before the next. An artwork repair requires the user's decision.
+- The app checks imported files and dimensions. The user reviews spelling, fidelity to the original, and usable writing space. Do not call automated checks proof of artistic accuracy.
+- The artwork contains the whole blank writing area. The website adds no date text or lines to the label.
+- The current print UI supports Avery 94502, nine 2.5-inch circles on US Letter. Keep Actual Size / 100%, headers and footers, and plain-paper alignment guidance near printing.
+- In general copy, say "2.5-inch round labels for jar lids." Reserve Avery 94502 for buying, paper setup, and calibration. Link to https://www.avery.com/blank/labels/94502 from Print labels and How it works using "Buy label sheets from Avery" and state that it is not an affiliate link. Plain printer paper, scissors, and a glue stick are an alternative to adhesive sheets. Ask users to check the flat area of their lid; do not promise a perfect fit or infer lid size from jar capacity. Other 2.5-inch label sheets are not necessarily layout-compatible.
+- Orders and label ZIPs are processed in the browser. Say "choose" or "import" for local files; reserve "upload" for artwork submitted to the community gallery.
+- A readable user-imported pack can automatically share validated diagnostics and eligible public source links. Artwork sharing is a separate explicit submission. Never broaden "your files stay local" into "nothing is shared."
+- Saved labels, quantities, and requests stay in this browser. Download labels preserves finished artwork, not quantities or unfinished requests. Avoid account sync, permanent-backup, or offline-startup claims.
+- Preserve existing rights, attribution, and privacy disclosures. A copy edit must not invent a permission, endorsement, or new policy.
+
+## Review checklist
+
+1. Does the copy describe the current action and outcome?
+2. Does it use the terms above and the exact names of nearby controls?
+3. Does a neighboring paragraph or button already say the same thing?
+4. Does it make AI sound required, adaptation sound exact, or a local check sound like a guarantee?
+5. Does an error give a next step the app actually supports?
+6. Do changed accessible names still work in existing tests? Does the text fit at narrow widths, and can people still reach the controls with a pointer as well as a keyboard?
+
+Record the reviewed scope, fixes, and actual verification in a separate assessment. Keep this guide reusable. The [previous guide and audit](copy-guide-history.md) are historical evidence, not current instructions. The [September 15 assessment](copy-assessment-2026-09-15.md) applies this guide to the current public UI.
+
+The subsequent [copy overhaul and flow critiques](copy-flow-critique-2026-09-15.md) review first-time, community, creation, and returning-print journeys, including the findings that shaped these guidance updates.

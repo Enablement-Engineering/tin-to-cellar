@@ -56,13 +56,13 @@ export function CollectionImportReview({ collection, plan, decisions, onChange, 
   return <dialog ref={dialog} className="import-review-dialog" aria-labelledby="import-review-title" aria-describedby="import-review-description" onCancel={event => { event.preventDefault(); if (!busy) onCancel() }}>
     <header className="import-review-header">
     <h2 ref={title} tabIndex={-1} id="import-review-title">Add your new labels</h2>
-    <p id="import-review-description">New blends will be added to your labels. If you already have artwork for a blend, choose which design to keep.</p>
-    <p className="import-review-summary">{newCount} new {newCount === 1 ? 'design' : 'designs'}{fillCount > 0 ? ` · ${fillCount} ${fillCount === 1 ? 'request' : 'requests'} ready` : ''}{attentionCount > 0 ? ` · ${attentionCount} ${attentionCount === 1 ? 'blend' : 'blends'} to review` : ''}{duplicateCount > 0 ? ` · ${duplicateCount} already saved` : ''}. Your quantities stay the same.</p>
+    <p id="import-review-description">Review the designs to add. For blends you already have, keep your current artwork, use the imported design, or keep both.</p>
+    <p className="import-review-summary">{newCount} new {newCount === 1 ? 'design' : 'designs'}{fillCount > 0 ? ` · ${fillCount} ${fillCount === 1 ? 'request' : 'requests'} ready` : ''}{attentionCount > 0 ? ` · ${attentionCount} ${attentionCount === 1 ? 'blend' : 'blends'} to review` : ''}{duplicateCount > 0 ? ` · ${duplicateCount} already saved` : ''}. New labels start with quantity 1. Replacing artwork keeps its quantity.</p>
     </header>
     <div className="import-review-body">
     {unresolvedRequests.length > 0 && <p className="import-request-coverage">New artwork will still be needed for: {unresolvedRequests.join(', ')}. These requests will stay in your labels.</p>}
     {error && <p role="alert">{error}</p>}
-    {children && <details className="import-validation"><summary>Validation checks</summary>{children}</details>}
+    {children && <details className="import-validation"><summary>File checks</summary>{children}</details>}
     {newCount > 0 && <button type="button" className="button quiet" aria-expanded={showNew} onClick={() => setShowNew(value => !value)}>{showNew ? 'Hide new designs' : `Review ${newCount} new ${newCount === 1 ? 'design' : 'designs'}`}</button>}
     {duplicateCount > 0 && <button type="button" className="button quiet" aria-expanded={showDuplicates} onClick={() => setShowDuplicates(value => !value)}>{showDuplicates ? 'Hide already saved designs' : `Show ${duplicateCount} already saved ${duplicateCount === 1 ? 'design' : 'designs'}`}</button>}
     {previewError && <div role="alert"><p>Artwork previews could not be opened. Your import and choices are still available.</p><button type="button" className="button secondary" disabled={busy} onClick={event => {
@@ -84,7 +84,7 @@ export function CollectionImportReview({ collection, plan, decisions, onChange, 
         <h3>{design.item.label.maker} {design.item.label.blend}</h3>
         {entry.kind === 'duplicate' ? <p>Already in your labels. No extra copy will be added.</p> : entry.kind !== 'choice' ? <label className="import-simple-choice">
           <input type="checkbox" checked={decision.action !== 'skip'} disabled={busy || invalidated} onChange={event => onChange({ ...decisions, [entry.designId]: !event.target.checked ? { action: 'skip' } : entry.kind === 'fill' ? { action: 'replace', rowId: entry.matchRowIds[0] } : { action: 'add' } })} />
-          {entry.kind === 'fill' ? 'Use artwork for this requested blend' : 'Add this label'}
+          {entry.kind === 'fill' ? 'Use this design for the requested blend' : 'Add this label'}
         </label> : <fieldset className="import-design-choices" disabled={busy || invalidated}>
           <legend>Which artwork do you want?</legend>
           <label><input type="radio" name={`import-choice-${index}`} checked={decision.action === 'skip'} onChange={() => onChange({ ...decisions, [entry.designId]: { action: 'skip' } })} />Keep current</label>
@@ -93,7 +93,7 @@ export function CollectionImportReview({ collection, plan, decisions, onChange, 
             return <label key={rowId}><input type="radio" name={`import-choice-${index}`} checked={decision.action === 'replace' && decision.rowId === rowId} onChange={() => onChange({ ...decisions, [entry.designId]: { action: 'replace', rowId } })} />{row.designId ? 'Use imported artwork' : 'Use for requested label'}{entry.matchRowIds.length > 1 ? ` · label ${collection.rows.indexOf(row) + 1}${row.edition ? ` (${row.edition})` : ''}` : ''}</label>
           })}
           <label><input type="radio" name={`import-choice-${index}`} checked={decision.action === 'add'} onChange={() => onChange({ ...decisions, [entry.designId]: { action: 'add' } })} />Keep both</label>
-          <p className="field-hint">{decision.action === 'skip' ? 'Your current artwork stays unchanged.' : decision.action === 'add' ? 'Add the imported artwork as a separate label, with quantity 1.' : 'Change only the artwork. Keep your quantity.'}</p>
+          <p className="field-hint">{decision.action === 'skip' ? 'Keep the label you already saved.' : decision.action === 'add' ? 'Add a separate label with quantity 1.' : 'Use the imported design and keep your print quantity.'}</p>
         </fieldset>}
       </article>
     })}</div>

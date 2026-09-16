@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { PROTOCOL_REVISION } from '../protocol'
 import { describe, expect, it } from 'vitest'
-import { buildCompleteTinToCellarPrompt, buildTinToCellarInstructions, buildTinToCellarRequest, assessPromptInput, buildCellarPackRepairPrompt, buildTinToCellarPrompt } from './index'
+import { buildCompleteTinToCellarPrompt, buildTinToCellarInstructions, buildTinToCellarRequest, assessPromptInput, buildCellarPackRepairPrompt, buildTinToCellarPrompt, buildCollectionHandoff, buildGenericChatHandoff } from './index'
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
 const schema = JSON.parse(read('../cellarpack/cellarpack-v1.schema.json'))
@@ -26,6 +26,18 @@ describe('prompt input', () => {
 })
 
 describe('self-contained generation protocol', () => {
+  it('includes non-affiliate paper guidance in downloaded instructions and both AI handoffs', () => {
+    const prompts = [buildTinToCellarInstructions(), buildCollectionHandoff({ tobaccos: [{ blend: 'Escudo' }] }).prompt, buildGenericChatHandoff().prompt]
+    for (const prompt of prompts) {
+      expect(prompt).toContain('https://www.avery.com/blank/labels/94502')
+      expect(prompt).toContain('This is not an affiliate link.')
+      expect(prompt).toContain('Plain printer paper and a glue stick are also an option')
+      expect(prompt).toContain('print at Actual Size / 100%, cut out the labels')
+      expect(prompt).toContain('flat area of their lid')
+      expect(prompt).toContain('Paper choice does not change the artwork geometry')
+      expect(prompt).toContain('do not include it in label research sources')
+    }
+  })
   it('waits for a current-conversation request instead of retrieving an old inventory', () => {
     const instructions = buildTinToCellarInstructions()
     expect(instructions).toContain('Do not retrieve an inventory from account memory or other chats')
