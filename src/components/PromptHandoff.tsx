@@ -6,7 +6,7 @@ import { Icon } from './Icons'
 type PromptHandoffProps = { prompt: string; request: string; copyLabel?: string; copied?: boolean; busy?: boolean; onCopy?: () => Promise<string>; onCopyLatest?: () => Promise<string>; onCopied?: (payload: string) => void }
 type CopyResult = { payload: string; source: string; failed: boolean }
 
-export function PromptHandoff({ prompt, request, copyLabel = 'Copy instructions', copied = false, busy, onCopy, onCopyLatest, onCopied }: PromptHandoffProps) {
+export function PromptHandoff({ prompt, copyLabel = 'Copy instructions', copied = false, busy, onCopy, onCopyLatest, onCopied }: PromptHandoffProps) {
   const copyButton = useRef<HTMLButtonElement>(null)
   const restoreCopyFocus = useRef(false)
   const [result, setResult] = useState<CopyResult | null>(null)
@@ -40,7 +40,7 @@ export function PromptHandoff({ prompt, request, copyLabel = 'Copy instructions'
       setSource(true)
     } finally { restoreCopyFocus.current = latest; setSaving(false) }
   }
-  const preview = source ? currentResult?.payload ?? prompt : request
+  const preview = currentResult?.payload ?? prompt
   return (
     <section className="handoff" aria-labelledby="handoff-title">
       <div className="handoff-content">
@@ -59,7 +59,7 @@ export function PromptHandoff({ prompt, request, copyLabel = 'Copy instructions'
       <div className="handoff-details">
       <details className="prompt-preview" open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>
         <summary>Read prompt</summary>
-        <p className="handoff-inspection-note">Preview shows your blends and design notes. Full copied text also includes the instructions your AI needs to create, check, and package the labels.</p>
+        <p className="handoff-inspection-note">Both views show the complete prompt, including your blends, design notes, and instructions for creating, checking, and packaging the labels.</p>
         <div className="prompt-view-switch" role="group" aria-label="Prompt view">
           <button type="button" aria-pressed={!source} onClick={() => setSource(false)}>Preview</button>
           <button type="button" aria-pressed={source} onClick={() => setSource(true)}>Full copied text</button>

@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, expect, it, vi } from 'vitest'
 import { PromptHandoff } from './PromptHandoff'
 afterEach(cleanup)
-it('copies the complete prompt while keeping the request preview readable', async () => {
+it('previews and copies the complete prompt', async () => {
   const writeText = vi.fn().mockResolvedValue(undefined)
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
   const { rerender } = render(<PromptHandoff prompt="Full contract and schema" request="Just the request" />)
@@ -12,7 +12,8 @@ it('copies the complete prompt while keeping the request preview readable', asyn
   fireEvent.click(screen.getByRole('button', { name: 'Copy instructions' }))
   await waitFor(() => expect(writeText).toHaveBeenCalledWith('Full contract and schema'))
   fireEvent.click(screen.getByText('Read prompt'))
-  expect(screen.getByRole('region', { name: 'Rendered prompt' })).toHaveTextContent('Just the request')
+  expect(screen.getByRole('region', { name: 'Rendered prompt' })).toHaveTextContent('Full contract and schema')
+  expect(screen.getByRole('region', { name: 'Rendered prompt' })).not.toHaveTextContent('Just the request')
   fireEvent.click(screen.getByRole('button', { name: 'Full copied text' }))
   expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Full contract and schema')
   expect(screen.queryByRole('button', { name: 'Copy complete prompt' })).not.toBeInTheDocument()
@@ -20,6 +21,8 @@ it('copies the complete prompt while keeping the request preview readable', asyn
   rerender(<PromptHandoff prompt="Changed contract" request="Changed request" />)
   expect(screen.getByRole('status')).toBeEmptyDOMElement()
   expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Changed contract')
+  fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
+  expect(screen.getByRole('region', { name: 'Rendered prompt' })).toHaveTextContent('Changed contract')
 })
 it('reveals selectable complete text if clipboard access fails', async () => {
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) } })
@@ -29,9 +32,9 @@ it('reveals selectable complete text if clipboard access fails', async () => {
   expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Complete fallback text')
   expect(screen.getByText('Read prompt').closest('details')).toHaveAttribute('open')
 })
-it('renders untrusted request Markdown without fetching images or executing HTML', () => {
+it('renders untrusted prompt Markdown without fetching images or executing HTML', () => {
   const request = '# Task\n\n![Reference](https://example.com/tracker.png)\n\n<script>alert(1)</script>\n\n[Unsafe](javascript:alert(1))'
-  render(<PromptHandoff prompt="Full protocol" request={request} />)
+  render(<PromptHandoff prompt={request} request="Request summary" />)
   fireEvent.click(screen.getByText('Read prompt'))
   expect(screen.getByRole('heading', { name: 'Task' })).toBeInTheDocument()
   expect(screen.getByRole('region', { name: 'Rendered prompt' }).querySelector('img,script')).toBeNull()
@@ -56,5 +59,7 @@ it('copies the saved payload and uses it for manual fallback if clipboard access
   fireEvent.click(screen.getByRole('button', { name: 'Copy instructions' }))
   await waitFor(() => expect(writeText).toHaveBeenCalledWith('Exact saved prompt'))
   expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Exact saved prompt')
+  fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
+  expect(screen.getByRole('region', { name: 'Rendered prompt' })).toHaveTextContent('Exact saved prompt')
   expect(onCopied).not.toHaveBeenCalled()
 })
