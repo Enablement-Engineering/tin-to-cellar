@@ -134,7 +134,10 @@ async function saveOrder(page: Page, entries: Blend[]) {
 }
 
 function card(page: Page, entry: Blend, edition = 'Community fixture') {
-  return page.getByRole('article').filter({ has: page.getByRole('heading', { name: `${entry.maker} · ${entry.blend}`, exact: true }) }).filter({ hasText: edition })
+  const index = edition === 'Alternate fixture' ? 6 : blends.findIndex(blend => blend.id === entry.id)
+  const publicationId = `43649b43-8094-4a32-b5ee-8be75208fb6${index + 1}`
+  return page.getByRole('article', { name: `${entry.blend} ${entry.maker}`, exact: true })
+    .filter({ has: page.locator(`a[href$="/${publicationId}/artwork"]`) })
 }
 
 async function useCommunity(page: Page, entry: Blend) {

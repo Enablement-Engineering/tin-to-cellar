@@ -131,6 +131,8 @@ test('ZIP input has one visible keyboard entry and failed imports announce a res
   await page.getByRole('link', { name: 'Skip to main content' }).focus()
   await page.keyboard.press('Enter')
   await page.keyboard.press('Tab')
+  await expect(page.getByRole('link', { name: /^Buy label sheets from Avery/ })).toBeFocused()
+  await page.keyboard.press('Tab')
   await expect(page.getByRole('button', { name: 'Add more labels' })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(page.getByRole('button', { name: 'Choose ZIP' })).toBeFocused()
