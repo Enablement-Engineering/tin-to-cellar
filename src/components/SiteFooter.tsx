@@ -15,7 +15,6 @@ const pages: { page: FooterPage; label: string }[] = [
 
 export function SiteFooter({ currentView, onNavigate }: SiteFooterProps) {
   return <footer className="site-footer screen-only">
-    <p className="footer-copyright">© {new Date().getFullYear()} Enablement Engineering</p>
     <nav className="footer-nav" aria-label="About Tin to Cellar">
       {pages.map(({ page, label }) => <a
         key={page}
@@ -29,6 +28,9 @@ export function SiteFooter({ currentView, onNavigate }: SiteFooterProps) {
       >{label}</a>)}
     </nav>
     <p className="footer-credit">Made with ❤️ by <a href="https://www.enablement.engineering/">Enablement Engineering</a></p>
-    <p className="footer-notice">For adults 21+. Personal cellaring only; no resale or commercial packaging. Independent of tobacco brands. No tobacco sold.</p>
+    <div className="footer-legal">
+      <p className="footer-copyright">© {new Date().getFullYear()} Enablement Engineering</p>
+      <p className="footer-notice">For adults 21+. Personal cellaring only; no resale or commercial packaging. Independent of tobacco brands. No tobacco sold.</p>
+    </div>
   </footer>
 }
