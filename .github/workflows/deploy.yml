@@ -34,10 +34,12 @@ jobs:
       - run: npm test
       - run: npm run lint
       - run: npm run build
-      - name: Install browser for deployment recovery regression
-        run: npx playwright install --with-deps chromium
+      - name: Install browsers for recovery and Safari theme regressions
+        run: npx playwright install --with-deps chromium webkit
       - name: Check recovery between built app releases
         run: npm run test:recovery
+      - name: Check mobile Safari theme interaction
+        run: npm run test:theme -- --project iphone-webkit --grep 'theme responds to taps|keyboard focus leaving'
 
   deploy:
     needs: check

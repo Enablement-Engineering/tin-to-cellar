@@ -58,7 +58,12 @@ export function ThemeControl() {
 
   return <div className="theme-control" ref={control} onKeyDown={event => {
     if (event.key === 'Escape' && open) { event.preventDefault(); event.stopPropagation(); setOpen(false); trigger.current?.focus() }
-  }} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }}>
+  }} onBlur={event => {
+    // Safari can blur a radio with no next focus target during a tap inside
+    // its label. Hiding the panel here would cancel that pending selection.
+    // Outside pointer presses are handled separately; dismiss known focus exits.
+    if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) setOpen(false)
+  }}>
     <button className="theme-trigger" type="button" ref={trigger} aria-label={`Theme: ${choices[preference]}`} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(value => !value)}>
       <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="8" /><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none" /></svg>
       <span>Theme</span>
@@ -67,7 +72,8 @@ export function ThemeControl() {
       <fieldset>
         <legend>Appearance</legend>
         {Object.entries(choices).map(([value, label]) => <label key={value}>
-          <input type="radio" name={panelId} value={value} checked={preference === value} onChange={() => choose(value as ThemePreference)} />
+          {/* Safari does not focus radios on pointer activation; keep keyboard dismissal available after a tap. */}
+          <input type="radio" name={panelId} value={value} checked={preference === value} onClick={event => event.currentTarget.focus()} onChange={() => choose(value as ThemePreference)} />
           <span>{label}</span>
         </label>)}
       </fieldset>

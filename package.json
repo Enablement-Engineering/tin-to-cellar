@@ -10,6 +10,7 @@
     "app-release:prepare": "node scripts/app-release.mjs prepare",
     "app-release:retain": "node scripts/app-release.mjs retain",
     "test:recovery": "playwright test --config playwright.recovery.config.ts",
+    "test:theme": "playwright test --config playwright.theme.config.ts",
     "feedback:validators": "node scripts/feedback-validators.mjs",
     "protocol:release": "node scripts/protocol-release.mjs",
     "protocol:history": "node scripts/diagnostics/protocol-history.mjs",

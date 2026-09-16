@@ -71,6 +71,21 @@ test('an invalid saved preference follows the system', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
 })
 
+test('keyboard focus leaving the theme control closes the panel', async ({ page }) => {
+  await page.goto('/labels/create')
+  const trigger = page.getByRole('button', { name: 'Theme: System' })
+  await trigger.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('radio', { name: 'System', exact: true })).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(trigger).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('radio', { name: 'System', exact: true })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('group', { name: 'Appearance' })).toBeHidden()
+  await expect(page.getByRole('combobox').first()).toBeFocused()
+})
+
 test('dark mode keeps imported artwork, sheet previews and printed pages intact', async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' })
   await page.goto('/labels/print')
