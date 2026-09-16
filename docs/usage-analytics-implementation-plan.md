@@ -76,7 +76,7 @@ Both endpoints require the exact configured admin host and existing human Access
 | Ingestion, reports, expiry | `worker/analytics/index.ts`, `usage.ts`, `admin.ts`, root Worker dispatch/scheduled hook |
 | Database | `migrations/gallery/0009_usage_analytics.sql` |
 | Admin interface | `App.tsx`, `AdminUsage.tsx`, `admin-usage.css`; GalleryAdmin reports dirty/busy navigation state |
-| Public disclosure | `Privacy.tsx`, `DemandPreference.tsx`, `SiteFooter.tsx`, `Landing.tsx`, `HowItWorks.tsx`, `PackImporter.tsx` |
+| Public disclosure | `Privacy.tsx`, `DemandPreference.tsx`, `SiteFooter.tsx`, `Landing.tsx`, `HowItWorks.tsx`, `PackImporter.tsx`, `GalleryBrowse.tsx` |
 | Historical assumptions | `docs/website-product-plan.md` explicitly supersedes old analytics-free assumptions |
 | Operations | `wrangler.jsonc`, release generator, local test configuration, deployment smoke checks, analytics README |
 | Verification | Client/progress/Worker/SQLite/migration tests, preference/app regression tests, dedicated Playwright usage checks |
@@ -98,3 +98,5 @@ Integrate onto current main and preserve concurrent app-recovery changes. Run th
 A later authorized release must apply migration 0009 through the current main workflow, initially with collection off. Verify both public domains, health, protected diagnostic-budget denial, legacy no-write/config false, v2 false capabilities, and authenticated/unauthenticated admin behavior. Verify Cloudflare logging and account-level beacon injection settings directly. Local tests do not prove deployed Access configuration, provider retention, legal sufficiency, or physical printing.
 
 Activation is separate from deployment. After reviewing staging privacy, abuse-budget, and reporting evidence, enable only authorized streams. Emergency shutdown turns the master flag off while retaining legacy no-write responses, report reads, and cleanup. Never roll back to the old implicit-permission ingestion while collection is enabled.
+
+Local implementation evidence is recorded in [the validation record](usage-analytics-validation.md). All three critics closed their material implementation findings; production activation remains pending.

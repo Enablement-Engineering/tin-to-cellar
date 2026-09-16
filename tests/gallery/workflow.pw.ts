@@ -111,13 +111,7 @@ test('browser selects artwork, submits privately, reviewer publishes, public use
   await expect(publicPage.getByRole('heading', { name: 'Your labels' })).toBeVisible()
   await expect(publicPage.getByRole('heading', { name: 'Share your labels' })).toHaveCount(0)
   const addedWrites = writes.slice(previous)
-  expect(addedWrites.filter(write => write.path !== '/api/analytics/v1/print-intent')).toEqual([])
-  for (const write of addedWrites) {
-    const event = JSON.parse(write.body!)
-    expect(Object.keys(event).sort()).toEqual(['event', 'labels'])
-    expect(['added-to-labels', 'selected-for-print']).toContain(event.event)
-    expect(write.body).not.toContain('PRIVATE_')
-  }
+  expect(addedWrites).toEqual([]) // A new browser has not opted into any usage collection.
   await publicPage.emulateMedia({ media: 'print' })
   await publicPage.pdf({ path: 'output/gallery/gallery-print.pdf', format: 'Letter', printBackground: true })
   await publicPage.emulateMedia({ media: 'screen' })

@@ -44,7 +44,7 @@ function CreationReview({ identity, query, onCreate, onClose }: {
     }}>
       <h2 ref={title} tabIndex={-1} id="gallery-creation-title">Create artwork in your AI chat</h2>
       <p id="gallery-creation-description">Choose a blend for your AI creation list. From Your labels, you can review the list and copy instructions into your own AI chat.</p>
-      <p className="field-hint">You make the artwork in your chat and bring back the finished ZIP to print. No request is sent to Tin to Cellar.</p>
+      <p className="field-hint">You make the artwork in your chat and bring back the finished ZIP to print. Tin to Cellar does not run the AI chat.</p>
       <TobaccoSelector label="Find a blend" hint="Type part of a blend or maker name, then choose a match." value={draft} disabled={saving} onChange={value => { setDraft(value); setSelected(null); setError('') }} onChoose={choice => { setSelected(choice); setDraft(choice.maker ? formatTobacco(choice) : choice.blend); setError('') }} />
       <div role="status" aria-atomic="true">{selected && <p className="gallery-confirmed-blend"><strong>{selected.blend}</strong><span>{selected.catalogId ? selected.maker : 'Custom blend'}</span></p>}</div>
       {selected && !selected.catalogId && <label className="field"><span>Maker <em>optional</em></span><input value={selected.maker} maxLength={120} disabled={saving} onChange={event => setSelected({ ...selected, maker: event.target.value })} /></label>}

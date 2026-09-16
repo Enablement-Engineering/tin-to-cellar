@@ -45,18 +45,21 @@ test('gallery pagination waits for keyboard activation and preserves retry', asy
   expect(lists).toBe(3)
 })
 
-test('editorial pages and demand opt-out remain readable and keyboard accessible at 320px', async ({ page }, testInfo) => {
+test('editorial pages and usage opt-in remain readable and keyboard accessible at 320px', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 320, height: 900 })
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  for (const [path, heading] of [['/about', 'Why use AI?'], ['/labels/help', "How the artwork keeps the tin's character"], ['/privacy', 'Optional counts of label requests']]) {
+  for (const [path, heading] of [['/about', 'Why use AI?'], ['/labels/help', "How the artwork keeps the tin's character"], ['/privacy', 'Optional app usage and label-request counts']]) {
     await page.goto(path)
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([])
   }
-  const preference = page.getByRole('checkbox', { name: 'Allow counts of blend selections and print requests' })
+  const preference = page.getByRole('checkbox', { name: 'Allow app-action, request-progress, and label-demand counts' })
+  await expect(preference).not.toBeChecked()
   await preference.focus()
   await expect(preference).toBeFocused()
+  await page.keyboard.press('Space')
+  await expect(preference).toBeChecked()
   await page.keyboard.press('Space')
   await expect(preference).not.toBeChecked()
   await page.screenshot({ path: testInfo.outputPath('privacy-opt-out.png'), fullPage: true })
@@ -64,8 +67,8 @@ test('editorial pages and demand opt-out remain readable and keyboard accessible
 
 test('canonical print intent is best effort, opt-out is silent and loaded printing survives offline', async ({ page, context }) => {
   const events: unknown[] = []
-  await page.route('**/api/analytics/v1/config', route => route.fulfill({ json: { enabled: true } }))
-  await page.route('**/api/analytics/v1/print-intent', route => {
+  await page.route('**/api/analytics/v2/config', route => route.fulfill({ json: { version: 2, demandEnabled: true, workflowEnabled: false, progressEnabled: false } }))
+  await page.route('**/api/analytics/v2/print-intent', route => {
     events.push(route.request().postDataJSON())
     return route.fulfill({ status: 429, json: { error: 'rate_limited' } })
   })
@@ -74,7 +77,11 @@ test('canonical print intent is best effort, opt-out is silent and loaded printi
   const manifest = JSON.parse(await zip.file('manifest.json')!.async('string'))
   manifest.labels[0].maker = 'Peterson'; manifest.labels[0].blend = 'Nightcap'
   zip.file('manifest.json', JSON.stringify(manifest))
-  await page.goto('/labels/print')
+  await page.goto('/privacy')
+  const configured = page.waitForResponse('**/api/analytics/v2/config')
+  await page.getByRole('checkbox', { name: 'Allow app-action, request-progress, and label-demand counts' }).check()
+  await configured
+  await page.getByRole('link', { name: 'Print labels', exact: true }).click()
   await page.getByLabel('Label ZIP').setInputFiles({ name: 'test.cellarpack.zip', mimeType: 'application/zip', buffer: await zip.generateAsync({ type: 'nodebuffer' }) })
   await page.getByRole('button', { name: 'Add 1 label', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Print 1 label', exact: true })).toBeEnabled()
@@ -82,17 +89,17 @@ test('canonical print intent is best effort, opt-out is silent and loaded printi
   await page.getByRole('link', { name: 'Your labels', exact: true }).click()
   await page.getByRole('link', { name: 'Print labels', exact: true }).click()
   await expect.poll(() => events.length).toBe(1)
-  expect(events[0]).toEqual({ event: 'selected-for-print', labels: [{ catalogId: 'peterson-nightcap', quantity: 1 }] })
+  expect(events[0]).toEqual({ version: 2, event: 'selected-for-print', labels: [{ catalogId: 'peterson-nightcap', quantity: 1 }] })
   await page.getByRole('spinbutton', { name: 'Quantity for Nightcap' }).fill('3')
   const print = page.getByRole('button', { name: 'Print 3 labels', exact: true })
   await expect(print).toBeEnabled()
   await page.evaluate(() => { window.print = () => { document.documentElement.dataset.testPrints = String(Number(document.documentElement.dataset.testPrints ?? 0) + 1) } })
   await print.click()
   await expect.poll(() => events.length).toBe(2)
-  expect(events[1]).toEqual({ event: 'print-job-requested', labels: [{ catalogId: 'peterson-nightcap', quantity: 3 }] })
+  expect(events[1]).toEqual({ version: 2, event: 'print-job-requested', labels: [{ catalogId: 'peterson-nightcap', quantity: 3 }] })
   await expect(page.locator('html')).toHaveAttribute('data-test-prints', '1')
-  await page.getByRole('link', { name: 'Privacy', exact: true }).click()
-  await page.getByRole('checkbox', { name: 'Allow counts of blend selections and print requests' }).uncheck()
+  await page.getByRole('contentinfo').getByRole('link', { name: 'Privacy and data choices', exact: true }).click()
+  await page.getByRole('checkbox', { name: 'Allow app-action, request-progress, and label-demand counts' }).uncheck()
   await page.getByRole('link', { name: 'Print labels', exact: true }).click()
   await context.setOffline(true)
   await print.click()

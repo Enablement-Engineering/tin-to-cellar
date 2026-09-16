@@ -55,7 +55,7 @@ it('allows creating different artwork from a confirmed catalog blend even when d
   await screen.findByRole('button', { name: 'Add to your labels' })
   fireEvent.click(screen.getByRole('button', { name: 'Create in my AI chat' }))
   expect(screen.getByRole('dialog')).toHaveAccessibleName('Create artwork in your AI chat')
-  expect(screen.getByRole('dialog')).toHaveTextContent('No request is sent to Tin to Cellar.')
+  expect(screen.getByRole('dialog')).toHaveTextContent('Tin to Cellar does not run the AI chat.')
   expect(onCreate).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Add to my AI creation list' }))
   await waitFor(() => expect(onCreate).toHaveBeenCalledWith({ catalogId: expect.any(String), maker: 'Peterson', blend: 'Nightcap' }))
