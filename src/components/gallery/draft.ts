@@ -5,7 +5,7 @@ import { findExactTobacco } from '../../lib/tobacco-catalog'
 export const SHARING_NOTICE = 'Your ZIP is read on this device. Only labels you choose to submit are uploaded for private review. Approved labels become public so others can download and print them for personal cellaring. Authorized review tools may inspect submitted artwork.'
 export const ACKNOWLEDGEMENT = 'I created or generated these labels and agree to share them through Tin to Cellar for personal cellaring.'
 export type Choice = { edition: string; package: NonNullable<GalleryEvidence['package']>; variant: NonNullable<GalleryEvidence['variant']>; description: string; references: string[] }
-export type Attempt = { label: ImportedCellarLabel; draft: GalleryLabelDraft; key: string; receipt?: GalleryReceipt; error?: string; retryable?: boolean }
+export type Attempt = { label: ImportedCellarLabel; draft: GalleryLabelDraft; key: string; reservation?: GalleryReceipt; receipt?: GalleryReceipt; error?: string; retryable?: boolean }
 export const hex = (bytes: ArrayBuffer) => Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('')
 export function references(item: ImportedCellarLabel) { return (item.label.research?.sources ?? []).filter(source => source.type === 'web' && ['package-appearance', 'variant-identification'].includes(source.role) && publicReference(source.url)) }
 export function initial(item: ImportedCellarLabel): Choice { return { edition: item.label.edition ?? '', package: 'unknown', variant: 'unknown', description: item.label.altText ?? '', references: [] } }

@@ -150,14 +150,14 @@ it.each(['HEAD', 'OPTIONS', 'POST', 'DELETE', 'PATCH', 'PUT'])('rejects unsuppor
   expect(query).not.toHaveBeenCalled();
 });
 
-it.each(['denied', 'missing', 'failed', 'salt-missing'] as const)('fails submission admission closed when %s before body, queries, or challenge verification', async mode => {
+it.each(['/submissions', '/submissions/batch'].flatMap(path => ['denied', 'missing', 'failed', 'salt-missing'].map(mode => ({ path, mode }))))('fails $path admission closed when $mode before body, queries, or challenge verification', async ({ path, mode }) => {
   if (mode === 'missing') env.GALLERY_MUTATION_RATE_LIMITER = undefined;
   else env.GALLERY_MUTATION_RATE_LIMITER = { limit: async () => { if (mode === 'failed') throw Error('unavailable'); return { success: mode === 'salt-missing' }; } };
   if (mode === 'salt-missing') env.GALLERY_IP_SALT = undefined;
   const query = vi.spyOn(db, 'prepare');
   const challenge = vi.fn(async () => false);
   const reservation = vi.spyOn(env.GALLERY_RATE_LIMITER!, 'limit');
-  const request = new Request('https://site.example/api/gallery/v1/submissions', { method: 'POST', headers: { Origin: 'https://site.example', Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(draft) });
+  const request = new Request('https://site.example/api/gallery/v1' + path, { method: 'POST', headers: { Origin: 'https://site.example', Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(path.endsWith('/batch') ? { submissions: [draft] } : draft) });
   const reader = vi.spyOn(request.body!, 'getReader');
   const response = await galleryResponse(request, env, { ...deps, verifyTurnstile: challenge });
   expect(response.status).toBe(mode === 'denied' ? 429 : 503);
@@ -166,6 +166,81 @@ it.each(['denied', 'missing', 'failed', 'salt-missing'] as const)('fails submiss
   expect(reader).not.toHaveBeenCalled();
   expect(challenge).not.toHaveBeenCalled();
   expect(reservation).not.toHaveBeenCalled();
+});
+
+function batchRequest(payload: unknown, challenge: () => Promise<boolean>, headers: Record<string, string> = {}) {
+  return galleryResponse(new Request('https://site.example/api/gallery/v1/submissions/batch', {
+    method: 'POST', headers: { Origin: 'https://site.example', Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'X-Turnstile-Token': 'single-use-token', ...headers },
+    body: JSON.stringify(payload),
+  }), env, { ...deps, verifyTurnstile: challenge });
+}
+
+it('reserves five labels with one challenge, keeps each upload private, and replays without another challenge or admission', async () => {
+  const submissions = Array.from({ length: 5 }, () => ({ ...draft, submissionId: crypto.randomUUID() }));
+  const challenge = vi.fn().mockResolvedValueOnce(true).mockResolvedValue(false);
+  const admission = vi.spyOn(env.GALLERY_RATE_LIMITER!, 'limit');
+  const response = await batchRequest({ submissions }, challenge);
+  expect(response.status).toBe(201);
+  expect((await response.json()).submissions.map((r: { id: string; state: string }) => [r.id, r.state])).toEqual(submissions.map(draft => [draft.submissionId, 'reserved']));
+  expect(challenge).toHaveBeenCalledOnce();
+  expect(admission).toHaveBeenCalledTimes(5);
+  expect(db.db.prepare("SELECT admissions FROM gallery_admission WHERE bucket='site:2026-09-06'").get()!.admissions).toBe(5);
+  for (const draft of submissions) {
+    expect((await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png, { Authorization: `Bearer ${'b'.repeat(64)}` })).status).toBe(404);
+    expect((await call(`/submissions/${draft.submissionId}/artwork`, 'PUT', png)).status).toBe(200);
+    expect((await call(`/labels/${draft.submissionId}/artwork`)).status).toBe(404);
+  }
+  const replay = await batchRequest({ submissions }, challenge, { 'X-Turnstile-Token': '' });
+  expect(replay.status).toBe(200);
+  expect((await replay.json()).submissions.every((r: { state: string }) => r.state === 'pending')).toBe(true);
+  expect(challenge).toHaveBeenCalledOnce();
+  expect(admission).toHaveBeenCalledTimes(5);
+  // The same capability cannot admit extra labels with the consumed token.
+  expect((await batchRequest({ submissions: [...submissions.slice(0, 4), { ...draft, submissionId: crypto.randomUUID() }] }, challenge)).status).toBe(403);
+  expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_submissions').get()!.n).toBe(5);
+});
+
+it.each(['empty', 'too-many', 'duplicate', 'invalid-draft', 'unknown-catalog', 'old-notice', 'extra-field', 'oversize', 'null'])('rejects a %s batch without verifying or reserving anything', async mode => {
+  let payload: unknown = { submissions: [draft, { ...draft, submissionId: crypto.randomUUID() }] };
+  if (mode === 'empty') payload = { submissions: [] };
+  if (mode === 'too-many') payload = { submissions: Array.from({ length: 6 }, () => ({ ...draft, submissionId: crypto.randomUUID() })) };
+  if (mode === 'duplicate') payload = { submissions: [draft, draft] };
+  if (mode === 'invalid-draft') payload = { submissions: [draft, { ...draft, submissionId: crypto.randomUUID(), privateNotes: 'private' }] };
+  if (mode === 'unknown-catalog') payload = { submissions: [draft, { ...draft, submissionId: crypto.randomUUID(), tobacco: { catalogId: 'missing' } }] };
+  if (mode === 'old-notice') payload = { submissions: [draft, { ...draft, submissionId: crypto.randomUUID(), acknowledgement: { version: '2026-09-06-v1', accepted: true } }] };
+  if (mode === 'extra-field') payload = { submissions: [draft], privateNotes: 'private' };
+  if (mode === 'oversize') payload = { submissions: [draft], padding: 'x'.repeat(90_000) };
+  if (mode === 'null') payload = null;
+  const challenge = vi.fn(async () => true);
+  expect((await batchRequest(payload, challenge)).status).toBe(mode === 'oversize' ? 429 : 400);
+  expect(challenge).not.toHaveBeenCalled();
+  expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_submissions').get()!.n).toBe(0);
+  expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_admission').get()!.n).toBe(0);
+});
+
+it.each(['challenge', 'origin', 'capability', 'closed', 'rate-limit', 'daily-cap'])('admits no part of a batch when blocked by %s', async mode => {
+  const submissions = [draft, { ...draft, submissionId: crypto.randomUUID() }];
+  const challenge = vi.fn(async () => mode !== 'challenge');
+  const headers: Record<string, string> = mode === 'origin' ? { Origin: 'https://elsewhere.example' } : mode === 'capability' ? { Authorization: '' } : {};
+  if (mode === 'closed') env.GALLERY_INTAKE = 'false';
+  if (mode === 'rate-limit') env.GALLERY_RATE_LIMITER = { limit: vi.fn().mockResolvedValueOnce({ success: true }).mockResolvedValue({ success: false }) };
+  if (mode === 'daily-cap') db.db.prepare('INSERT INTO gallery_admission VALUES(?,?,?)').run('site:2026-09-06', 99, '2026-09-08');
+  const before = db.db.prepare('SELECT * FROM gallery_admission').all();
+  const response = await batchRequest({ submissions }, challenge, headers);
+  expect(response.status).toBe(mode === 'capability' ? 404 : mode === 'closed' ? 503 : ['rate-limit', 'daily-cap'].includes(mode) ? 429 : 403);
+  expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_submissions').get()!.n).toBe(0);
+  expect(db.db.prepare('SELECT * FROM gallery_admission').all()).toEqual(before);
+  expect(bucket.objects.size).toBe(0);
+});
+
+it('rejects changed metadata or another capability before reserving additional batch labels', async () => {
+  await call('/submissions', 'POST', draft);
+  const challenge = vi.fn(async () => true);
+  const extra = { ...draft, submissionId: crypto.randomUUID() };
+  expect((await batchRequest({ submissions: [{ ...draft, edition: 'Changed' }, extra] }, challenge)).status).toBe(409);
+  expect((await batchRequest({ submissions: [draft, extra] }, challenge, { Authorization: `Bearer ${'b'.repeat(64)}` })).status).toBe(404);
+  expect(challenge).not.toHaveBeenCalled();
+  expect(db.db.prepare('SELECT COUNT(*) AS n FROM gallery_submissions').get()!.n).toBe(1);
 });
 
 it('charges failed challenges without using the reservation quota and blocks subsequent work when exhausted', async () => {

@@ -3,6 +3,7 @@ import type { LabelSurface, NormalizedWriteAreaGeometry, WriteInArea } from '../
 import { GALLERY_NOTICE_VERSION, GALLERY_ARTWORK_PROFILE, type GalleryLabelDraft } from './types';
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const MAX_METADATA_BYTES = 16 * 1024;
+export const MAX_SUBMISSION_LABELS = 5;
 export const uuid = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value);
 const exact = (o: unknown, keys: string[]): o is Record<string, unknown> => !!o && typeof o === 'object' && !Array.isArray(o) && Object.keys(o).sort().join() === keys.sort().join();
 const bounded = (s: unknown, n: number, nonempty = false): s is string => typeof s === 'string' && s.length <= n && (!nonempty || s.trim().length > 0) && ![...s].some(c => c.charCodeAt(0) < 32 || c === '<' || c === '>');

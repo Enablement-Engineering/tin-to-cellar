@@ -1,14 +1,18 @@
 import { galleryCatalogId } from '../../src/lib/gallery/schema';
 import type { GalleryLabelDraft } from '../../src/lib/gallery/types';
 import { addDays, sha256, type GalleryDatabase, type GalleryEnv } from './storage';
-export async function reserveGallery(db: GalleryDatabase, env: GalleryEnv, request: Request, draft: GalleryLabelDraft, capabilityHash: string, requestHash: string, metadata: string, now: Date) {
+export async function reserveGallery(db: GalleryDatabase, env: GalleryEnv, request: Request, entries: { draft: GalleryLabelDraft; requestHash: string; metadata: string }[], capabilityHash: string, now: Date) {
     if (!env.GALLERY_IP_SALT || !env.GALLERY_RATE_LIMITER)
         throw new Error('intake_unavailable');
     const ipHash = await sha256(`${env.GALLERY_IP_SALT}:${now.toISOString().slice(0, 10)}:${request.headers.get('CF-Connecting-IP') ?? 'unknown'}`);
-    if (!(await env.GALLERY_RATE_LIMITER.limit({ key: ipHash })).success)
-        throw new Error('limit_exceeded');
+    // A batch still consumes one admission per image.
+    for (const _entry of entries) {
+        if (!(await env.GALLERY_RATE_LIMITER.limit({ key: ipHash })).success)
+            throw new Error('limit_exceeded');
+    }
     try {
-        await db.prepare(`INSERT INTO gallery_submissions(id,capability_hash,request_hash,state,created_at,expires_at,metadata_json,metadata_hash,catalog_id,input_bytes,quota_key) VALUES(?,?,?,'reserved',?,?,?,?,?,?,?)`).bind(draft.submissionId, capabilityHash, requestHash, now.toISOString(), addDays(now, 1 / 24), metadata, requestHash, galleryCatalogId(draft), draft.image.bytes, `ip:${now.toISOString().slice(0, 10)}:${ipHash}`).run();
+        // Capacity triggers and reservations commit together, or all roll back.
+        await db.batch(entries.map(({ draft, requestHash, metadata }) => db.prepare(`INSERT INTO gallery_submissions(id,capability_hash,request_hash,state,created_at,expires_at,metadata_json,metadata_hash,catalog_id,input_bytes,quota_key) VALUES(?,?,?,'reserved',?,?,?,?,?,?,?)`).bind(draft.submissionId, capabilityHash, requestHash, now.toISOString(), addDays(now, 1 / 24), metadata, requestHash, galleryCatalogId(draft), draft.image.bytes, `ip:${now.toISOString().slice(0, 10)}:${ipHash}`)));
     }
     catch (e) {
         if (String(e).includes('gallery_capacity'))

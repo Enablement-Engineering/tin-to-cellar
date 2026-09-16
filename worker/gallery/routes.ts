@@ -3,7 +3,7 @@ import { humanQueue, reviewRecord } from './review'
 import { gallerySwitches, publicGalleryRead, streamAsset, type PublicReadDependencies } from './public-read'
 import type { Statement } from '../diagnostics'
 import { GALLERY_NOTICE_VERSION, type GalleryLabelDraft, type GalleryReceipt, type GalleryState } from '../../src/lib/gallery/types';
-import { galleryCatalogId, canonicalJson, MAX_IMAGE_BYTES, MAX_METADATA_BYTES, parseGalleryDraft, uuid } from '../../src/lib/gallery/schema';
+import { galleryCatalogId, canonicalJson, MAX_IMAGE_BYTES, MAX_METADATA_BYTES, MAX_SUBMISSION_LABELS, parseGalleryDraft, uuid } from '../../src/lib/gallery/schema';
 import { normalizeGalleryImage } from '../../src/lib/gallery/image';
 import { buildGalleryPack } from '../../src/lib/gallery/pack';
 import { verifyGalleryAdmin, verifyGalleryTurnstile } from './auth';
@@ -48,8 +48,8 @@ const get = (db: GalleryDatabase, id: string) => db.prepare('SELECT * FROM galle
 const terminal = ['rejected', 'withdrawn', 'expired', 'deleting', 'deleted'];
 const visible = (r: Row, now: Date) => r.state === 'published' || (!terminal.includes(r.state) && r.expires_at > now.toISOString());
 const capability = (r: Request) => { const h = r.headers.get('Authorization') ?? ''; return /^Bearer [a-f0-9]{64}$/.test(h) ? h.slice(7) : null; };
-async function body(request: Request) { if (request.headers.get('Content-Type') !== 'application/json')
-    throw new Error('invalid_metadata'); return JSON.parse(new TextDecoder().decode(await boundedBody(request, MAX_METADATA_BYTES))) as Record<string, unknown>; }
+async function body(request: Request, maxBytes = MAX_METADATA_BYTES) { if (request.headers.get('Content-Type') !== 'application/json')
+    throw new Error('invalid_metadata'); return JSON.parse(new TextDecoder().decode(await boundedBody(request, maxBytes))) as Record<string, unknown>; }
 async function digest(metadata: GalleryLabelDraft, imageHash: string) { return sha256(`gallery-v2:${imageHash}:${await sha256(canonicalJson(metadata))}:${galleryCatalogId(metadata) ?? ''}`); }
 async function auditedMutation(db: GalleryDatabase, mutation: Statement, id: string, actor: string, action: string, now: Date, beforeDigest?: string|null) {
     // D1 batch executes both statements in one SQLite transaction. changes() is
@@ -82,7 +82,8 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
     const own = path.match(/^\/submissions\/([a-f0-9-]+)\/(artwork)$/);
     const label = path.match(/^\/labels\/([a-f0-9-]+)(?:\/(artwork|thumbnail|pack))?$/);
     const publicRead = method === 'GET' && (path === '/config' || path === '/labels' || path === '/browse' || !!(label && uuid(label[1])));
-    const publicSubmission = method === 'POST' && path === '/submissions';
+    const batchSubmission = path === '/submissions/batch';
+    const publicSubmission = method === 'POST' && (path === '/submissions' || batchSubmission);
     const publicUpload = method === 'PUT' && !!(own && uuid(own[1]));
     try {
         if (method !== 'GET' && request.headers.get('Origin') !== url.origin)
@@ -109,30 +110,42 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
     if (!await labelMetadataReady(env)) return json({ error: 'maintenance', message: 'Gallery maintenance is in progress. Please try again shortly.' }, 503);
         const db = database(env);
         const switches = await gallerySwitches(db, env);
-        if (path === '/submissions' && method === 'POST') {
+        if (publicSubmission) {
             const token = capability(request);
             if (!token)
                 return json({ error: 'not_found' }, 404);
-            const draft = parseGalleryDraft(await body(request));
-            const metadata = canonicalJson(draft);
-            const hash = await sha256(metadata);
-            const capHash = await sha256(token);
-            const existing = await get(db, draft.submissionId);
-            if (existing) {
-                if (existing.capability_hash !== capHash)
-                    return json({ error: 'not_found' }, 404);
-                return existing.request_hash === hash ? json(receipt(existing,now)) : json({ error: 'review_changed' }, 409);
-            }
-            if (draft.acknowledgement.version !== GALLERY_NOTICE_VERSION)
+            const payload = await body(request, batchSubmission ? MAX_METADATA_BYTES * MAX_SUBMISSION_LABELS + 128 : MAX_METADATA_BYTES);
+            if (batchSubmission && (!payload || Object.keys(payload).join() !== 'submissions' || !Array.isArray(payload.submissions) || !payload.submissions.length || payload.submissions.length > MAX_SUBMISSION_LABELS))
                 return json({ error: 'invalid_metadata' }, 400);
-            if (!switches.intake)
-                return json({ error: 'intake_closed' }, 503);
-            if (!(await (deps.verifyTurnstile ?? verifyGalleryTurnstile)(request, env)))
-                return json({ error: 'challenge_required' }, 403);
-            if (galleryCatalogId(draft) && !await db.prepare('SELECT id FROM gallery_tobaccos WHERE id=? AND active=1').bind(galleryCatalogId(draft)).first())
-                return json({ error: 'catalog_mapping_required' }, 400);
-            await reserveGallery(db, env, request, draft, capHash, hash, metadata, now);
-            return json(receipt((await get(db, draft.submissionId))!,now), 201);
+            const drafts = (batchSubmission ? payload.submissions as unknown[] : [payload]).map(parseGalleryDraft);
+            if (new Set(drafts.map(draft => draft.submissionId)).size !== drafts.length)
+                return json({ error: 'invalid_metadata' }, 400);
+            const capHash = await sha256(token);
+            const missing: { draft: GalleryLabelDraft; metadata: string; requestHash: string }[] = [];
+            for (const draft of drafts) {
+                const metadata = canonicalJson(draft);
+                if (new TextEncoder().encode(metadata).length > MAX_METADATA_BYTES)
+                    return json({ error: 'invalid_metadata' }, 400);
+                const requestHash = await sha256(metadata);
+                const existing = await get(db, draft.submissionId);
+                if (existing) {
+                    if (existing.capability_hash !== capHash) return json({ error: 'not_found' }, 404);
+                    if (existing.request_hash !== requestHash) return json({ error: 'review_changed' }, 409);
+                } else {
+                    if (draft.acknowledgement.version !== GALLERY_NOTICE_VERSION) return json({ error: 'invalid_metadata' }, 400);
+                    if (galleryCatalogId(draft) && !await db.prepare('SELECT id FROM gallery_tobaccos WHERE id=? AND active=1').bind(galleryCatalogId(draft)).first())
+                        return json({ error: 'catalog_mapping_required' }, 400);
+                    missing.push({ draft, metadata, requestHash });
+                }
+            }
+            if (missing.length) {
+                if (!switches.intake) return json({ error: 'intake_closed' }, 503);
+                if (!(await (deps.verifyTurnstile ?? verifyGalleryTurnstile)(request, env)))
+                    return json({ error: 'challenge_required' }, 403);
+                await reserveGallery(db, env, request, missing, capHash, now);
+            }
+            const receipts = await Promise.all(drafts.map(async draft => receipt((await get(db, draft.submissionId))!, now)));
+            return json(batchSubmission ? { submissions: receipts } : receipts[0], missing.length ? 201 : 200);
         }
         if (own && uuid(own[1]) && method === 'PUT') {
             const token = capability(request);

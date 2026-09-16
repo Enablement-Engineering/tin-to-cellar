@@ -105,17 +105,88 @@ it('closed serving does not fetch listings or artwork', async () => {
 it('retries an unconfirmed upload with the same reservation ID and capability', async () => {
   let uploads = 0
   const posts: RequestInit[] = []
+  const puts: { url: string; init: RequestInit }[] = []
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
     if (url.endsWith('/config')) return { ok: true, json: async () => config }
     if (url.endsWith('/submissions')) { posts.push(init!); return { ok: true, json: async () => ({ id: JSON.parse(init?.body as string).submissionId, state: 'reserved' }) } }
-    uploads++; return { ok: uploads > 1, json: async () => ({ id: 'receipt', state: 'pending' }) }
+    puts.push({ url, init: init! }); uploads++; return { ok: uploads > 1, json: async () => ({ id: 'receipt', state: 'pending' }) }
   }))
   render(<GallerySubmission labels={[fixture()]} />)
   fireEvent.click(await screen.findByLabelText('Share Private maker Blend one')); fireEvent.click(screen.getByLabelText(ACKNOWLEDGEMENT)); fireEvent.click(screen.getByRole('button', { name: 'Submit for review' })); fireEvent.click(await screen.findByRole('button', { name: 'Verify test submission' }))
   await screen.findByText(/Artwork upload was not confirmed/)
-  fireEvent.click(screen.getByRole('button', { name: 'Retry this label' })); fireEvent.click(await screen.findByRole('button', { name: 'Verify test submission' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Retry this label' }))
   await screen.findByText(/Submitted for review/)
-  expect(posts).toHaveLength(2); expect(posts[0].body).toBe(posts[1].body); expect(posts[0].headers).toEqual(posts[1].headers)
+  expect(posts).toHaveLength(1); expect(puts).toHaveLength(2)
+  expect(puts[0]).toEqual(puts[1])
+  expect(new Headers(puts[0].init.headers).get('Authorization')).toBe(new Headers(posts[0].headers).get('Authorization'))
+  expect(screen.queryByRole('button', { name: 'Verify test submission' })).toBeNull()
+})
+
+it.each([false, true])('verifies all five selected labels once and continues after an upload failure: %s', async failFirst => {
+  const calls: { url: string; init: RequestInit }[] = []
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.endsWith('/config')) return Response.json(config)
+    calls.push({ url, init: init! })
+    if (url.endsWith('/submissions/batch')) {
+      const { submissions } = JSON.parse(init!.body as string)
+      return Response.json({ submissions: submissions.map((draft: { submissionId: string }) => ({ id: draft.submissionId, state: 'reserved' })) })
+    }
+    if (failFirst && calls.length === 2) return Response.json({ error: 'storage_unavailable' }, { status: 503 })
+    return Response.json({ id: url.split('/').at(-2), state: 'pending' })
+  }))
+  render(<GallerySubmission labels={Array.from({ length: 6 }, (_, index) => fixture(String(index)))} />)
+  await screen.findByLabelText('Share Private maker Blend 0')
+  for (let index = 0; index < 5; index++) fireEvent.click(screen.getByLabelText(`Share Private maker Blend ${index}`))
+  expect(calls).toHaveLength(0)
+  fireEvent.click(screen.getByLabelText(ACKNOWLEDGEMENT))
+  fireEvent.click(screen.getByRole('button', { name: 'Submit for review' }))
+  expect(await screen.findByText('Verify your submission once for all selected labels.')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Verify test submission' }))
+  await waitFor(() => expect(screen.getAllByText(/Submitted for review\./)).toHaveLength(failFirst ? 4 : 5))
+  expect(calls.map(call => call.init.method)).toEqual(['POST', 'PUT', 'PUT', 'PUT', 'PUT', 'PUT'])
+  expect(new Headers(calls[0].init.headers).get('X-Turnstile-Token')).toBe('challenge')
+  expect(calls[0].init.body).not.toContain('Blend 5')
+  expect(calls[0].init.body).not.toContain('DO NOT SHARE')
+  const { submissions } = JSON.parse(calls[0].init.body as string)
+  for (const [index, call] of calls.slice(1).entries()) {
+    expect(call.url).toBe(`/api/gallery/v1/submissions/${submissions[index].submissionId}/artwork`)
+    expect(new Headers(call.init.headers).get('Authorization')).toBe(new Headers(calls[0].init.headers).get('Authorization'))
+    expect(new Headers(call.init.headers).get('X-Turnstile-Token')).toBeNull()
+  }
+  if (failFirst) {
+    fireEvent.click(screen.getByRole('button', { name: 'Retry this label' }))
+    await waitFor(() => expect(screen.getAllByText(/Submitted for review\./)).toHaveLength(5))
+    expect(calls).toHaveLength(7)
+    expect(calls[6]).toEqual(calls[1])
+  }
+  expect(screen.queryByRole('button', { name: 'Verify test submission' })).toBeNull()
+})
+
+it.each([false, true])('reconciles an uncertain reservation before another check, reservation exists: %s', async exists => {
+  const posts: RequestInit[] = []
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.endsWith('/config')) return Response.json(config)
+    if (init?.method === 'POST') {
+      posts.push(init)
+      if (posts.length === 1) throw new Error('Connection lost')
+      if (!exists && posts.length === 2) return Response.json({ error: 'challenge_required' }, { status: 403 })
+      return Response.json({ id: JSON.parse(init.body as string).submissionId, state: 'reserved' })
+    }
+    return Response.json({ id: url.split('/').at(-2), state: 'pending' })
+  }))
+  render(<GallerySubmission labels={[fixture()]} />)
+  fireEvent.click(await screen.findByLabelText('Share Private maker Blend one'))
+  fireEvent.click(screen.getByLabelText(ACKNOWLEDGEMENT))
+  fireEvent.click(screen.getByRole('button', { name: 'Submit for review' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Verify test submission' }))
+  await screen.findByText('Connection lost')
+  fireEvent.click(screen.getByRole('button', { name: 'Retry this label' }))
+  if (!exists) fireEvent.click(await screen.findByRole('button', { name: 'Verify test submission' }))
+  await screen.findByText(/Submitted for review\./)
+  expect(posts).toHaveLength(exists ? 2 : 3)
+  expect(posts[1].body).toBe(posts[0].body)
+  expect(new Headers(posts[1].headers).get('X-Turnstile-Token')).toBeNull()
+  expect(new Headers(posts[1].headers).get('Authorization')).toBe(new Headers(posts[0].headers).get('Authorization'))
 })
 
 it('requires another review after metadata corrections before approving a version', async () => {
