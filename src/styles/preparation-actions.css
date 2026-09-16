@@ -19,3 +19,13 @@
 }
 .preparation-shortcuts .icon { flex-shrink: 0; }
 .preparation-import-return > .button { gap: 10px; }
+.import-review-dialog.blend-artwork-dialog { max-width: 760px; }
+.blend-artwork-dialog .import-review-header { max-height: 40dvh; overflow-y: auto; }
+.blend-artwork-dialog .import-review-header h2 { overflow-wrap: anywhere; }
+.blend-ai-choice { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid var(--line-hairline); }
+.blend-ai-choice > div { flex: 1 1 260px; }
+.blend-ai-choice h3 { margin: 0 0 8px; }
+.blend-ai-choice p { margin: 0; color: var(--text-muted); }
+.preparation-group { margin-block: 24px; }
+.preparation-group > h3 { margin-bottom: 12px; }
+.workspace-row-title h4 { font: var(--type-ui-strong); margin: 0; }

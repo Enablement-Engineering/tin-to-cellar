@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type RefObject } from 'react'
 import { formatTobacco, searchTobaccos, type TobaccoEntry } from '../lib/tobacco-catalog'
 import type { GalleryPublicLabel } from '../lib/gallery/types'
 import type { PrintLabel } from './ui-model'
@@ -13,10 +13,10 @@ import { API, errorText } from './gallery/client'
 import { searchExactLabels } from './gallery/search-labels'
 
 export type PreparationIdentity = { catalogId: string | null; maker: string; blend: string }
-export type PreparationRow = PreparationIdentity & { id: string; edition?: string; notes?: string; createRequested: boolean; previousDesignId?: string; artwork?: PrintLabel }
+export type PreparationRow = PreparationIdentity & { id: string; edition?: string; notes?: string; createRequested: boolean; designId?: string | null; previousDesignId?: string; artwork?: PrintLabel }
 export type PreparationWorkspaceProps = {
   rows: PreparationRow[]; busy?: boolean
-  onAdd: (identities: PreparationIdentity[]) => void | Promise<void>
+  onAdd: (identity: PreparationIdentity, choice: GalleryPublicLabel | 'ai') => void | Promise<void>
   onRemove: (rowId: string) => void
   onCreate: (rowId: string, requested: boolean) => void | Promise<void>
   onNotes?: (rowId: string, notes: string) => void | Promise<void>
@@ -31,26 +31,12 @@ const identity = (entry: TobaccoEntry): PreparationIdentity => ({ catalogId: ent
 function BlendIntake({ busy, onAdd, rows }: Pick<PreparationWorkspaceProps, 'busy' | 'onAdd' | 'rows'>) {
   const id = useId(), input = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState(''), [open, setOpen] = useState(false), [active, setActive] = useState(-1)
-  const [adding, setAdding] = useState(false), [addError, setAddError] = useState('')
+  const [pending, setPending] = useState<PreparationIdentity | null>(null), [addError, setAddError] = useState('')
   const [confirmation, setConfirmation] = useState('')
   useEffect(() => { if (!confirmation) return; const timer = window.setTimeout(() => setConfirmation(''), 6000); return () => window.clearTimeout(timer) }, [confirmation])
-  const [retryIdentities, setRetryIdentities] = useState<PreparationIdentity[] | null>(null)
   const matches = searchTobaccos(draft, 6), visible = open && Boolean(draft.trim())
   useEffect(() => { if (visible && active >= 0) document.getElementById(`${id}-${active}`)?.scrollIntoView?.({ block: 'nearest' }) }, [visible, active, id])
-  const addIdentities = async (identities: PreparationIdentity[]) => {
-    if (busy || adding) return
-    setAdding(true); setAddError(''); setConfirmation('')
-    setRetryIdentities(identities)
-    try {
-      const saved = onAdd(identities)
-      if (saved) await saved
-      const first = identities[0]
-      const exists = first && rows.some(row => row.maker === first.maker && row.blend === first.blend)
-      setConfirmation(identities.length === 1 ? `${first.blend} ${exists ? 'is already selected' : 'added'}` : 'Selection saved')
-      setDraft(''); setRetryIdentities(null); setOpen(false); setActive(-1); input.current?.focus()
-    } catch (failure) { setAddError(errorText(failure)) }
-    finally { setAdding(false) }
-  }
+  const close = () => { setPending(null); input.current?.focus() }
   const selected = active >= 0 ? active : matches.length === 1 ? 0 : -1
   const submit = () => {
     if (selected >= 0) add(matches[selected])
@@ -58,37 +44,83 @@ function BlendIntake({ busy, onAdd, rows }: Pick<PreparationWorkspaceProps, 'bus
     else { setOpen(true); setAddError('Choose a catalog match below, or use this name without a catalog match.') }
   }
   const add = (entry?: TobaccoEntry) => {
-    if (busy || adding) return
+    if (busy || pending) return
     if (!entry && !draft.trim()) return
-    void addIdentities(entry ? [identity(entry)] : retryIdentities ?? [...new Set(draft.split(/\r?\n/).map(name => name.trim()).filter(Boolean))].map(blend => ({ catalogId: null, maker: '', blend })))
+    const selectedIdentity = entry ? identity(entry) : { catalogId: null, maker: '', blend: draft.trim() }
+    setAddError(''); setConfirmation(''); setOpen(false); setActive(-1)
+    if (rows.some(row => row.catalogId === selectedIdentity.catalogId && row.maker === selectedIdentity.maker && row.blend === selectedIdentity.blend && !row.edition && !row.notes)) {
+      setConfirmation(`${selectedIdentity.blend} is already saved. Change its artwork below.`)
+      input.current?.focus(); return
+    }
+    setPending(selectedIdentity)
   }
   return <div className="preparation-intake">
     <div className="field tobacco-picker">
       <label htmlFor={id}>Add a blend</label>
-      <p id={`${id}-hint`} className="field-hint">Search by maker or blend, or add a name of your own.</p>
+      <p id={`${id}-hint`} className="field-hint">Find a blend, then choose a community design or add it to your AI creation list.</p>
       <div className="preparation-add-line"><div className="tobacco-editor">
-        <input id={id} ref={input} type="text" role="combobox" aria-autocomplete="list" aria-expanded={visible} aria-controls={visible ? `${id}-options` : undefined} aria-activedescendant={visible && selected >= 0 ? `${id}-${selected}` : undefined} aria-describedby={`${id}-hint`} autoComplete="off" value={draft} readOnly={busy || adding} placeholder="Search or type a blend…" onFocus={() => setOpen(true)} onBlur={() => { setOpen(false); setActive(-1) }} onChange={event => { setDraft(event.target.value); setRetryIdentities(null); setOpen(true); setActive(-1) }} onKeyDown={event => {
+        <input id={id} ref={input} type="text" role="combobox" aria-autocomplete="list" aria-expanded={visible} aria-controls={visible ? `${id}-options` : undefined} aria-activedescendant={visible && selected >= 0 ? `${id}-${selected}` : undefined} aria-describedby={`${id}-hint`} autoComplete="off" value={draft} readOnly={busy} placeholder="Search or type a blend…" onFocus={() => setOpen(true)} onBlur={() => { setOpen(false); setActive(-1) }} onChange={event => { setDraft(event.target.value); setAddError(''); setOpen(true); setActive(-1) }} onKeyDown={event => {
           if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && draft.trim()) { event.preventDefault(); setOpen(true); setActive(value => event.key === 'ArrowDown' ? Math.min(value + 1, matches.length) : value < 0 ? matches.length : Math.max(0, value - 1)) }
           else if (event.key === 'Escape') { setOpen(false); setActive(-1) }
           else if (event.key === 'Enter' && draft.trim()) { event.preventDefault(); submit() }
         }} onPaste={event => {
-          if (busy || adding) { event.preventDefault(); return }
+          if (busy) { event.preventDefault(); return }
           const pasted = event.clipboardData.getData('text')
           if (!/[\r\n]/.test(pasted)) return
           event.preventDefault()
-          const names = [...new Set(pasted.split(/\r?\n/).map(name => name.trim()).filter(Boolean))]
-          setDraft(names.join('\n')); setOpen(false)
-          void addIdentities(names.map(blend => ({ catalogId: null, maker: '', blend })))
+          setAddError('Add one blend at a time here. To paste a list, choose Add several blends.')
         }} />
         {visible && <ul id={`${id}-options`} className="tobacco-suggestions" role="listbox" aria-label="Blend suggestions">
           {matches.map((entry, index) => <li id={`${id}-${index}`} key={entry.id} role="option" aria-selected={selected === index} aria-label={`${entry.blend} by ${entry.maker}`} onMouseDown={event => event.preventDefault()} onClick={() => add(entry)}><strong>{entry.blend}</strong><span>{entry.maker}</span></li>)}
           <li id={`${id}-${matches.length}`} role="option" aria-selected={selected === matches.length} onMouseDown={event => event.preventDefault()} onClick={() => add()}>Use “{draft.trim()}” without a catalog match</li>
         </ul>}
-      </div><button type="button" className="button secondary" disabled={busy || adding || !draft.trim()} onClick={submit}>{adding ? 'Adding…' : 'Add blend'}</button></div>
+      </div><button type="button" className="button secondary" disabled={busy || !draft.trim()} onClick={submit}>Add blend</button></div>
       <p className="selection-confirmation" role="status" aria-atomic="true">{confirmation && `${confirmation} · ${rows.length} ${rows.length === 1 ? 'blend' : 'blends'} selected.`}</p>
-      {addError && <p role="alert">{addError} Your entered names are still here. Try adding them again.</p>}
+      {addError && <p role="alert">{addError}</p>}
     </div>
+    {pending && <BlendArtworkDialog identity={pending} busy={busy} returnFocus={input} onClose={close} onSave={async choice => {
+      await onAdd(pending, choice)
+      setConfirmation(`${pending.blend} ${choice === 'ai' ? 'added to your AI creation list' : 'is ready to print'}`)
+      setDraft(''); setOpen(false); setActive(-1)
+      close()
+    }} />}
   </div>
+}
+
+function BlendArtworkDialog({ identity, busy, returnFocus, onSave, onClose }: {
+  identity: PreparationIdentity; busy?: boolean; returnFocus: RefObject<HTMLInputElement | null>; onSave: (choice: GalleryPublicLabel | 'ai') => Promise<void>; onClose: () => void
+}) {
+  const id = useId(), dialog = useRef<HTMLDialogElement>(null), heading = useRef<HTMLHeadingElement>(null)
+  const inFlight = useRef(false)
+  const [saving, setSaving] = useState(false), [error, setError] = useState('')
+  useEffect(() => {
+    const modal = dialog.current!
+    const input = returnFocus.current
+    modal.showModal(); heading.current?.focus()
+    return () => { modal.close(); input?.focus({ preventScroll: true }) }
+  }, [returnFocus])
+  const save = async (choice: GalleryPublicLabel | 'ai') => {
+    if (inFlight.current || busy) return
+    inFlight.current = true; setSaving(true); setError('')
+    try { await onSave(choice) }
+    catch (failure) { setError(errorText(failure)) }
+    finally { inFlight.current = false; setSaving(false) }
+  }
+  return <dialog ref={dialog} className="import-review-dialog blend-artwork-dialog" aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`} onCancel={event => { event.preventDefault(); if (!inFlight.current) onClose() }} onKeyDown={event => {
+    if (event.key !== 'Tab') return
+    const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]')]
+    const first = controls[0], last = controls.at(-1)
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === heading.current)) { event.preventDefault(); last?.focus() }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+  }}>
+    <header className="import-review-header"><h2 id={`${id}-title`} ref={heading} tabIndex={-1}>Choose artwork for {identity.blend}</h2>{identity.maker && <p>{identity.maker}</p>}<p id={`${id}-description`}>Choose a design to make this label ready to print, or add it to your AI creation list. Nothing is added until you choose.</p></header>
+    <div className="import-review-body">
+      <div className="blend-ai-choice"><div><h3>Create with AI</h3><p>Add this blend to your list, then create the artwork in your AI chat when you are ready.</p></div><button type="button" className="button secondary" disabled={busy || saving} onClick={() => void save('ai')}>Create with AI</button></div>
+      <ArtworkChoices row={{ ...identity, id: 'draft', createRequested: false }} busy={busy || saving} onChooseCommunity={(_id, label) => save(label)} />
+      {error && <p role="alert">{error} Nothing was added. Choose again to retry.</p>}
+    </div>
+    <footer className="import-review-actions">{saving && <p role="status">Saving your label…</p>}<button type="button" className="button quiet" disabled={saving} onClick={onClose}>Cancel</button></footer>
+  </dialog>
 }
 
 function ArtworkChoices({ row, busy, onChooseCommunity }: Pick<PreparationWorkspaceProps, 'busy' | 'onChooseCommunity'> & { row: PreparationRow }) {
@@ -116,7 +148,7 @@ function ArtworkChoices({ row, busy, onChooseCommunity }: Pick<PreparationWorksp
   }
   if (!row.catalogId) return <p className="field-hint">This is a custom name. Create your own design, or browse community labels to find one.</p>
   return <div className="preparation-choices" aria-busy={loading}>
-    <h4>Community examples</h4>
+    <h3>Community examples</h3>
     <p className="field-hint">Choose one design for this label. If several examples are available, open the artwork to compare them before choosing.</p>
     {loading && <p className="field-hint" role="status">Checking community designs…</p>}
     {(error || page?.serving === false) && <div className="preparation-notice"><p>Community designs are unavailable right now. You can still create your own.</p><button type="button" className="button quiet" onClick={() => { setLoading(true); setPage(null); setError(''); setAttempt(value => value + 1) }} disabled={loading}>Retry community lookup</button></div>}
@@ -162,16 +194,22 @@ export function PreparationWorkspace({ rows, busy, onAdd, onRemove, onCreate, on
       selectedHeading.current?.focus({ preventScroll: true })
     } catch (failure) { setCreationError(failure instanceof Error ? failure.message : 'Your selection could not be saved. Try again.') }
   }
-  const ready = rows.filter(row => row.artwork).length
+  const hasArtwork = (row: PreparationRow) => Boolean(row.designId || row.artwork)
+  const ready = rows.filter(hasArtwork).length
   const requested = rows.filter(row => row.createRequested)
-  const shown = rows.filter(row => filter === 'all' || (filter === 'ready' ? Boolean(row.artwork) : !row.artwork))
+  const shown = rows.filter(row => filter === 'all' || (filter === 'ready' ? hasArtwork(row) : !hasArtwork(row)))
+  const groups = [
+    { title: 'Ready to print', rows: shown.filter(hasArtwork) },
+    { title: 'To create with AI', rows: shown.filter(row => !hasArtwork(row) && row.createRequested) },
+    { title: 'Choose artwork', rows: shown.filter(row => !hasArtwork(row) && !row.createRequested) },
+  ]
   const focusList = () => { selectedHeading.current?.scrollIntoView({ block: 'start' }); selectedHeading.current?.focus({ preventScroll: true }) }
   const choose = async (id: string, label: GalleryPublicLabel) => { await onChooseCommunity(id, label); setExpanded(null); selectedHeading.current?.focus({ preventScroll: true }) }
   return <section ref={workspace} className="create-workspace preparation-workspace label-workspace screen-only" aria-labelledby="preparation-title">
     <header className="page-heading"><h1 id="preparation-title">Your labels</h1><p>Choose artwork for each blend. Your community designs and new artwork stay together here.</p></header>
     {rows.length > 0 && <SelectionSummary selectedCount={rows.length} readyCount={ready} creationCount={requested.length} onView={requested.length ? undefined : focusList} onPrint={onPrint} busy={busy}>{requested.length > 0 && onContinueCreation && <button className="button primary" type="button" disabled={busy} onClick={onContinueCreation}>Continue to creation</button>}</SelectionSummary>}
     <section className="panel preparation-start" aria-label="Add labels">
-      <BlendIntake busy={busy} onAdd={onAdd} rows={rows} />
+      <BlendIntake busy={busy} onAdd={async (identity, choice) => { await onAdd(identity, choice); setFilter('all') }} rows={rows} />
       <div className="preparation-entry-actions preparation-shortcuts">
         {onOrder && <button type="button" className="button secondary" onClick={onOrder}><Icon name="file" size={18} />Add several blends</button>}
         <button type="button" className="button secondary" onClick={onBrowse}><Icon name="research" size={18} />Browse label designs</button>
@@ -182,17 +220,18 @@ export function PreparationWorkspace({ rows, busy, onAdd, onRemove, onCreate, on
     {rows.length > 0 && <>
       <div className="workspace-list-heading"><h2 ref={selectedHeading} tabIndex={-1} className="selected-labels-heading">Your saved selection</h2>
       <div className="workspace-filters" role="group" aria-label="Filter your labels">{([['all', `All (${rows.length})`], ['pending', `Needs artwork (${rows.length - ready})`], ['ready', `Ready (${ready})`]] as const).map(([value, label]) => <button type="button" key={value} aria-pressed={filter === value} onClick={() => { setFilter(value); setExpanded(null) }}>{label}</button>)}</div></div>
-      <div className="preparation-rows">{shown.map(row => <article className="panel preparation-row" key={row.id} aria-labelledby={`row-${row.id}`}>
+      {groups.filter(group => group.rows.length > 0).map(group => <section className="preparation-group" key={group.title} aria-label={group.title}><h3>{group.title} <span className="field-hint">({group.rows.length})</span></h3>{group.title === 'Choose artwork' && <p className="field-hint">These saved blends still need a community design or an AI creation request.</p>}
+      <div className="preparation-rows">{group.rows.map(row => <article className="panel preparation-row" key={row.id} aria-labelledby={`row-${row.id}`}>
         <div className="preparation-row-heading">
           {row.artwork ? <div className="label-thumbnail"><LabelArtwork label={row.artwork} /></div> : <div className="workspace-art-placeholder" aria-hidden="true"><Icon name="spark" size={20} /></div>}
-          <div className="workspace-row-title"><h3 id={`row-${row.id}`}>{row.blend}</h3>{row.maker && <p>{row.maker}{row.edition ? ` · ${row.edition}` : ''}</p>}<span className="field-hint">{row.artwork ? 'Ready to print' : row.previousDesignId ? 'Needs new artwork · previous design saved' : row.createRequested ? 'Selected for creation' : 'Needs artwork'}</span></div>
+          <div className="workspace-row-title"><h4 id={`row-${row.id}`}>{row.blend}</h4>{row.maker && <p>{row.maker}{row.edition ? ` · ${row.edition}` : ''}</p>}<span className="field-hint">{hasArtwork(row) ? 'Ready to print' : row.previousDesignId ? 'To create with AI · previous design saved' : row.createRequested ? 'To create with AI' : 'Needs artwork'}</span></div>
           <div className="workspace-row-actions"><button type="button" className="button secondary" aria-expanded={expanded === row.id} aria-controls={expanded === row.id ? `choices-${row.id}` : undefined} onClick={() => setExpanded(current => current === row.id ? null : row.id)}>{expanded === row.id ? 'Close choices' : row.artwork ? 'Change design' : 'Choose design'}</button>{row.createRequested && <button type="button" className="button quiet" disabled={busy} onClick={() => void requestArtwork(row, false)}>{row.previousDesignId ? 'Use previous design' : 'Cancel new artwork request'}</button>}<button type="button" className="button quiet" disabled={busy} aria-label={`Remove ${formatTobacco(row)}`} onClick={() => { onRemove(row.id); if (rows.length === 1) workspace.current?.querySelector<HTMLInputElement>('input[role="combobox"]')?.focus(); else selectedHeading.current?.focus({ preventScroll: true }) }}>Remove</button></div>
         </div>
         {expanded === row.id && <div id={`choices-${row.id}`} className="preparation-row-content"><div className="preparation-artwork-options">
           {!row.catalogId && onResolve && searchTobaccos(row.blend, 3).length > 0 && <div className="preparation-identity-options"><p className="field-hint">Match a catalog blend to check its community designs:</p>{searchTobaccos(row.blend, 3).map(entry => <button type="button" className="button quiet" disabled={busy} key={entry.id} onClick={() => onResolve(row.id, identity(entry))}>Match to {formatTobacco(entry)}</button>)}</div>}
           <ArtworkChoices key={row.catalogId} row={row} busy={busy} onChooseCommunity={choose} />
         </div><div className="preparation-create-choice"><p className="field-hint">{row.createRequested ? 'Selected for creation' : row.artwork ? 'Creating a new design will leave this label off your print sheet. You can restore the previous design at any time.' : 'Create artwork for this label'}</p>{!row.createRequested && <button type="button" className="button secondary" disabled={busy} onClick={() => void requestArtwork(row, true)}>Create my own</button>}</div></div>}
-      </article>)}</div>
+      </article>)}</div></section>)}
       {!shown.length && <p className="panel" role="status">{filter === 'ready' ? 'No artwork is ready yet. Choose a design or request new artwork.' : 'Every saved label has artwork.'}</p>}
       <section className="panel workspace-creation" aria-labelledby="workspace-creation-title"><div><h2 id="workspace-creation-title">Create artwork in your AI chat</h2><p>{requested.length ? `${requested.length} ${requested.length === 1 ? 'label selected' : 'labels selected'} for creation. Continue to review your request and copy the instructions.` : 'Choose labels, copy the instructions into your AI chat, then bring back the finished ZIP.'}</p></div>
         {onCreateMany && <button className="button secondary" type="button" disabled={busy} onClick={() => setCreationOpen(true)}>{requested.length ? 'Edit creation list' : 'Choose artwork to create'}</button>}

@@ -4,6 +4,8 @@ import type { CellarPackImportResult } from '../lib/cellarpack'
 import type { Retrospective } from '../lib/feedback/retrospective'
 import type { PackChoice } from '../components/gallery/pack-selection'
 import { preparePackImport } from '../lib/import-workflow/prepare'
+import { addManualLabel } from '../lib/collection/manual-add'
+import type { RequestInput } from '../lib/collection/types'
 
 function defaultDecisions(plan: ImportPlan): ImportDecisions {
   return Object.fromEntries(plan.entries.map(entry => [entry.designId, entry.kind === 'fill' ? { action: 'replace', rowId: entry.matchRowIds[0] } : { action: entry.kind === 'add' ? 'add' : 'skip' }]))
@@ -126,12 +128,22 @@ export function usePackImport({ collection, ready, commit, onStart, onImported, 
       else setImportError(message)
     } finally { importBusy.current = false; setImporting(false) }
   }
-  const chooseCommunity = async (choice: PackChoice, rowId?: string) => {
+  const chooseCommunity = async (choice: PackChoice, rowId?: string, newIdentity?: RequestInput) => {
     if (importBusy.current || !ready) throw new Error('Wait for the current label to finish saving, then try again.')
     const target = rowId ? collection.rows.find(row => row.id === rowId) : undefined
     if (rowId && !target) throw new CollectionError('conflict', 'The requested label is no longer available. Review your labels and try again.')
     importBusy.current = true; setImporting(true); setImportError('')
-    try { const { downloadPublishedPack } = await import('../components/gallery/pack-builder'); const { file, result } = await downloadPublishedPack(choice); await processResult(result, file.name, 'gallery', choice.id, target ? { id: target.id, revision: target.revision } : undefined) }
+    try {
+      const { downloadPublishedPack } = await import('../components/gallery/pack-builder')
+      const { file, result } = await downloadPublishedPack(choice)
+      if (newIdentity) {
+        const { incoming } = await preparePackImport(result, file.name, 'gallery', choice.id)
+        await saveIncoming(incoming, current => {
+          if (current.id !== collection.id) throw new CollectionError('conflict', 'Your saved labels changed. Cancel and choose the blend again.')
+          return addManualLabel(current, newIdentity, incoming)
+        })
+      } else await processResult(result, file.name, 'gallery', choice.id, target ? { id: target.id, revision: target.revision } : undefined)
+    }
     finally { importBusy.current = false; setImporting(false) }
   }
   const refreshDecisions = () => { if (review) setDecisions(defaultDecisions(review)) }

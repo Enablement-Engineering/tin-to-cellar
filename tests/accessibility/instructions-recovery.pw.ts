@@ -12,6 +12,7 @@ test('instruction download failure recovers after deliberate reload without losi
   await page.getByRole('navigation', { name: 'Workflow' }).getByRole('link', { name: 'Your labels' }).click()
   await page.getByRole('combobox', { name: 'Add a blend' }).fill('My saved blend')
   await page.getByRole('button', { name: 'Add blend', exact: true }).click()
+  await page.getByRole('button', { name: 'Create with AI', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'My saved blend' })).toBeVisible()
   await page.getByRole('link', { name: 'How it works', exact: true }).click()
   const retry = page.getByRole('button', { name: 'Reload instructions' })
