@@ -54,7 +54,7 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
   const [adding, setAdding] = useState<string | null>(null), [addError, setAddError] = useState('')
   const [identity, setIdentity] = useState<GalleryBlendIdentity | null>(null)
   const [query, setQuery] = useState(''), [maker, setMaker] = useState(''), [blend, setBlend] = useState<string | null>(null)
-  const [order, setOrder] = useState<BrowseOrder>('recent'), [shuffled, setShuffled] = useState<string[]>([])
+  const [order, setOrder] = useState<BrowseOrder>('shuffle'), [shuffled, setShuffled] = useState<string[]>([])
   const [visible, setVisible] = useState(24), [creating, setCreating] = useState(false)
   const resultCount = useRef<HTMLParagraphElement>(null), focusResults = useRef(false)
   const requestVersion = useRef(0), controller = useRef<AbortController | null>(null)
@@ -65,7 +65,7 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
     setBusy(true); setError('')
     try {
       const result = await loadBrowseLabels(current.signal)
-      if (version === requestVersion.current) setLabels(result)
+      if (version === requestVersion.current) { setLabels(result); setShuffled(shuffleIds(result)) }
     } catch (failure) { if (version === requestVersion.current) setError(errorText(failure)) }
     finally { if (version === requestVersion.current) setBusy(false) }
   }, [])
@@ -96,8 +96,8 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
     focusResults.current = false
     resultCount.current?.focus({ preventScroll: true }); resultCount.current?.scrollIntoView?.({ block: 'start' })
   }, [blend, query, maker])
-  const changeQuery = (value: string) => { setQuery(value); setVisible(24); if (order !== 'shuffle') setOrder(value.trim() ? 'best' : 'recent') }
-  const clearFilters = () => { setQuery(''); setMaker(''); setBlend(null); setIdentity(null); setVisible(24); if (order !== 'shuffle') setOrder('recent') }
+  const changeQuery = (value: string) => { setQuery(value); setVisible(24); if (order !== 'shuffle') setOrder(value.trim() ? 'best' : 'shuffle') }
+  const clearFilters = () => { setQuery(''); setMaker(''); setBlend(null); setIdentity(null); setVisible(24); setOrder('shuffle') }
   const chooseBlend = (label: GalleryPublicLabel) => {
     focusResults.current = true
     setQuery(`${label.maker} — ${label.blend}`); setBlend(blendKey(label)); setMaker(''); setIdentity({ catalogId: label.catalogId, maker: label.maker, blend: label.blend }); setVisible(24)
@@ -119,9 +119,9 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
         <div className="gallery-browse-controls">
           <GalleryBlendSearch labels={labels} loaded={!busy && !error} query={query} onChange={value => { setBlend(value); setVisible(24); if (value) setMaker('') }} onIdentityChange={setIdentity} onQueryChange={changeQuery} />
           <label className="field"><span>Maker</span><select value={maker} disabled={busy || !!error} onChange={event => { setMaker(event.target.value); setVisible(24) }}><option value="">All makers</option>{makers.map(([name, count]) => <option key={name} value={name}>{name} ({count})</option>)}</select></label>
-          <label className="field"><span>Order</span><select value={order} onChange={event => { setOrder(event.target.value as BrowseOrder); setVisible(24) }}><option value="recent">Recently added</option><option value="best" disabled={!query.trim()}>Best match</option><option value="az">Blend A–Z</option>{order === 'shuffle' && <option value="shuffle">Shuffled</option>}</select></label>
+          <label className="field"><span>Order</span><select value={order} onChange={event => { setOrder(event.target.value as BrowseOrder); setVisible(24) }}><option value="shuffle">Shuffled</option><option value="recent">Recently added</option><option value="best" disabled={!query.trim()}>Best match</option><option value="az">Blend A–Z</option></select></label>
         </div>
-        <div className="gallery-browse-actions"><button className="button secondary" type="button" disabled={busy || !!error || results.length < 2} onClick={() => { setShuffled(shuffleIds(labels)); setOrder('shuffle'); setVisible(24) }}>{order === 'shuffle' ? 'Shuffle again' : 'Shuffle designs'}</button>{(query || maker) && <button className="button quiet" type="button" onClick={clearFilters}>Clear filters</button>}</div>
+        {(query || maker) && <div className="gallery-browse-actions"><button className="button quiet" type="button" onClick={clearFilters}>Clear filters</button></div>}
       </section>
       <p ref={resultCount} tabIndex={-1} className="gallery-result-count" role="status" aria-atomic="true">{busy ? 'Loading community designs…' : error ? '' : `${results.length} ${results.length === 1 ? 'design' : 'designs'}${maker ? ` by ${maker}` : ''}${query ? ` matching “${query}”` : ''}${results.length ? ` · Showing ${shown.length}` : ''}`}</p>
       {!busy && !error && !results.length && <div className="gallery-empty"><h2>{identity && !maker ? 'No community artwork for this blend yet' : labels.length ? 'No designs match these filters' : 'No community designs yet'}</h2><p>{identity && !maker ? `${identity.maker} ${identity.blend} is selected. You can create its artwork, or clear the search to keep browsing.` : 'Try a shorter name, choose a suggested blend, or clear the filters. You can also create artwork for a blend of your own.'}</p></div>}

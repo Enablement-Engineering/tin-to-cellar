@@ -130,13 +130,18 @@ it('searches the complete library and paginates cards without repeating metadata
   expect(screen.getAllByRole('article')).toHaveLength(1)
 })
 
-it('retains a shuffled order and filters while selecting designs and returning to the mounted gallery', async () => {
+it('shuffles by default and retains that order while filtering, selecting, and returning to the mounted gallery', async () => {
+  vi.spyOn(Math, 'random').mockReturnValue(0)
   const labels = Array.from({ length: 8 }, (_, i) => ({ ...label, id: `design-${i}`, blend: `Blend ${i}`, maker: i % 2 ? 'Peterson' : 'Other' }))
   vi.mocked(loadBrowseLabels).mockResolvedValue(labels)
   const onAdd = vi.fn().mockResolvedValue(undefined)
   const view = render(<GalleryBrowse onAdd={onAdd} />)
   await screen.findByText('8 designs · Showing 8')
-  fireEvent.click(screen.getByRole('button', { name: 'Shuffle designs' }))
+  expect(screen.queryByRole('button', { name: /shuffle/i })).toBeNull()
+  expect(screen.getByRole('option', { name: 'Shuffled', selected: true })).toBeInTheDocument()
+  expect(screen.getAllByRole('article').map(article => article.getAttribute('aria-labelledby'))).toEqual(
+    [...labels.slice(1), labels[0]].map(label => `gallery-blend-${label.id} gallery-maker-${label.id}`),
+  )
   const order = screen.getAllByRole('article').map(article => article.textContent)
   fireEvent.change(screen.getByRole('combobox', { name: 'Maker' }), { target: { value: 'Peterson' } })
   expect(screen.getAllByRole('article')).toHaveLength(4)
