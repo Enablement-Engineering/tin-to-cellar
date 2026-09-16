@@ -9,7 +9,8 @@ const work = resolve(process.argv[2] ?? '')
 if (!work.startsWith(resolve('.wrangler') + '/') || !process.argv[2]) throw Error('Pass a .wrangler/gallery-* directory')
 const configPath = join(work, 'wrangler.json')
 const config = JSON.parse(await readFile(configPath, 'utf8'))
-if (config.name !== 'tin-to-cellar-local-gallery' || config.d1_databases?.length !== 1 || config.d1_databases[0].database_id !== '00000000-0000-0000-0000-000000000001' || config.r2_buckets?.length !== 1 || config.r2_buckets[0].bucket_name !== 'local-gallery') throw Error('Refusing a non-local gallery configuration')
+const gallery = config.d1_databases?.find(db => db.binding === 'GALLERY')
+if (config.name !== 'tin-to-cellar-local-gallery' || gallery?.database_id !== '00000000-0000-0000-0000-000000000001' || config.r2_buckets?.length !== 1 || config.r2_buckets[0].bucket_name !== 'local-gallery') throw Error('Refusing a non-local gallery configuration')
 const cache = resolve('.wrangler/public-gallery-downloads')
 await mkdir(cache, { recursive: true })
 const hash = bytes => createHash('sha256').update(bytes).digest('hex')
@@ -42,7 +43,10 @@ do {
 } while (cursor)
 await writeFile(join(cache, 'labels.json'), JSON.stringify(labels, null, 2))
 console.log(`Found ${labels.length} published labels. Target: ${work}`)
-const proxy = await getPlatformProxy({ configPath, persist: { path: join(work, 'state/v3') }, remoteBindings: false, envFiles: [] })
+// Expose only the two local storage bindings to this importer, even with the full stack config.
+const storageConfig = join(work, 'seed-storage.json')
+await writeFile(storageConfig, JSON.stringify({ name: 'local-public-gallery-seed', compatibility_date: '2026-09-05', d1_databases: [{ binding: 'GALLERY', database_name: 'local-gallery', database_id: gallery.database_id }], r2_buckets: [{ binding: 'GALLERY_ART', bucket_name: 'local-gallery' }] }))
+const proxy = await getPlatformProxy({ configPath: storageConfig, persist: { path: join(work, 'state/v3') }, remoteBindings: false, envFiles: [] })
 try {
   const db = proxy.env.GALLERY
   const bucket = proxy.env.GALLERY_ART

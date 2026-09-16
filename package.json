@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "npm run build && wrangler dev --local",
+    "dev": "node scripts/dev.mjs",
     "dev:frontend": "npm run feedback:validators && npm run protocol:release && npm run prepare:ocr && vite",
     "build": "npm run feedback:validators && npm run protocol:release && npm run prepare:ocr && tsc -b && vite build",
     "feedback:validators": "node scripts/feedback-validators.mjs",
@@ -28,7 +28,7 @@
     "preview:cloudflare": "npm run dev",
     "prepare:ocr": "node scripts/prepare-ocr.mjs",
     "test:a11y": "playwright test",
-    "gallery:dev": "npm run build && node scripts/gallery/start-local.mjs",
+    "gallery:dev": "npm run dev --",
     "gallery:test:server": "node scripts/gallery/start-local.mjs --test",
     "test:gallery": "npm run build && playwright test --config playwright.gallery.config.ts",
     "gallery:seed": "node scripts/gallery/seed-catalog.mjs",

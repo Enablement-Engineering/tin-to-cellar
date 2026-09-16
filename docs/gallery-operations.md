@@ -26,10 +26,10 @@ From the implementation checkout:
 
 ```sh
 npm ci
-npm run gallery:dev
+npm run dev
 ```
 
-`gallery:dev` builds the site and starts the actual Worker with local D1/R2 on `http://127.0.0.1:43928`. Each run creates a fresh ignored `.wrangler/gallery-*` configuration/state directory, applies only gallery migrations, seeds 1,482 catalog entries, and enables the local database switches. It does not touch remote resources. Normal mode still requires production authentication configuration; its empty Turnstile site key leaves submission unavailable and admin access fails closed.
+`dev` starts the full app and actual Worker on `http://127.0.0.1:43928`, with Vite live updates and persistent local D1/R2. `gallery:dev` is an alias. The default state directory is `.wrangler/dev`; an adopted gallery directory is remembered in `.wrangler/local-dev.json`. Startup applies gallery and diagnostics migrations and refreshes catalog identities, preserving published labels and images. It never touches remote resources. Public intake/publication are disabled locally, the Turnstile key is empty, and admin access fails closed. The isolated synthetic authentication harness remains available only through `gallery:test:server` and `test:gallery`.
 
 To populate that local gallery with all currently published production labels, pass its generated directory to:
 
@@ -37,15 +37,15 @@ To populate that local gallery with all currently published production labels, p
 npm run gallery:seed:public-local -- .wrangler/gallery-EXAMPLE
 ```
 
-The command reads only anonymous public gallery endpoints. It copies the original packs, extracts and hash-checks artwork, downloads thumbnails, and verifies local R2 readback before inserting each label. It never reads private submissions or writes to production. It respects public download limits, caches packs under `.wrangler/public-gallery-downloads`, and skips existing label IDs when resumed. This is an additive development snapshot, not ongoing synchronization: later production removals or updates are not applied. Local import records contain synthetic capabilities and use the local owner-import exemption; they are not production review records.
+Replace `.wrangler/gallery-EXAMPLE` with the persistent directory printed at startup, normally `.wrangler/dev`. The command reads only anonymous public gallery endpoints. It copies the original packs, extracts and hash-checks artwork, downloads thumbnails, and verifies local R2 readback before inserting each label. It never reads private submissions or writes to production. It respects public download limits, caches packs under `.wrangler/public-gallery-downloads`, and skips existing label IDs when resumed. This is an additive development snapshot, not ongoing synchronization: later production removals or updates are not applied. Local import records contain synthetic capabilities and use the local owner-import exemption; they are not production review records.
 
-Keep using the same seeded database on later starts:
+Adopt an existing seeded gallery once:
 
 ```sh
-npm run gallery:dev -- --reuse .wrangler/gallery-EXAMPLE
+npm run dev -- --reuse .wrangler/gallery-EXAMPLE
 ```
 
-Without `--reuse`, startup still creates a fresh empty gallery. Public downloads can take several minutes. Catalog seed entries alone do not include published artwork.
+Later starts need only `npm run dev`. For an isolated test stack that does not change the remembered directory, use `npm run dev -- --state-dir .wrangler/my-test --port 43930`. Public downloads can take several minutes. Catalog seed entries alone do not include published artwork. Browser-saved labels remain tied to the exact host and port, so keep using `127.0.0.1:43928` for everyday development.
 
 For the complete synthetic local workflow:
 
