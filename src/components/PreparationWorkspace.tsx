@@ -182,7 +182,7 @@ export function PreparationWorkspace({ rows, busy, onAdd, onRemove, onCreate, on
       <BlendIntake busy={busy} onAdd={async (identity, choice) => { await onAdd(identity, choice); setFilter('all') }} rows={rows} />
       <div className="preparation-entry-actions preparation-shortcuts">
         {onOrder && <button type="button" className="button secondary" onClick={onOrder}><Icon name="file" size={18} />Add several blends</button>}
-        <button type="button" className="button secondary" onClick={onBrowse}><Icon name="research" size={18} />Browse label designs</button>
+        <a className="button secondary" href="/gallery" onClick={event => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); onBrowse() }}><Icon name="research" size={18} />Browse gallery</a>
       </div>
     </section>
     {creationNotice && <p role="status" className="selection-confirmation">{creationNotice}</p>}
