@@ -1,7 +1,46 @@
+import { useEffect, useRef, useState } from 'react'
 import { Icon } from './Icons'
 import { ExamplePack } from './ExamplePack'
 
-type LandingProps = { onNavigate: (view: 'create' | 'print' | 'help' | 'order' | 'gallery') => void; selectedCount?: number; readyCount?: number; busy: boolean; onFile: (file: File) => Promise<void> }
+type LandingProps = { onNavigate: (view: 'create' | 'print' | 'help' | 'order' | 'gallery') => void; selectedCount?: number; readyCount?: number; busy: boolean; onFile: (file: File) => Promise<void>; onClear: () => Promise<void> }
+
+function ClearLabelsDialog({ count, busy, onClear, onClose }: { count: number; busy: boolean; onClear: () => Promise<void>; onClose: () => void }) {
+  const dialog = useRef<HTMLDialogElement>(null)
+  const cancel = useRef<HTMLButtonElement>(null)
+  const clearing = useRef(false)
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    const modal = dialog.current!
+    modal.showModal()
+    cancel.current?.focus()
+    return () => {
+      modal.close()
+      const target = previous?.isConnected ? previous : document.getElementById('main-content')
+      target?.focus({ preventScroll: true })
+    }
+  }, [])
+  const clear = async () => {
+    if (busy || clearing.current) return
+    clearing.current = true
+    setPending(true); setError('')
+    try { await onClear(); onClose() }
+    catch (failure) { setError(failure instanceof Error ? failure.message : 'Your labels could not be cleared. Try again.') }
+    finally { clearing.current = false; setPending(false) }
+  }
+  return <dialog ref={dialog} className="import-review-dialog clear-labels-dialog" aria-labelledby="clear-labels-title" aria-describedby="clear-labels-description" onCancel={event => { event.preventDefault(); if (!pending) onClose() }}>
+    <div className="import-review-body">
+      <h2 id="clear-labels-title">Clear {count === 1 ? '1 label' : `all ${count} labels`} and start over?</h2>
+      <p id="clear-labels-description">This removes your saved labels, artwork, creation requests, print settings, and import history from this browser. Downloaded ZIP files are unchanged. This cannot be undone.</p>
+      {error && <p role="alert">{error}</p>}
+    </div>
+    <footer className="import-review-actions">
+      <button ref={cancel} className="button secondary" type="button" disabled={pending} onClick={onClose}>Cancel</button>
+      <button className="button primary" type="button" disabled={busy || pending} onClick={() => void clear()}>{pending ? 'Clearing labels…' : 'Clear labels'}</button>
+    </footer>
+  </dialog>
+}
 
 const steps = [
   { number: '01', icon: 'research' as const, title: 'Choose existing designs', description: 'Add blends from an image, PDF, or pasted list, then review the matches and choose community artwork. You can also browse by blend name.' },
@@ -9,13 +48,15 @@ const steps = [
   { number: '02', icon: 'print' as const, title: 'Print them together', description: 'Choose quantities for your community and imported designs. Print at Actual Size / 100%, with nine 2.5-inch circles per US Letter sheet.' },
 ]
 
-export function Landing({ onNavigate, selectedCount = 0, readyCount = 0, busy, onFile }: LandingProps) {
+export function Landing({ onNavigate, selectedCount = 0, readyCount = 0, busy, onFile, onClear }: LandingProps) {
+  const [confirmClear, setConfirmClear] = useState(false)
   return <div className="landing-page screen-only">
+    {confirmClear && <ClearLabelsDialog count={selectedCount} busy={busy} onClear={onClear} onClose={() => setConfirmClear(false)} />}
     <section className="landing-hero" aria-labelledby="landing-title">
       <div className="landing-hero-copy">
         <h1 id="landing-title">Make the jar look like the tin.</h1>
         <p>Add your blends or browse designs for the jars in your cellar. Use community artwork, create what you need, and print them together.</p>
-        {selectedCount > 0 && <div className="landing-resume"><p>{selectedCount} saved {selectedCount === 1 ? 'label entry' : 'label entries'} · {readyCount} ready to print</p><button className="button primary" type="button" onClick={() => onNavigate('create')}>Resume your labels</button></div>}
+        {selectedCount > 0 && <div className="landing-resume"><p>{selectedCount} saved {selectedCount === 1 ? 'label entry' : 'label entries'} · {readyCount} ready to print</p><div className="landing-resume-actions"><button className="button primary" type="button" onClick={() => onNavigate('create')}>Resume your labels</button><button className="button quiet" type="button" disabled={busy} onClick={() => setConfirmClear(true)}>Clear labels</button></div></div>}
       </div>
       <div className="landing-start">
         <div className="landing-entry-paths">

@@ -43,6 +43,8 @@
 .landing-entry-card span { grid-column: 2; color: var(--text-muted); font: var(--type-body-sm); }
 .landing-resume { display: grid; justify-items: start; gap: 12px; border-left: 3px solid var(--text-accent); padding-left: 16px; margin-top: 4px; }
 .landing-resume p { font: var(--type-body-sm); }
+.landing-resume-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.import-review-dialog.clear-labels-dialog { max-width: 520px; }
 @media(max-width:600px) {
   .landing-entry-paths { grid-template-columns: 1fr; gap: 12px; }
   .landing-entry-card { padding: 20px; }
