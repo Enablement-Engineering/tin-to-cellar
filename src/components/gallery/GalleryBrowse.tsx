@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRecoveryBlocker } from '../../hooks/useAppRecovery'
+import { useDialogClose } from '../../hooks/useDialogClose'
 import type { GalleryPublicLabel } from '../../lib/gallery/types'
 import { GalleryBlendSearch, type GalleryBlendIdentity } from './GalleryBlendSearch'
 import { GalleryThumbnail } from './GalleryThumbnail'
@@ -12,11 +13,12 @@ import { TobaccoSelector } from '../TobaccoSelector'
 import { formatTobacco } from '../../lib/tobacco-catalog'
 import '../../styles/gallery-workflow.css'
 
-function CreationReview({ identity, query, onCreate, onClose }: {
+function CreationReview({ identity, query, onCreate, onClose: dismiss }: {
   identity: GalleryBlendIdentity | null; query: string
   onCreate: (identity: GalleryBlendIdentity) => void | Promise<void>; onClose: () => void
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
+  const onClose = useDialogClose(dialog, dismiss)
   const title = useRef<HTMLHeadingElement>(null)
   const [selected, setSelected] = useState(identity)
   const [draft, setDraft] = useState(identity ? identity.maker ? formatTobacco(identity) : identity.blend : query.trim())

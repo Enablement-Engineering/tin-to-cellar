@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDialogClose } from '../hooks/useDialogClose'
 import type { PreparationRow } from './PreparationWorkspace'
 
-export function CreationSelection({ rows, busy, onSave, onClose }: {
+export function CreationSelection({ rows, busy, onSave, onClose: dismiss }: {
   rows: PreparationRow[]; busy?: boolean; onSave: (ids: string[]) => Promise<void>; onClose: () => void
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
+  const onClose = useDialogClose(dialog, dismiss)
   const heading = useRef<HTMLHeadingElement>(null)
   const [selected, setSelected] = useState(() => rows.filter(row => row.createRequested || !row.artwork).map(row => row.id))
   const [saving, setSaving] = useState(false)

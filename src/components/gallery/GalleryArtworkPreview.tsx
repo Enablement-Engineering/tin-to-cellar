@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react'
+import { useDialogClose } from '../../hooks/useDialogClose'
 import type { GalleryPublicLabel } from '../../lib/gallery/types'
 import { API } from './client'
 import { GalleryImage } from './GalleryImage'
 import '../../styles/gallery-artwork-preview.css'
 
-export function GalleryArtworkPreview({ label, onClose }: { label: GalleryPublicLabel; onClose: () => void }) {
+export function GalleryArtworkPreview({ label, onClose: dismiss }: { label: GalleryPublicLabel; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null)
+  const onClose = useDialogClose(dialog, dismiss)
   const closeButton = useRef<HTMLButtonElement>(null)
   const pressedOutside = useRef(false)
   const artwork = `${API}/labels/${label.id}/artwork`

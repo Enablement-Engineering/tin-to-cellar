@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useRecoveryBlocker } from '../hooks/useAppRecovery'
+import { useDialogClose } from '../hooks/useDialogClose'
 import { toSharedContribution, type Contribution } from '../lib/contributions'
 import { diagnosticCapability } from '../lib/contributions/capability'
 import type { Retrospective } from '../lib/feedback/retrospective'
@@ -44,6 +45,7 @@ export function ContributionStatus({ contribution, retrospective = null, hidden 
   const receiptButton = useRef<HTMLButtonElement>(null)
   const closeButton = useRef<HTMLButtonElement>(null)
   const dialog = useRef<HTMLDialogElement>(null)
+  const closeDialog = useDialogClose(dialog, () => dialog.current?.close())
   const notesController = useRef<AbortController | null>(null)
   useEffect(() => () => notesController.current?.abort(), [])
   useEffect(() => {
@@ -96,7 +98,7 @@ export function ContributionStatus({ contribution, retrospective = null, hidden 
     {status !== 'collected' && <p className="field-hint" role="status">{status === 'ineligible' ? 'No catalog sources are eligible for sharing. Your labels remain available locally, including printing.' : status === 'paused' ? pauseMessage(collectionPause.resetAt) : status === 'sending' ? 'Sending AI feedback and package source observations…' : status === 'unavailable' ? 'Automatic feedback collection is unavailable on this site. This does not affect printing or label submissions.' : status === 'partial' ? 'AI feedback was received. Package source collection could not be confirmed. You can still print your labels.' : 'Feedback and source collection could not be confirmed. You can still print your labels.'}</p>}
     {(status === 'failed' || status === 'partial' || status === 'paused') && <button className="button quiet" type="button" disabled={status === 'paused' && !collectionPause.ready} onClick={event => { if (document.activeElement === event.currentTarget) receiptButton.current?.focus(); setStatus('sending'); setAttempt(value => value + 1) }}>Retry contribution</button>}
     <button ref={receiptButton} className="button quiet" type="button" onClick={() => dialog.current?.showModal()}>{prepared ? 'View prepared diagnostics' : 'View shared diagnostics'}</button>
-    <dialog className="diagnostics-dialog" ref={dialog} aria-labelledby={titleId}>
+    <dialog className="diagnostics-dialog" ref={dialog} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); closeDialog() }}>
       <h2 id={titleId}>{prepared ? 'Prepared diagnostics' : 'Shared diagnostics'}</h2>
       <p>{status === 'paused' ? 'Collection is paused; receipt has not been confirmed.' : status === 'unavailable' ? 'Collection is unavailable on this site; these diagnostics have not been shared.' : status === 'collected' ? 'Receipt confirmed.' : status === 'partial' ? 'Feedback received; source receipt unconfirmed.' : 'Receipt has not been confirmed.'} This diagnostics submission does not upload your ZIP or artwork.</p>
       <p className="field-hint">These are the exact fields prepared for sharing. AI feedback records what the AI says happened. File-check results come from this app. Packaging links are suggestions that still need to be checked.</p>
@@ -110,7 +112,7 @@ export function ContributionStatus({ contribution, retrospective = null, hidden 
         {notesStatus === 'paused' && <p role="status">{pauseMessage(notesPause.resetAt)} Process note receipt has not been confirmed.</p>}
         {notesStatus === 'failed' && <p role="status">Sharing could not be confirmed. Your labels are still available.</p>}
       </section>}
-      <form method="dialog"><button ref={closeButton} className="button secondary" autoFocus>Close</button></form>
+      <form method="dialog" onSubmit={event => { event.preventDefault(); closeDialog() }}><button ref={closeButton} className="button secondary" autoFocus>Close</button></form>
     </dialog>
   </section>
 }

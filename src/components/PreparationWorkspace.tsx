@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type RefObject } from 'react'
 import { useRecoveryBlocker } from '../hooks/useAppRecovery'
+import { useDialogClose } from '../hooks/useDialogClose'
 import { formatTobacco, searchTobaccos, type TobaccoEntry } from '../lib/tobacco-catalog'
 import type { GalleryPublicLabel } from '../lib/gallery/types'
 import type { PrintLabel } from './ui-model'
@@ -54,15 +55,15 @@ function BlendIntake({ busy, onAdd, rows }: Pick<PreparationWorkspaceProps, 'bus
       await onAdd(pending, choice)
       setConfirmation(`${pending.blend} ${choice === 'ai' ? 'added to your AI creation list' : 'is ready to print'}`)
       setDraft('')
-      close()
     }} />}
   </div>
 }
 
-function BlendArtworkDialog({ identity, busy, returnFocus, onSave, onClose }: {
+function BlendArtworkDialog({ identity, busy, returnFocus, onSave, onClose: dismiss }: {
   identity: PreparationIdentity; busy?: boolean; returnFocus: RefObject<HTMLInputElement | null>; onSave: (choice: GalleryPublicLabel | 'ai') => Promise<void>; onClose: () => void
 }) {
   const id = useId(), dialog = useRef<HTMLDialogElement>(null), heading = useRef<HTMLHeadingElement>(null)
+  const onClose = useDialogClose(dialog, dismiss)
   const inFlight = useRef(false)
   const [saving, setSaving] = useState(false), [error, setError] = useState('')
   useEffect(() => {
@@ -74,7 +75,7 @@ function BlendArtworkDialog({ identity, busy, returnFocus, onSave, onClose }: {
   const save = async (choice: GalleryPublicLabel | 'ai') => {
     if (inFlight.current || busy) return
     inFlight.current = true; setSaving(true); setError('')
-    try { await onSave(choice) }
+    try { await onSave(choice); onClose() }
     catch (failure) { setError(errorText(failure)) }
     finally { inFlight.current = false; setSaving(false) }
   }

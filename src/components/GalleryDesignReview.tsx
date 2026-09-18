@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDialogClose } from '../hooks/useDialogClose'
 import type { CollectionDesign } from '../lib/collection'
 import type { PrintLabel } from './ui-model'
 import { LabelArtwork } from './LabelArtwork'
 
-export function GalleryDesignReview({ current, incoming, busy, invalidated, error, onReplace, onAdd, onCancel }: {
+export function GalleryDesignReview({ current, incoming, busy, invalidated, error, onReplace, onAdd, onCancel: dismiss }: {
   current: PrintLabel; incoming: CollectionDesign; busy: boolean; invalidated?: boolean; error: string
   onReplace: () => void; onAdd: () => void; onCancel: () => void
 }) {
   const dialog = useRef<HTMLDialogElement>(null), heading = useRef<HTMLHeadingElement>(null)
+  const onCancel = useDialogClose(dialog, dismiss)
   const [url, setUrl] = useState('')
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null, modal = dialog.current!

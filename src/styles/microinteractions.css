@@ -1,5 +1,7 @@
 /* Interaction feedback is screen-only. Artwork and sheet geometry stay still. */
 @media screen {
+  /* Reserve the page scrollbar's width when a modal locks background scrolling. */
+  html { scrollbar-gutter: stable; }
   .copy-feedback-icon { display: inline-grid; flex: none; width: 18px; height: 18px; }
   .copy-feedback-icon > .icon { grid-area: 1 / 1; }
   .copy-feedback-icon > .icon:last-child,
@@ -87,16 +89,29 @@
     to { background-color: var(--surface-card); }
   }
 
-  /* Native focus, top-layer behavior and immediate close remain unchanged.
-     Destructive confirmations are deliberately excluded. */
-  .app-shell :is(.import-review-dialog:not(.clear-labels-dialog), .gallery-creation-dialog, .diagnostics-dialog)[open] {
-    animation: tc-dialog-enter var(--duration-base) var(--ease-out);
+  /* Keep the native modal open throughout its exit so focus stays contained. */
+  .app-shell :is(.import-review-dialog, .gallery-creation-dialog, .gallery-artwork-dialog, .diagnostics-dialog)[open] {
+    animation: tc-dialog-enter 320ms var(--ease-out);
   }
-  .app-shell :is(.import-review-dialog:not(.clear-labels-dialog), .gallery-creation-dialog, .diagnostics-dialog)[open]::backdrop {
-    animation: tc-backdrop-enter var(--duration-fast) var(--ease-out);
+  .app-shell :is(.import-review-dialog, .gallery-creation-dialog, .gallery-artwork-dialog, .diagnostics-dialog)[open]::backdrop {
+    animation: tc-backdrop-enter 240ms var(--ease-out);
   }
-  @keyframes tc-dialog-enter { from { opacity: 0; } to { opacity: 1; } }
+  .app-shell dialog[open][data-closing='true'] {
+    animation: tc-dialog-exit 200ms var(--ease-in) forwards;
+  }
+  .app-shell dialog[open][data-closing='true']::backdrop {
+    animation: tc-backdrop-exit 200ms var(--ease-in) forwards;
+  }
+  @keyframes tc-dialog-enter {
+    from { opacity: 0; transform: translateY(28px) scale(.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes tc-dialog-exit {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(20px) scale(.97); }
+  }
   @keyframes tc-backdrop-enter { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes tc-backdrop-exit { from { opacity: 1; } to { opacity: 0; } }
 
   /* Only short disclosures interpolate height. Native closed content remains
      hidden from keyboard/accessibility navigation; other browsers open instantly. */

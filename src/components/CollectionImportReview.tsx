@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useDialogClose } from '../hooks/useDialogClose'
 import type { Collection, ImportDecisions, ImportPlan } from '../lib/collection'
 
-export function CollectionImportReview({ collection, plan, decisions, onChange, onAccept, onCancel, onReplace, children, error, busy, invalidated = false, onRefresh, unresolvedRequests = [] }: {
+export function CollectionImportReview({ collection, plan, decisions, onChange, onAccept, onCancel: dismiss, onReplace, children, error, busy, invalidated = false, onRefresh, unresolvedRequests = [] }: {
   collection: Collection; plan: ImportPlan; decisions: ImportDecisions; onChange: (next: ImportDecisions) => void; onAccept: () => void; onCancel: () => void; busy: boolean;
   invalidated?: boolean; onRefresh?: () => void; onReplace?: () => void; children?: ReactNode; error?: string; unresolvedRequests?: string[];
 }) {
@@ -11,6 +12,7 @@ export function CollectionImportReview({ collection, plan, decisions, onChange, 
   const [showNew, setShowNew] = useState(false)
   const [showDuplicates, setShowDuplicates] = useState(false)
   const dialog = useRef<HTMLDialogElement>(null)
+  const onCancel = useDialogClose(dialog, dismiss)
   const title = useRef<HTMLHeadingElement>(null)
   useEffect(() => {
     const allocated: string[] = []

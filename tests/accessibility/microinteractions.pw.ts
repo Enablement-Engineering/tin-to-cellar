@@ -17,6 +17,22 @@ for (const width of [1280, 320]) for (const reducedMotion of ['no-preference', '
     await expect(dialog.getByRole('heading', { level: 2 })).toBeFocused()
     expect(await dialog.evaluate(element => getComputedStyle(element).animationName)).toBe(reducedMotion === 'reduce' ? 'none' : 'tc-dialog-enter')
     expect(await dialog.evaluate(element => getComputedStyle(element, '::backdrop').animationName)).toBe(reducedMotion === 'reduce' ? 'none' : 'tc-backdrop-enter')
+    // Dismissal retains native modality while the dialog and backdrop fade out.
+    const closing = await dialog.evaluate(element => {
+      element.dispatchEvent(new Event('cancel', { cancelable: true }))
+      return {
+        open: element.hasAttribute('open'),
+        animation: getComputedStyle(element).animationName,
+        backdrop: getComputedStyle(element, '::backdrop').animationName,
+        focusInside: element.contains(document.activeElement),
+      }
+    })
+    if (reducedMotion === 'no-preference') {
+      expect(closing).toEqual({ open: true, animation: 'tc-dialog-exit', backdrop: 'tc-backdrop-exit', focusInside: true })
+    }
+    await expect(dialog).toHaveCount(0)
+    await expect(search).toBeFocused()
+    await search.press('Enter')
     // A preference change must also stop an already-open dialog's motion.
     await page.emulateMedia({ reducedMotion: 'reduce' })
     expect(await dialog.evaluate(element => getComputedStyle(element).animationName)).toBe('none')

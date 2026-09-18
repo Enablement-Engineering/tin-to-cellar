@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDialogClose } from '../hooks/useDialogClose'
 import { Icon } from './Icons'
 import { ExamplePack } from './ExamplePack'
 
 type LandingProps = { onNavigate: (view: 'create' | 'print' | 'help' | 'order' | 'gallery') => void; selectedCount?: number; readyCount?: number; busy: boolean; onFile: (file: File) => Promise<void>; onClear: () => Promise<void> }
 
-function ClearLabelsDialog({ count, busy, onClear, onClose }: { count: number; busy: boolean; onClear: () => Promise<void>; onClose: () => void }) {
+function ClearLabelsDialog({ count, busy, onClear, onClose: dismiss }: { count: number; busy: boolean; onClear: () => Promise<void>; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null)
+  const onClose = useDialogClose(dialog, dismiss)
   const cancel = useRef<HTMLButtonElement>(null)
   const clearing = useRef(false)
   const [pending, setPending] = useState(false)
