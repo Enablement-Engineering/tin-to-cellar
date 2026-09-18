@@ -640,7 +640,7 @@ it('adds trusted examples without collecting their diagnostics or erasing prior 
     expect(historyOptions[0]).toHaveTextContent('Blend A')
     expect(screen.getByRole('button', { name: 'Share process notes' })).toBeInTheDocument()
     expect(screen.getByText(/Prior private process note/)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Share your labels' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Share your labels' })).toBeInTheDocument()
     expect(screen.getByLabelText('Quantity for Blend A')).toHaveValue(1)
     expect(screen.getByRole('button', { name: 'Print 2 labels' })).toBeEnabled()
     const saved = await savedCollection()
