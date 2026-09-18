@@ -25,3 +25,21 @@ export function operationalRecord(request: Request, response: Response, elapsedM
     cache: cache === 'hit' || cache === 'miss' || cache === 'bypass' ? cache : 'none',
   }
 }
+
+/** Inspect only built-in types: exception names, codes, causes and messages may contain private input. */
+export function operationalIncident(error: unknown) {
+  let exceptionClass = 'unknown'
+  try {
+    if (error instanceof TypeError) exceptionClass = 'type-error'
+    else if (error instanceof RangeError) exceptionClass = 'range-error'
+    else if (error instanceof SyntaxError) exceptionClass = 'syntax-error'
+    else if (error instanceof ReferenceError) exceptionClass = 'reference-error'
+    else if (error instanceof URIError) exceptionClass = 'uri-error'
+    else if (error instanceof AggregateError) exceptionClass = 'aggregate-error'
+    else if (error instanceof Error) exceptionClass = 'error'
+  } catch {
+    // Even a thrown Proxy can reject prototype inspection; never inspect it further.
+  }
+  // Independent of request, session and user identity; generated only for an unexpected failure.
+  return { incidentId: crypto.randomUUID(), exceptionClass }
+}

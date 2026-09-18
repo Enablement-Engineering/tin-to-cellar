@@ -29,10 +29,13 @@ if (!reuse) writeFileSync(config, JSON.stringify({
     { name: 'ANALYTICS_RATE_LIMITER', namespace_id: '9007', simple: { limit: 30, period: 60 } },
     { name: 'GALLERY_IMAGE_RATE_LIMITER', namespace_id: '9005', simple: { limit: 2400, period: 60 } },
     { name: 'GALLERY_PACK_RATE_LIMITER', namespace_id: '9006', simple: { limit: 60, period: 60 } },
-    { name: 'GALLERY_RATE_LIMITER', namespace_id: '9001', simple: { limit: 5, period: 60 } },
+    // Browser workflows share one localhost IP. Keep real limiter bindings but
+    // give the test suite room for multiple independent submissions; denial and
+    // fail-closed behavior are covered by worker/gallery/security-audit.test.ts.
+    { name: 'GALLERY_RATE_LIMITER', namespace_id: '9001', simple: { limit: testMode ? 1000 : 5, period: 60 } },
     { name: 'GALLERY_READ_RATE_LIMITER', namespace_id: '9002', simple: { limit: 120, period: 60 } },
-    { name: 'GALLERY_UPLOAD_RATE_LIMITER', namespace_id: '9003', simple: { limit: 5, period: 60 } },
-    { name: 'GALLERY_MUTATION_RATE_LIMITER', namespace_id: '9004', simple: { limit: 20, period: 60 } },
+    { name: 'GALLERY_UPLOAD_RATE_LIMITER', namespace_id: '9003', simple: { limit: testMode ? 1000 : 5, period: 60 } },
+    { name: 'GALLERY_MUTATION_RATE_LIMITER', namespace_id: '9004', simple: { limit: testMode ? 1000 : 20, period: 60 } },
   ],
   vars: { ANALYTICS_ENABLED: testMode ? 'true' : 'false', WORKFLOW_ANALYTICS_ENABLED: testMode ? 'true' : 'false', PROGRESS_ANALYTICS_ENABLED: testMode ? 'true' : 'false', ANALYTICS_DAILY_ALLOWANCE: '1000', OPERATIONAL_METRICS_ENABLED: 'false', GALLERY_INTAKE: 'true', GALLERY_SERVING: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'local-test-only-no-production-value', GALLERY_TURNSTILE_SITE_KEY: testMode ? 'local-test-widget' : '' },
   observability: { enabled: false },

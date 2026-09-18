@@ -22,27 +22,31 @@ test('records static request counts for the deferred routing change', async ({ p
 
 test('gallery pagination waits for keyboard activation and preserves retry', async ({ page }) => {
   let lists = 0
+  const labels = Array.from({ length: 25 }, (_, index) => ({ id: `design-${index}`, catalogId: 'peterson-nightcap', maker: 'Peterson', blend: 'Nightcap', altText: 'Synthetic test design.', artworkProfileId: 'circle-2.5@1', publishedAt: '2026-09-12' }))
   await page.route('**/api/gallery/v1/**', route => {
     if (route.request().url().endsWith('/config')) return route.fulfill({ json: { serving: true, intake: false } })
-    if (!new URL(route.request().url()).pathname.endsWith('/labels')) return route.fulfill({ status: 404 })
+    if (!new URL(route.request().url()).pathname.endsWith('/browse')) return route.fulfill({ status: 404 })
     lists++
-    if (lists === 2) return route.fulfill({ status: 503, json: { error: 'storage_unavailable' } })
-    return route.fulfill({ json: { labels: lists === 1 ? [{ id: 'design-one', catalogId: 'peterson-nightcap', maker: 'Peterson', blend: 'Nightcap', altText: 'Synthetic test design.', artworkProfileId: 'circle-2.5@1', publishedAt: '2026-09-12' }] : [], nextCursor: lists === 1 ? 'design-one' : null } })
+    if (lists === 1) return route.fulfill({ status: 503, json: { error: 'storage_unavailable' } })
+    return route.fulfill({ json: { serving: true, labels, nextCursor: null } })
   })
   await page.goto('/gallery')
-  const more = page.getByRole('button', { name: 'Show more labels' })
-  await expect(more).toBeVisible()
-  await more.scrollIntoViewIfNeeded()
-  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
-  expect(lists).toBe(1)
-  await more.focus()
-  await page.keyboard.press('Enter')
-  const retry = page.getByRole('button', { name: 'Retry loading labels' })
+  const retry = page.getByRole('button', { name: 'Retry loading designs' })
   await expect(retry).toBeVisible()
   await retry.focus()
   await page.keyboard.press('Enter')
   await expect(retry).toHaveCount(0)
-  expect(lists).toBe(3)
+  const more = page.getByRole('button', { name: 'Show more labels' })
+  await expect(more).toBeVisible()
+  await more.scrollIntoViewIfNeeded()
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+  expect(lists).toBe(2)
+  await expect(page.getByRole('button', { name: 'Add to your labels', exact: true })).toHaveCount(24)
+  await more.focus()
+  await page.keyboard.press('Enter')
+  await expect(more).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Add to your labels', exact: true })).toHaveCount(25)
+  expect(lists).toBe(2)
 })
 
 test('editorial pages and usage opt-in remain readable and keyboard accessible at 320px', async ({ page }, testInfo) => {

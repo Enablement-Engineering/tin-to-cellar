@@ -72,6 +72,13 @@ The protocol supplies a tested Python/Pillow program that the AI runs inside its
 
 The default circular export includes opaque artwork through a 0.125-inch bleed ring, then transparent corners outside the 2.75-inch outer circle. The preview shows the finished trim; printing includes the supplied bleed. The generated image owns the entire blank writing surface, without website-added words or lines.
 
+## License
+
+Original software and project documentation are available under the
+[MIT License](LICENSE), copyright 2026 Dylan Isaac. Preserve the copyright
+and license notice when reusing the code. See [licensing and attribution](LICENSING.md)
+for artwork, catalog material and third-party dependencies with separate rights.
+
 ## Documentation
 
 - [Architecture and documentation index](docs/README.md)

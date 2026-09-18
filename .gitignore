@@ -48,3 +48,6 @@ test-results/
 
 # Build-time instruction projection of the immutable protocol archive.
 /src/lib/protocol/instructions.json
+
+# Build-time CellarPack validators; declarations and generator are source.
+/src/lib/cellarpack/validators.generated.js

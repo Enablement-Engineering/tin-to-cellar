@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { operationalRecord, routeClass } from './operations'
+import { operationalIncident, operationalRecord, routeClass } from './operations'
 
 it('records route classes without private paths, payloads, query strings or credentials', () => {
   const request = new Request('https://tintocellar.com/api/gallery/v1/labels/private-id/artwork?secret=sentinel', {
@@ -16,4 +16,18 @@ it('keeps static paths bounded and distinguishes cache outcomes', () => {
     expect(routeClass(new Request('https://tintocellar.com' + path))).toBe('static')
   }
   expect(operationalRecord(new Request('https://tintocellar.com/api/gallery/v1/labels'), new Response(null, { headers: { 'X-Gallery-Cache': 'hit' } }), -1)).toMatchObject({ cache: 'hit', durationMs: 0 })
+})
+
+it('classifies exceptions without reading custom names, codes, causes or messages', () => {
+  const error = new TypeError('private-message')
+  for (const key of ['name', 'message', 'stack', 'code', 'cause']) {
+    Object.defineProperty(error, key, { get() { throw new Error('private-property-read') } })
+  }
+  expect(operationalIncident(error)).toEqual({ incidentId: expect.any(String), exceptionClass: 'type-error' })
+  expect(operationalIncident('private-string').exceptionClass).toBe('unknown')
+  expect(operationalIncident({ name: 'TypeError', code: 'private-code' }).exceptionClass).toBe('unknown')
+  expect(operationalIncident(new Proxy({}, { getPrototypeOf() { throw new Error('private-proxy') } })).exceptionClass).toBe('unknown')
+  const aggregate = operationalIncident(new AggregateError([new Error('private-cause')], 'private-aggregate'))
+  expect(aggregate.exceptionClass).toBe('aggregate-error')
+  expect(JSON.stringify(aggregate)).not.toContain('private')
 })

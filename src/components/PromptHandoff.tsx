@@ -70,7 +70,7 @@ export function PromptHandoff({ prompt, copyLabel = 'Copy instructions', copied 
         </div>
         {source ? <textarea aria-label="Prompt to copy" readOnly value={preview} rows={18} onFocus={(event) => event.currentTarget.select()} /> :
           <div className="prompt-document" role="region" aria-label="Rendered prompt" tabIndex={0}>
-            <Markdown remarkPlugins={[remarkGfm]} skipHtml components={{ img: ({ alt }) => <span>{alt ?? 'Image reference'}</span>, a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> }}>{preview}</Markdown>
+            <Markdown remarkPlugins={[remarkGfm]} skipHtml components={{ pre: ({ children }) => <pre tabIndex={0} role="group" aria-label="Prompt code block">{children}</pre>, img: ({ alt }) => <span>{alt ?? 'Image reference'}</span>, a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> }}>{preview}</Markdown>
           </div>}
 
       </details>

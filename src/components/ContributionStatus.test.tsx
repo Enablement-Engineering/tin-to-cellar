@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
+import { StrictMode } from 'react'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { ContributionStatus } from './ContributionStatus'
@@ -13,8 +14,29 @@ it('blocks recovery during a hidden report submission and releases the guard aft
   vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(resolve => { complete = resolve })))
   render(<ContributionStatus contribution={contribution} autoSend hidden />)
   expect(appRecovery.getSnapshot().blocked).toBe('Wait for report sharing to finish before updating.')
+  await waitFor(() => expect(complete).toBeTypeOf('function'))
   await act(async () => complete(Response.json({ status: 'collected' })))
   expect(appRecovery.getSnapshot().blocked).not.toBe('Wait for report sharing to finish before updating.')
+})
+it('dispatches only one contribution during StrictMode effect replay', async () => {
+  const fetcher = vi.fn().mockResolvedValue(Response.json({ status: 'collected' }))
+  vi.stubGlobal('fetch', fetcher)
+  render(<StrictMode><ContributionStatus contribution={contribution} autoSend /></StrictMode>)
+  await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
+  expect(fetcher).toHaveBeenCalledTimes(1)
+  expect(fetcher.mock.calls[0][1].signal.aborted).toBe(false)
+})
+it('does not resend a confirmed receipt when a fresh import status remounts', async () => {
+  const fetcher = vi.fn().mockResolvedValue(Response.json({ status: 'collected' }))
+  vi.stubGlobal('fetch', fetcher)
+  const onDelivery = vi.fn()
+  const view = render(<ContributionStatus contribution={contribution} autoSend onDelivery={onDelivery} />)
+  await waitFor(() => expect(onDelivery).toHaveBeenCalledWith('sent'))
+  view.unmount()
+  render(<StrictMode><ContributionStatus contribution={contribution} autoSend delivery="sent" /></StrictMode>)
+  await act(async () => {})
+  expect(fetcher).toHaveBeenCalledTimes(1)
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
 })
 it('restores confirmed and uncertain receipts without resending them', async () => {
   const fetcher = vi.fn().mockResolvedValue(Response.json({ status: 'duplicate' }))

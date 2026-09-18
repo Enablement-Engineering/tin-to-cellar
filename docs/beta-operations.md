@@ -28,13 +28,15 @@ The daily allowance bounds accepted aggregate writes, not all requests or hostin
 
 ## Visibility
 
-`OPERATIONAL_METRICS_ENABLED=true` emits one sanitized request summary. Fields are fixed event name, bounded route class, HTTP status, rounded duration and an allowlisted cache outcome. It does not include full URL/path/query, IP, headers, body, canonical blend demand or credentials. Private routes share one class. Unexpected request failures return a generic no-store 503 without logging the original exception text.
+`OPERATIONAL_METRICS_ENABLED=true` emits one sanitized request summary. Fields are fixed event name, bounded route class, HTTP status, rounded duration and an allowlisted cache outcome. It does not include full URL/path/query, IP, headers, body, canonical blend demand or credentials. Private routes share one class. Unexpected request failures return a generic no-store 503 without logging the original exception text. When operational metrics are enabled, these failures receive a fresh random `X-Incident-ID` response header, also recorded as `incidentId` in the existing summary, together with an allowlisted `exceptionClass`. The ID identifies one failed request; it is not stored in a cookie or reused across requests. Exception messages, stacks, arbitrary names and dependency codes are not logged. Handled 5xx responses retain status-only summaries.
 
-Wrangler enables Workers Logs with 10% head sampling and disables invocation logs. Do not enable automatic invocation logs without reviewing their URL/network fields. Sampling means these records are estimates, not exact totals. Use native Workers metrics for total requests/CPU/errors, D1 metrics for rows read/written, and R2 metrics for Class B operations. Check actual provider retention and access controls during release; this code does not set account retention.
+Wrangler enables Workers Logs with 10% head sampling and disables invocation logs. Do not enable automatic invocation logs without reviewing their URL/network fields. Sampling means these records are estimates, not exact totals. A response incident ID may have no retained log record because of sampling. This change adds no unsampled counter or alert delivery. Use provider aggregate response-status metrics for 5xx monitoring where available; a handled 503 may not count as an uncaught Worker exception. Verify the selected signal with a controlled authorized check before relying on an alert. Use native Workers metrics for total requests/CPU/errors, D1 metrics for rows read/written, and R2 metrics for Class B operations. Check actual provider retention and access controls during release; this code does not set account retention.
 
 Save a view grouped by route, status and cache outcome. Compare cold/warm image requests, 429s and 5xxs. A rising image MISS share plus R2 reads suggests eviction or uncached large assets; a healthy HIT share does not prove that rights removal or authentication works. Those have separate tests.
 
 Before enabling the beta, the release owner must inspect the account's supported billing/usage notifications and configure authorized recipients and thresholds. Record which Workers, D1 and R2 alerts are actually supported/enabled, and a dashboard check for anything unavailable. Do not claim notifications exist because this file describes them. The diagnostic allowance is independent of analytics and account billing; neither allowance is an account-wide spending cap.
+
+The user-selected operational alert recipient is `dylan@enablement.engineering`. Use this address when configuring supported alerts. Recipient selection alone does not mean any alert is enabled or delivery has been tested; record the actual policies, thresholds and delivery verification separately.
 
 ## Incident and recovery
 
@@ -52,3 +54,11 @@ Already-loaded local work surviving API failure is a beta requirement. Offline s
 Record candidate SHA, current main integration, migration results, workflow/version ID, local tests, real hosted Access/cache checks, health capabilities and the unauthenticated diagnostic budget 403 separately. The artwork coordinator's active publication slot must be released before production migration/deployment. No remote change is needed to perform the local tests.
 
 The generation runner is post-beta. Its future activation must name the credential owner and separate image-generation spend/attempt budget. Website allowances do not pay for or cap those calls.
+
+## Browser security policy
+
+The Worker appends a CSP with same-origin defaults, explicit script/frame hosts, blocked object embeds, no base URL overrides, same-origin form submissions and denied framing. An exact hash permits the pre-paint theme bootstrap. Local blob images and workers support pack import, OCR and PDF processing. Inline styles remain necessary for label geometry and React style properties.
+
+CellarPack validators are generated at build time with `npm run cellarpack:validators`. The browser does not compile schemas, and the policy excludes JavaScript `unsafe-eval`. The narrower `wasm-unsafe-eval` permission supports local OCR WebAssembly. Build/dev/test entry points generate the ignored validator module from the checked-in schema and generator; do not hand-edit its output. Security tests verify that dynamic JavaScript compilation is blocked while local OCR and PDF imports still work.
+
+Local security tests exercise theme startup, actual OCR/PDF processing, imported print artwork, injected script rejection and frame denial through the built Worker. Hosted Turnstile, YouTube and Cloudflare Access compatibility still require release checks.
