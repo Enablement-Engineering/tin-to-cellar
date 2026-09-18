@@ -6,7 +6,7 @@ Tin to Cellar uses short-lived branches, pull requests and automated checks. No 
 
 `.github/workflows/deploy.yml` runs `Check and deploy` for PRs targeting `main`, pushes to `main`, and manual dispatch. Only a non-PR run on `refs/heads/main` can deploy. Its concurrency group serializes runs on the same ref with `cancel-in-progress: false`. PR checks use local resources; deployment credentials belong to the deploy job.
 
-The hardening workflow adds five browser matrix jobs and CodeQL, and makes deployment depend on all of them. On 2026-09-18 UTC, GitHub API readback confirmed main requires PRs, up-to-date checks from the GitHub Actions app, and zero approving reviews. Protection includes administrators and blocks force pushes and deletion. The production environment permits only the `main` branch, with no required reviewers. The separate CodeQL severity rule still needs a main-branch analysis baseline before activation. Recheck live settings when releasing; repository documentation cannot prevent settings drift.
+The hardening workflow adds five browser matrix jobs and CodeQL, and makes deployment depend on all of them. On 2026-09-18 UTC, GitHub API readback confirmed main requires PRs, up-to-date checks from the GitHub Actions app, and zero approving reviews. Protection includes administrators and blocks force pushes and deletion. The production environment permits only the `main` branch, with no required reviewers. After the first main baseline, CodeQL severity ruleset 23638752 was activated and read back, requiring CodeQL results and blocking high-or-greater security alerts and error-level alerts. Recheck live settings when releasing; repository documentation cannot prevent settings drift.
 
 ## Work on a branch
 
