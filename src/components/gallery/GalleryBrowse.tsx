@@ -158,6 +158,6 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
     {!config?.serving && creationRoute}
     {preview && <GalleryArtworkPreview label={preview} onClose={() => setPreview(null)} />}
     {creating && onCreate && <CreationReview identity={identity} query={query} onCreate={onCreate} onClose={() => setCreating(false)} />}
-    <footer className="gallery-disclaimer"><p className="field-hint">Shared by community members for personal cellaring. Tin to Cellar is independent of tobacco brands.</p><p className="field-hint">Questions about a label or source link? <a href="mailto:dylan@enablement.engineering">Email Dylan</a> with a link and a short note.</p></footer>
+    <footer className="gallery-disclaimer"><p className="field-hint">Shared by community members for personal cellaring. Tin to Cellar is independent of tobacco brands.</p><p className="field-hint">Questions about a label or source link? <a href="mailto:hello@enablement.engineering">Email me</a> with a link and a short note.</p></footer>
   </section>
 }

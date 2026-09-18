@@ -18,7 +18,7 @@ Prepared September 6, 2026. Source checkout `/private/tmp/tin-to-cellar-gallery`
 | Worker secrets | Only the name `DIAGNOSTICS_READ_TOKEN` is bound currently. No secret values were retrieved or printed. |
 | Production identity | Latest Worker version `ae34bcc8-b0b4-43e8-a213-481032fcdf5c`; GitHub main and successful deployment run `34055974313` point to the base SHA above. |
 | CI approval boundary | Main pushes deploy automatically. The GitHub production environment currently has no protection rules. Do not push or merge the implementation to main as a preparation step. |
-| Contact | User confirmed `dylan@enablement.engineering` for reviewer access and public artwork concerns. Local About, Privacy and gallery copy now link directly to it. |
+| Contact | Public artwork concerns now go to `hello@enablement.engineering`. Local About, Privacy and gallery copy link directly to it. Reviewer access uses the separately configured Access identity. |
 
 The zone's “Free Website” plan and a Worker's `usage_model: standard` do not establish Workers Paid status. The subscription screen is the evidence used here. Existing account credentials were used only for GET/list discovery; no gallery provisioning occurred.
 

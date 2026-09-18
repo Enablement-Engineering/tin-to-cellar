@@ -95,7 +95,7 @@ Before an authorized staging release, supply actual resource/configuration value
 
 Protect the entire dedicated admin host with human Access and the more-specific agent namespace with its separate machine application. Keep Worker-first handling enabled for all paths; keep `workers_dev` and preview bypasses disabled. Mutation requests require the same Origin. Verify these properties on the real deployed routes before enabling use.
 
-Confirm the actual Cloudflare account plan, CPU allowance, budget, and private resource configuration before any provisioning or upgrade. The bounded PNG path must be measured in the hosted Worker runtime. No image-generation provider calls are part of this workflow. Dylan approved `dylan@enablement.engineering` as the public artwork-concerns contact and reviewer email. About, Privacy, and the gallery link to this address and ask for the relevant label or page link and a short explanation. Final launch copy and hosted Access configuration remain release checks; the contact route does not claim legal immunity.
+Confirm the actual Cloudflare account plan, CPU allowance, budget, and private resource configuration before any provisioning or upgrade. The bounded PNG path must be measured in the hosted Worker runtime. No image-generation provider calls are part of this workflow. The public artwork-concerns contact is `hello@enablement.engineering`; reviewer access uses the separately configured Access identity. About, Privacy, and the gallery link to the public contact address and ask for the relevant label or page link and a short explanation. Final launch copy and hosted Access configuration remain release checks; the contact route does not claim legal immunity.
 
 ## Limits, retention and cleanup
 

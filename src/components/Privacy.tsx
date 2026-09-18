@@ -71,7 +71,7 @@ export function Privacy() {
       <section>
         <h2>Tracking and questions</h2>
         <p>The app has no advertising trackers, marketing cookies, or session replay. We do not sell imported files or feedback.</p>
-        <p>For privacy questions or concerns about shared data or artwork, <a href="mailto:dylan@enablement.engineering">contact Dylan Isaac</a>. Include the relevant label or page link without resending private artwork or orders.</p>
+        <p>For privacy questions or concerns about shared data or artwork, <a href="mailto:hello@enablement.engineering">email me</a>. Include the relevant label or page link without resending private artwork or orders.</p>
       </section>
     </div>
   </article>

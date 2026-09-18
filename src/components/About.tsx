@@ -22,12 +22,12 @@ export function About() {
       <section>
         <h2>Respecting the original work</h2>
         <p>Tin to Cellar is an independent tool, not affiliated with or endorsed by tobacco brands. It adapts recognizable packaging for personal jar labels. Brand names and original packaging artwork belong to their respective owners. Using the tool does not grant permission to reuse those designs.</p>
-        <p className="field-hint">Questions about a label or source link? <a href="mailto:dylan@enablement.engineering">Email me</a> with a link and a short note.</p>
+        <p className="field-hint">Questions about a label or source link? <a href="mailto:hello@enablement.engineering">Email me</a> with a link and a short note.</p>
       </section>
       <section>
         <h2>Beyond cellar labels</h2>
         <p>This project explores how to adapt existing artwork to a new use while keeping its recognizable details. The reference photo, design instructions, and review each have a part in that.</p>
-        <p>If you work with a brand, retailer, or maker and want to discuss that process, <a href="mailto:dylan@enablement.engineering">I'd be glad to talk</a>.</p>
+        <p>If you work with a brand, retailer, or maker and want to discuss that process, <a href="mailto:hello@enablement.engineering">I'd be glad to talk</a>.</p>
       </section>
       <section>
         <h2>Why use AI?</h2>
