@@ -16,11 +16,11 @@ Reviewed September 17, 2026 against `15de90da429a1d38ef34868cc281e6c84e3f4428`, 
 | Dependency/security automation | Dependabot and CodeQL configuration were absent. Application security tests already exist. | Added Dependabot and a deployment-gating CodeQL analysis job. Hosted scan results and severity protection must be verified separately. |
 | Beta versus GA | A useful caution, not a result derivable from repository age or line count. | Tie any GA claim to release controls and recorded operational/manual acceptance. |
 
-## Repository settings to apply after the new checks run
+## Repository settings
 
-Require pull requests into main, block force pushes and deletion, and require the `check` job plus every `browser-check` matrix job to pass on the current PR revision. Keep PR branches current with main. The [release workflow](release-workflow.md) lists the exact check names defined in YAML; confirm those names in a completed workflow run before applying settings. The owner chose zero mandatory human approvals. Agent review is encouraged and does not add an approval gate.
+Main now requires pull requests, blocks force pushes and deletion, and requires the `check` job, every `browser-check` matrix job and CodeQL execution on the current PR revision. Branches must be current with main. The [release workflow](release-workflow.md) lists the check names confirmed against the first hosted run. The owner chose zero mandatory human approvals. Agent review is encouraged and does not add an approval gate.
 
-Restrict the production environment to main with no required human reviewer. These settings were read during the original assessment, not changed by the documentation work. Merging a PR to main initiates the existing automatic release path, so merge authorization must cover deployment. See the release workflow for serialized ownership, verification and recovery.
+The production environment is restricted to the main branch with no required human reviewer. Settings were applied and read back on 2026-09-18 UTC. Merging a PR to main initiates the existing automatic release path, so merge authorization must cover deployment. See the release workflow for serialized ownership, verification and recovery.
 
 ## Outstanding GA acceptance matrix
 
@@ -52,7 +52,7 @@ The gallery browser suite also contained an outdated navigation expectation and 
 - Gallery: all six tests passed, including unpublish/revocation and public import/print. A temporary fixture copy changed only the loopback port because an existing user server occupied the default port.
 - Usage: all 12 passed. Usage resilience: all 14 passed. An initial usage failure occurred while parallel builds replaced files under a running server; the stable-build rerun passed.
 - The broad 131-case accessibility run was stopped after exposing stale fixtures and prompt scrollability problems. It is not a passing acceptance result. The workflow selects 45 core cases instead.
-- GitHub workflow execution, branch/environment settings changes, production deployment, account alerts and native/physical acceptance were not performed by this task.
+- At this initial local checkpoint, hosted checks and settings changes had not run. The follow-up below records subsequent GitHub work. Production deployment, account alerts and native/physical acceptance remain outstanding.
 
 A further import test caught duplicate network dispatch during development StrictMode effect replay and resubmission of already-sent receipts after a component remount. Contribution sharing now waits one microtask and checks cancellation before sending. A persisted-delivery guard prevents remount resubmission. Unit tests cover StrictMode and already-sent remount behavior, and the browser fixture still requires exactly one request. The accessibility server configuration now requests graceful shutdown so the local launcher can clean up its detached Worker children.
 
