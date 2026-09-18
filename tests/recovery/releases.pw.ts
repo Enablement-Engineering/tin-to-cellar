@@ -52,7 +52,7 @@ test('an old tab refreshes once into the new release and restores its route, foc
   await page.getByRole('combobox', { name: 'Add a blend' }).fill('Recovery saved blend')
   await page.getByRole('button', { name: 'Add blend', exact: true }).click()
   await page.getByRole('button', { name: 'Create with AI', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Recovery saved blend' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Recovery saved blend', exact: true })).toBeVisible()
   server.current = 'B'
   await openHelp(page)
   await expect(page.getByRole('link', { name: 'Download instructions' })).toBeVisible()
@@ -62,7 +62,7 @@ test('an old tab refreshes once into the new release and restores its route, foc
   expect(server.requests.some(item => /\/assets\/prompt-.*\.js$/.test(item.path) && item.status === 404)).toBe(true)
   expect(server.requests.some(item => /\/assets\/prompt-.*\.js$/.test(item.path) && item.status === 200 && item.build === 'B')).toBe(true)
   await page.getByRole('navigation', { name: 'Workflow' }).getByRole('link', { name: 'Your labels' }).click()
-  await expect(page.getByRole('heading', { name: 'Recovery saved blend' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Recovery saved blend', exact: true })).toBeVisible()
 })
 
 test('retained old lazy assets let an old tab continue across a deployment without refreshing', async ({ page }) => {
