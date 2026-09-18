@@ -8,6 +8,15 @@
 - Do not commit generated build output or dependency directories.
 - Run the most relevant tests, typecheck/build, and lint for changed areas.
 - Deploy production through the current `origin/main` release workflow. Older worktrees and generated release configurations can overwrite newer privacy and budget controls. Integrate changes onto current main before release; after deployment verify the protected budget endpoint as well as health. Coordinate concurrent release tasks.
+- Keep deployed D1 migrations immutable. Migrations run before Worker deployment, so verify the currently serving Worker can still read and write after each migration. Expand schema first, deploy compatible code, and contract only in a later release after reviewing rollback compatibility. Follow `docs/ci-deployment.md` and record compatibility evidence in the PR.
+
+## Branches and releases
+
+- Follow `docs/release-workflow.md`. Start `codex/` branches from freshly fetched `origin/main`; use isolated worktrees for concurrent work and preserve unrelated edits.
+- Submit changes through a PR into `main`; do not push directly to `main`. Require the documented CI checks on the current revision and keep the branch current with `main` before merging.
+- No mandatory human PR approval or production environment reviewer is required. Agent review is encouraged. Act within existing user authorization; creating a branch does not authorize publishing, merging, or deploying, and authorization already given does not need to be requested again.
+- One release owner coordinates merge and deployment through completion. Merging to `main` triggers production, so confirm release authorization covers that effect. Use the current main workflow and record its exact build, health, protected budget and disabled analytics checks.
+- Recover through a compatible revert or fix PR on current `origin/main`. Do not deploy an old checkout or restore old configuration. Application release authorization does not authorize artwork publication or changes to existing publications.
 
 ## Shared module ownership during the initial parallel build
 

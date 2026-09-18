@@ -23,7 +23,8 @@ it('prevents framing of public, private, error and conditional responses without
   }))
   for (const url of ['https://tintocellar.com/labels/create', 'https://tintocellar.com/gallery/status', 'https://admin.tintocellar.com/']) {
     const response = await worker.fetch(new Request(url), env)
-    expect(response.headers.get('Content-Security-Policy')).toBe("default-src 'self', frame-ancestors 'none'")
+    expect(response.headers.get('Content-Security-Policy')).toContain("default-src 'self'")
+    expect(response.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'")
     expect(response.headers.get('X-Frame-Options')).toBe('DENY')
     expect(response.headers.get('ETag')).toBe('fixture')
     expect(await response.text()).toBe('<main>app</main>')
@@ -35,7 +36,7 @@ it('prevents framing of public, private, error and conditional responses without
   env.ASSETS.fetch.mockImplementation(async () => new Response(null, { status: 304 }))
   const conditional = await worker.fetch(new Request('https://tintocellar.com/'), env)
   expect(conditional.status).toBe(304)
-  expect(conditional.headers.get('Content-Security-Policy')).toBe("frame-ancestors 'none'")
+  expect(conditional.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'")
 })
 
 it('retires unnamespaced label APIs without redirects or asset fallthrough', async () => {
@@ -205,8 +206,34 @@ it('fails closed with sanitized operational output when a dependency throws priv
   expect(response.headers.get('Cache-Control')).toBe('no-store')
   expect(response.headers.get('X-Frame-Options')).toBe('DENY')
   expect(await response.json()).toEqual({ error: 'temporarily_unavailable' })
-  expect(log).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ route: 'static', status: 503 }))
+  const incidentId = response.headers.get('X-Incident-ID')
+  expect(incidentId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+  expect(log).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ route: 'static', status: 503, incidentId, exceptionClass: 'error' }))
   expect(JSON.stringify(log.mock.calls)).not.toContain('private')
+})
+
+it('keeps incident correlation opt-in and unique to each unexpected failure', async () => {
+  const env = adminEnv()
+  env.ASSETS.fetch.mockRejectedValue(new TypeError('private-input'))
+  const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+  const request = new Request('https://tintocellar.com/', { headers: { 'X-Incident-ID': 'client-controlled' } })
+  for (const enabled of [undefined, 'false']) {
+    const response = await worker.fetch(request, { ...env, OPERATIONAL_METRICS_ENABLED: enabled })
+    expect(response.status).toBe(503)
+    expect(response.headers.get('X-Incident-ID')).toBeNull()
+  }
+  expect(log).not.toHaveBeenCalled()
+  const enabledEnv = { ...env, OPERATIONAL_METRICS_ENABLED: 'true' }
+  const first = await worker.fetch(request, enabledEnv)
+  const second = await worker.fetch(request, enabledEnv)
+  expect(first.headers.get('X-Incident-ID')).not.toBe(second.headers.get('X-Incident-ID'))
+  expect(first.headers.get('X-Incident-ID')).not.toBe('client-controlled')
+  expect(log.mock.calls).toHaveLength(2)
+  env.ASSETS.fetch.mockResolvedValue(new Response('ok'))
+  const success = await worker.fetch(request, enabledEnv)
+  expect(success.headers.get('X-Incident-ID')).toBeNull()
+  expect(log.mock.calls[2][0]).not.toHaveProperty('incidentId')
+  expect(log.mock.calls[2][0]).not.toHaveProperty('exceptionClass')
 })
 
 it('sunsets stale analytics clients and confines v2 reports to verified human admin requests', async () => {

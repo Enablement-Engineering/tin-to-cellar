@@ -106,6 +106,7 @@ for (const width of [831, 320]) {
     await expect(page.getByRole('button', { name: 'Resume your labels' })).toBeVisible()
     await clear.press('Enter')
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await expect(dialog).toHaveCount(0)
     await expect(clear).toBeFocused()
     await clear.press('Enter')
     await dialog.getByRole('button', { name: 'Clear labels', exact: true }).click()

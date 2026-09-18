@@ -8,7 +8,8 @@ import type { GalleryEnv } from './gallery/storage'
 import { analyticsResponse } from './analytics'
 import { cleanUsage, usageCapabilities, usageResponse, type UsageEnv } from './analytics/usage'
 import { usageAdminResponse } from './analytics/admin'
-import { operationalRecord } from './operations'
+import { operationalIncident, operationalRecord } from './operations'
+import { applySecurityHeaders } from './security-headers'
 export { CatalogContributions } from './contributions'
 export interface Env extends GalleryEnv, DiagnosticBudgetConfig, UsageEnv {
   OPERATIONAL_METRICS_ENABLED?: string
@@ -126,18 +127,17 @@ export default {
   async fetch(request: Request, env: Env, ctx?: WorkerContext): Promise<Response> {
     const start = performance.now()
     let response: Response
+    let incident: ReturnType<typeof operationalIncident> | undefined
     try {
       response = await worker.fetch(request, env, ctx)
-    } catch {
+    } catch (error) {
       // Do not persist exception messages that may contain D1 values or private input.
+      if (env.OPERATIONAL_METRICS_ENABLED === 'true') incident = operationalIncident(error)
       response = Response.json({ error: 'temporarily_unavailable' }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
     }
-    if (env.OPERATIONAL_METRICS_ENABLED === 'true') console.log(operationalRecord(request, response, performance.now() - start, env.GALLERY_ADMIN_HOST))
+    if (env.OPERATIONAL_METRICS_ENABLED === 'true') console.log({ ...operationalRecord(request, response, performance.now() - start, env.GALLERY_ADMIN_HOST), ...incident })
     const headers = new Headers(response.headers)
-    // A separate CSP policy preserves any stricter policy set by assets/routes.
-    headers.append('Content-Security-Policy', "frame-ancestors 'none'")
-    headers.set('X-Frame-Options', 'DENY')
-    headers.set('X-Content-Type-Options', 'nosniff')
-    return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
+    if (incident) headers.set('X-Incident-ID', incident.incidentId)
+    return applySecurityHeaders(new Response(response.body, { status: response.status, statusText: response.statusText, headers }))
   },
 }

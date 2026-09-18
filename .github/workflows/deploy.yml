@@ -43,8 +43,85 @@ jobs:
       - name: Check mobile saved-design layout
         run: npx playwright test --config playwright.mobile.config.ts --project iphone-webkit
 
+  # Always run these suites: shared modules and configuration can affect routes
+  # outside their own directories, so path filters are not a safe release gate.
+  # Each matrix job uses only local test resources and needs no production secrets.
+  browser-check:
+    name: Browser checks (${{ matrix.suite }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: accessibility
+            config: playwright.config.ts
+          - suite: gallery
+            config: playwright.gallery.config.ts
+          - suite: security
+            config: playwright.security.config.ts
+          - suite: usage
+            config: playwright.usage.config.ts
+          - suite: usage-resilience
+            config: playwright.usage-resilience.config.ts
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # Most existing configs explicitly select Chrome; resilience uses Chromium
+      # in CI. Install both rather than depending on a runner's preinstalled app.
+      - run: npx playwright install --with-deps chromium chrome
+      - name: Run required browser suite
+        run: |
+          if [ "${{ matrix.suite }}" = accessibility ]; then
+            # Core keyboard, reflow, import and print checks are release gates.
+            # Other browser fixtures remain available for broader diagnostics.
+            npx playwright test --config "${{ matrix.config }}" --workers 1 app.pw.ts import-quality.pw.ts print.pw.ts instructions-recovery.pw.ts
+          else
+            npx playwright test --config "${{ matrix.config }}" --workers 1
+          fi
+      - name: Save browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: browser-failures-${{ matrix.suite }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      # Analyze source without installing dependencies or executing PR scripts.
+      # Scan completion gates deployment; alert severity protection is separate.
+      - uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        with:
+          languages: javascript-typescript
+          build-mode: none
+          queries: security-extended
+      - uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        with:
+          category: /language:javascript-typescript
+
   deploy:
-    needs: check
+    needs: [check, browser-check, codeql]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15

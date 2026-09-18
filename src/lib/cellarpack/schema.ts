@@ -1,32 +1,10 @@
-import Ajv2020 from 'ajv/dist/2020.js'
 import type { ErrorObject } from 'ajv'
-import schema from './cellarpack-v1.schema.json'
+import { validateManifestSchema as validate, validateAssetMapSchema as validateAssetMap } from './validators.generated.js'
+export { validateLabelSchema, validateAssetSchema } from './validators.generated.js'
 import type {
-  ArtworkAsset,
-  CellarLabel,
-  CellarPackManifest,
   ManifestValidationResult,
   ValidationIssue,
 } from './types'
-
-const cellarPackSchema = schema as Record<string, unknown>
-const ajv = new Ajv2020({ allErrors: true, strict: false })
-const validate = ajv.compile<CellarPackManifest>(cellarPackSchema)
-
-const labelSchema = (cellarPackSchema.$defs as Record<string, unknown>).label
-const assetSchema = (cellarPackSchema.$defs as Record<string, unknown>).artworkAsset
-const assetMapSchema = (cellarPackSchema.properties as Record<string, Record<string, unknown>>).assets
-const validateAssetMap = ajv.compile({ ...assetMapSchema, $defs: cellarPackSchema.$defs, additionalProperties: true })
-export const validateLabelSchema = ajv.compile<CellarLabel>({
-  $schema: String(cellarPackSchema.$schema),
-  $defs: cellarPackSchema.$defs,
-  ...(labelSchema as Record<string, unknown>),
-})
-export const validateAssetSchema = ajv.compile<ArtworkAsset>({
-  $schema: String(cellarPackSchema.$schema),
-  $defs: cellarPackSchema.$defs,
-  ...(assetSchema as Record<string, unknown>),
-})
 
 export function validateManifest(input: unknown): ManifestValidationResult {
   const preflightIssues = validateManifestPreflight(input)

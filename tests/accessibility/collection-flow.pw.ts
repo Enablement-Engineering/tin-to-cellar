@@ -13,7 +13,7 @@ const known = ['Westminster', 'Autumn Evening', 'Nightcap'].map(blend => catalog
 
 async function installLibrary(context: BrowserContext) {
   const source = await fixture(825)
-  const labels = known.slice(0, 2).map((entry, index) => ({ ...entry, catalogId: entry.id, id: `43649b43-8094-4a32-b5ee-8be75208fb6${index + 3}`, edition: 'Synthetic test', altText: 'Green label with a blank cream writing area', artworkProfileId: 'circle-2.5@1' }))
+  const labels = known.slice(0, 2).map((entry, index) => ({ ...entry, catalogId: entry.id, id: `43649b43-8094-4a32-b5ee-8be75208fb6${index + 3}`, edition: 'Synthetic test', publishedAt: '2026-09-06T00:00:00Z', altText: 'Green label with a blank cream writing area', artworkProfileId: 'circle-2.5@1' }))
   const packs = await Promise.all(labels.map(label => buildGalleryPack({ metadata: { ...source.draft, tobacco: { catalogId: label.catalogId } }, ...label, packId: label.id, createdAt: '2026-09-06T00:00:00Z' }, source.png)))
   const contributions: unknown[] = []
   const requests: string[] = []
@@ -21,7 +21,7 @@ async function installLibrary(context: BrowserContext) {
   await context.route('**/api/gallery/v1/**', async route => {
     const url = new URL(route.request().url())
     if (url.pathname.endsWith('/config')) return route.fulfill({ json: { serving: true, intake: false, noticeVersion: 'fixture', turnstileSiteKey: '' } })
-    if (url.pathname.endsWith('/labels')) {
+    if (url.pathname.endsWith('/labels') || url.pathname.endsWith('/browse')) {
       const catalogId = url.searchParams.get('catalogId')
       return route.fulfill({ json: { serving: true, labels: catalogId ? labels.filter(label => label.catalogId === catalogId) : labels, nextCursor: null } })
     }
@@ -88,7 +88,8 @@ for (const width of [1280, 320]) test(`existing community labels survive reload 
   const download = await downloading
   const zip = await JSZip.loadAsync(await read((await download.path())!))
   const manifest = JSON.parse(await zip.file('manifest.json')!.async('string')) as CellarPackManifest
-  expect(manifest.labels.map(label => label.blend)).toEqual(known.slice(0, 2).map(entry => entry.blend))
+  // Gallery defaults to shuffled order; export must preserve both selected designs.
+  expect(manifest.labels.map(label => label.blend).sort()).toEqual(known.slice(0, 2).map(entry => entry.blend).sort())
   for (const asset of Object.values(manifest.assets)) expect(await zip.file(asset.path)!.async('nodebuffer')).toEqual(source.png)
   expect(contributions).toHaveLength(0)
 })

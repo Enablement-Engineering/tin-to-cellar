@@ -118,7 +118,7 @@ export async function main(args = process.argv.slice(2), root = process.cwd()) {
   }
   const wranglerArgs = (...args) => ['exec', '--', 'wrangler', ...args, '--config', config, '--persist-to', join(state.directory, 'state')]
   try {
-    for (const script of ['feedback:validators', 'protocol:release', 'prepare:ocr']) await launch(['run', script]).result
+    for (const script of ['cellarpack:validators', 'feedback:validators', 'protocol:release', 'prepare:ocr']) await launch(['run', script]).result
     for (const binding of ['GALLERY', 'DIAGNOSTICS']) await launch(wranglerArgs('d1', 'migrations', 'apply', binding, '--local')).result
     const seed = join(state.directory, 'catalog.sql')
     await launch(['run', 'gallery:seed', '--', seed]).result

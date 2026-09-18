@@ -36,8 +36,9 @@ export function ContributionStatus({ contribution, retrospective = null, hidden 
   const collectionPause = usePause(), notesPause = usePause()
   const pauseCollection = collectionPause.pause
   const contributionRef = useRef(contribution)
+  const deliveryRef = useRef(delivery)
   const deliveryCallback = useRef(onDelivery)
-  useEffect(() => { contributionRef.current = contribution; deliveryCallback.current = onDelivery }, [contribution, onDelivery])
+  useEffect(() => { contributionRef.current = contribution; deliveryRef.current = delivery; deliveryCallback.current = onDelivery }, [contribution, delivery, onDelivery])
   const submissionId = contribution?.submissionId
   const [notesStatus, setNotesStatus] = useState<'idle' | 'sending' | 'collected' | 'failed' | 'paused'>('idle')
   const [notesAllowed, setNotesAllowed] = useState(true)
@@ -49,14 +50,19 @@ export function ContributionStatus({ contribution, retrospective = null, hidden 
   const notesController = useRef<AbortController | null>(null)
   useEffect(() => () => notesController.current?.abort(), [])
   useEffect(() => {
-    if (!contributionRef.current || (!autoSend && attempt === 0)) return
+    if (!contributionRef.current || (attempt === 0 && (!autoSend || deliveryRef.current === 'sent'))) return
     const payload = toSharedContribution(contributionRef.current)
     if (!payload) { setStatus('ineligible'); deliveryCallback.current?.('failed'); return }
     setStatus('sending')
     const controller = new AbortController()
-    void fetch('/api/labels/contributions', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Diagnostic-Capability': diagnosticCapability(payload.submissionId) }, body: JSON.stringify(payload),
-      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
+    // Let an immediate effect cleanup cancel before dispatch (including the
+    // development StrictMode mount replay), avoiding duplicate network attempts.
+    void Promise.resolve().then(() => {
+      controller.signal.throwIfAborted()
+      return fetch('/api/labels/contributions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Diagnostic-Capability': diagnosticCapability(payload.submissionId) }, body: JSON.stringify(payload),
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
+      })
     }).then(async response => {
       const result = await response.json() as { status?: string; code?: string; resetAt?: string; notesAllowed?: boolean }
       if ([429, 503].includes(response.status) && result.code === 'collection_paused') {
