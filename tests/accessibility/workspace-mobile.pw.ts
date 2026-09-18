@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { printablePack } from './pack'
 
-for (const width of [320, 390, 680, 1280]) test(`saved-design actions stay readable at ${width}px`, async ({ page }, testInfo) => {
+for (const width of [320, 390, 680, 681, 831, 1280]) test(`saved-design actions stay readable at ${width}px`, async ({ page }, testInfo) => {
   await page.route('**/api/**', route => route.fulfill({ status: 503, body: '{}' }))
   await page.route('https://**/*', route => route.abort())
   await page.setViewportSize({ width, height: 900 })
@@ -45,6 +45,24 @@ for (const width of [320, 390, 680, 1280]) test(`saved-design actions stay reada
   expect(cancelBox!.height).toBeLessThanOrEqual(76)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await newRow.screenshot({ path: testInfo.outputPath(`new-request-${width}.png`) })
+  const summary = page.locator('.label-workspace > .preparation-summary')
+  await expect(summary.getByRole('button', { name: 'Continue to creation', exact: true })).toBeEnabled()
+  await expect(summary.getByRole('button', { name: 'Review & print', exact: true })).toBeEnabled()
+  await expect(summary).toHaveCSS('position', 'fixed')
+  await page.evaluate(() => window.scrollTo(0, 0))
+  const summaryBox = (await summary.boundingBox())!
+  expect(Math.abs(summaryBox.y + summaryBox.height - (900 - (width > 680 ? 16 : 0)))).toBeLessThan(2)
+  await page.screenshot({ path: testInfo.outputPath(`selection-bar-${width}.png`) })
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+  expect(Math.abs((await summary.boundingBox())!.y - summaryBox.y)).toBeLessThan(2)
+  const footerLink = page.locator('.site-footer').getByRole('link').last()
+  await footerLink.focus()
+  await expect(footerLink).toBeFocused()
+  const footerBox = (await footerLink.boundingBox())!
+  expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(summaryBox.y)
+  await page.emulateMedia({ media: 'print' })
+  await expect(summary).toBeHidden()
+  await page.emulateMedia({ media: 'screen' })
   await cancel.click()
   await expect(newRow).toContainText('Needs artwork')
 })

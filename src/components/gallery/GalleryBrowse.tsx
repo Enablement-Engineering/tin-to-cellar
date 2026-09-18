@@ -127,7 +127,7 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
     {configError && <p role="alert">{configError}</p>}
     {!config && !configError && <p role="status">Loading community designs…</p>}
     {config && !config.serving && <p>Community designs are unavailable for now. You can still print saved labels, import a label ZIP, or create new artwork in your AI chat.</p>}
-    {selectedCount > 0 && <SelectionSummary selectedCount={selectedCount} readyCount={readyCount} onView={onView} onPrint={onPrint} busy={saving || adding !== null} />}
+    {selectedCount > 0 && <SelectionSummary animateDock selectedCount={selectedCount} readyCount={readyCount} onView={onView} onPrint={onPrint} busy={saving || adding !== null} />}
     {config?.serving && <>
       <section className="gallery-browser" aria-labelledby="gallery-browser-title">
         <div className="gallery-browser-heading"><h2 id="gallery-browser-title">Find a label</h2><p className="gallery-format">2.5-inch round labels for jar lids</p></div>

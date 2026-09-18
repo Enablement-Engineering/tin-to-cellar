@@ -58,6 +58,9 @@ body:has(.gallery-creation-dialog[open]) { overflow: hidden; }
   .gallery-browse-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gallery-browse-controls > .gallery-blend-search { grid-column: 1 / -1; }
 }
+@media screen and (min-width: 681px) and (max-width: 900px) {
+  .gallery-page > .preparation-summary.review-navigation { top: 0; }
+}
 @media (max-width: 480px) {
   .gallery-browse-controls { grid-template-columns: minmax(0, 1fr); }
   .gallery-browse-controls > .gallery-blend-search { grid-column: auto; }
