@@ -291,7 +291,7 @@ export default function PublicApp() {
     event.preventDefault(); if (next === 'print') openReadyPrint(); else navigate(next)
   }
   const navItems: { view: View; label: string }[] = [
-    { view: 'create' as const, label: 'Your labels' }, { view: 'print' as const, label: 'Print labels' },
+    { view: 'create' as const, label: 'Your labels' }, { view: 'print' as const, label: 'Print labels' }, { view: 'gallery' as const, label: 'Gallery' },
   ]
   const showNotice = (view === 'print' || view === 'create' || view === 'artwork') && Boolean(notice) && !importing
   return <div className="app-shell tc-grain" onClick={event => {

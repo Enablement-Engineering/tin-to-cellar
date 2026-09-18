@@ -18,7 +18,7 @@ for (const width of [1280, 320]) {
       await page.goto(`/${route}`)
       await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
       if (route === 'labels') {
-        await expect(page.getByRole('navigation', { name: 'Workflow' }).getByRole('link')).toHaveText(['Your labels', 'Print labels'])
+        await expect(page.getByRole('navigation', { name: 'Workflow' }).getByRole('link')).toHaveText(['Your labels', 'Print labels', 'Gallery'])
         await expect(page.getByText('Optional', { exact: true })).toBeVisible()
         await expect(page.getByRole('button', { name: 'Enter blends manually', exact: true })).toBeVisible()
         await page.screenshot({ path: `test-results/overview-${width}.png`, fullPage: true })
@@ -28,6 +28,27 @@ for (const width of [1280, 320]) {
       if (route === 'labels/create') await page.screenshot({ path: `test-results/preparation-empty-${width}.png`, fullPage: true })
     })
   }
+}
+for (const width of [1280, 901, 900, 831, 320]) {
+  test(`header Gallery link opens the gallery without overflow at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/labels/create')
+    const navigation = page.getByRole('navigation', { name: 'Workflow' })
+    const gallery = navigation.getByRole('link', { name: 'Gallery' })
+    const wordmark = page.getByRole('link', { name: 'Tin to Cellar home' })
+    const theme = page.getByRole('button', { name: 'Theme' })
+    const [wordmarkBox, themeBox, navBox] = await Promise.all([wordmark.boundingBox(), theme.boundingBox(), navigation.boundingBox()])
+    expect(wordmarkBox && themeBox && navBox).toBeTruthy()
+    expect(Math.abs(themeBox!.y - wordmarkBox!.y)).toBeLessThan(3)
+    if (width <= 900) expect(navBox!.y).toBeGreaterThan(wordmarkBox!.y + wordmarkBox!.height - 1)
+    else expect(Math.abs(navBox!.y - wordmarkBox!.y)).toBeLessThan(3)
+    await expect(gallery).toHaveAttribute('href', '/gallery')
+    await gallery.click()
+    await expect(page).toHaveURL(/\/gallery$/)
+    await expect(page.getByRole('heading', { name: 'Browse label designs' })).toBeVisible()
+    await expect(gallery).toHaveAttribute('aria-current', 'page')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  })
 }
 for (const width of [1280, 320]) {
   test(`paper guidance is reachable from the landing page at ${width}px`, async ({ page }) => {

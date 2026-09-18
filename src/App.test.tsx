@@ -243,7 +243,7 @@ describe('home, prompt, print, and help navigation', () => {
     expect(screen.queryByRole('combobox', { name: 'Tobaccos' })).not.toBeInTheDocument()
     expect(importer).not.toHaveBeenCalled()
     const workflow = within(screen.getByRole('navigation', { name: 'Workflow' }))
-    expect(workflow.getAllByRole('link').map(link => link.textContent)).toEqual(['Your labels', 'Print labels'])
+    expect(workflow.getAllByRole('link').map(link => link.textContent)).toEqual(['Your labels', 'Print labels', 'Gallery'])
     expect(workflow.queryByRole('link', { name: 'Labels' })).not.toBeInTheDocument()
     expect(screen.getByText('Choose from community designs and go straight to printing.', { exact: false })).toBeInTheDocument()
     expect(screen.getByText('Optional', { exact: true })).toBeInTheDocument()

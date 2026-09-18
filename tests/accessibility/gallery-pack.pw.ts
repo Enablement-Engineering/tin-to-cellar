@@ -19,7 +19,7 @@ for (const width of [1280, 320]) test(`community designs share the durable print
   await page.setViewportSize({ width, height: 900 })
   await page.goto('/labels/create')
   const navigation = page.getByRole('navigation', { name: 'Workflow' })
-  await expect(navigation.getByRole('link')).toHaveText(['Your labels', 'Print labels'])
+  await expect(navigation.getByRole('link')).toHaveText(['Your labels', 'Print labels', 'Gallery'])
   await page.getByRole('button', { name: 'Browse label designs', exact: true }).click()
   await expect(page).toHaveURL(/\/gallery$/)
   await page.getByRole('button', { name: 'Add to your labels', exact: true }).first().click()

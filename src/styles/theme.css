@@ -63,8 +63,3 @@
 .theme-panel label:hover { background: var(--surface-hover); }
 .theme-panel input { margin: 0; width: 18px; height: 18px; accent-color: var(--action-primary); }
 .theme-panel p { margin-top: 12px; color: var(--text-muted); font: var(--type-hint); }
-@media (max-width: 600px) {
-  .site-header .site-header-inner { display: grid; grid-template-columns: 1fr auto; }
-  .site-header nav { grid-column: 1 / -1; grid-row: 2; margin-left: 0; }
-  .theme-control { grid-column: 2; grid-row: 1; }
-}
