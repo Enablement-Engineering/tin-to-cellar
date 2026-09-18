@@ -72,6 +72,4 @@
 .gallery-admin-layout>section { max-height:80vh; overflow:auto; padding:.25rem; }
 @media (max-width:680px) { .gallery-admin-layout>section { max-height:350px; } }
 
-.gallery-thumbnail { display: block; overflow: hidden; border-radius: .25rem; }
-.gallery-thumbnail--pending { background: var(--surface-sunken); }
-.gallery-thumbnail--pending img { opacity: 0; }
+.gallery-thumbnail { border-radius: .25rem; }

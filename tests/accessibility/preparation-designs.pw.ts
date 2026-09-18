@@ -40,7 +40,7 @@ for (const width of [1280, 768, 320]) for (const count of [1, 3]) {
     await expect(previews).toHaveCount(count)
     for (const preview of await previews.all()) {
       await preview.scrollIntoViewIfNeeded()
-      await expect(preview.locator('.gallery-thumbnail--loaded')).toBeVisible()
+      await expect(preview.locator('.gallery-thumbnail.gallery-image--loaded')).toBeVisible()
       const bounds = await preview.evaluate(element => {
         const image = element.querySelector('img')!, wrapper = element.querySelector('.gallery-thumbnail')!
         const box = wrapper.getBoundingClientRect(), art = image.getBoundingClientRect()

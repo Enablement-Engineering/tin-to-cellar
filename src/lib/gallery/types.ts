@@ -30,6 +30,7 @@ export interface GalleryReceipt {
     publicationId: string | null;
 }
 export interface GalleryPublicLabel {
+    previewDataUrl?: string;
     id: string;
     catalogId: string;
     maker: string;

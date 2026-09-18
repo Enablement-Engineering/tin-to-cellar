@@ -47,7 +47,7 @@ beforeEach(() => {
   db.raw.exec("UPDATE gallery_settings SET intake=1,publication=1,serving=1; INSERT INTO gallery_tobaccos VALUES('test-blend','Test','Blend','[]',1,'fixture')")
   const metadata = { version: 2, submissionId: id, tobacco: { catalogId: 'test-blend' }, artworkProfileId: 'circle-2.5@1', altText: 'Synthetic label', writingArea: { shape: 'rectangle', x: .35, y: .6, width: .3, height: .1 }, image: { sha256: hash, bytes: 4, width: 825, height: 825 }, acknowledgement: { version: '2026-09-06-v2', accepted: true } }
   db.raw.prepare("INSERT INTO gallery_submissions(id,capability_hash,request_hash,state,created_at,expires_at,metadata_json,catalog_id,input_bytes,quota_key,published_maker,published_blend,published_at) VALUES(?,'cap','hash','published','2026-09-12','2027-01-01',?,'test-blend',4,'fixture','Test','Blend','2026-09-12')").run(id, JSON.stringify(metadata))
-  for (const kind of ['thumbnail', 'artwork', 'pack']) db.raw.prepare('INSERT INTO gallery_assets VALUES(?,?,?,?,?,?)').run(kind, id, kind, `key/${kind}`, hash, png.length)
+  for (const kind of ['thumbnail', 'artwork', 'pack']) db.raw.prepare('INSERT INTO gallery_assets(id,submission_id,kind,r2_key,sha256,bytes) VALUES(?,?,?,?,?,?)').run(kind, id, kind, `key/${kind}`, hash, png.length)
   cache = new TestCache()
   buffered = vi.fn(async () => { throw new Error('Downloads must stream') })
   reads = vi.fn(async () => ({ body: new Response(png).body!, arrayBuffer: buffered }))
@@ -55,6 +55,19 @@ beforeEach(() => {
   env = { GALLERY: db, GALLERY_ART: { get: reads, put: vi.fn(), head: vi.fn(), delete: vi.fn(), list: vi.fn() }, GALLERY_SERVING: 'true', GALLERY_INTAKE: 'true', GALLERY_PUBLICATION: 'true', GALLERY_IP_SALT: 'salt', GALLERY_READ_RATE_LIMITER: limiter(), GALLERY_IMAGE_RATE_LIMITER: limiter(), GALLERY_PACK_RATE_LIMITER: limiter(), GALLERY_ADMIN_HOST: 'admin.tintocellar.com' }
 })
 afterEach(async () => { await drain(); db.raw.close() })
+
+it('includes only bounded inline PNG previews in public metadata, without R2 reads', async () => {
+  const preview = 'data:image/png;base64,aGVsbG8='
+  db.raw.prepare("UPDATE gallery_assets SET preview_data_url=? WHERE kind='thumbnail'").run(preview)
+  for (const path of ['/browse', '/labels', `/labels/${id}`]) {
+    const value = await (await call(path)).json()
+    expect(value.labels ? value.labels[0].previewDataUrl : value.previewDataUrl).toBe(preview)
+  }
+  expect(reads).not.toHaveBeenCalled()
+  db.raw.prepare("UPDATE gallery_assets SET preview_data_url=? WHERE kind='thumbnail'").run('https://example.com/tracker.png')
+  time += 31000
+  expect((await (await call('/browse')).json()).labels[0]).not.toHaveProperty('previewDataUrl')
+})
 
 it('serves a warm image with no D1 or R2 work and browser revalidation', async () => {
   const first = await call(); expect(new Uint8Array(await first.arrayBuffer())).toEqual(png); await drain()

@@ -40,7 +40,8 @@
     "gallery:seed:public-local": "node scripts/gallery/seed-public-local.mjs",
     "gallery:prepare-release": "node scripts/gallery/prepare-release.mjs",
     "gallery:agent": "node scripts/gallery/agent-client.mjs",
-    "gallery:migrate-labels": "node scripts/gallery/migrate-label-metadata.mjs"
+    "gallery:migrate-labels": "node scripts/gallery/migrate-label-metadata.mjs",
+    "gallery:prepare-previews": "node scripts/gallery/prepare-image-previews.mjs"
   },
   "dependencies": {
     "@tesseract.js-data/eng": "1.0.0",

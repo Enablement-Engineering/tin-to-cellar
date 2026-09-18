@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import type { GalleryPublicLabel } from '../../lib/gallery/types'
 import { API } from './client'
+import { GalleryImage } from './GalleryImage'
 import '../../styles/gallery-artwork-preview.css'
 
 export function GalleryArtworkPreview({ label, onClose }: { label: GalleryPublicLabel; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const closeButton = useRef<HTMLButtonElement>(null)
   const pressedOutside = useRef(false)
-  const [failed, setFailed] = useState(false)
   const artwork = `${API}/labels/${label.id}/artwork`
   const isOutside = (x: number, y: number) => {
     const bounds = dialog.current!.getBoundingClientRect()
@@ -35,7 +35,7 @@ export function GalleryArtworkPreview({ label, onClose }: { label: GalleryPublic
       <div><h2 id="gallery-artwork-title">{label.blend}</h2><p>{label.maker}</p></div>
       <button ref={closeButton} type="button" className="gallery-artwork-close" aria-label="Close preview" onClick={onClose}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
     </header>
-    {failed ? <p role="alert">The image could not load. Try opening the direct image link.</p> : <img className="gallery-artwork-original" src={artwork} alt={label.altText || `${label.maker} ${label.blend} artwork`} onError={() => setFailed(true)} />}
+    <GalleryImage className="gallery-artwork-original" src={artwork} preview={`${API}/labels/${label.id}/thumbnail`} alt={label.altText || `${label.maker} ${label.blend} artwork`} errorMessage="The image could not load. Try opening the direct image link." />
     <footer className="gallery-artwork-footer"><a href={artwork} target="_blank" rel="noreferrer">Open original image <span className="gallery-artwork-new-tab">(new tab)</span><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14 4h6v6m0-6L10 14M10 4H4v16h16v-6" /></svg></a></footer>
   </dialog>
 }

@@ -25,7 +25,7 @@ async function fixture() {
  const zip=new JSZip();zip.file('manifest.json',JSON.stringify(manifest));zip.file('artwork/label.png',artwork)
  const pack=await zip.generateAsync({type:'uint8array'})
  db.prepare("INSERT INTO gallery_submissions(id,capability_hash,request_hash,state,created_at,expires_at,metadata_json,metadata_hash,artwork_hash,digest,catalog_id,input_bytes,quota_key,approval_digest,published_maker,published_blend,publication_id,published_at) VALUES(?,'cap',?,'published','2026-09-06T00:00:00Z','2027-09-06T00:00:00Z',?,?,?,?, 'test-blend',?,'fixture',?,'Test','Blend',?,'2026-09-06T00:00:00Z')").run(id,hash,metadata,hash,sha(artwork),digest,artwork.length,digest,id)
- for(const [kind,bytes] of [['artwork',artwork],['thumbnail',artwork],['pack',pack]] as const)db.prepare('INSERT INTO gallery_assets VALUES(?,?,?,?,?,?)').run(`${kind}:${id}`,id,kind,`old/${kind}`,sha(bytes),bytes.length)
+ for(const [kind,bytes] of [['artwork',artwork],['thumbnail',artwork],['pack',pack]] as const)db.prepare('INSERT INTO gallery_assets(id,submission_id,kind,r2_key,sha256,bytes) VALUES(?,?,?,?,?,?)').run(`${kind}:${id}`,id,kind,`old/${kind}`,sha(bytes),bytes.length)
  const rows=db.prepare(migrationSnapshotQuery).all()
  return {db,rows,pack,artwork,digest,old}
 }

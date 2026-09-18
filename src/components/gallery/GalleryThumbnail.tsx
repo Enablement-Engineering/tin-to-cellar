@@ -1,9 +1,6 @@
-import { useState } from 'react'
+import { validGalleryPreview } from '../../lib/gallery/preview'
+import { GalleryImage } from './GalleryImage'
 
-export function GalleryThumbnail({ src, alt, eager }: { src: string; alt: string; eager: boolean }) {
-  const [state, setState] = useState<'pending' | 'loaded' | 'error'>('pending')
-  return <span className={`gallery-thumbnail gallery-thumbnail--${state}`}>
-    <img src={src} alt={alt} width={320} height={320} loading={eager ? 'eager' : 'lazy'} decoding="async"
-      onLoad={() => setState('loaded')} onError={() => setState('error')} />
-  </span>
+export function GalleryThumbnail({ src, alt, eager, preview }: { src: string; alt: string; eager: boolean; preview?: string }) {
+  return <GalleryImage className="gallery-thumbnail" src={src} preview={validGalleryPreview(preview) ? preview : undefined} alt={alt} eager={eager} />
 }

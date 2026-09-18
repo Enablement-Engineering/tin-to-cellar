@@ -20,6 +20,9 @@ describe('gallery PNG processing', () => {
     expect(thumb.width).toBe(320); expect(thumb.height).toBe(320)
     expect(thumb.data[1]).toBe(71); expect(thumb.data[2]).toBe(202)
     expect(result.sha256).toMatch(/^[a-f0-9]{64}$/)
+    expect(result.previewDataUrl.length).toBeLessThanOrEqual(1200)
+    const preview = decode(Uint8Array.from(atob(result.previewDataUrl.split(',')[1]), char => char.charCodeAt(0)))
+    expect([preview.width, preview.height]).toEqual([12, 12])
   })
   it('rejects corrupted CRC, animation, profiles, trailing data, excessive dimensions and truncated inflation', async () => {
     const png = syntheticArtwork(), corrupt = Uint8Array.from(png); corrupt[40] ^= 1

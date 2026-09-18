@@ -66,7 +66,7 @@ async function auditedMutation(db: GalleryDatabase, mutation: Statement, id: str
 
 async function assetResponse(db: GalleryDatabase, env: GalleryEnv, id: string, kind: string) { const a = await db.prepare('SELECT * FROM gallery_assets WHERE submission_id=? AND kind=?').bind(id, kind).first<Asset>(); if (!a)
     return json({ error: 'not_found' }, 404); return streamAsset(env, id, a); }
-async function putAsset(db: GalleryDatabase, env: GalleryEnv, id: string, kind: string, bytes: Uint8Array, version: number) { const hash = await sha256(bytes); const key = `gallery/${id}/${kind}-${version}-${hash}`; await env.GALLERY_ART!.put(key, bytes); const changed = await db.prepare(`INSERT INTO gallery_assets(id,submission_id,kind,r2_key,sha256,bytes) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM gallery_submissions WHERE id=? AND row_version=? AND state IN('uploading','preparing-publication')) ON CONFLICT(submission_id,kind) DO UPDATE SET r2_key=excluded.r2_key,sha256=excluded.sha256,bytes=excluded.bytes`).bind(crypto.randomUUID(), id, kind, key, hash, bytes.length, id, version).run(); if (!changed.meta.changes)
+async function putAsset(db: GalleryDatabase, env: GalleryEnv, id: string, kind: string, bytes: Uint8Array, version: number, preview: string | null = null) { const hash = await sha256(bytes); const key = `gallery/${id}/${kind}-${version}-${hash}`; await env.GALLERY_ART!.put(key, bytes); const changed = await db.prepare(`INSERT INTO gallery_assets(id,submission_id,kind,r2_key,sha256,bytes,preview_data_url) SELECT ?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM gallery_submissions WHERE id=? AND row_version=? AND state IN('uploading','preparing-publication')) ON CONFLICT(submission_id,kind) DO UPDATE SET r2_key=excluded.r2_key,sha256=excluded.sha256,bytes=excluded.bytes,preview_data_url=excluded.preview_data_url`).bind(crypto.randomUUID(), id, kind, key, hash, bytes.length, preview, id, version).run(); if (!changed.meta.changes)
     throw new Error('review_changed'); return hash; }
 export async function galleryResponse(request: Request, env: GalleryEnv, deps: GalleryDependencies = {}): Promise<Response> {
     if (!new URL(request.url).pathname.startsWith('/api/gallery/v1/'))
@@ -182,7 +182,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                     if (image.width !== draft.image.width || image.height !== draft.image.height)
                         throw new Error('image_mismatch');
                     const imageHash = await putAsset(db, env, row.id, 'artwork', image.artwork, version);
-                    await putAsset(db, env, row.id, 'thumbnail', image.thumbnail, version);
+                    await putAsset(db, env, row.id, 'thumbnail', image.thumbnail, version, image.previewDataUrl);
                     const d = await digest(draft, imageHash);
                     const done = await db.prepare("UPDATE gallery_submissions SET state='pending',row_version=row_version+1,lease_until=NULL,expires_at=?,artwork_hash=?,digest=? WHERE id=? AND row_version=? AND state='uploading'").bind(addDays(now, 30), imageHash, d, row.id, version).run();
                     if (!done.meta.changes)
@@ -272,7 +272,7 @@ export async function galleryResponse(request: Request, env: GalleryEnv, deps: G
                     if (image.width !== draft.image.width || image.height !== draft.image.height)
                         throw new Error('image_mismatch');
                     const imageHash = await putAsset(db, env, row.id, 'artwork', image.artwork, version);
-                    await putAsset(db, env, row.id, 'thumbnail', image.thumbnail, version);
+                    await putAsset(db, env, row.id, 'thumbnail', image.thumbnail, version, image.previewDataUrl);
                     const d = await digest(draft, imageHash);
                     const done = await auditedMutation(db, db.prepare("UPDATE gallery_submissions SET state='pending',row_version=row_version+1,lease_until=NULL,expires_at=?,artwork_hash=?,digest=? WHERE id=? AND row_version=? AND state='uploading'").bind(addDays(now, 30), imageHash, d, row.id, version), row.id, admin, 'curated-intake', now);
                     if (!done.meta.changes)

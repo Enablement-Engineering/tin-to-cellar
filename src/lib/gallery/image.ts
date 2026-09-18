@@ -1,4 +1,5 @@
 import { encode } from 'fast-png'
+import { galleryPreview } from './preview'
 
 const SIGNATURE = Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10)
 export const GALLERY_IMAGE_INPUT_LIMIT = 8 * 1024 * 1024
@@ -98,5 +99,5 @@ export async function normalizeGalleryImage(input: Uint8Array) {
     thumb[pos] = alpha ? Math.round(red / alpha) : 0; thumb[pos + 1] = alpha ? Math.round(green / alpha) : 0; thumb[pos + 2] = alpha ? Math.round(blue / alpha) : 0; thumb[pos + 3] = Math.round(alpha / (scale * scale))
   }
   const thumbnail = encodeSrgb(size, size, thumb, 4, intent)
-  return { artwork, thumbnail, sha256: await gallerySha256(artwork), thumbnailSha256: await gallerySha256(thumbnail), width, height, alpha: channels === 4 }
+  return { artwork, thumbnail, previewDataUrl: galleryPreview(thumb, size, size, 4), sha256: await gallerySha256(artwork), thumbnailSha256: await gallerySha256(thumbnail), width, height, alpha: channels === 4 }
 }

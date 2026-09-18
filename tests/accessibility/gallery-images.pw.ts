@@ -10,7 +10,7 @@ for (const reducedMotion of ['no-preference', 'reduce'] as const) test(`thumbnai
   })
   await page.goto('/gallery')
   const image = page.getByRole('img', { name: 'A label design' })
-  await expect(page.locator('.gallery-thumbnail--loaded')).toBeVisible()
+  await expect(page.locator('.gallery-thumbnail.gallery-image--loaded')).toBeVisible()
   await expect(image).toHaveCSS('animation-name', 'none')
   await expect(image).toHaveCSS('opacity', '1')
   await expect(image).toHaveCSS('filter', 'none')

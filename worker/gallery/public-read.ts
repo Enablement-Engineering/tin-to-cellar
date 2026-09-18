@@ -1,3 +1,4 @@
+import { validGalleryPreview } from '../../src/lib/gallery/preview'
 import { GALLERY_NOTICE_VERSION } from '../../src/lib/gallery/types'
 import { galleryAltText, parseGalleryDraft, uuid } from '../../src/lib/gallery/schema'
 import { database, labelMetadataReady, responseHeaders, sha256, type GalleryDatabase, type GalleryEnv } from './storage'
@@ -15,7 +16,7 @@ export interface PublicReadDependencies {
 type Switches = { intake: boolean; serving: boolean; publication: boolean }
 type Controls = { ready: boolean; switches: Switches }
 export interface PublicAsset { r2_key: string; sha256: string; bytes: number; kind: string }
-interface PublicRow { id: string; catalog_id: string; metadata_json: string; published_maker: string; published_blend: string; published_at: string }
+interface PublicRow { preview_data_url: string | null; id: string; catalog_id: string; metadata_json: string; published_maker: string; published_blend: string; published_at: string }
 const json = (value: unknown, status = 200) => Response.json(value, { status, headers: responseHeaders })
 const controls = new WeakMap<GalleryDatabase, { expires: number; signature: string; value: Controls }>()
 const pendingControls = new WeakMap<GalleryDatabase, { signature: string; expires: number; value: Promise<Controls> }>()
@@ -69,9 +70,9 @@ export async function streamAsset(env: GalleryEnv, id: string, asset: PublicAsse
 
 function projection(row: PublicRow) {
   const metadata = parseGalleryDraft(JSON.parse(row.metadata_json))
-  return { id: row.id, catalogId: row.catalog_id, maker: row.published_maker, blend: row.published_blend, ...(metadata.edition ? { edition: metadata.edition } : {}), altText: galleryAltText(metadata, row.published_maker, row.published_blend), artworkProfileId: metadata.artworkProfileId, publishedAt: row.published_at }
+  return { ...(validGalleryPreview(row.preview_data_url) ? { previewDataUrl: row.preview_data_url } : {}), id: row.id, catalogId: row.catalog_id, maker: row.published_maker, blend: row.published_blend, ...(metadata.edition ? { edition: metadata.edition } : {}), altText: galleryAltText(metadata, row.published_maker, row.published_blend), artworkProfileId: metadata.artworkProfileId, publishedAt: row.published_at }
 }
-const columns = 'id,catalog_id,metadata_json,published_maker,published_blend,published_at'
+const columns = `id,catalog_id,metadata_json,published_maker,published_blend,published_at,(SELECT preview_data_url FROM gallery_assets WHERE submission_id=gallery_submissions.id AND kind='thumbnail') AS preview_data_url`
 
 /** Explicit public GET routes only. Authentication and all private routes stay outside this cache. */
 export async function publicGalleryRead(request: Request, env: GalleryEnv, deps: PublicReadDependencies): Promise<Response> {
