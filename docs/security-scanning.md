@@ -14,7 +14,7 @@ Checkout and both CodeQL action steps use immutable commit pins. The CodeQL v4 a
 
 Require the exact Actions job check **CodeQL** once the first PR run has reported it. This blocks a failed or incomplete scan, but a successful analysis job can still upload vulnerability findings. It is not a severity gate.
 
-The Actions check requirement was applied and verified on 2026-09-18 UTC, pinned to the GitHub Actions app. The first PR analysis reported one high-severity finding in a test HTML-parsing regex; that test was changed to use an inert DOM parser. Both CodeQL execution and results passed on revision `6540eabd5c110792ddd0dcb1fab5cf01def5ae71` in [run 35305122321](https://github.com/Enablement-Engineering/tin-to-cellar/actions/runs/35305122321), with no open alerts reported for PR #16. The separate severity rule remains pending a main-branch analysis baseline; do not describe it as enforced yet.
+The Actions check requirement was applied and verified on 2026-09-18 UTC, pinned to the GitHub Actions app. The first PR analysis reported one high-severity finding in a test HTML-parsing regex; that test was changed to use an inert DOM parser. Both CodeQL execution and results passed on revision `6540eabd5c110792ddd0dcb1fab5cf01def5ae71` in [run 35305122321](https://github.com/Enablement-Engineering/tin-to-cellar/actions/runs/35305122321), with no open alerts reported for PR #16. After the first main baseline, severity ruleset 23638752 was activated and read back on 2026-09-18 UTC, requiring CodeQL results and blocking high-or-greater security alerts and error-level alerts.
 
 After the first analysis, verify GitHub's separate **Code scanning results / CodeQL** result and configure a code scanning ruleset for CodeQL, blocking `high` or greater security alerts and `error` alerts. GitHub's default result-check thresholds match those levels, but a ruleset explicitly requires the tool and completed results. This configuration is separate from an ordinary required status check, and must be verified in repository settings rather than inferred from workflow YAML. No mandatory human approval is needed.
 
@@ -22,7 +22,20 @@ The first scan introduces a baseline: review all branch alerts in Security, incl
 
 Local workflow validation cannot run GitHub's hosted analysis or prove SARIF upload permission. Before release, confirm `CodeQL` completed and results were processed on the current PR revision, inspect the first baseline, verify the configured severity rule, and record the scan link. The main-branch deployment dependency gates scan execution only; severity enforcement belongs to the protected PR merge.
 
+## First main baseline review — September 18, 2026
+
+The first main analysis on `e876b85` reported nine findings outside the original PR's changed-line results. Deployment was cancelled before upload while they were reviewed. This illustrates why a passing PR result is not a repository-wide clean bill.
+
+- Alert 2 identified an import-preview MIME gap: filename-based PDF detection preserved an incoming HTML MIME type in a blob link. PDF.js accepted an HTML/PDF polyglot in a local probe. Accepted PDFs now receive an `application/pdf` Blob before link creation, preserving the original bytes. A regression checks the MIME, bytes and URL cleanup. No CSP bypass was demonstrated.
+- Alert 3 was dismissed as a false positive: `ReviewEditor` renders its reference link only after `publicReference` parses and accepts exactly HTTPS, without credentials or unsafe characters.
+- Alerts 4 and 5 were dismissed as false positives for security: the URL substring regexes select local catalog naming/exclusion rules, not network authorization. Exact URL parsing remains a possible data-quality improvement.
+- Alerts 6–9 were dismissed as false positives: these explicit local CLI tools intentionally store fetched content. Diagnostic output names are fixed literals, and gallery pack filenames use IDs validated by an anchored hexadecimal/dash-only pattern. Remote contents cannot select arbitrary paths.
+- Alert 10 was dismissed as a test artifact: permission assertions and reading synthetic bytes in a private temporary directory do not form a production check/use boundary. Actual output creation uses exclusive creation and refuses symlinks.
+
+Each dismissal has a specific explanation in GitHub. Re-evaluate if these trust boundaries change. Alert 2 remains subject to analysis of the MIME fix; do not equate these dismissals with proof that all code is vulnerability-free.
+
 ## References
+
 
 - [CodeQL action permissions and build modes](https://github.com/github/codeql-action/blob/main/README.md)
 - [Workflow configuration options](https://docs.github.com/en/code-security/reference/code-scanning/workflow-configuration-options)
