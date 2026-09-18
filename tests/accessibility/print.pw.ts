@@ -31,9 +31,9 @@ test('printing exposes 1mm of bleed without scaling artwork or overlapping neigh
   const box = await sheet.boundingBox()
   expect(box).toEqual({ x: 0, y: 0, width: 816, height: 1056 })
   let shot = decode(await sheet.screenshot({ path: testInfo.outputPath('print-trim.png') }))
-  const red = (x: number, y: number) => {
+  const red = (x: number, y: number, maxGreen = 50) => {
     const i = (y * shot.width + x) * shot.channels
-    return shot.data[i] > 180 && shot.data[i + 1] < 50
+    return shot.data[i] > 180 && shot.data[i + 1] < maxGreen
   }
   // The trim remains 240px and the supplied 2.75-inch image remains 264px.
   // Only clipping changes; resizing either box would alter the composition.
@@ -62,9 +62,12 @@ test('printing exposes 1mm of bleed without scaling artwork or overlapping neigh
         for (let sample = 0; sample < 48; sample++) {
           const edge = sample * Math.PI / 24
           // Select the pixel containing the point, rather than rounding into
-          // the next pixel at the antialiased outer edge.
+          // the next pixel at the antialiased outer edge. Require at least 75%
+          // red coverage here: Linux Chromium can rasterize a boundary pixel
+          // as (226, 50, 50), while another platform makes it fully red.
+          // The cardinal bleed limits and empty gutters retain stricter probes.
           expect(red(Math.floor(x + 120 + Math.cos(angle) * 96 / 25.4 + Math.cos(edge) * 119),
-            Math.floor(216 + Math.sin(angle) * 96 / 25.4 + Math.sin(edge) * 119))).toBe(true)
+            Math.floor(216 + Math.sin(angle) * 96 / 25.4 + Math.sin(edge) * 119), 64)).toBe(true)
         }
       }
     }

@@ -2,11 +2,11 @@
 
 Tin to Cellar uses short-lived branches, pull requests and automated checks. No human PR approval or production environment reviewer is mandatory. A merge into `main` automatically starts the production release, so the release owner handles the merge and follows the workflow through public verification.
 
-## What exists and what is proposed
+## Current enforcement
 
 `.github/workflows/deploy.yml` runs `Check and deploy` for PRs targeting `main`, pushes to `main`, and manual dispatch. Only a non-PR run on `refs/heads/main` can deploy. Its concurrency group serializes runs on the same ref with `cancel-in-progress: false`. PR checks use local resources; deployment credentials belong to the deploy job.
 
-The local hardening changes add five browser matrix jobs and make deployment depend on all of them. They still need a successful GitHub run before their check names can be selected for branch protection. At the original hardening assessment, main had no branch protection or ruleset and the production environment had no restrictions. This document changes neither GitHub settings nor workflow YAML. Verify live settings before reporting them as enforced.
+The hardening workflow adds five browser matrix jobs and CodeQL, and makes deployment depend on all of them. On 2026-09-18 UTC, GitHub API readback confirmed main requires PRs, up-to-date checks from the GitHub Actions app, and zero approving reviews. Protection includes administrators and blocks force pushes and deletion. The production environment permits only the `main` branch, with no required reviewers. The separate CodeQL severity rule still needs a main-branch analysis baseline before activation. Recheck live settings when releasing; repository documentation cannot prevent settings drift.
 
 ## Work on a branch
 

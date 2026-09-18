@@ -1,13 +1,16 @@
+// @vitest-environment jsdom
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { expect, it } from 'vitest'
 import { applySecurityHeaders, CONTENT_SECURITY_POLICY, THEME_BOOTSTRAP_HASH } from './security-headers'
 
 it('allows exactly the theme bootstrap shipped in index.html', () => {
-  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
-  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)]
+  const html = readFileSync('index.html', 'utf8')
+  // Parse an inert document so attributes/casing cannot hide inline scripts.
+  const document = new DOMParser().parseFromString(html, 'text/html')
+  const scripts = document.querySelectorAll('script:not([src])')
   expect(scripts).toHaveLength(1)
-  expect(`sha256-${createHash('sha256').update(scripts[0][1]).digest('base64')}`).toBe(THEME_BOOTSTRAP_HASH)
+  expect(`sha256-${createHash('sha256').update(scripts[0].textContent ?? '').digest('base64')}`).toBe(THEME_BOOTSTRAP_HASH)
   expect(CONTENT_SECURITY_POLICY.split('; ').find(value => value.startsWith('script-src'))).not.toContain("'unsafe-inline'")
 })
 
