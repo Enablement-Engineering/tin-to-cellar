@@ -6,14 +6,14 @@ Reviewed September 17, 2026 against `15de90da429a1d38ef34868cc281e6c84e3f4428`, 
 | --- | --- | --- |
 | Protect main and production | Valid. At assessment, GitHub returned no rulesets, `Branch not protected` for main, and no protection rules or branch policy for production. | Applied and verified PR/check protection including administrators, blocked force pushes/deletion, and a main-only production environment. Zero mandatory human approvals. |
 | Enforce existing integration suites | Valid. The existing check job covered unit tests, lint, build, recovery and selected WebKit/mobile tests, but omitted gallery, security, accessibility and usage suites. | Add required browser jobs before deploy. Require gallery, security, usage and resilience suites plus a curated accessibility gate for core navigation, keyboard/focus, import, print and instruction recovery. Run that gate on every change so path filters cannot omit shared dependencies. The full legacy accessibility suite remains diagnostic pending fixture maintenance. |
-| Improve incident diagnostics | Valid, with limits. The top-level catch discarded exception identity. Existing logs deliberately use bounded fields and 10% head sampling. | Add bounded failure categories and error-only random incident IDs under the existing opt-in switch. Account metrics and alerts remain separate work. |
+| Improve incident diagnostics | Valid, with limits. The top-level catch discarded exception identity. Existing logs deliberately use bounded fields and 10% head sampling. | Added bounded failure categories and error-only random incident IDs under the existing opt-in switch. Account usage/budget warnings are configured and one test email was received; real threshold delivery and runtime-error alert coverage remain outstanding. |
 | Broaden CSP | Valid defense in depth. The Worker only appended `frame-ancestors 'none'`; no injection defect was established by this feedback. | Added and locally checked the policy against bootstrap, OCR, PDF, imported print artwork and script/frame rejection. CellarPack validators are now precompiled; JavaScript unsafe-eval is removed, with a narrower WebAssembly permission retained for local OCR. |
 | Expand/contract migrations | Valid. The workflow applies D1 migrations before Worker deployment. | Add explicit compatibility requirements and PR checklist. A text search for SQL keywords would not prove compatibility. |
 | Manual browser, AT and print acceptance | Valid. Existing acceptance documents explicitly limit local browser/PDF evidence and do not establish physical output or native assistive technology acceptance. | Record the outstanding matrix below, without marking it passed. |
 | Split large orchestration files | Reasonable future maintenance, not a demonstrated defect. The reported file sizes match this checkout. | Defer until a specific change exposes a useful boundary; avoid an unrelated rewrite. |
 | Move immutable artifacts out of Git | Plausible future optimization, not evidence of initial bundle cost or a current production failure. | Defer pending measured transfer/deployment cost and preservation of immutable protocol history. |
 | Missing license | Confirmed by GitHub metadata and absence of a repository license file. | User selected MIT. Added the standard license, package metadata and separate artwork/third-party scope notes. |
-| Dependency/security automation | Dependabot and CodeQL configuration were absent. Application security tests already exist. | Added Dependabot and a deployment-gating CodeQL analysis job. Hosted scan results and severity protection must be verified separately. |
+| Dependency/security automation | Dependabot and CodeQL configuration were absent. Application security tests already exist. | Added Dependabot and a deployment-gating CodeQL analysis job. PR 16 hosted CodeQL results passed with no open PR alerts; separate severity protection still needs a main-branch baseline. |
 | Beta versus GA | A useful caution, not a result derivable from repository age or line count. | Tie any GA claim to release controls and recorded operational/manual acceptance. |
 
 ## Repository settings
@@ -34,9 +34,9 @@ Every result must identify commit/build, date, tester, platform/version, expecte
 | Zoom/reflow | Test 200% and 400% browser zoom, narrow viewport, dialogs, sticky controls and print preparation. | Manual acceptance outstanding |
 | Physical print | Record printer model/driver, browser/OS, sheet stock, scaling and measured alignment on several representative combinations. | Outstanding; browser PDF is insufficient |
 | Hosted controls | Verify real Access authentication, private no-store behavior, health, protected budget route, exact build, and disable/recovery behavior. | Refresh against release candidate |
-| Operations | Record observation period, traffic, failures, alert delivery and incident response, including privacy settings and retention. | No new hosted evidence gathered |
+| Operations | Record observation period, traffic, failures, alert delivery and incident response, including privacy settings and retention. | Account usage/budget policies configured and one test email received September 18; real threshold delivery, runtime alerts, observation period and incident acceptance remain outstanding. |
 
-The code changes in this task do not deploy, publish artwork, enable analytics, configure account alerts, or establish any of these manual results.
+The code changes do not establish these manual results. Account notifications were configured separately as recorded below; no merge, production deployment, artwork publication or analytics enablement occurred.
 
 ## Additional findings from validation
 
@@ -52,7 +52,7 @@ The gallery browser suite also contained an outdated navigation expectation and 
 - Gallery: all six tests passed, including unpublish/revocation and public import/print. A temporary fixture copy changed only the loopback port because an existing user server occupied the default port.
 - Usage: all 12 passed. Usage resilience: all 14 passed. An initial usage failure occurred while parallel builds replaced files under a running server; the stable-build rerun passed.
 - The broad 131-case accessibility run was stopped after exposing stale fixtures and prompt scrollability problems. It is not a passing acceptance result. The workflow selects 45 core cases instead.
-- At this initial local checkpoint, hosted checks and settings changes had not run. The follow-up below records subsequent GitHub work. Production deployment, account alerts and native/physical acceptance remain outstanding.
+- At this initial local checkpoint, hosted checks and settings changes had not run. The follow-up below records subsequent GitHub and Cloudflare work. Production deployment, real threshold notification delivery and native/physical acceptance remain outstanding.
 
 A further import test caught duplicate network dispatch during development StrictMode effect replay and resubmission of already-sent receipts after a component remount. Contribution sharing now waits one microtask and checks cancellation before sending. A persisted-delivery guard prevents remount resubmission. Unit tests cover StrictMode and already-sent remount behavior, and the browser fixture still requires exactly one request. The accessibility server configuration now requests graceful shutdown so the local launcher can clean up its detached Worker children.
 
@@ -64,8 +64,18 @@ After both diagnostic-dispatch fixes, the final complete unit run passed 831 tes
 
 ## Follow-up implementation
 
-The user selected standard MIT after discussing visible attribution. LICENSE and package metadata now declare MIT for original software, with LICENSING.md explaining separate artwork and third-party rights. Operational alerts should go to dylan@enablement.engineering; Cloudflare notification configuration and delivery testing remain pending.
+The user selected standard MIT after discussing visible attribution. LICENSE and package metadata now declare MIT for original software, with LICENSING.md explaining separate artwork and third-party rights. Cloudflare usage/budget notifications are now configured for dylan@enablement.engineering; the user confirmed receipt of one test email.
 
 CellarPack validators now generate before dev/build/test, preserving the schema and validation errors while removing runtime schema compilation from browser code. CSP excludes JavaScript unsafe-eval and permits only the WebAssembly compilation needed for local OCR. Two built-Worker browser security cases passed, including explicit dynamic JavaScript compilation rejection. The complete unit suite passed 833 tests across 102 files; lint and build/typecheck passed.
 
-CodeQL is added as a required deployment dependency. The first hosted analysis completed and identified one high-severity finding in a test's HTML-parsing regex; the test now uses an inert DOM parser. The updated scan must confirm resolution. The separate code-scanning severity rule needs a main-branch baseline before activation. GitHub branch and environment protections were applied and verified on 2026-09-18 UTC, requiring PRs and checks with zero mandatory human approvals.
+CodeQL is added as a required deployment dependency. The first hosted analysis completed and identified one high-severity finding in a test's HTML-parsing regex; the test now uses an inert DOM parser. Updated PR 16 CodeQL results passed with no open PR alerts. The separate code-scanning severity rule needs a main-branch baseline before activation. GitHub branch and environment protections were applied and verified on 2026-09-18 UTC, requiring PRs and checks with zero mandatory human approvals.
+
+## Hosted follow-up — September 18, 2026
+
+All PR 16 hosted gates passed for revision `6540eab` in workflow run `35305122321`, including CodeQL results. No open PR code-scanning alerts remained. This verifies the PR checks; the PR has not been merged and no production deployment is recorded.
+
+The Cloudflare dashboard showed eight enabled account-wide policies for `dylan@enablement.engineering`: seven usage warnings plus the preserved $10 `Default budget alert (auto-created)`. The usage thresholds are 8,000,000 Standard Workers requests, 24,000,000 Standard Workers CPU milliseconds, 20,000,000,000 D1 rows read, 40,000,000 D1 rows written, 800,000 R2 Class A operations, 8,000,000 R2 Class B operations and 8,000,000,000 bytes of R2 storage. These represent 80% of published monthly included allowances and aggregate all account projects. See the [dated operations record](beta-operations.md#account-notification-record--september-18-2026) for policy names and pricing references.
+
+These policies warn about usage and budget; they do not cap spending or establish HTTP 5xx/runtime alert coverage. The dashboard's notification Product list offered no Workers/D1/R2 error category. Cloudflare documents Advanced Error Rate and Origin Error Rate as [Enterprise traffic-monitoring notifications](https://developers.cloudflare.com/notifications/notification-available/#traffic-monitoring); this does not establish account availability or Workers-specific coverage. Continue dashboard checks for runtime errors and D1 storage as well as resource usage.
+
+A Workers requests Test/Confirm action was taken once. On September 18 the user confirmed receipt and supplied a screenshot of Cloudflare's sample email (`fake-product`, 1,500 seconds). This verifies delivery to the selected email address only, not a real threshold crossing, delivery from every policy or outage detection. Operational observation and the manual acceptance matrix remain outstanding.

@@ -1,6 +1,6 @@
 # Beta operations
 
-This describes the local beta implementation candidate. Hosted checks and account notifications remain separate release evidence. No production outage test or account setting change is implied by this runbook.
+This describes the beta implementation candidate. Hosted checks, account notifications and production acceptance are separate evidence; the dated account notification record below identifies the settings actually configured. No production outage test is implied by this runbook.
 
 ## Routing and cache
 
@@ -34,9 +34,29 @@ Wrangler enables Workers Logs with 10% head sampling and disables invocation log
 
 Save a view grouped by route, status and cache outcome. Compare cold/warm image requests, 429s and 5xxs. A rising image MISS share plus R2 reads suggests eviction or uncached large assets; a healthy HIT share does not prove that rights removal or authentication works. Those have separate tests.
 
-Before enabling the beta, the release owner must inspect the account's supported billing/usage notifications and configure authorized recipients and thresholds. Record which Workers, D1 and R2 alerts are actually supported/enabled, and a dashboard check for anything unavailable. Do not claim notifications exist because this file describes them. The diagnostic allowance is independent of analytics and account billing; neither allowance is an account-wide spending cap.
+The diagnostic allowance is independent of analytics and account billing; neither allowance is an account-wide spending cap. Before release, review the configured policies below and check dashboard metrics for signals without a supported notification type.
 
-The user-selected operational alert recipient is `dylan@enablement.engineering`. Use this address when configuring supported alerts. Recipient selection alone does not mean any alert is enabled or delivery has been tested; record the actual policies, thresholds and delivery verification separately.
+### Account notification record — September 18, 2026
+
+The Cloudflare dashboard showed eight enabled policies after configuration. All use the user-selected recipient `dylan@enablement.engineering`. The seven Usage Based Billing policies cover account-wide usage across all projects, rather than Tin to Cellar alone:
+
+| Enabled policy | Configured threshold |
+| --- | --- |
+| Usage warning - Workers requests | 8,000,000 Standard requests |
+| Usage warning - Workers CPU | 24,000,000 Standard CPU milliseconds |
+| Usage warning - D1 rows read | 20,000,000,000 rows |
+| Usage warning - D1 rows written | 40,000,000 rows |
+| Usage warning - R2 Class A operations | 800,000 operations |
+| Usage warning - R2 Class B operations | 8,000,000 operations |
+| Usage warning - R2 storage | 8,000,000,000 bytes (8 GB) |
+
+The request, CPU, row and operation thresholds represent 80% of the published monthly included allowances. The storage warning is 8 GB against the published 10 GB storage allowance. Review them when plans or pricing change: [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/), [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/), and [usage-based billing notifications](https://developers.cloudflare.com/billing/understand/usage-based-billing/).
+
+The existing `Default budget alert (auto-created)` policy remains enabled at $10 with the same recipient. It was preserved. These eight notifications are warnings, not spending caps or automatic service shutoffs.
+
+The available notification Product list did not offer a Workers, D1 or R2 error category. Cloudflare documents Advanced Error Rate and Origin Error Rate alerts as [Enterprise traffic-monitoring notifications](https://developers.cloudflare.com/notifications/notification-available/#traffic-monitoring); that does not establish their availability for this account or Workers-specific coverage. No HTTP 5xx or runtime-error notification coverage was established. Continue manual dashboard checks of Workers request/CPU/error metrics, response-status metrics where available, D1 reads/writes/storage, and R2 operations/storage. Usage warnings do not replace these checks or a verified incident alert.
+
+The Workers requests policy's Test and Confirm controls were activated once. Although no explicit success toast appeared, the user confirmed receipt on September 18 and supplied a screenshot of Cloudflare's sample email (`fake-product`, 1,500 seconds). This verifies test-email delivery to the selected recipient only. It does not verify a real threshold crossing, every policy's delivery, or outage detection.
 
 ## Incident and recovery
 
