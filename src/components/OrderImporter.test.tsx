@@ -7,6 +7,33 @@ import { readOrderImage } from '../lib/order-import/ocr'
 import * as orderImport from '../lib/order-import'
 vi.mock('../lib/order-import/ocr', () => ({ readOrderImage: vi.fn() }))
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers() })
+it('opens a filename-detected PDF with PDF MIME even when the original claims HTML', async () => {
+  const read = vi.spyOn(orderImport, 'readOrderPdf').mockResolvedValue('Cornell & Diehl\nAutumn Evening')
+  const create = vi.fn().mockReturnValue('blob:local-pdf'), revoke = vi.fn()
+  vi.stubGlobal('URL', class extends URL {
+    static createObjectURL = create
+    static revokeObjectURL = revoke
+  })
+  try {
+    const bytes = '<html><!--%PDF-1.4\noriginal source bytes--></html>'
+    const file = new File([bytes], 'order.pdf', { type: 'text/html' })
+    const view = render(<OrderImporter standalone onAdd={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Blend list file'), { target: { files: [file] } })
+    expect(await screen.findByRole('link', { name: 'Open original file to check for missing blends' })).toHaveAttribute('href', 'blob:local-pdf')
+    expect(read).toHaveBeenCalledWith(file, expect.any(AbortSignal))
+    const opened = create.mock.calls[0][0] as Blob
+    expect(opened).not.toBe(file)
+    expect(opened.type).toBe('application/pdf')
+    const contents = await new Promise(resolve => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.readAsText(opened)
+    })
+    expect(contents).toBe(bytes)
+    view.unmount()
+    expect(revoke).toHaveBeenCalledWith('blob:local-pdf')
+  } finally { vi.unstubAllGlobals() }
+})
 it.each(['cancel', 'close', 'unmount', 'timeout'])('aborts the PDF operation on %s and ignores late results', async action => {
   vi.useFakeTimers()
   let finish!: (value: string) => void
