@@ -16,28 +16,36 @@ for (const reducedMotion of ['no-preference', 'reduce'] as const) test(`gallery 
   await expect(view).toBeVisible()
   await view.focus()
   expect(await summary.evaluate(element => element.getAnimations().length)).toBe(0)
+  // Pause actual browser animations midway so slow CI frame delivery cannot
+  // skip over the position we need to inspect.
+  await summary.evaluate(element => {
+    const animate = element.animate.bind(element)
+    element.animate = (keyframes, options) => {
+      const animation = animate(keyframes, options)
+      animation.pause()
+      animation.currentTime = 0
+      return animation
+    }
+  })
   for (const width of [390, 831]) {
     const before = (await summary.boundingBox())!
-    // WebKit can finish its resize command after the short animation has ended.
-    // Observe frames before requesting the resize so we capture motion in both engines.
-    const frames = summary.evaluate(element => new Promise<{ y: number; moving: boolean }[]>(resolve => {
-      const samples: { y: number; moving: boolean }[] = []
-      const start = performance.now()
-      const sample = () => {
-        samples.push({ y: element.getBoundingClientRect().y, moving: element.getAnimations().length > 0 })
-        if (performance.now() - start < 700) requestAnimationFrame(sample)
-        else resolve(samples)
-      }
-      requestAnimationFrame(sample)
-    }))
     await page.setViewportSize({ width, height: 900 })
-    const samples = await frames
-    const after = (await summary.boundingBox())!
+    await expect(summary).toHaveCSS('position', width <= 680 ? 'fixed' : 'sticky')
     if (reducedMotion === 'no-preference') {
+      await expect.poll(() => summary.evaluate(element => element.getAnimations().length)).toBe(1)
+      const { during, after } = await summary.evaluate(element => {
+        const animation = element.getAnimations()[0]!
+        animation.currentTime = Number(animation.effect!.getTiming().duration) / 2
+        const during = element.getBoundingClientRect().y
+        animation.finish()
+        return { during, after: element.getBoundingClientRect().y }
+      })
+      await expect.poll(() => summary.evaluate(element => element.getAnimations().length)).toBe(0)
       // Motion must travel between the two docks, not only fade or jump.
-      expect(samples.some(frame => frame.moving && frame.y > Math.min(before.y, after.y) + 2 && frame.y < Math.max(before.y, after.y) - 2), JSON.stringify({ before, after, samples })).toBe(true)
+      expect(during).toBeGreaterThan(Math.min(before.y, after) + 2)
+      expect(during).toBeLessThan(Math.max(before.y, after) - 2)
     } else {
-      expect(samples.some(frame => frame.moving)).toBe(false)
+      expect(await summary.evaluate(element => element.getAnimations().length)).toBe(0)
     }
     await expect(view).toBeFocused()
     await expect(summary).toHaveCSS('position', width <= 680 ? 'fixed' : 'sticky')
