@@ -85,7 +85,10 @@ export function OrderImporter({ onAdd, standalone = false, busy: externalBusy = 
       if (ticket !== request.current) return
       if (abort.signal.aborted) throw new Error('Reading timed out. Try a smaller image cropped to the product list.')
       review(value)
-      setSourceUrl(standalone && typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : '')
+      // Filename-based PDF detection also accepts misleading source MIME types.
+      // Keep the original bytes, but never open an accepted PDF as active HTML.
+      const original = isPdf ? new Blob([file], { type: 'application/pdf' }) : file
+      setSourceUrl(standalone && typeof URL.createObjectURL === 'function' ? URL.createObjectURL(original) : '')
     } catch (error) {
       if (ticket === request.current) {
         setFileFailed(true)

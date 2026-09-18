@@ -13,7 +13,7 @@ Follow [Cloudflare's GitHub Actions setup](https://developers.cloudflare.com/wor
 
 ## Releases
 
-Follow [the branch and release workflow](release-workflow.md) for PRs, required checks, release ownership and recovery. GitHub branch and environment restrictions were applied and verified on 2026-09-18 UTC, with zero mandatory human approvals. Recheck live settings before release; the separate CodeQL severity rule remains a baseline-dependent setup step.
+Follow [the branch and release workflow](release-workflow.md) for PRs, required checks, release ownership and recovery. GitHub branch and environment restrictions were applied and verified on 2026-09-18 UTC, with zero mandatory human approvals. The separate CodeQL severity rule was subsequently activated after the first main baseline. Recheck live settings before release.
 
 The deploy job uses the `production` GitHub environment and serializes runs on `main` so deployments do not overlap. It uses the Wrangler version in the npm lockfile, preserves the bindings and migrations in `wrangler.jsonc`, and checks both production domains and the health endpoint after deployment. HTTP checks establish deployment response behavior, not successful artwork generation, canonical local proof review, ZIP delivery, website import, or printing. Record those workflow checks separately.
 
