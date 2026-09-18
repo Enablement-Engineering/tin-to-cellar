@@ -1,46 +1,82 @@
 import { resolveTobaccoId } from '../tobacco-catalog'
 import { parsePrintIntent, type PrintIntentEvent } from './schema'
-import { demandPreference, PREFERENCE_KEY, setDemandPreference as savePreference } from './preferences'
-import { parseUsage, parseProgress, USAGE_PATH, PROGRESS_PATH, type UsagePayload, type ProgressPayload } from './events'
-export { demandPreference, subscribeDemandPreference } from './preferences'
+import { usageChoice } from '../usage-preferences'
+import { parseUsage, parseProgress, USAGE_PATH, PROGRESS_PATH, type UsagePayload, type ProgressPayload } from './payloads'
+
 let capabilities = { demandEnabled: false, workflowEnabled: false, progressEnabled: false }
-let configuration: Promise<void> | undefined
+let configuration: Promise<boolean> | undefined
+let configuredChoice: string | null = null
+let generation = 0
+let unavailable = false
+const pending = new Set<AbortController>()
 const actions = new WeakSet<object>()
-export function setDemandPreference(allowed: boolean) {
-  const result = savePreference(allowed)
-  if (result.allowed) void initializeDemandCollection()
-  return result
+
+export function suspendCollection() {
+  generation++
+  configuredChoice = null
+  configuration = undefined
+  capabilities = { demandEnabled: false, workflowEnabled: false, progressEnabled: false }
+  for (const controller of pending) controller.abort()
+  pending.clear()
 }
-/** Configuration contains no user data. Legacy clients never receive enabled=true. */
-export function initializeDemandCollection(): Promise<void> {
-  if (!demandPreference().allowed || navigator.onLine === false) return Promise.resolve()
-  if (configuration) return configuration
+/** No retries or alternate route after blocked, failed, or uncertain delivery. */
+export function stopCollection() {
+  unavailable = true
+  suspendCollection()
+}
+function requestScope() {
+  const controller = new AbortController(), epoch = generation
+  pending.add(controller)
+  const timer = setTimeout(() => controller.abort(), 2500)
+  return {
+    signal: controller.signal,
+    current: (choice: string) => generation === epoch && usageChoice() === choice,
+    close: () => { clearTimeout(timer); pending.delete(controller) },
+  }
+}
+/** Configuration contains no user data. Failed configuration stays off until reload. */
+export function initializeDemandCollection(): Promise<boolean> {
+  const choice = usageChoice()
+  if (!choice || unavailable || navigator.onLine === false) return Promise.resolve(false)
+  if (configuredChoice === choice && configuration) return configuration
+  suspendCollection()
+  configuredChoice = choice
   configuration = (async () => {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 2500)
+    const scope = requestScope()
     try {
-      const response = await fetch('/api/analytics/v2/config', { credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', signal: controller.signal })
+      const response = await fetch('/api/analytics/v2/config', { credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', signal: scope.signal })
       const value = response.ok ? await response.json() : null
-      if (value?.version === 2) capabilities = { demandEnabled: value.demandEnabled === true, workflowEnabled: value.workflowEnabled === true, progressEnabled: value.progressEnabled === true }
-    } catch { /* No deferred event delivery after failed configuration. */ }
-    finally { clearTimeout(timer) }
+      if (!scope.current(choice)) return false
+      if (scope.signal.aborted || value?.version !== 2 || !['demandEnabled', 'workflowEnabled', 'progressEnabled'].every(key => typeof value[key] === 'boolean')) {
+        stopCollection(); return false
+      }
+      capabilities = { demandEnabled: value.demandEnabled, workflowEnabled: value.workflowEnabled, progressEnabled: value.progressEnabled }
+      return true
+    } catch {
+      if (scope.current(choice)) stopCollection()
+      return false
+    } finally { scope.close() }
   })()
   return configuration
 }
 export function collectionAllowed(kind: keyof typeof capabilities) {
-  return capabilities[kind] && demandPreference().allowed && navigator.onLine !== false
+  return !unavailable && capabilities[kind] && configuredChoice !== null && usageChoice() === configuredChoice && navigator.onLine !== false
 }
-/** No retry: an uncertain write is never sent again. Only an explicit receipt proves recording. */
+/** Only an explicit receipt proves recording; an uncertain write is never resent. */
 async function send(path: string, payload: unknown, expectedChoice?: string): Promise<boolean> {
-  if (!demandPreference().allowed || navigator.onLine === false) return false
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 2500)
+  const choice = usageChoice()
+  if (!choice || unavailable || choice !== configuredChoice || navigator.onLine === false || expectedChoice !== undefined && choice !== expectedChoice) return false
+  const scope = requestScope()
   try {
-    if (expectedChoice !== undefined && localStorage.getItem(PREFERENCE_KEY) !== expectedChoice) return false
-    const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', signal: controller.signal })
-    return response.ok && (await response.json().catch(() => null))?.recorded === true
-  } catch { return false }
-  finally { clearTimeout(timer) }
+    const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', signal: scope.signal })
+    const recorded = response.ok && (await response.json())?.recorded === true
+    if (!scope.current(choice)) return false
+    if (!recorded || scope.signal.aborted) { stopCollection(); return false }
+    return true
+  } catch {
+    if (scope.current(choice)) stopCollection()
+    return false
+  } finally { scope.close() }
 }
 export function recordUsage(payload: UsagePayload, action: object = {}) {
   try {

@@ -17,7 +17,7 @@ This revises the earlier provisional recommendation to favor opt-out for basic c
 | Request progress | Starting week, milestone, broad elapsed-time range | Matches requests locally for up to 30 days using request, row, collection and design identifiers. IDs stay local, but this is still measurement-specific device storage/access. Keep opt-in. |
 | Existing operations | Bounded route class, response status, duration and cache outcome | Can describe service reliability and gallery requests without adding client telemetry. Cannot observe local copy, ZIP checking or printing. |
 
-Evidence: `src/lib/analytics/events.ts`, `schema.ts`, `client.ts`, `preferences.ts`, `progress.ts`; `worker/analytics/usage.ts`, `index.ts`; `worker/operations.ts`.
+Evidence: `src/lib/analytics/payloads.ts`, `schema.ts`, `client.ts`, `progress.ts`; `src/lib/usage-preferences.ts`, `usage-progress-storage.ts`; `worker/analytics/usage.ts`, `index.ts`; `worker/operations.ts`.
 
 The client omits credentials and referrers and has no automatic retries or offline queue. D1 stores aggregate rows, not event histories or visitor IDs. IP addresses still reach the hosting service and are used for rate limiting. These protections do not justify saying that the entire processing chain is anonymous. Account-level security logs, exports, provider retention and processing terms were not inspected during this investigation.
 

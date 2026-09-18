@@ -27,6 +27,15 @@ bucket. Catalog demand retains canonical IDs and print quantity. The browser's
 matching metadata stays local and expires after 30 days; no retries or offline
 queue are used. Repeated malicious requests can still affect counts.
 
+The public UI loads collection through `src/lib/optional-usage.ts` only after
+opt-in. Its dynamic `analytics/runtime.ts` dependency may fail without stopping
+the application. Local choices and record cleanup live outside that dependency.
+Actions before readiness are dropped. Failed imports, failed configuration, and
+blocked or uncertain deliveries stop collection for the current document; there
+is no fallback URL or retry queue. A normal page reload may try again. Opt-out
+invalidates pending initialization and aborts outstanding requests where possible.
+An already accepted server write cannot be recalled.
+
 GET `/api/analytics/v2/admin/summary` and `/blends` are dispatched only inside the
 root Worker's human-authenticated, exact admin-host branch. Reports remain
 readable with ingestion off. Public-host reads are denied. Parameter enums,
@@ -46,10 +55,17 @@ Verification commands:
 - `npm run build`
 - `npm run lint`
 - `npm exec -- playwright test --config playwright.usage.config.ts`
+- `npm run test:usage-resilience`
 
 The browser suite starts an isolated local Wrangler/D1 instance on port 43931.
 It uses synthetic admin UI responses, not real Access credentials. Root Worker
 tests cover denial boundaries; deployed human Access needs a separate check.
+
+The resilience suite uses separate development and built-asset servers on ports
+43942 and 43943. It mocks API responses and blocks optional scripts and requests.
+The isolated build checks that analytics modules are absent from the initial
+static dependency graph, then reports the actual chunk URLs to the tests. Its
+build and report stay in ignored `output/usage-resilience/`.
 
 For release and activation boundaries, field contracts, action units, known
 coverage limits, and all changed locations, see

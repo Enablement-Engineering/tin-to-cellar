@@ -69,8 +69,9 @@ Both endpoints require the exact configured admin host and existing human Access
 
 | Area | Implementation |
 | --- | --- |
-| Strict contracts | `src/lib/analytics/events.ts`, `report-types.ts`; existing demand schema retained |
-| Choice and delivery | `preferences.ts`, `client.ts` |
+| Strict contracts | `src/lib/analytics/payloads.ts`, `report-types.ts`; existing demand schema retained |
+| Local choice and cleanup | `src/lib/usage-preferences.ts`, `usage-progress-storage.ts` |
+| Optional loading and delivery | `src/lib/optional-usage.ts`, `analytics/runtime.ts`, `analytics/client.ts`; blocked modules cannot prevent public UI startup |
 | Device-local matching | `progress.ts` |
 | Action observation | `PublicApp.tsx`, `PromptHandoff.tsx`, `usePackImport.ts`, typed outcome in `import-workflow/prepare.ts` |
 | Ingestion, reports, expiry | `worker/analytics/index.ts`, `usage.ts`, `admin.ts`, root Worker dispatch/scheduled hook |

@@ -1,5 +1,7 @@
 # Usage analytics validation
 
+Later optional-module and adblocker checks are recorded in [adblocker resilience validation](adblocker-resilience-validation.md).
+
 September 16, 2026. Local evidence after integration with `f03129d`, including its app-recovery and release-verification changes. Implementation commit `da95d6d`; the accompanying follow-up updates existing browser assertions, one gallery disclosure, and this record.
 
 ## Passed

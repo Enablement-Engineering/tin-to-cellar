@@ -14,6 +14,11 @@ export function demandPreference(): { allowed: boolean; storageFailed: boolean }
   try { return { allowed: !storageFailed && /^on:[a-f0-9-]{36}$/.test(localStorage.getItem(PREFERENCE_KEY) ?? ''), storageFailed } }
   catch { storageFailed = true; return { allowed: false, storageFailed: true } }
 }
+/** A new token for every saved choice invalidates work started under an older choice. */
+export function usageChoice(): string | null {
+  try { return demandPreference().allowed ? localStorage.getItem(PREFERENCE_KEY) : null }
+  catch { storageFailed = true; return null }
+}
 export function setDemandPreference(allowed: boolean) {
   try {
     localStorage.setItem(PREFERENCE_KEY, `${allowed ? 'on' : 'off'}:${crypto.randomUUID()}`)

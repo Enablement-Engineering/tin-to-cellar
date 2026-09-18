@@ -1,3 +1,5 @@
+import { isOptionalModuleFailure } from './optional-module-failures'
+
 export type RecoveryPhase = 'idle' | 'checking' | 'offline' | 'current' | 'update' | 'unknown' | 'reloading'
 export type RecoveryState = { phase: RecoveryPhase; blocked: string | null; attempted: boolean }
 type Storage = Pick<globalThis.Storage, 'getItem' | 'setItem'>
@@ -140,8 +142,10 @@ export const appRecovery = new AppRecovery({
 export function installAppRecovery() {
   const printGuard = Symbol('printing')
   window.addEventListener('vite:preloadError', event => {
-    // Preserve the rejection so component catches still run and clean up their work.
-    appRecovery.report((event as Event & { payload: unknown }).payload)
+    // Vite emits before rejecting the import. Let its caller classify the failure
+    // before deciding whether essential app code needs recovery. Keep the rejection.
+    const error = (event as Event & { payload: unknown }).payload
+    setTimeout(() => { if (!isOptionalModuleFailure(error)) appRecovery.report(error) }, 0)
   })
   window.addEventListener('beforeprint', () => appRecovery.guard(printGuard, 'Close the print dialog before updating the app.'))
   window.addEventListener('afterprint', () => appRecovery.guard(printGuard, null))

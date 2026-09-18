@@ -4,7 +4,7 @@ import { DB } from './test-db'
 import { usageResponse, cleanUsage, type UsageEnv } from './usage'
 import { usageAdminResponse } from './admin'
 import { analyticsResponse } from './index'
-import { parseUsage, parseProgress, cohortWeek } from '../../src/lib/analytics/events'
+import { parseUsage, parseProgress, cohortWeek } from '../../src/lib/analytics/payloads'
 let db: DB, env: UsageEnv
 const now = new Date('2026-09-16T12:00:00Z')
 const event = { version: 2, event: 'instructions-copy-result', outcome: 'copied' }

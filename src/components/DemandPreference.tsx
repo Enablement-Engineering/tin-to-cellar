@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { demandPreference, setDemandPreference, subscribeDemandPreference } from '../lib/analytics/client'
-import { pruneProgress } from '../lib/analytics/progress'
+import { demandPreference, setDemandPreference, subscribeDemandPreference } from '../lib/usage-preferences'
+import { pruneProgress } from '../lib/usage-progress-storage'
 export function DemandPreference() {
   const [preference, setPreference] = useState(demandPreference)
   useEffect(() => subscribeDemandPreference(() => { setPreference(demandPreference()); pruneProgress() }), [])

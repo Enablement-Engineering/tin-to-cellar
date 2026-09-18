@@ -1,25 +1,10 @@
 import type { Collection, CollectionHandoff, ImportCandidate } from '../collection/types'
 import { planImport } from '../collection/import'
 import { collectionAllowed, recordProgress } from './client'
-import { demandPreference, PROGRESS_KEY, PREFERENCE_KEY, PROGRESS_LOCK } from './preferences'
-import { cohortWeek, DAY_MS, elapsedBucket, type ProgressPayload } from './events'
+import { demandPreference, PREFERENCE_KEY, PROGRESS_LOCK } from '../usage-preferences'
+import { read, save, type Attempt } from '../usage-progress-storage'
+import { cohortWeek, DAY_MS, elapsedBucket, type ProgressPayload } from './payloads'
 
-type Target = { rowId: string; revision: number; designId?: string; appliedRevision?: number }
-type Attempt = { choice: string; id: string; collectionId: string; started: number; targets: Target[]; startRecorded: boolean; importAttempted: boolean; importRecorded: boolean; printAttempted: boolean }
-/** IDs only live here on this origin. They are never included in network payloads. */
-function read(now: number): Attempt[] {
-  const raw = localStorage.getItem(PROGRESS_KEY)
-  if (!raw) return []
-  const value: unknown = JSON.parse(raw)
-  if (!Array.isArray(value) || value.length > 20) throw new Error('Invalid local progress')
-  const valid = value.filter((item): item is Attempt => !!item && typeof item === 'object' && typeof item.id === 'string' && typeof item.collectionId === 'string' && Number.isFinite(item.started) && item.started <= now && now - item.started < 30 * DAY_MS && Array.isArray(item.targets) && item.targets.length > 0 && item.targets.length <= 100 && item.targets.every((t: Target) => typeof t.rowId === 'string' && Number.isSafeInteger(t.revision) && (t.designId === undefined || typeof t.designId === 'string')) && ['startRecorded', 'importAttempted', 'importRecorded', 'printAttempted'].every(k => typeof item[k] === 'boolean'))
-  return valid.filter(item => item.choice === localStorage.getItem(PREFERENCE_KEY) && item.targets.every(t => !t.designId || Number.isSafeInteger(t.appliedRevision)))
-}
-function save(attempts: Attempt[]) {
-  if (!demandPreference().allowed) return
-  const choice = localStorage.getItem(PREFERENCE_KEY)
-  localStorage.setItem(PROGRESS_KEY, JSON.stringify(attempts.filter(a => a.choice === choice)))
-}
 function payload(attempt: Attempt, milestone: ProgressPayload['milestone'], now: number): ProgressPayload {
   return { version: 2, cohort: cohortWeek(new Date(attempt.started)), milestone, elapsed: elapsedBucket(attempt.started, now) }
 }
@@ -34,15 +19,6 @@ async function locked(task: (attempts: Attempt[], now: number) => Promise<void>)
       await task(attempts, now)
     })
   } catch { /* No progress measurement when browser storage/locking is unavailable. */ }
-}
-export function pruneProgress() {
-  try {
-    if (!demandPreference().allowed) localStorage.removeItem(PROGRESS_KEY)
-    else if (navigator.locks) void navigator.locks.request(PROGRESS_LOCK, async () => {
-      if (!demandPreference().allowed) localStorage.removeItem(PROGRESS_KEY)
-      else save(read(Date.now()))
-    }).catch(() => undefined)
-  } catch { /* Optional local metadata must not block the application. */ }
 }
 export function startProgress(collectionId: string, handoff: CollectionHandoff) {
   return locked(async (attempts, now) => {

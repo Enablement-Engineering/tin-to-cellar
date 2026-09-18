@@ -40,8 +40,7 @@ import { usePrintLabels } from './hooks/usePrintLabels'
 import { usePromptModule } from './hooks/usePromptModule'
 import { formatTobacco } from './lib/tobacco-catalog'
 import { PROTOCOL_REVISION } from './lib/protocol'
-import { initializeDemandCollection, recordDemand, recordUsage } from './lib/analytics/client'
-import { pruneProgress, startProgress, importProgress, printProgress } from './lib/analytics/progress'
+import { startUsage, recordDemand, recordUsage, startProgress, importProgress, printProgress } from './lib/optional-usage'
 import type { RequestInput } from './lib/collection/types'
 import { addManualLabel } from './lib/collection/manual-add'
 
@@ -54,7 +53,7 @@ export default function PublicApp() {
   const { collection, ready, saving, error: storageError, commit } = useCollection()
   const { labels, error: previewError, pending: previewPending } = usePrintLabels(collection)
   const { view, navigate, main } = usePublicNavigation()
-  useEffect(() => { pruneProgress(); void initializeDemandCollection() }, [])
+  useEffect(() => startUsage(), [])
   const promptModule = usePromptModule(view === 'artwork' || view === 'help')
   const focusAfterImport = useRef(false)
   const { importing, candidate, setCandidate, cancelImport, review, decisions, setDecisions, reviewInvalidated, refreshDecisions,

@@ -2,15 +2,17 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { TOBACCO_CATALOG } from '../tobacco-catalog'
 
+let preferences: typeof import('../usage-preferences')
 const catalogId = TOBACCO_CATALOG[0].id
-beforeEach(() => {
+beforeEach(async () => {
   // Use the browser environment's storage, not Node's host storage global.
   vi.stubGlobal('localStorage', (globalThis as unknown as { jsdom: { window: Window } }).jsdom.window.localStorage)
   vi.resetModules()
+  preferences = await import('../usage-preferences')
   localStorage.clear()
   localStorage.setItem('tin-to-cellar:usage-choice-v2', 'on:00000000-0000-0000-0000-000000000000')
   vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true)
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ version: 2, demandEnabled: true, workflowEnabled: true, progressEnabled: true })))
+  vi.stubGlobal('fetch', vi.fn(async url => Response.json(String(url).endsWith('/config') ? { version: 2, demandEnabled: true, workflowEnabled: true, progressEnabled: true } : { recorded: true })))
 })
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
@@ -51,12 +53,12 @@ it('reads opt-out immediately before each send, including another tab changing t
 
 it('does not fetch configuration or queue events while opted out or offline', async () => {
   const client = await import('./client')
-  client.setDemandPreference(false)
+  preferences.setDemandPreference(false)
   await client.initializeDemandCollection()
   client.recordDemand('added-to-labels', [{ catalogId }])
   expect(fetch).not.toHaveBeenCalled()
   vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
-  client.setDemandPreference(true)
+  preferences.setDemandPreference(true)
   client.recordDemand('added-to-labels', [{ catalogId }])
   expect(fetch).not.toHaveBeenCalled()
 })
@@ -75,11 +77,11 @@ it('fails private on storage reads or writes and never throws into a print handl
   const client = await import('./client')
   await client.initializeDemandCollection()
   vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota') })
-  expect(client.setDemandPreference(false)).toEqual({ allowed: false, storageFailed: true })
+  expect(preferences.setDemandPreference(false)).toEqual({ allowed: false, storageFailed: true })
   client.recordDemand('added-to-labels', [{ catalogId }])
   expect(fetch).toHaveBeenCalledTimes(1)
   vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied') })
-  expect(client.demandPreference().allowed).toBe(false)
+  expect(preferences.demandPreference().allowed).toBe(false)
 })
 
 it('drops invalid or oversized jobs and never retries a failed request', async () => {
@@ -92,4 +94,61 @@ it('drops invalid or oversized jobs and never retries a failed request', async (
   expect(() => client.recordDemand('print-job-requested', [{ catalogId, quantity: 1 }])).not.toThrow()
   await Promise.resolve()
   expect(fetch).toHaveBeenCalledTimes(2)
+})
+
+it.each(['blocked', 'http failure', 'missing receipt', 'timeout'])('stops every collection type after %s', async failure => {
+  const client = await import('./client')
+  await client.initializeDemandCollection()
+  if (failure === 'timeout') {
+    vi.useFakeTimers()
+    vi.mocked(fetch).mockImplementation((_url, options) => new Promise((_resolve, reject) => {
+      options!.signal!.addEventListener('abort', () => reject(Error('aborted')))
+    }))
+  } else if (failure === 'blocked') vi.mocked(fetch).mockRejectedValue(Error('blocked'))
+  else vi.mocked(fetch).mockImplementation(async () => failure === 'http failure' ? new Response('', { status: 503 }) : Response.json({ recorded: false }))
+  client.recordUsage({ version: 2, event: 'print-requested', outcome: 'requested' })
+  if (failure === 'timeout') { await vi.advanceTimersByTimeAsync(2500); vi.useRealTimers() }
+  await vi.waitFor(() => expect(client.collectionAllowed('demandEnabled')).toBe(false))
+  client.recordDemand('added-to-labels', [{ catalogId }])
+  client.recordUsage({ version: 2, event: 'print-requested', outcome: 'requested' })
+  await client.recordProgress({ version: 2, cohort: '2026-09-14', milestone: 'started', elapsed: 'same-day' }, preferences.usageChoice()!)
+  preferences.setDemandPreference(false)
+  preferences.setDemandPreference(true)
+  await client.initializeDemandCollection()
+  expect(fetch).toHaveBeenCalledTimes(2)
+})
+
+it('aborts pending requests and does not activate old configuration after off/on', async () => {
+  const client = await import('./client')
+  let complete!: (response: Response) => void
+  vi.mocked(fetch).mockImplementation(() => new Promise(resolve => { complete = resolve }))
+  const pending = client.initializeDemandCollection()
+  const signal = vi.mocked(fetch).mock.calls[0][1]!.signal!
+  preferences.setDemandPreference(false)
+  client.suspendCollection()
+  preferences.setDemandPreference(true)
+  complete(Response.json({ version: 2, demandEnabled: true, workflowEnabled: true, progressEnabled: true }))
+  expect(signal.aborted).toBe(true)
+  expect(await pending).toBe(false)
+  expect(client.collectionAllowed('demandEnabled')).toBe(false)
+  vi.mocked(fetch).mockImplementation(async () => Response.json({ version: 2, demandEnabled: true, workflowEnabled: true, progressEnabled: true }))
+  expect(await client.initializeDemandCollection()).toBe(true)
+})
+
+it('does not treat opt-out cancellation as a delivery failure for a later choice', async () => {
+  const client = await import('./client')
+  await client.initializeDemandCollection()
+  let signal: AbortSignal | undefined
+  vi.mocked(fetch).mockImplementation((_url, options) => new Promise((_resolve, reject) => {
+    signal = options!.signal!
+    signal.addEventListener('abort', () => reject(Error('cancelled')))
+  }))
+  client.recordDemand('added-to-labels', [{ catalogId }])
+  preferences.setDemandPreference(false)
+  client.suspendCollection()
+  expect(signal!.aborted).toBe(true)
+  await Promise.resolve()
+  preferences.setDemandPreference(true)
+  vi.mocked(fetch).mockImplementation(async () => Response.json({ version: 2, demandEnabled: true, workflowEnabled: true, progressEnabled: true }))
+  expect(await client.initializeDemandCollection()).toBe(true)
 })

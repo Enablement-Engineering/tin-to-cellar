@@ -1,4 +1,4 @@
-import { cohortWeek, DAY_MS, utcDay } from '../../src/lib/analytics/events'
+import { cohortWeek, DAY_MS, utcDay } from '../../src/lib/analytics/payloads'
 import { analyticsDailyAllowance } from './index'
 import { privateJson, usageCapabilities, type UsageEnv } from './usage'
 /** The root dispatcher enforces exact admin host and human Access before this handler. */

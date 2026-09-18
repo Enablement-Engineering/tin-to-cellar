@@ -70,7 +70,9 @@ test('canonical print intent is best effort, opt-out is silent and loaded printi
   await page.route('**/api/analytics/v2/config', route => route.fulfill({ json: { version: 2, demandEnabled: true, workflowEnabled: false, progressEnabled: false } }))
   await page.route('**/api/analytics/v2/print-intent', route => {
     events.push(route.request().postDataJSON())
-    return route.fulfill({ status: 429, json: { error: 'rate_limited' } })
+    return events.length === 1
+      ? route.fulfill({ json: { recorded: true } })
+      : route.fulfill({ status: 429, json: { error: 'rate_limited' } })
   })
   await page.route('**/api/gallery/v1/config', route => route.fulfill({ json: { serving: false, intake: false } }))
   const zip = await JSZip.loadAsync(await printablePack())

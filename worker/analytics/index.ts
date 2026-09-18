@@ -1,7 +1,7 @@
 import { parsePrintIntent, PRINT_INTENT_LIMITS } from '../../src/lib/analytics/schema'
 import type { GalleryDatabase, GalleryRateLimiter } from '../gallery/storage'
 import { BodyReadError, boundedJson } from '../http'
-import { isRecord, hasKeys } from '../../src/lib/analytics/events'
+import { isRecord, hasKeys } from '../../src/lib/analytics/payloads'
 
 export interface AnalyticsEnv {
   GALLERY?: GalleryDatabase

@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { UsageInvitation } from './UsageInvitation'
-import { PREFERENCE_KEY, PROGRESS_KEY } from '../lib/analytics/preferences'
+import { PREFERENCE_KEY, PROGRESS_KEY } from '../lib/usage-preferences'
 
 beforeEach(() => {
   vi.stubGlobal('localStorage', (globalThis as unknown as { jsdom: { window: Window } }).jsdom.window.localStorage)

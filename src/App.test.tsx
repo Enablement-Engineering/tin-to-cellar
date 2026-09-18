@@ -14,7 +14,7 @@ import { PROTOCOL_REVISION } from './lib/protocol'
 import type { CellarPackImportResult } from './lib/cellarpack/types'
 import * as contributions from './lib/contributions'
 import * as retrospectives from './lib/feedback/retrospective'
-import * as demand from './lib/analytics/client'
+import * as demand from './lib/optional-usage'
 const { importer } = vi.hoisted(() => ({ importer: vi.fn() }))
 vi.mock('./lib/cellarpack', () => ({ importCellarPack: importer }))
 let fixture: CellarPackImportResult

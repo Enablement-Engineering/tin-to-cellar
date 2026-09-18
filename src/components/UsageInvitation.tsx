@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { demandPreference, setDemandPreference, subscribeDemandPreference } from '../lib/analytics/client'
-import { shouldOfferUsageChoice } from '../lib/analytics/preferences'
+import { demandPreference, setDemandPreference, subscribeDemandPreference, shouldOfferUsageChoice } from '../lib/usage-preferences'
 import '../styles/usage-invitation.css'
 
 export function UsageInvitation() {

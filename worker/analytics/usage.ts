@@ -1,4 +1,4 @@
-import { parseUsage, parseProgress, DAY_MS, utcDay } from '../../src/lib/analytics/events'
+import { parseUsage, parseProgress, DAY_MS, utcDay } from '../../src/lib/analytics/payloads'
 import { boundedJson, BodyReadError } from '../http'
 import { analyticsEnabled, analyticsDailyAllowance, reservePrintIntent, type AnalyticsEnv } from './index'
 export interface UsageEnv extends AnalyticsEnv { WORKFLOW_ANALYTICS_ENABLED?: string; PROGRESS_ANALYTICS_ENABLED?: string }
