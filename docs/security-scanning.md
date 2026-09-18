@@ -22,7 +22,20 @@ The first scan introduces a baseline: review all branch alerts in Security, incl
 
 Local workflow validation cannot run GitHub's hosted analysis or prove SARIF upload permission. Before release, confirm `CodeQL` completed and results were processed on the current PR revision, inspect the first baseline, verify the configured severity rule, and record the scan link. The main-branch deployment dependency gates scan execution only; severity enforcement belongs to the protected PR merge.
 
+## First main baseline review — September 18, 2026
+
+The first main analysis on `e876b85` reported nine findings outside the original PR's changed-line results. Deployment was cancelled before upload while they were reviewed. This illustrates why a passing PR result is not a repository-wide clean bill.
+
+- Alert 2 identified an import-preview MIME gap: filename-based PDF detection preserved an incoming HTML MIME type in a blob link. PDF.js accepted an HTML/PDF polyglot in a local probe. Accepted PDFs now receive an `application/pdf` Blob before link creation, preserving the original bytes. A regression checks the MIME, bytes and URL cleanup. No CSP bypass was demonstrated.
+- Alert 3 was dismissed as a false positive: `ReviewEditor` renders its reference link only after `publicReference` parses and accepts exactly HTTPS, without credentials or unsafe characters.
+- Alerts 4 and 5 were dismissed as false positives for security: the URL substring regexes select local catalog naming/exclusion rules, not network authorization. Exact URL parsing remains a possible data-quality improvement.
+- Alerts 6–9 were dismissed as false positives: these explicit local CLI tools intentionally store fetched content. Diagnostic output names are fixed literals, and gallery pack filenames use IDs validated by an anchored hexadecimal/dash-only pattern. Remote contents cannot select arbitrary paths.
+- Alert 10 was dismissed as a test artifact: permission assertions and reading synthetic bytes in a private temporary directory do not form a production check/use boundary. Actual output creation uses exclusive creation and refuses symlinks.
+
+Each dismissal has a specific explanation in GitHub. Re-evaluate if these trust boundaries change. Alert 2 remains subject to analysis of the MIME fix; do not equate these dismissals with proof that all code is vulnerability-free.
+
 ## References
+
 
 - [CodeQL action permissions and build modes](https://github.com/github/codeql-action/blob/main/README.md)
 - [Workflow configuration options](https://docs.github.com/en/code-security/reference/code-scanning/workflow-configuration-options)
