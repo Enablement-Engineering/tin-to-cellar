@@ -70,7 +70,8 @@ describe('self-contained generation protocol', () => {
   })
   it('preserves research-before-generation and close reference fidelity', () => {
     const prompt = buildCompleteTinToCellarPrompt({ tobaccos: 'Escudo' })
-    expect(prompt).toContain('Research the requested blends together before generation')
+    expect(prompt).toContain('Research only the current blend before generation')
+    expect(prompt).not.toContain('Research the requested blends together')
     expect(prompt).toContain('pass each inspected original directly into the generator when supported')
     expect(prompt).toContain('Wait for the required reference attachments before generating')
     expect(prompt).toContain("Preserve the inspected package's defining illustration, logo, palette and name typography")
@@ -203,6 +204,20 @@ describe('embedded protocol handoff', () => {
     expect(prompt).toContain('do not switch to current')
     expect(prompt).toContain('"$defs"')
   })
+  it('keeps pre-change repairs pinned while new handoffs receive measured repair planning', () => {
+    const repair = buildCellarPackRepairPrompt([], { status: 'known', revision: '0.0.31' })
+    expect(repair).toContain('Protocol version: 0.0.31')
+    expect(repair).toContain('Research the requested blends together before generation')
+    expect(repair).not.toContain('## Diagnose and target repairs')
+    for (const prompt of [
+      buildGenericChatHandoff({}).prompt,
+      buildCollectionHandoff({ tobaccos: [{ maker: 'Example', blend: 'Blend' }] }).prompt,
+    ]) {
+      expect(prompt).toContain(`Protocol version: ${PROTOCOL_REVISION}`)
+      expect(prompt).toContain('## Diagnose and target repairs')
+      expect(prompt).not.toContain('Research the requested blends together')
+    }
+  })
   it('requires original instructions for unknown, invalid, or conflicting attribution', () => {
     for (const status of ['unknown', 'invalid', 'conflict'] as const) {
       const prompt = buildCellarPackRepairPrompt([], { status })
@@ -257,6 +272,40 @@ describe('original package image handoff', () => {
     expect(complete).toContain('"manifest.json" in archive.namelist()')
     expect(complete).toContain("assert every asset's path is present")
     expect(complete).toContain('even if ZIP integrity passes')
+  })
+  it('separates a reference-specific brief from measured proof and host evidence', () => {
+    const complete = buildTinToCellarInstructions()
+    for (const requirement of [
+      'Preserve typography-only references without adding an illustration',
+      'x=28–72%, y=64–76% of the full bleed canvas, not the finished trim box',
+      'Calculate all planned region corners against the active safe geometry with margin',
+      'they are not measured output or acceptance evidence',
+      'Repair briefs may be shorter; do not pad them to a minimum word count',
+      'Submit the brief in an explicit prompt field when available',
+      'Do not claim an exact backend prompt or isolated input unless the interface or result establishes it',
+      'backend prompt only when exposed',
+      'intended input and confirmed input selection separately',
+      'Mark unavailable information unknown; a caption is not a prompt receipt',
+      'outside feedback, retrospective, ZIP contents, automatic uploads and routine downloads',
+    ]) expect(complete).toContain(requirement)
+    expect(complete).not.toMatch(/250[–-]400 words/)
+  })
+  it('diagnoses enclosure failures without waiving acceptance or authorizing a retry', () => {
+    const complete = buildTinToCellarInstructions()
+    for (const requirement of [
+      'A failed rectangular-enclosure check blocks certification under this pinned rule but does not establish visible contour overflow',
+      'Reinspect uncertain measurements once without redrawing',
+      'Never shrink recorded regions or metadata to manufacture a pass',
+      'offer one focused layout repair to meet the enclosure rule',
+      'Do not switch to shape-aware acceptance during the run',
+      'Before requesting repair authorization, record the observed region and measured bounds, an absolute target position and dimensions',
+      'Preserve usable writing space; do not repeatedly shrink the panel',
+      'compare observed bounds with the requested target',
+      'missed, infeasible, mismeasured, or applied to the wrong input',
+      'Do not repeat the same failed repair brief or make another image call without the required authorization',
+      'broken downloads use the existing artwork without another image call',
+      'Accept only after all declared regions fit and visual checks pass',
+    ]) expect(complete).toContain(requirement)
   })
   it('requires completion through delivery without manufacturing tool capabilities or proof', () => {
     const complete = buildTinToCellarInstructions()

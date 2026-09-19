@@ -22,8 +22,8 @@ it('requires visible reference approval before automatic generation and preserve
     'reuse them without asking for duplicate uploads',
     'Do not ask for a collage or all packaging photos in one message',
     'receiving several attachments does not demonstrate selective image-tool access',
-    'Stop image calls for the whole batch',
-    'Do not describe isolating a panel from a composite or turning the wrong blend into the intended blend as a focused repair',
+    'For wrong-blend or composite output, record failure, link the image, and stop batch image calls',
+    'Neither cropping a composite nor changing its identity is a focused repair',
   ]) expect(prompt).toContain(rule)
   expect(prompt).not.toContain('Then do the work without waiting for a reply.')
 })

@@ -1,6 +1,7 @@
 import hashlib
 import importlib.util
 import json
+import math
 from pathlib import Path
 import subprocess
 import sys
@@ -23,6 +24,45 @@ def prepare_image(directory, size=(1254, 1254), mode="RGBA", color="white", **ge
 
 
 class ProofTests(unittest.TestCase):
+    def test_oval_can_fit_while_its_required_enclosure_fails(self):
+        # A circle is also an ellipse: radius 30 centered at (50, 60) is
+        # wholly inside radius 40 centered at (50, 50), tangent at the bottom.
+        self.assertLessEqual(math.hypot(0, 10) + 30, 40)
+        regions = [
+            {"name": "maker", "kind": "text", "box": [40, 25, 60, 35]},
+            {"name": "oval panel", "kind": "panel", "box": [20, 30, 80, 90]},
+        ]
+        checked = module.check_regions(regions, (101, 101), (10, 10, 90, 90), "circle")
+        self.assertTrue(checked[0]["inside_safe"])
+        self.assertFalse(checked[1]["inside_safe"])
+        self.assertEqual(checked[1]["outside_corners"], [2, 3])
+
+    def test_default_panel_slot_passes_with_outward_pixel_rounding(self):
+        for side in (825, 1024):
+            with self.subTest(side=side), tempfile.TemporaryDirectory() as tmp:
+                _, source = prepare_image(tmp, size=(side, side))
+                bounds = [math.floor(.28 * side), math.floor(.64 * side),
+                          math.ceil(.72 * side), math.ceil(.76 * side)]
+                regions = [
+                    {"name": "maker", "kind": "text", "box": [side * .4, side * .3, side * .6, side * .4]},
+                    {"name": "panel", "kind": "panel", "box": bounds},
+                ]
+                result = module.render(source, Path(tmp) / "proof.png", regions=regions)
+                self.assertTrue(result["declared_regions_inside_safe"])
+                self.assertEqual(result["regions"][1]["box"], bounds)
+
+    def test_inclusive_safe_boundary_rejects_one_pixel_overflow(self):
+        regions = [
+            {"name": "maker", "kind": "text", "box": [30, 30, 60, 40]},
+            {"name": "panel", "kind": "panel", "box": [30, 50, 89, 89]},
+        ]
+        checked = module.check_regions(regions, (100, 100), (10, 10, 89, 89), "rectangle")
+        self.assertTrue(checked[1]["inside_safe"])
+        regions[1]["box"][2] = 90
+        checked = module.check_regions(regions, (100, 100), (10, 10, 89, 89), "rectangle")
+        self.assertFalse(checked[1]["inside_safe"])
+        self.assertEqual(checked[1]["outside_corners"], [1, 2])
+
     def test_observed_text_failures_and_inside_panel(self):
         with tempfile.TemporaryDirectory() as tmp:
             _, source = prepare_image(tmp)

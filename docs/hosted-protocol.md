@@ -1,5 +1,7 @@
 # Bundled protocol operation
 
+Protocol 0.0.32 consolidates reference-specific artwork briefs and measured repair planning. It removes the contradictory batch-research sentence and brief word-count expectation, specifies the default panel's full-canvas bounds, and distinguishes a failed rectangular enclosure from visible overflow. Repairs require absolute feasible targets and comparison with the returned candidate. The existing working receipt records authored briefs and available input evidence privately, outside feedback and retrospective. The canonical proof program and acceptance rule are unchanged.
+
 Protocol 0.0.31 adds default continuation after unexpected pauses, numbered recovery and decision choices, and natural-language custom requests. Meaningful requests and stop instructions take precedence; missing references and repair decisions retain their existing requirements. An intentional stop or completed delivery is never restarted by an arbitrary character.
 
 Protocol 0.0.30 added jar-lid sizing and paper guidance, the direct non-affiliate Avery 94502 purchase link, and plain printer paper with a glue stick as an alternative. Artwork geometry and schemas are unchanged. Copy prompt remains self-contained and describes reviewed additive imports. A collection request contains only explicitly requested new designs; selected community artwork remains on the website. The saved handoff includes the exact project request, complete instructions, schemas and canonical proof program. Read prompt shows a request preview; Full copied text reveals exactly what is copied.
@@ -8,7 +10,7 @@ The protocol API under `/api/labels/protocol/` is retired and returns 404. Versi
 
 ## Pre-release versions
 
-Current new-run versions are protocol `0.0.31`, CellarPack `0.1.0`, and feedback `0.2.0`. This migration adds no schema, sidecar or correlation-ID extension. Protocol version strings use the existing `revision` and `protocolRevision` fields. Numeric registry entries are historical snapshots. New releases use immutable semantic versions. Bump the patch for instruction edits and use a new minor version for incompatible pre-release schema changes. Existing CellarPack 1.x imports remain readable; new prompts emit 0.1.0.
+Current new-run versions are protocol `0.0.32`, CellarPack `0.1.0`, and feedback `0.2.0`. This migration adds no schema, sidecar or correlation-ID extension. Protocol version strings use the existing `revision` and `protocolRevision` fields. Numeric registry entries are historical snapshots. New releases use immutable semantic versions. Bump the patch for instruction edits and use a new minor version for incompatible pre-release schema changes. Existing CellarPack 1.x imports remain readable; new prompts emit 0.1.0.
 
 Protocol 0.0.24 starts an execution request immediately and pauses only for a real decision, an unresolved blocker, a host-ended image turn, or completion. Before each image call it explains that a host pause may occur and that Continue resumes inspection, preparation, proof and packaging, never another generation. Routine chat omits versions, hashes and proof coordinates; required checks still run, and unresolved problems remain visible. Technical details are available on request.
 
@@ -19,6 +21,12 @@ After reference approval, one initial image-producing call is authorized per lab
 Protocol 0.0.28 processes one tobacco from research through proof before starting the next. The assistant displays the current packaging photo with its source link and asks the user to right-click, choose Copy Image, then paste the photo into the chat and send. Pasting the matching photo confirms the reference; words or a URL alone do not supply image input. A saved photo or clear screenshot is accepted when copying is unavailable. The assistant then generates, prepares and proofs that label before researching the next tobacco. Completed artwork is retained for one final ZIP. This replaces batch research and batch reference approval. Earlier releases, including the batch review in 0.0.25 and the five-attempt policy in 0.0.20, remain available for chats pinned to them.
 
 Protocol 0.0.26 adds a proof link in the same message as a visual error and its repair choices. The assistant verifies that the proof opens, belongs to the affected candidate, and shows the stated problem. It explains the relevant guide or crop and reports unavailable proof honestly. Nonvisual errors use available diagnostics. These review artifacts stay outside the CellarPack and generator inputs.
+
+## Revision 0.0.32 local validation
+
+All 838 application tests passed across 100 files with `npm run test -- --maxWorkers=2`. All 13 Python preparation/proof tests passed with `uv run --with pillow src/lib/prompt/test_local_proof.py`, including synthetic enclosure-only failure, default panel bounds at 825 and 1024 pixels, and inclusive-boundary overflow. The production build, TypeScript check, prompt-size limit, immutable release verification, and diff whitespace checks passed. Lint passed with warnings confined to the pre-existing untracked generated validator; Vite reported its bundle-size warning.
+
+All 31 earlier release snapshots and the `0.0.31` conversation contract are unchanged. The canonical proof SHA-256 remains `9ddccb90c97825a54e8318b99f61d0d01c18392b0eda77a122e3cf3febdbfdd5`. Tests verify the new instructions in both generic and collection handoffs and retain `0.0.31` instructions in historical repairs. This revision is local, uncommitted and undeployed. No fresh image-generation comparison, browser import, or physical print validation was performed. Shape-aware proofing remains a separate future change.
 
 ## Revision 0.0.31 local validation
 
