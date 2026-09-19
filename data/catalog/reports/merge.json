@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-06T20:10:11.565Z",
+  "generatedAt": "2026-09-19T06:59:53.431Z",
   "sourceFiles": [
     "seed-verified.json",
     "4noggins.json",
@@ -8,15 +8,17 @@
     "gq.json",
     "laudisi.json",
     "mac-baren-official.json",
+    "new-releases-2026-09-06.json",
+    "new-releases-2026-09-19.json",
     "verified-extra-seed.json",
     "wvsmokeshop.json"
   ],
-  "rawCount": 2913,
-  "uniqueCount": 1482,
-  "makerCount": 146,
-  "mergeCount": 1409,
+  "rawCount": 2957,
+  "uniqueCount": 1511,
+  "makerCount": 155,
+  "mergeCount": 1424,
   "excludedCount": 22,
-  "correctionCount": 222,
+  "correctionCount": 237,
   "excluded": [
     {
       "file": "4noggins.json",
@@ -520,6 +522,11 @@
     {
       "identity": "borkum riff|original",
       "from": "Borkum Riff: ORIGINAL 7oz",
+      "file": "4noggins.json"
+    },
+    {
+      "identity": "capstan|original flake",
+      "from": "Capstan: ORIGINAL FLAKE BLUE 50g",
       "file": "4noggins.json"
     },
     {
@@ -3903,6 +3910,66 @@
       "file": "mac-baren-official.json"
     },
     {
+      "identity": "capstan|original flake",
+      "from": "Capstan Flake Blue 1.75oz",
+      "file": "new-releases-2026-09-06.json"
+    },
+    {
+      "identity": "cornell and diehl|small batch palmetto balkan",
+      "from": "Cornell & Diehl Palmetto Balkan 8oz",
+      "file": "new-releases-2026-09-06.json"
+    },
+    {
+      "identity": "cornell and diehl|eight state burley small batch 2026",
+      "from": "Cornell & Diehl Eight State Burley 2oz",
+      "file": "new-releases-2026-09-06.json"
+    },
+    {
+      "identity": "cornell and diehl|jolly old st nicholas",
+      "from": "Cornell & Diehl Jolly Old Saint Nicholas 2oz",
+      "file": "new-releases-2026-09-06.json"
+    },
+    {
+      "identity": "presbyterian|presbyterian mixture",
+      "from": "Presbyterian Presbyterian 50g",
+      "file": "new-releases-2026-09-06.json"
+    },
+    {
+      "identity": "seattle pipe club|plum pudding barrel aged",
+      "from": "Seattle Pipe Club Plum Pudding Bourbon Barrel Aged 2oz",
+      "file": "new-releases-2026-09-06.json"
+    },
+    {
+      "identity": "peterson|3 ps perfect plug",
+      "from": "Peterson 3 P's Peterson's Perfect Plug 50g",
+      "file": "new-releases-2026-09-06.json"
+    },
+    {
+      "identity": "seattle pipe club|mississippi river barrel aged",
+      "from": "Seattle Pipe Club Mississippi River Rum Barrel Aged 2oz",
+      "file": "new-releases-2026-09-06.json"
+    },
+    {
+      "identity": "toscano by cornell and diehl|maestro puccini",
+      "from": "Toscano Maestro Puccini 2oz",
+      "file": "new-releases-2026-09-06.json"
+    },
+    {
+      "identity": "peter stokkebye|luxury bulls eye flake",
+      "from": "Peter Stokkebye PS403 Luxury Bullseye Flake",
+      "file": "new-releases-2026-09-06.json"
+    },
+    {
+      "identity": "peter stokkebye|luxury navy flake",
+      "from": "Peter Stokkebye PS400 Luxury Navy Flake",
+      "file": "new-releases-2026-09-06.json"
+    },
+    {
+      "identity": "peter stokkebye|luxury twist flake",
+      "from": "Peter Stokkebye PS402 Luxury Twist Flake",
+      "file": "new-releases-2026-09-06.json"
+    },
+    {
       "identity": "g l pease|abingdon",
       "from": "Abingdon",
       "file": "verified-extra-seed.json"
@@ -5310,6 +5377,16 @@
     {
       "identity": "w o larsen|old fashioned",
       "from": "Old Fashioned",
+      "file": "wvsmokeshop.json"
+    },
+    {
+      "identity": "w o larsen|signature mixture",
+      "from": "Signature Mixture",
+      "file": "wvsmokeshop.json"
+    },
+    {
+      "identity": "captain black|original white",
+      "from": "Original White Tin",
       "file": "wvsmokeshop.json"
     },
     {
@@ -7207,6 +7284,12 @@
     },
     {
       "file": "4noggins.json",
+      "from": "Capstan — Original Flake Blue",
+      "to": "Capstan — Original Flake",
+      "reason": "Retailer wording for Capstan's blue flake tin; Mac Baren names this blend Original Flake."
+    },
+    {
+      "file": "4noggins.json",
       "from": "Erik Stokkebye — 4th GENERATION 1882",
       "to": "4th Generation — 1882",
       "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
@@ -7534,6 +7617,90 @@
       "from": "Erik Stokkebye — 4th Generation 1855",
       "to": "4th Generation — 1855",
       "reason": "Product title explicitly identifies 4th Generation; other sources use that same brand as maker. Preserve year and edition text."
+    },
+    {
+      "file": "new-releases-2026-09-06.json",
+      "from": "Capstan — Flake Blue",
+      "to": "Capstan — Original Flake",
+      "reason": "Retailer wording for Capstan's blue flake tin; Mac Baren names this blend Original Flake."
+    },
+    {
+      "file": "new-releases-2026-09-06.json",
+      "from": "Cornell & Diehl — Palmetto Balkan",
+      "to": "Cornell & Diehl — Small Batch Palmetto Balkan",
+      "reason": "Smokingpipes omits the Small Batch series prefix while identifying the same Cornell & Diehl Palmetto Balkan product."
+    },
+    {
+      "file": "new-releases-2026-09-06.json",
+      "from": "Cornell & Diehl — Eight State Burley",
+      "to": "Cornell & Diehl — EIGHT STATE BURLEY (Small Batch) 2026",
+      "reason": "The Smokingpipes product was reviewed in 2026 and aliases the Small Batch name; retain the catalog's explicit 2026 edition identity."
+    },
+    {
+      "file": "new-releases-2026-09-06.json",
+      "from": "Cornell & Diehl — Jolly Old Saint Nicholas",
+      "to": "Cornell & Diehl — Jolly Old St. Nicholas",
+      "reason": "Saint and St. are verified wording variants for the same Cornell & Diehl product."
+    },
+    {
+      "file": "new-releases-2026-09-06.json",
+      "from": "Presbyterian — Presbyterian",
+      "to": "Presbyterian — Presbyterian Mixture",
+      "reason": "Smokingpipes lists Presbyterian as the abbreviated product name and supplies Presbyterian Mixture as the verified alias."
+    },
+    {
+      "file": "new-releases-2026-09-06.json",
+      "from": "Seattle Pipe Club — Plum Pudding Bourbon Barrel Aged",
+      "to": "Seattle Pipe Club — Plum Pudding Barrel Aged",
+      "reason": "Smokingpipes' current Bourbon wording and the existing retailer Barrel Aged wording identify the same Seattle Pipe Club product."
+    },
+    {
+      "file": "new-releases-2026-09-06.json",
+      "from": "Captain Black — Original",
+      "to": "Captain Black — Original White",
+      "reason": "Smokingpipes lists Captain Black Original with Original White as a verified alias; normalize the abbreviated current name to the registered Original White identity."
+    },
+    {
+      "file": "new-releases-2026-09-06.json",
+      "from": "Peterson — 3 P's Peterson's Perfect Plug",
+      "to": "Peterson — 3 P's Perfect Plug",
+      "reason": "The expanded Smokingpipes title and registered shorter title identify Peterson's same 3 P's product."
+    },
+    {
+      "file": "new-releases-2026-09-06.json",
+      "from": "Seattle Pipe Club — Mississippi River Rum Barrel Aged",
+      "to": "Seattle Pipe Club — Mississippi River: Barrel Aged",
+      "reason": "Smokingpipes' current Rum wording and the existing retailer Barrel Aged wording identify the same Seattle Pipe Club product."
+    },
+    {
+      "file": "new-releases-2026-09-06.json",
+      "from": "Toscano — Maestro Puccini",
+      "to": "Toscano by Cornell & Diehl — Maestro - Puccini",
+      "reason": "The Smokingpipes title and existing catalog record identify the same Puccini product in the Toscano Maestro line blended by Cornell & Diehl."
+    },
+    {
+      "file": "new-releases-2026-09-06.json",
+      "from": "W.O. Larsen — Signature Vintage Mixture",
+      "to": "W.O. Larsen — Signature Mixture",
+      "reason": "Smokingpipes supplies Signature Mixture as the verified alias for Signature Vintage Mixture."
+    },
+    {
+      "file": "new-releases-2026-09-06.json",
+      "from": "Peter Stokkebye — PS403 Luxury Bullseye Flake",
+      "to": "Peter Stokkebye — Luxury Bulls Eye Flake",
+      "reason": "PS403 is the verified product code for the registered Luxury Bulls Eye Flake identity."
+    },
+    {
+      "file": "new-releases-2026-09-06.json",
+      "from": "Peter Stokkebye — PS400 Luxury Navy Flake",
+      "to": "Peter Stokkebye — Luxury Navy Flake",
+      "reason": "PS400 is the verified product code for the registered Luxury Navy Flake identity."
+    },
+    {
+      "file": "new-releases-2026-09-06.json",
+      "from": "Peter Stokkebye — PS402 Luxury Twist Flake",
+      "to": "Peter Stokkebye — Luxury Twist Flake",
+      "reason": "PS402 is the verified product code for the registered Luxury Twist Flake identity."
     },
     {
       "file": "verified-extra-seed.json",
