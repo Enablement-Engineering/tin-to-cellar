@@ -82,7 +82,7 @@ for (const width of [1280, 320]) for (const theme of ['light', 'dark'] as const)
   const opened = context.waitForEvent('page')
   await launch.click()
   const chat = await opened
-  await expect(chat).toHaveURL(/https:\/\/chatgpt.com\//)
+  await expect(chat).toHaveURL(/^https:\/\/chatgpt\.com\//)
   const url = new URL(chat.url())
   expect(url.searchParams.get('prompt')).toContain('starting with "Howdy!"')
   expect(url.searchParams.get('prompt')).not.toContain('Nightcap')
