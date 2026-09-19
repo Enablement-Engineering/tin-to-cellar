@@ -3,14 +3,37 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { PromptHandoff } from './PromptHandoff'
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.restoreAllMocks() })
+it('copies saved instructions without opening a tab', async () => {
+  const open = vi.spyOn(window, 'open').mockReturnValue(null)
+  const writeText = vi.fn().mockResolvedValue(undefined)
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+  render(<PromptHandoff prompt="Draft" request="Request" onCopy={async () => 'Saved complete instructions'} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Copy instructions' }))
+  await screen.findByRole('link', { name: 'Open ChatGPT (opens in a new tab)' })
+  expect(writeText).toHaveBeenCalledWith('Saved complete instructions')
+  expect(open).not.toHaveBeenCalled()
+})
+
 it('previews and copies the complete prompt', async () => {
+  vi.spyOn(window, 'open').mockReturnValue(null)
   const writeText = vi.fn().mockResolvedValue(undefined)
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
   const { rerender } = render(<PromptHandoff prompt="Full contract and schema" request="Just the request" />)
   expect(screen.getByText('Read prompt').closest('details')).not.toHaveAttribute('open')
+  expect(screen.queryByRole('link', { name: /Open ChatGPT/ })).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Copy instructions' }))
   await waitFor(() => expect(writeText).toHaveBeenCalledWith('Full contract and schema'))
+  const launch = await screen.findByRole('link', { name: 'Open ChatGPT (opens in a new tab)' })
+  const url = new URL(launch.getAttribute('href')!)
+  expect(url.origin).toBe('https://chatgpt.com')
+  expect([...url.searchParams.keys()]).toEqual(['prompt'])
+  expect(url.searchParams.get('prompt')).toContain('starting with "Howdy!"')
+  expect(url.searchParams.get('prompt')).toContain('Use your own words and a little personality')
+  expect(url.searchParams.get('prompt')).toContain('Then wait for the instructions before starting any label work.')
+  expect(url.searchParams.get('prompt')).not.toContain('Full contract and schema')
+  expect(launch).toHaveAttribute('target', '_blank')
+  expect(launch).toHaveAttribute('rel', 'noopener noreferrer')
   fireEvent.click(screen.getByText('Read prompt'))
   expect(screen.getByRole('region', { name: 'Rendered prompt' })).toHaveTextContent('Full contract and schema')
   expect(screen.getByRole('region', { name: 'Rendered prompt' })).not.toHaveTextContent('Just the request')
@@ -20,6 +43,7 @@ it('previews and copies the complete prompt', async () => {
   expect(screen.queryByRole('link', { name: 'Download instructions' })).not.toBeInTheDocument()
   rerender(<PromptHandoff prompt="Changed contract" request="Changed request" />)
   expect(screen.getByRole('status')).toBeEmptyDOMElement()
+  expect(screen.queryByRole('link', { name: /Open ChatGPT/ })).not.toBeInTheDocument()
   expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Changed contract')
   fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
   expect(screen.getByRole('region', { name: 'Rendered prompt' })).toHaveTextContent('Changed contract')
@@ -30,6 +54,7 @@ it('reveals selectable complete text if clipboard access fails', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Copy instructions' }))
   await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Automatic copying did not work'))
   expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Complete fallback text')
+  expect(screen.queryByRole('link', { name: /Open ChatGPT/ })).not.toBeInTheDocument()
   expect(screen.getByText('Read prompt').closest('details')).toHaveAttribute('open')
 })
 
@@ -43,6 +68,7 @@ it('replaces earlier copy success with the manual fallback when copying again fa
   fireEvent.click(button)
   await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Automatic copying did not work'))
   expect(button.querySelector('[data-copied="true"]')).toBeNull()
+  expect(screen.queryByRole('link', { name: /Open ChatGPT/ })).not.toBeInTheDocument()
   expect(screen.getByLabelText('Prompt to copy')).toHaveValue('Saved instructions')
 })
 it('renders untrusted prompt Markdown without fetching images or executing HTML', () => {
@@ -57,11 +83,12 @@ it('renders untrusted prompt Markdown without fetching images or executing HTML'
 it('does not copy or offer an unsaved fallback when saving the handoff fails', async () => {
   const writeText = vi.fn(), onCopied = vi.fn()
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
-  render(<PromptHandoff prompt="Unsaved draft" request="Request" onCopy={vi.fn().mockRejectedValue(new Error('Browser storage is full. Try again.'))} onCopied={onCopied} copyLabel="Copy prompt for 2 labels" />)
-  fireEvent.click(screen.getByRole('button', { name: 'Copy prompt for 2 labels' }))
+  render(<PromptHandoff prompt="Unsaved draft" request="Request" onCopy={vi.fn().mockRejectedValue(new Error('Browser storage is full. Try again.'))} onCopied={onCopied} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Copy instructions' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Browser storage is full')
   expect(writeText).not.toHaveBeenCalled(); expect(onCopied).not.toHaveBeenCalled()
   expect(screen.queryByLabelText('Prompt to copy')).not.toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: /Open ChatGPT/ })).not.toBeInTheDocument()
 })
 
 it('copies the saved payload and uses it for manual fallback if clipboard access fails', async () => {

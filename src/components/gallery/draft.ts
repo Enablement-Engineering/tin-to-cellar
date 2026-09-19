@@ -2,7 +2,7 @@ import type { ImportedCellarLabel } from '../../lib/cellarpack/types'
 import { GALLERY_NOTICE_VERSION, GALLERY_ARTWORK_PROFILE, type GalleryLabelDraft, type GalleryEvidence, type GalleryReceipt } from '../../lib/gallery/types'
 import { parseGalleryDraft, publicReference, gallerySurface, canonicalJson } from '../../lib/gallery/schema'
 import { findExactTobacco } from '../../lib/tobacco-catalog'
-export const SHARING_NOTICE = 'Your ZIP is read on this device. Only labels you choose to submit are uploaded for private review. Approved labels become public so others can download and print them for personal cellaring. Authorized review tools may inspect submitted artwork.'
+export const SHARING_NOTICE = 'Submit artwork and its details for private review, which may use authorized review tools. Approved labels become public for others to download and print for personal cellaring. Your ZIP, private notes, and other research stay on this device.'
 export const ACKNOWLEDGEMENT = 'I created or generated these labels and agree to share them through Tin to Cellar for personal cellaring.'
 export type Choice = { edition: string; package: NonNullable<GalleryEvidence['package']>; variant: NonNullable<GalleryEvidence['variant']>; description: string; references: string[] }
 export type Attempt = { label: ImportedCellarLabel; draft: GalleryLabelDraft; key: string; reservation?: GalleryReceipt; receipt?: GalleryReceipt; error?: string; retryable?: boolean }

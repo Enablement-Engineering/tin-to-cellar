@@ -51,7 +51,7 @@ for (const width of [1280, 320]) for (const reducedMotion of ['no-preference', '
     await expect(page.locator('.preparation-row[data-confirmed]')).toHaveCount(0)
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior)).toBe('auto')
 
-    await page.getByRole('button', { name: 'Continue to creation', exact: true }).click()
+    await page.getByRole('button', { name: 'Create with ChatGPT', exact: true }).click()
     const summary = page.locator('.creation-notes > summary')
     await summary.focus()
     await summary.press('Enter')
@@ -63,15 +63,14 @@ for (const width of [1280, 320]) for (const reducedMotion of ['no-preference', '
     await summary.press('Enter')
     await expect(notes).toBeHidden()
     await expect(summary).toBeFocused()
+    await expect(page.getByRole('button', { name: 'Copy instructions' })).toBeEnabled()
     await page.keyboard.press('Tab')
-    await expect(page.getByRole('button', { name: 'Continue with 1 label' })).toBeFocused()
-    await page.keyboard.press('Enter')
-    await expect(page.getByRole('heading', { name: 'Create in your AI chat' })).toBeFocused()
+    await expect(page.getByRole('button', { name: 'Copy instructions' })).toBeFocused()
 
-    const copy = page.getByRole('button', { name: 'Copy instructions for 1 label', exact: true })
+    const copy = page.getByRole('button', { name: 'Copy instructions', exact: true })
     const before = await copy.boundingBox()
     await copy.click()
-    await expect(page.locator('.handoff .copy-status')).toContainText('Copied. Open your AI chat')
+    await expect(page.locator('.handoff .copy-status')).toContainText('Copied. Open ChatGPT')
     await expect(copy.locator('[data-copied="true"]')).toHaveCount(1)
     expect((await copy.boundingBox())!.width).toBeCloseTo(before!.width, 1)
     if (reducedMotion === 'reduce') {

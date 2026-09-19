@@ -8,7 +8,7 @@
 .creation-chat-instructions { margin: 0; padding-left: 22px; }
 .creation-step-number { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border: 1px solid var(--line-strong); border-radius: 50%; color: var(--text-accent); }
 .artwork-creation-page h2 { scroll-margin-top: 104px; }
-.creation-review-list { list-style: none; padding: 0; margin: 24px 0; }
+.creation-review-list { list-style: none; padding: 0; margin: 12px 0 0; }
 .creation-review-list > li { border-top: 1px solid var(--line-hairline); padding: 16px 0; }
 .creation-request-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .creation-request-row > div { min-width: 0; overflow-wrap: anywhere; }
