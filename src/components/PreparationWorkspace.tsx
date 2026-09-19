@@ -49,7 +49,7 @@ function BlendIntake({ busy, onAdd, rows }: Pick<PreparationWorkspaceProps, 'bus
   }
   return <div className="preparation-intake">
     <TobaccoSelector value={draft} onChange={setDraft} onChoose={add} inputRef={input} disabled={busy} actionLabel="Add blend" hint="Find a blend, then choose a community design or add it to your AI creation list." multilineHint="Add one blend at a time here. To paste a list, choose Add several blends." />
-    <p className="selection-confirmation" role="status" aria-atomic="true">{confirmation && `${confirmation} · ${rows.length} ${rows.length === 1 ? 'blend' : 'blends'} selected.`}</p>
+    <p className={`selection-confirmation${confirmation ? '' : ' visually-hidden'}`} role="status" aria-atomic="true">{confirmation && `${confirmation} · ${rows.length} ${rows.length === 1 ? 'blend' : 'blends'} selected.`}</p>
     {pending && <BlendArtworkDialog identity={pending} busy={busy} returnFocus={input} onClose={close} onSave={async choice => {
       await onAdd(pending, choice)
       setConfirmation(`${pending.blend} ${choice === 'ai' ? 'added to your AI creation list' : 'is ready to print'}`)
@@ -193,7 +193,13 @@ export function PreparationWorkspace({ rows, busy, onAdd, onRemove, onCreate, on
     setConfirmed({ id, designBefore }); setExpanded(null); selectedHeading.current?.focus({ preventScroll: true })
   }
   return <section ref={workspace} className="create-workspace preparation-workspace label-workspace screen-only" aria-labelledby="preparation-title">
-    <header className="page-heading"><h1 id="preparation-title">Your labels</h1><p>Choose designs for your blends and keep track of artwork still to create. Print the labels that are ready.</p></header>
+    <header className="page-heading">
+      <div className="workspace-heading-copy"><h1 id="preparation-title">Your labels</h1><p>Choose artwork for your blends, then print the labels that are ready.</p></div>
+      {!rows.length && <div className="workspace-label-examples" aria-hidden="true">
+        <img src="/examples/ten-blends/gl-pease-quiet-nights.jpg" alt="" width="160" height="160" />
+        <img src="/examples/ten-blends/cornell-diehl-autumn-evening.jpg" alt="" width="160" height="160" />
+      </div>}
+    </header>
     {rows.length > 0 && <SelectionSummary selectedCount={rows.length} readyCount={ready} creationCount={requested.length} onView={requested.length ? undefined : focusList} onPrint={onPrint} busy={busy}>{requested.length > 0 && onContinueCreation && <button className="button primary" type="button" disabled={busy} onClick={onContinueCreation}>Create with ChatGPT</button>}</SelectionSummary>}
     <section className="panel preparation-start" aria-label="Add labels">
       <BlendIntake busy={busy} onAdd={async (identity, choice) => { await onAdd(identity, choice); setConfirmed({ identity }); setFilter('all') }} rows={rows} />
@@ -221,8 +227,10 @@ export function PreparationWorkspace({ rows, busy, onAdd, onRemove, onCreate, on
       </article>)}</div></section>)}
       {!shown.length && <p className="panel" role="status">{filter === 'ready' ? 'No artwork is ready yet. Choose a design or request new artwork.' : 'Every saved label has artwork.'}</p>}
     </>}
-    <p className="preparation-import-return"><button type="button" className="button quiet" onClick={onImport}><Icon name="upload" size={18} />I already have a finished ZIP</button></p>
-    {!rows.length && <p className="preparation-generic"><button type="button" className="button quiet" onClick={onGenericChat}><Icon name="spark" size={18} />Choose blends in my AI chat</button></p>}
-    <p className="field-hint preparation-storage">Your labels and requests are saved in this browser. Keep downloaded ZIPs for another device or if you clear browser data.</p>
+    <div className="workspace-other-paths">
+      <button type="button" className="button quiet" onClick={onImport}><Icon name="upload" size={18} />I already have a finished ZIP</button>
+      {!rows.length && <button type="button" className="button quiet" onClick={onGenericChat}><Icon name="spark" size={18} />Choose blends in my AI chat</button>}
+    </div>
+    <p className="field-hint preparation-storage">Saved in this browser. Keep downloaded ZIPs for another device or if you clear browser data.</p>
   </section>
 }
