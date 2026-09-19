@@ -17,7 +17,8 @@ type Queue = { submissions: GalleryReviewRecord[]; nextCursor: string | null; co
 type SavedDraft = { version: number; draft: GalleryLabelDraft }
 
 export function GalleryAdmin({ onNavigationState }: { onNavigationState?: (state: { busy: boolean; dirty: boolean }) => void } = {}) {
-  const [tab, setTab] = useState<'review' | 'operations' | 'agents'>('review')
+  const [tab, setTab] = useState<'review' | 'labels' | 'operations' | 'agents'>('review')
+  const [confirmRemoval, setConfirmRemoval] = useState(false)
   const [filters, setFilters] = useState(initialFilters)
   const applied = useRef(initialFilters)
   const [items, setItems] = useState<GalleryReviewRecord[]>([])
@@ -45,6 +46,7 @@ export function GalleryAdmin({ onNavigationState }: { onNavigationState?: (state
   const inFlight = useRef(false)
   const reviewHeading = useRef<HTMLHeadingElement>(null)
   const queueHeading = useRef<HTMLHeadingElement>(null)
+  const removalButton = useRef<HTMLButtonElement>(null)
   const queueButtons = useRef(new Map<string, HTMLButtonElement>())
   const mounted = useRef(true)
 
@@ -66,16 +68,17 @@ export function GalleryAdmin({ onNavigationState }: { onNavigationState?: (state
     else setDrafts(old => new Map(old).set(current.id, { version: current.version, draft: value }))
   }
   const returnToQueue = () => {
+    setConfirmRemoval(false)
     const id = selectedId.current
     detailRequest.current?.abort(); selectedId.current = null
     setCurrent(null); setDraftValue(null); setDetailLoading(false); setReviewed(false); setBatch(null)
-    requestAnimationFrame(() => { (id ? queueButtons.current.get(id) : null)?.focus(); if (!id) queueHeading.current?.focus() })
+    requestAnimationFrame(() => { (id ? queueButtons.current.get(id) ?? queueHeading.current : queueHeading.current)?.focus() })
   }
-  const loadQueue = async (next?: string) => {
+  const loadQueue = async (next?: string, nextFilters = filters) => {
     if (inFlight.current) return
     queueRequest.current?.abort(); countsRequest.current?.abort()
     const controller = new AbortController(); queueRequest.current = controller
-    if (!next) { applied.current = { ...filters, search: filters.search.trim() }; setSelected([]); setItems([]); setCursor(null); returnToQueue() }
+    if (!next) { applied.current = { ...nextFilters, search: nextFilters.search.trim() }; setSelected([]); setItems([]); setCursor(null); returnToQueue() }
     setLoading(true); setError('')
     try {
       const result = await request<Queue>(`/admin/submissions?${reviewQuery(applied.current, next)}`, { signal: controller.signal })
@@ -93,6 +96,7 @@ export function GalleryAdmin({ onNavigationState }: { onNavigationState?: (state
   }
   const open = async (id: string, discard = false) => {
     if (inFlight.current) return
+    setConfirmRemoval(false)
     if (discard) forgetDraft(id)
     detailRequest.current?.abort()
     const controller = new AbortController(); detailRequest.current = controller
@@ -116,6 +120,7 @@ export function GalleryAdmin({ onNavigationState }: { onNavigationState?: (state
     setItems(old => old.flatMap(item => item.id !== record.id ? [item] : matchesReview(record, applied.current) ? [record] : []))
     setSelected(old => old.filter(id => id !== record.id))
   }
+  const labelName = (record: GalleryReviewRecord) => tab === 'labels' && record.publishedIdentity ? `${record.publishedIdentity.maker} ${record.publishedIdentity.blend}` : reviewName(record)
   const action = async (kind: ReviewAction, next = false) => {
     if (!current || conflict || inFlight.current) return
     const record = current
@@ -127,9 +132,11 @@ export function GalleryAdmin({ onNavigationState }: { onNavigationState?: (state
       if (!mounted.current) return
       forgetDraft(record.id); reconcile(result)
       if (selectedId.current === record.id) { setCurrent(result); setDraftValue(result.metadata); setImageReady(false) }
-      setStatus(kind === 'save' ? 'Corrections saved. Review this version before approving.' : `${reviewName(result)}: ${result.state}.`)
+      setConfirmRemoval(false)
+      setStatus(kind === 'save' ? 'Corrections saved. Review this version before approving.' : kind === 'unpublish' ? `${labelName(result)} removed from the gallery.` : `${labelName(result)}: ${result.state}.`)
       succeeded = true
       await refreshCounts()
+      if (kind === 'unpublish' && tab === 'labels') { selectedId.current = null; returnToQueue() }
     } catch (cause) {
       if (mounted.current) { const uncertain = !(cause instanceof GalleryRequestError) || cause.status === 409 || cause.status >= 500; setError(errorText(cause)); setConflict(uncertain); setStatus(uncertain ? 'The result could not be confirmed. Reload the submission before another decision.' : 'The request was not accepted. Your corrections are still here.') }
     } finally { inFlight.current = false; if (mounted.current) setBusy(false) }
@@ -147,45 +154,52 @@ export function GalleryAdmin({ onNavigationState }: { onNavigationState?: (state
   useEffect(() => { onNavigationState?.({ busy, dirty: dirty || drafts.size > 0 }) }, [busy, dirty, drafts.size, onNavigationState])
 
   return <section className="gallery-page gallery-admin screen-only">
-    <header className="review-heading"><div><h1>Review gallery submissions</h1><p>Check the artwork and tobacco match, then publish or reject.</p></div></header>
-    <nav className="gallery-admin-tabs" aria-label="Administration">{(['review', 'operations', 'agents'] as const).map(value => <button key={value} className="button secondary" disabled={busy} aria-pressed={tab === value} onClick={() => setTab(value)}>{value === 'review' ? 'Review queue' : value === 'operations' ? 'Operations' : 'Agent permissions'}</button>)}</nav>
+    <header className="review-heading"><div><h1>{tab === 'labels' ? 'Manage published labels' : 'Review gallery submissions'}</h1><p>{tab === 'labels' ? 'Search by maker or blend, then open a label to remove it from the gallery.' : 'Check the artwork and tobacco match, then publish or reject.'}</p></div></header>
+    <nav className="gallery-admin-tabs" aria-label="Administration">{(['review', 'labels', 'operations', 'agents'] as const).map(value => <button key={value} className="button secondary" disabled={busy} aria-pressed={tab === value} onClick={() => {
+      if (value === tab) return
+      setTab(value)
+      if (value === 'review' || value === 'labels') {
+        const nextFilters = { ...initialFilters, state: value === 'labels' ? 'published' : 'pending' }
+        setFilters(nextFilters); setStatus(''); void loadQueue(undefined, nextFilters)
+      }
+    }}>{value === 'review' ? 'Review queue' : value === 'labels' ? 'Published labels' : value === 'operations' ? 'Operations' : 'Agent permissions'}</button>)}</nav>
     {tab === 'operations' && <AdminOperations />}{tab === 'agents' && <AgentGrants />}
-    {tab === 'review' && <>
+    {(tab === 'review' || tab === 'labels') && <>
       {batch ? <BatchReview ids={batch} onClose={returnToQueue} onResult={reconcile} onFinished={refreshCounts} onBusy={setBatchBusy} /> : <>
         <div className={current || detailLoading ? 'review-queue-tools review-mobile-hidden' : 'review-queue-tools'}>
           <form className="gallery-filters" onSubmit={event => { event.preventDefault(); void loadQueue() }}>
-            <label>Submission status<select disabled={busy} value={filters.state} onChange={event => setFilters({ ...filters, state: event.target.value })}>{['pending', 'published', 'unpublished', 'rejected', 'reserved', 'expired', 'deleting', 'deleted'].map(value => <option key={value}>{value}</option>)}</select></label>
-            <label>Maker or blend<input maxLength={160} disabled={busy} value={filters.search} onChange={event => setFilters({ ...filters, search: event.target.value })} /></label>
-            <label className="gallery-check"><input type="checkbox" disabled={busy} checked={filters.mappingNeeded} onChange={event => setFilters({ ...filters, mappingNeeded: event.target.checked })} />Needs catalog mapping</label>
-            <button className="button secondary" disabled={busy}>Apply filters / refresh</button>
+            {tab === 'review' && <label>Submission status<select disabled={busy} value={filters.state} onChange={event => setFilters({ ...filters, state: event.target.value })}>{['pending', 'published', 'unpublished', 'rejected', 'reserved', 'expired', 'deleting', 'deleted'].map(value => <option key={value}>{value}</option>)}</select></label>}
+            <label>Maker or blend<input type="search" maxLength={160} disabled={busy} value={filters.search} onChange={event => setFilters({ ...filters, search: event.target.value })} /></label>
+            {tab === 'review' && <label className="gallery-check"><input type="checkbox" disabled={busy} checked={filters.mappingNeeded} onChange={event => setFilters({ ...filters, mappingNeeded: event.target.checked })} />Needs catalog mapping</label>}
+            <button className="button secondary" disabled={busy}>{tab === 'labels' ? 'Search labels' : 'Apply filters / refresh'}</button>
           </form>
-          {counts && <p>{counts.pending} awaiting review{counts.oldestPendingAt ? ` · Oldest: ${new Date(counts.oldestPendingAt).toLocaleDateString()}` : ''}</p>}
-          <div className="review-batch-toolbar">
+          {tab === 'review' && counts && <p>{counts.pending} awaiting review{counts.oldestPendingAt ? ` · Oldest: ${new Date(counts.oldestPendingAt).toLocaleDateString()}` : ''}</p>}
+          {tab === 'review' && <div className="review-batch-toolbar">
             <label className="gallery-check"><input type="checkbox" disabled={locked || !selectable.length} checked={selectable.length > 0 && selectable.slice(0, MAX_REVIEW_BATCH).every(item => selected.includes(item.id))} onChange={event => setSelected(event.target.checked ? selectable.slice(0, MAX_REVIEW_BATCH).map(item => item.id) : [])} />Select loaded labels, up to {MAX_REVIEW_BATCH}</label>
             <span>{selected.length} selected</span><button className="button primary" disabled={locked || !selected.length} onClick={() => { setBatch([...selected]); setError('') }}>Review selected ({selected.length})</button>
             {selected.length > 0 && <button className="button quiet" disabled={locked} onClick={() => setSelected([])}>Clear selection</button>}
-          </div>
+          </div>}
         </div>
         <div className={`gallery-admin-layout ${current || detailLoading ? 'review-has-detail' : ''}`}>
           <section className="review-queue" aria-label="Review queue" aria-busy={loading}>
-            <h2 ref={queueHeading} tabIndex={-1}>Submissions</h2>
+            <h2 ref={queueHeading} tabIndex={-1}>{tab === 'labels' ? 'Published labels' : 'Submissions'}</h2>
             {items.map(item => <div className="review-queue-row" key={item.id}>
               {item.state === 'pending' && <input aria-label={`Select ${reviewName(item)}`} type="checkbox" checked={selected.includes(item.id)} disabled={locked || drafts.has(item.id) || (!selected.includes(item.id) && selected.length >= MAX_REVIEW_BATCH)} onChange={event => setSelected(old => event.target.checked ? [...old, item.id] : old.filter(id => id !== item.id))} />}
-              <button ref={element => { if (element) queueButtons.current.set(item.id, element); else queueButtons.current.delete(item.id) }} className="gallery-queue-item" aria-label={`${reviewName(item)}, ${item.state}${item.mappingNeeded ? ", needs mapping" : ""}${drafts.has(item.id) ? ", unsaved corrections" : ""}`} disabled={busy} aria-current={current?.id === item.id ? 'true' : undefined} onClick={() => void open(item.id)}>
-                <PrivateImage id={item.id} alt="" /><span><strong>{reviewName(item)}</strong><span>{item.state}{item.mappingNeeded ? ' · Needs mapping' : ''}{drafts.has(item.id) ? ' · Unsaved corrections' : ''}</span>{item.metadata?.edition && <span>{item.metadata.edition}</span>}</span>
+              <button ref={element => { if (element) queueButtons.current.set(item.id, element); else queueButtons.current.delete(item.id) }} className="gallery-queue-item" aria-label={`${labelName(item)}, ${item.state}${item.mappingNeeded ? ", needs mapping" : ""}${drafts.has(item.id) ? ", unsaved corrections" : ""}`} disabled={busy} aria-current={current?.id === item.id ? 'true' : undefined} onClick={() => void open(item.id)}>
+                <PrivateImage id={item.id} alt="" /><span><strong>{labelName(item)}</strong><span>{item.state}{item.mappingNeeded ? ' · Needs mapping' : ''}{drafts.has(item.id) ? ' · Unsaved corrections' : ''}</span>{item.metadata?.edition && <span>{item.metadata.edition}</span>}</span>
               </button>
             </div>)}
-            {!items.length && !loading && <p>No submissions match these filters.</p>}
+            {!items.length && !loading && <p>{tab === 'labels' ? 'No published labels match your search.' : 'No submissions match these filters.'}</p>}
             {cursor && <button className="button secondary" disabled={locked} onClick={() => void loadQueue(cursor)}>More submissions</button>}
           </section>
           <div className="review-detail">
             {detailLoading && <p role="status">Loading submission…</p>}
-            {!current && !detailLoading && <p className="review-empty">Choose a label to inspect, or select a group for batch review.</p>}
+            {!current && !detailLoading && <p className="review-empty">{tab === 'labels' ? 'Choose a label to view its artwork and removal options.' : 'Choose a label to inspect, or select a group for batch review.'}</p>}
             {current && <article aria-label="Selected submission">
-              <header className="review-heading"><div><h2 ref={reviewHeading} tabIndex={-1}>{reviewName(current)}</h2><p>{current.state}{draft?.edition ? ` · ${draft.edition}` : ''}</p></div><button className="button secondary" disabled={busy} onClick={returnToQueue}>Back to queue</button></header>
+              <header className="review-heading"><div><h2 ref={reviewHeading} tabIndex={-1}>{labelName(current)}</h2><p>{current.state}{draft?.edition ? ` · ${draft.edition}` : ''}</p></div><button className="button secondary" disabled={busy} onClick={returnToQueue}>Back to queue</button></header>
               <div className="admin-review-navigation"><a className="button quiet review-decision-jump" href="#label-decision">Go to decision</a><button className="button quiet" disabled={busy || position <= 0} onClick={() => void open(items[position - 1].id)}>Previous</button><button className="button quiet" disabled={busy || position < 0 || position >= items.length - 1} onClick={() => void open(items[position + 1].id)}>Next</button><button className="button quiet" disabled={busy} onClick={() => void open(current.id)}>Reload submission</button></div>
               {draft ? <>
-                <ReviewArtwork key={`${current.id}:${current.version}:${artworkAttempt}`} id={current.id} alt={draft.altText || `${reviewName(current)} artwork`} onReady={setImageReady} />
+                <ReviewArtwork key={`${current.id}:${current.version}:${artworkAttempt}`} id={current.id} alt={draft.altText || `${labelName(current)} artwork`} onReady={setImageReady} />
                 <ReviewEditor key={`editor:${current.id}:${current.version}`} draft={draft} onChange={updateDraft} onSave={() => void action('save')} onDiscard={() => { if (conflict) void open(current.id, true); else { forgetDraft(current.id); setDraftValue(current.metadata); setReviewed(false) } }} dirty={dirty} disabled={busy || conflict || current.state !== 'pending'} />
                 {conflict && dirty && <button className="button secondary" disabled={busy} onClick={() => void open(current.id, true)}>Discard corrections and reload</button>}
                 <ReviewEvidence key={`evidence:${current.id}:${current.version}`} record={current} />
@@ -197,15 +211,19 @@ export function GalleryAdmin({ onNavigationState }: { onNavigationState?: (state
                 <div className="gallery-actions">
                   {current.state === 'pending' && <><button className="button primary" disabled={busy || Boolean(blocker) || !reviewed} onClick={() => void action('approve', true)}>Approve and next</button><button className="button secondary" disabled={busy || Boolean(blocker) || !reviewed} onClick={() => void action('approve')}>Approve and publish</button><label>Rejection reason<select disabled={busy} value={reason} onChange={event => setReason(event.target.value)}>{['unsuitable', 'rights-concern', 'duplicate', 'other'].map(value => <option key={value}>{value}</option>)}</select></label><button className="button secondary" disabled={busy || conflict} onClick={() => void action('reject', true)}>Reject and next</button></>}
                   {current.state === 'unpublished' && <button className="button primary" disabled={busy || Boolean(blocker) || !reviewed} onClick={() => void action('republish')}>Republish reviewed version</button>}
-                  {current.state === 'published' && <><button className="button secondary" disabled={busy || conflict} onClick={() => void action('unpublish')}>Unpublish now</button><button className="button quiet" disabled={busy || conflict} onClick={() => void action('refresh')}>Refresh public identity and pack</button></>}
+                  {current.state === 'published' && <><button ref={removalButton} className="button secondary" disabled={busy || conflict || confirmRemoval} onClick={() => setConfirmRemoval(true)}>Remove from gallery</button><button className="button quiet" disabled={busy || conflict || confirmRemoval} onClick={() => void action('refresh')}>Refresh public identity and pack</button></>}
                 </div>
+                {current.state === 'published' && confirmRemoval && <div role="group" aria-label="Confirm label removal">
+                  <p>Remove {labelName(current)} from the gallery? Its public artwork and downloads will become unavailable. You can republish it from the unpublished review queue for 30 days before scheduled deletion.</p>
+                  <div className="gallery-actions"><button autoFocus className="button secondary" disabled={busy} onClick={() => { setConfirmRemoval(false); requestAnimationFrame(() => removalButton.current?.focus()) }}>Keep label</button><button className="button primary" disabled={busy || conflict} onClick={() => void action('unpublish')}>Confirm removal</button></div>
+                </div>}
                 {current.deletionDue && <p>Scheduled deletion: {new Date(current.deletionDue).toLocaleString()}</p>}
               </div>
             </article>}
           </div>
         </div>
         {!current && <div className="review-status"><p role="status">{loading ? 'Loading submissions…' : status}</p>{error && <p role="alert">{error}</p>}</div>}
-        <CuratedIntake />
+        {tab === 'review' && <CuratedIntake />}
       </>}
     </>}
   </section>
