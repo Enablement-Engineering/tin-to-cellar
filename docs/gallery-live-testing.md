@@ -7,7 +7,7 @@
 3. Open https://admin.tintocellar.com and sign in with `dylan@enablement.engineering` if prompted.
 4. In **Review queue**, click the submission. Review its full-size artwork and metadata. Agent advice appears below the metadata under **Agent recommendations**.
 5. Make any corrections, then check the review acknowledgement and choose **Approve and publish**. The label appears at https://tintocellar.com/gallery.
-6. Choose **Use label** in the gallery to import it for printing, or **Download ZIP**. Use **Unpublish now** in admin to remove a publication and disable subsequent downloads.
+6. Choose **Use label** in the gallery to import it for printing, or **Download ZIP**. In admin, open **Published labels**, search by maker or blend, choose **Remove from gallery**, and confirm. Removal disables subsequent downloads and retains the label for 30 days so it can be republished.
 
 The private record **1839 Blue — Synthetic private feedback example** contains a saved agent recommendation for testing. It is a geometric fixture, not real tobacco artwork; keep it private. The other synthetic release-check record is unpublished. The public gallery is initially empty until real artwork is approved.
 

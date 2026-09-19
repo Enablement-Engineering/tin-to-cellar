@@ -73,7 +73,6 @@ for(const width of [1280,320])test(`expanded human gallery review is accessible 
   await page.screenshot({path:`test-results/gallery-admin-removal-${width}.png`,fullPage:true})
   await page.getByRole('button',{name:'Confirm removal'}).click()
   await expect(page.getByText(`${tobacco.maker} ${tobacco.blend} removed from the gallery.`,{exact:true})).toBeVisible()
-  await page.getByRole('button',{name:'Back to queue',exact:true}).click()
   await expect(page.getByText('No published labels match your search.')).toBeVisible()
   await expect(page.getByRole('heading',{name:'Published labels',exact:true})).toBeFocused()
   expect(external).toEqual([])

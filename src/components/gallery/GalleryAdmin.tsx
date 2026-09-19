@@ -120,6 +120,7 @@ export function GalleryAdmin({ onNavigationState }: { onNavigationState?: (state
     setItems(old => old.flatMap(item => item.id !== record.id ? [item] : matchesReview(record, applied.current) ? [record] : []))
     setSelected(old => old.filter(id => id !== record.id))
   }
+  const labelName = (record: GalleryReviewRecord) => tab === 'labels' && record.publishedIdentity ? `${record.publishedIdentity.maker} ${record.publishedIdentity.blend}` : reviewName(record)
   const action = async (kind: ReviewAction, next = false) => {
     if (!current || conflict || inFlight.current) return
     const record = current
@@ -132,9 +133,10 @@ export function GalleryAdmin({ onNavigationState }: { onNavigationState?: (state
       forgetDraft(record.id); reconcile(result)
       if (selectedId.current === record.id) { setCurrent(result); setDraftValue(result.metadata); setImageReady(false) }
       setConfirmRemoval(false)
-      setStatus(kind === 'save' ? 'Corrections saved. Review this version before approving.' : kind === 'unpublish' ? `${reviewName(result)} removed from the gallery.` : `${reviewName(result)}: ${result.state}.`)
+      setStatus(kind === 'save' ? 'Corrections saved. Review this version before approving.' : kind === 'unpublish' ? `${labelName(result)} removed from the gallery.` : `${labelName(result)}: ${result.state}.`)
       succeeded = true
       await refreshCounts()
+      if (kind === 'unpublish' && tab === 'labels') { selectedId.current = null; returnToQueue() }
     } catch (cause) {
       if (mounted.current) { const uncertain = !(cause instanceof GalleryRequestError) || cause.status === 409 || cause.status >= 500; setError(errorText(cause)); setConflict(uncertain); setStatus(uncertain ? 'The result could not be confirmed. Reload the submission before another decision.' : 'The request was not accepted. Your corrections are still here.') }
     } finally { inFlight.current = false; if (mounted.current) setBusy(false) }
@@ -183,8 +185,8 @@ export function GalleryAdmin({ onNavigationState }: { onNavigationState?: (state
             <h2 ref={queueHeading} tabIndex={-1}>{tab === 'labels' ? 'Published labels' : 'Submissions'}</h2>
             {items.map(item => <div className="review-queue-row" key={item.id}>
               {item.state === 'pending' && <input aria-label={`Select ${reviewName(item)}`} type="checkbox" checked={selected.includes(item.id)} disabled={locked || drafts.has(item.id) || (!selected.includes(item.id) && selected.length >= MAX_REVIEW_BATCH)} onChange={event => setSelected(old => event.target.checked ? [...old, item.id] : old.filter(id => id !== item.id))} />}
-              <button ref={element => { if (element) queueButtons.current.set(item.id, element); else queueButtons.current.delete(item.id) }} className="gallery-queue-item" aria-label={`${reviewName(item)}, ${item.state}${item.mappingNeeded ? ", needs mapping" : ""}${drafts.has(item.id) ? ", unsaved corrections" : ""}`} disabled={busy} aria-current={current?.id === item.id ? 'true' : undefined} onClick={() => void open(item.id)}>
-                <PrivateImage id={item.id} alt="" /><span><strong>{reviewName(item)}</strong><span>{item.state}{item.mappingNeeded ? ' · Needs mapping' : ''}{drafts.has(item.id) ? ' · Unsaved corrections' : ''}</span>{item.metadata?.edition && <span>{item.metadata.edition}</span>}</span>
+              <button ref={element => { if (element) queueButtons.current.set(item.id, element); else queueButtons.current.delete(item.id) }} className="gallery-queue-item" aria-label={`${labelName(item)}, ${item.state}${item.mappingNeeded ? ", needs mapping" : ""}${drafts.has(item.id) ? ", unsaved corrections" : ""}`} disabled={busy} aria-current={current?.id === item.id ? 'true' : undefined} onClick={() => void open(item.id)}>
+                <PrivateImage id={item.id} alt="" /><span><strong>{labelName(item)}</strong><span>{item.state}{item.mappingNeeded ? ' · Needs mapping' : ''}{drafts.has(item.id) ? ' · Unsaved corrections' : ''}</span>{item.metadata?.edition && <span>{item.metadata.edition}</span>}</span>
               </button>
             </div>)}
             {!items.length && !loading && <p>{tab === 'labels' ? 'No published labels match your search.' : 'No submissions match these filters.'}</p>}
@@ -194,10 +196,10 @@ export function GalleryAdmin({ onNavigationState }: { onNavigationState?: (state
             {detailLoading && <p role="status">Loading submission…</p>}
             {!current && !detailLoading && <p className="review-empty">{tab === 'labels' ? 'Choose a label to view its artwork and removal options.' : 'Choose a label to inspect, or select a group for batch review.'}</p>}
             {current && <article aria-label="Selected submission">
-              <header className="review-heading"><div><h2 ref={reviewHeading} tabIndex={-1}>{reviewName(current)}</h2><p>{current.state}{draft?.edition ? ` · ${draft.edition}` : ''}</p></div><button className="button secondary" disabled={busy} onClick={returnToQueue}>Back to queue</button></header>
+              <header className="review-heading"><div><h2 ref={reviewHeading} tabIndex={-1}>{labelName(current)}</h2><p>{current.state}{draft?.edition ? ` · ${draft.edition}` : ''}</p></div><button className="button secondary" disabled={busy} onClick={returnToQueue}>Back to queue</button></header>
               <div className="admin-review-navigation"><a className="button quiet review-decision-jump" href="#label-decision">Go to decision</a><button className="button quiet" disabled={busy || position <= 0} onClick={() => void open(items[position - 1].id)}>Previous</button><button className="button quiet" disabled={busy || position < 0 || position >= items.length - 1} onClick={() => void open(items[position + 1].id)}>Next</button><button className="button quiet" disabled={busy} onClick={() => void open(current.id)}>Reload submission</button></div>
               {draft ? <>
-                <ReviewArtwork key={`${current.id}:${current.version}:${artworkAttempt}`} id={current.id} alt={draft.altText || `${reviewName(current)} artwork`} onReady={setImageReady} />
+                <ReviewArtwork key={`${current.id}:${current.version}:${artworkAttempt}`} id={current.id} alt={draft.altText || `${labelName(current)} artwork`} onReady={setImageReady} />
                 <ReviewEditor key={`editor:${current.id}:${current.version}`} draft={draft} onChange={updateDraft} onSave={() => void action('save')} onDiscard={() => { if (conflict) void open(current.id, true); else { forgetDraft(current.id); setDraftValue(current.metadata); setReviewed(false) } }} dirty={dirty} disabled={busy || conflict || current.state !== 'pending'} />
                 {conflict && dirty && <button className="button secondary" disabled={busy} onClick={() => void open(current.id, true)}>Discard corrections and reload</button>}
                 <ReviewEvidence key={`evidence:${current.id}:${current.version}`} record={current} />
@@ -212,7 +214,7 @@ export function GalleryAdmin({ onNavigationState }: { onNavigationState?: (state
                   {current.state === 'published' && <><button ref={removalButton} className="button secondary" disabled={busy || conflict || confirmRemoval} onClick={() => setConfirmRemoval(true)}>Remove from gallery</button><button className="button quiet" disabled={busy || conflict || confirmRemoval} onClick={() => void action('refresh')}>Refresh public identity and pack</button></>}
                 </div>
                 {current.state === 'published' && confirmRemoval && <div role="group" aria-label="Confirm label removal">
-                  <p>Remove {reviewName(current)} from the gallery? Its public artwork and downloads will become unavailable. You can republish it from the unpublished review queue for 30 days before scheduled deletion.</p>
+                  <p>Remove {labelName(current)} from the gallery? Its public artwork and downloads will become unavailable. You can republish it from the unpublished review queue for 30 days before scheduled deletion.</p>
                   <div className="gallery-actions"><button autoFocus className="button secondary" disabled={busy} onClick={() => { setConfirmRemoval(false); requestAnimationFrame(() => removalButton.current?.focus()) }}>Keep label</button><button className="button primary" disabled={busy || conflict} onClick={() => void action('unpublish')}>Confirm removal</button></div>
                 </div>}
                 {current.deletionDue && <p>Scheduled deletion: {new Date(current.deletionDue).toLocaleString()}</p>}

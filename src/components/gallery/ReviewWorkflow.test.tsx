@@ -31,7 +31,7 @@ function server(records = [first(), second()], failure?: (url: string, init: Req
     }
     if (url.includes('?')) {
       const query = new URL(url, 'http://test').searchParams
-      return ok({ submissions: records.filter(item => item.state === query.get('state') && `${item.maker} ${item.blend}`.toLowerCase().includes((query.get('search') ?? '').toLowerCase())), nextCursor: null, counts: { pending: records.filter(item => item.state === 'pending').length, reservedBytes: 0, oldestPendingAt: null } })
+      return ok({ submissions: records.filter(item => { const identity = item.state === 'published' ? item.publishedIdentity : null; return item.state === query.get('state') && `${identity?.maker ?? item.maker} ${identity?.blend ?? item.blend}`.toLowerCase().includes((query.get('search') ?? '').toLowerCase()) }), nextCursor: null, counts: { pending: records.filter(item => item.state === 'pending').length, reservedBytes: 0, oldestPendingAt: null } })
     }
     return ok(record)
   }))
@@ -170,7 +170,7 @@ it('recovers a lost save response when reload confirms those corrections were sa
 })
 
 it('searches published labels and removes only the confirmed version', async () => {
-  const records = [{ ...first(), state: 'published' as const }, { ...second(), state: 'published' as const }]
+  const records = [{ ...first(), state: 'published' as const }, { ...second(), state: 'published' as const, maker: 'Renamed maker', blend: 'Current blend', publishedIdentity: { maker: 'Maker', blend: 'Blend B' } }]
   const calls = server(records)
   render(<GalleryAdmin />)
   fireEvent.click(screen.getByRole('button', { name: 'Published labels' }))
@@ -193,8 +193,8 @@ it('searches published labels and removes only the confirmed version', async () 
   expect(writes[0].url).toContain(`/admin/submissions/${second().id}/unpublish`)
   expect(JSON.parse(writes[0].init!.body as string)).toEqual({ expectedVersion: 2 })
   expect(calls.some(call => call.url.includes('state=published&search=Blend+B'))).toBe(true)
-  fireEvent.click(screen.getByRole('button', { name: 'Back to queue' }))
   await screen.findByText('No published labels match your search.')
+  expect(screen.getByRole('heading', { name: 'Published labels' })).toHaveFocus()
   fireEvent.click(screen.getByRole('button', { name: 'Review queue' }))
   expect(screen.getByLabelText('Submission status')).toHaveValue('pending')
 })
