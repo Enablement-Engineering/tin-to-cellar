@@ -25,7 +25,8 @@ for(const width of [1280,320])test(`expanded human gallery review is accessible 
     const path=new URL(route.request().url()).pathname
     if(path.endsWith('/artwork')||path.endsWith('/thumbnail'))return route.fulfill({status:200,contentType:'image/png',body:png})
     let body:unknown=item
-    if(path.endsWith('/submissions'))body={submissions:[item],nextCursor:null,counts:{pending:1,reservedBytes:41943040,oldestPendingAt:item.createdAt}}
+    if(path.endsWith('/submissions'))body={submissions:item.state === new URL(route.request().url()).searchParams.get('state') ? [item] : [],nextCursor:null,counts:{pending:1,reservedBytes:41943040,oldestPendingAt:item.createdAt}}
+    if(path.endsWith('/unpublish')) { expect(route.request().postDataJSON()).toEqual({expectedVersion:item.version}); item.state='unpublished';item.version++;body=item }
     if(path.endsWith('/history'))body={events:[{id:'event',action:'submitted',actorType:'contributor',actor:'contributor',version:2,digest:item.digest,createdAt:item.createdAt,result:'pending'}],nextCursor:null}
     if(path.endsWith('/recommendations'))body={recommendations:[{id:'advice',submissionId:id,version:2,digest:item.digest,actorLabel:'Local inspection helper',createdAt:item.createdAt,stale:false,recommendation:{schemaVersion:1,expectedVersion:2,digest:item.digest,idempotencyKey:'fixture',assessment:'needs-attention',findings:[{category:'writing-area',severity:'info',explanation:'Review the blank writing area at print size.'}]}}]}
     if(path.endsWith('/operations'))body={pending:1,cleanupWaiting:0,overdue:0,oldestOverdue:null,lastCleanupAt:item.createdAt,lastCleanupFailures:0,reservedBytes:41943040}
@@ -57,5 +58,23 @@ for(const width of [1280,320])test(`expanded human gallery review is accessible 
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
   await page.evaluate(()=>window.scrollTo(0,0))
   await page.screenshot({path:`test-results/gallery-admin-grants-${width}.png`,fullPage:true})
+  item.state='published'
+  await page.getByRole('button',{name:'Published labels',exact:true}).click()
+  await page.getByRole('searchbox',{name:'Maker or blend'}).fill(tobacco.blend)
+  await page.getByRole('searchbox',{name:'Maker or blend'}).press('Enter')
+  await page.getByRole('button',{name:/Briar Fox, published/}).click()
+  await page.getByRole('button',{name:'Remove from gallery',exact:true}).click()
+  await expect(page.getByRole('button',{name:'Keep label'})).toBeFocused()
+  await page.getByRole('button',{name:'Keep label'}).press('Enter')
+  await expect(page.getByRole('button',{name:'Remove from gallery',exact:true})).toBeFocused()
+  await page.getByRole('button',{name:'Remove from gallery',exact:true}).press('Enter')
+  expect((await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze()).violations).toEqual([])
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  await page.screenshot({path:`test-results/gallery-admin-removal-${width}.png`,fullPage:true})
+  await page.getByRole('button',{name:'Confirm removal'}).click()
+  await expect(page.getByText(`${tobacco.maker} ${tobacco.blend} removed from the gallery.`,{exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'Back to queue',exact:true}).click()
+  await expect(page.getByText('No published labels match your search.')).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Published labels',exact:true})).toBeFocused()
   expect(external).toEqual([])
 })

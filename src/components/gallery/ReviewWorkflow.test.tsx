@@ -24,13 +24,14 @@ function server(records = [first(), second()], failure?: (url: string, init: Req
       const body = JSON.parse(init.body as string)
       if (url.endsWith('/approve')) record!.state = 'published'
       else if (url.endsWith('/reject')) record!.state = 'rejected'
+      else if (url.endsWith('/unpublish')) record!.state = 'unpublished'
       else { record!.metadata = body.metadata; record!.digest = 'updated-digest' }
       record!.version++
       return ok(record)
     }
     if (url.includes('?')) {
       const query = new URL(url, 'http://test').searchParams
-      return ok({ submissions: records.filter(item => item.state === query.get('state')), nextCursor: null, counts: { pending: records.filter(item => item.state === 'pending').length, reservedBytes: 0, oldestPendingAt: null } })
+      return ok({ submissions: records.filter(item => item.state === query.get('state') && `${item.maker} ${item.blend}`.toLowerCase().includes((query.get('search') ?? '').toLowerCase())), nextCursor: null, counts: { pending: records.filter(item => item.state === 'pending').length, reservedBytes: 0, oldestPendingAt: null } })
     }
     return ok(record)
   }))
@@ -137,7 +138,7 @@ it('prevents selection changes while a decision is in flight', async () => {
   expect(screen.getByRole('button', { name: /Maker Blend B.*pending/ })).toBeDisabled()
   expect(screen.getByRole('button', { name: 'Operations' })).toBeDisabled()
   finish(ok({ ...first(), state: 'published', version: 3 } satisfies GalleryReviewRecord))
-  await waitFor(() => expect(within(screen.getByRole('article', { name: 'Selected submission' })).getByRole('button', { name: 'Unpublish now' })).toBeEnabled())
+  await waitFor(() => expect(within(screen.getByRole('article', { name: 'Selected submission' })).getByRole('button', { name: 'Remove from gallery' })).toBeEnabled())
 })
 it('allows correcting invalid metadata after a rejected save without losing the draft', async () => {
   server(undefined, () => ({ ok: false, status: 400, json: async () => ({ error: 'invalid_metadata' }) }))
@@ -166,4 +167,50 @@ it('recovers a lost save response when reload confirms those corrections were sa
   expect(screen.getByLabelText('Edition, optional')).toHaveValue('Saved despite lost response')
   expect(screen.getByLabelText(/I reviewed this artwork/)).toBeEnabled()
   expect(screen.getByLabelText('Select Maker Blend A')).toBeEnabled()
+})
+
+it('searches published labels and removes only the confirmed version', async () => {
+  const records = [{ ...first(), state: 'published' as const }, { ...second(), state: 'published' as const }]
+  const calls = server(records)
+  render(<GalleryAdmin />)
+  fireEvent.click(screen.getByRole('button', { name: 'Published labels' }))
+  await screen.findByRole('button', { name: /Maker Blend A.*published/ })
+  expect(screen.queryByLabelText('Submission status')).not.toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText('Maker or blend'), { target: { value: ' Blend B ' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Search labels' }))
+  await waitFor(() => expect(screen.queryByRole('button', { name: /Maker Blend A.*published/ })).not.toBeInTheDocument())
+  fireEvent.click(await screen.findByRole('button', { name: /Maker Blend B.*published/ }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Remove from gallery' }))
+  expect(screen.getByRole('group', { name: 'Confirm label removal' })).toHaveTextContent('Remove Maker Blend B')
+  fireEvent.click(screen.getByRole('button', { name: 'Keep label' }))
+  expect(calls.filter(call => call.init?.method)).toHaveLength(0)
+  fireEvent.click(screen.getByRole('button', { name: 'Remove from gallery' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm removal' }))
+  await screen.findByText('Maker Blend B removed from the gallery.')
+  expect(screen.queryByRole('button', { name: /Maker Blend B.*published/ })).not.toBeInTheDocument()
+  const writes = calls.filter(call => call.init?.method)
+  expect(writes).toHaveLength(1)
+  expect(writes[0].url).toContain(`/admin/submissions/${second().id}/unpublish`)
+  expect(JSON.parse(writes[0].init!.body as string)).toEqual({ expectedVersion: 2 })
+  expect(calls.some(call => call.url.includes('state=published&search=Blend+B'))).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: 'Back to queue' }))
+  await screen.findByText('No published labels match your search.')
+  fireEvent.click(screen.getByRole('button', { name: 'Review queue' }))
+  expect(screen.getByLabelText('Submission status')).toHaveValue('pending')
+})
+
+it('requires a reload after a conflicting removal and retains the published row', async () => {
+  const calls = server([{ ...first(), state: 'published' }], () => ({ ok: false, status: 409, json: async () => ({ error: 'review_changed' }) }))
+  render(<GalleryAdmin />)
+  fireEvent.click(screen.getByRole('button', { name: 'Published labels' }))
+  fireEvent.click(await screen.findByRole('button', { name: /Maker Blend A.*published/ }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Remove from gallery' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm removal' }))
+  await screen.findByText('The result could not be confirmed. Reload the submission before another decision.')
+  expect(screen.getByRole('button', { name: 'Confirm removal' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: /Maker Blend A.*published/ })).toBeInTheDocument()
+  expect(calls.filter(call => call.init?.method)).toHaveLength(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Reload submission' }))
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Remove from gallery' })).toBeEnabled())
+  expect(screen.queryByRole('button', { name: 'Confirm removal' })).not.toBeInTheDocument()
 })
