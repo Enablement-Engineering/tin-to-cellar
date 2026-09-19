@@ -132,10 +132,6 @@ export default function PublicApp() {
 
   const creationRows = useMemo(() => collection.rows.filter(row => row.createRequested), [collection.rows])
   const workspaceRows = collection.rows.map(row => ({ ...row, artwork: labels.find(label => label.id === row.id) }))
-  const saveCreationList = (ids: string[]) => commit(current => {
-    if (ids.some(id => !current.rows.some(row => row.id === id))) throw new Error('Your labels changed. Review the creation list again.')
-    return current.rows.reduce((next, row) => row.createRequested === ids.includes(row.id) ? next : updateRow(next, row.id, { createRequested: ids.includes(row.id) }), current)
-  }).then(() => { setNotice('') })
   const setCreationRequested = (id: string, requested: boolean) => {
     setGenericChat(false)
     return commit(current => updateRow(current, id, { createRequested: requested })).then(() => { setNotice('') })
@@ -279,7 +275,7 @@ export default function PublicApp() {
   </aside>
   const handoff = handoffDraft && <>
     {collection.handoff && !frozen && <p role="status">Your creation choices changed. Copy the updated prompt before starting a new chat.</p>}
-    <PromptHandoff prompt={handoffDraft.prompt} request={handoffDraft.request} copyLabel={targets.length ? `Copy instructions for ${targets.length} ${targets.length === 1 ? 'label' : 'labels'}` : 'Copy instructions for my AI chat'} copied={Boolean(frozen?.copied)} busy={busy || !promptModule.module} onCopy={() => copyHandoff()} onCopyLatest={frozen && String(frozen.protocolRevision) !== PROTOCOL_REVISION ? () => copyHandoff(true) : undefined} onCopyResult={outcome => recordUsage({ version: 2, event: 'instructions-copy-result', outcome })} onCopied={payload => { void commit(current => current.handoff?.prompt === payload ? setHandoff(current, { ...current.handoff, copied: true }) : current).then(saved => { if (saved.handoff?.prompt === payload) void startProgress(saved.id, saved.handoff) }).catch(ignoreHandledError) }} />
+    <PromptHandoff prompt={handoffDraft.prompt} request={handoffDraft.request} copied={Boolean(frozen?.copied)} busy={busy || !promptModule.module} onCopy={() => copyHandoff()} onCopyLatest={frozen && String(frozen.protocolRevision) !== PROTOCOL_REVISION ? () => copyHandoff(true) : undefined} onCopyResult={outcome => recordUsage({ version: 2, event: 'instructions-copy-result', outcome })} onCopied={payload => { void commit(current => current.handoff?.prompt === payload ? setHandoff(current, { ...current.handoff, copied: true }) : current).then(saved => { if (saved.handoff?.prompt === payload) void startProgress(saved.id, saved.handoff) }).catch(ignoreHandledError) }} />
   </>
   const promptLoading = <section className="panel screen-only" aria-label="Instructions">
     <p role="status">{promptModule.failed ? 'Instructions could not load. Use the app recovery controls above. Your saved labels remain available.' : 'Loading instructions…'}</p>
@@ -291,7 +287,7 @@ export default function PublicApp() {
     event.preventDefault(); if (next === 'print') openReadyPrint(); else navigate(next)
   }
   const navItems: { view: View; label: string }[] = [
-    { view: 'create' as const, label: 'Your labels' }, { view: 'print' as const, label: 'Print labels' }, { view: 'gallery' as const, label: 'Gallery' },
+    { view: 'gallery' as const, label: 'Gallery' }, { view: 'create' as const, label: 'Your labels' }, { view: 'print' as const, label: 'Print labels' },
   ]
   const showNotice = (view === 'print' || view === 'create' || view === 'artwork') && Boolean(notice) && !importing
   return <div className="app-shell tc-grain" onClick={event => {
@@ -307,7 +303,14 @@ export default function PublicApp() {
     <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); main.current?.focus(); main.current?.scrollIntoView({ block: 'start' }) }}>Skip to main content</a>
     <header className="site-header screen-only"><div className="site-header-inner">
       <a className="wordmark" href="/" onClick={routeClick('labels')} aria-label="Tin to Cellar home"><Wordmark /></a>
-      <nav className="nav-tabs" aria-label="Workflow">{navItems.map(item => <a key={item.view} href={viewPaths[item.view]} aria-current={view === item.view ? 'page' : undefined} onClick={routeClick(item.view)}>{item.label}</a>)}</nav>
+      <nav className="nav-tabs" aria-label="Workflow">{navItems.map(item => <a key={item.view} href={viewPaths[item.view]} aria-label={item.label}
+        aria-describedby={item.view === 'create' && collection.rows.length > 0 ? 'saved-label-count' : undefined}
+        aria-current={view === item.view ? 'page' : undefined} onClick={routeClick(item.view)}>
+        {item.label}{item.view === 'create' && collection.rows.length > 0 && <>
+          <span aria-hidden="true"> · {collection.rows.length}</span>
+          <span id="saved-label-count" className="visually-hidden">{collection.rows.length} saved {collection.rows.length === 1 ? 'label' : 'labels'}</span>
+        </>}
+      </a>)}</nav>
       <ThemeControl />
     </div></header>
     <main id="main-content" ref={main} tabIndex={-1} className={`site-main view-${view}`}>
@@ -332,9 +335,9 @@ export default function PublicApp() {
       {galleryMatch && candidate && <GalleryDesignReview current={galleryMatch} incoming={candidate.designs[0]} busy={busy} invalidated={reviewInvalidated} error={reviewInvalidated ? 'Your saved labels changed. Cancel and choose the design again.' : importError || storageError} onReplace={() => void acceptGalleryChoice('replace')} onAdd={() => void acceptGalleryChoice('add')} onCancel={cancelImport} />}
       {review && candidate && !galleryMatch && <CollectionImportReview unresolvedRequests={collection.rows.filter(row => row.createRequested && !Object.values(decisions).some(decision => decision.action === 'replace' && decision.rowId === row.id)).map(row => row.blend)} collection={collection} plan={review} decisions={decisions} onChange={setDecisions} onAccept={() => void acceptImport()} onReplace={() => void replaceImport()} onCancel={() => { focusAfterImport.current = true; setShowIntake(false); cancelImport() }} busy={busy} invalidated={reviewInvalidated} onRefresh={refreshDecisions} error={importError || storageError}>{summary && (summary.status !== 'ready' || summary.issues.length > 0 || summary.quarantined.length > 0) ? <ImportReport summary={summary} /> : null}</CollectionImportReview>}
       {legacyChoices.length > 0 && <section className="panel screen-only"><h2>Your previous community selection</h2><p>{legacyChoices.length} selected designs can be saved in Your labels. A design only becomes ready after its artwork downloads.</p><button type="button" className="button secondary" disabled={busy} onClick={() => void restoreLegacy()}>Restore selected labels</button></section>}
-      {(galleryVisited || view === 'gallery') && <div hidden={view !== 'gallery'} className="screen-only"><DeferredPanel><GalleryBrowse selectedCount={collection.rows.length} readyCount={labels.length} onView={() => navigate('create')} onCreate={addGalleryCreationRequest} getActionLabel={label => { const matches = collection.rows.filter(row => row.catalogId === label.catalogId && !row.edition); return matches.length === 1 && !matches[0].designId ? `Use for your ${label.blend} label` : matches.some(row => row.designId) ? 'Review this design' : 'Add to your labels' }} onAdd={label => chooseCommunity(label)} selectedIds={activeDesigns.flatMap(design => design.publicationId ? [design.publicationId] : [])} onPrint={openReadyPrint} /></DeferredPanel></div>}
+      {(galleryVisited || view === 'gallery') && <div hidden={view !== 'gallery'} className="screen-only"><DeferredPanel><GalleryBrowse selectedCount={collection.rows.length} readyCount={labels.length} onView={() => navigate('create')} onCreate={addGalleryCreationRequest} onImport={openImport} getActionLabel={label => { const matches = collection.rows.filter(row => row.catalogId === label.catalogId && !row.edition); return matches.length === 1 && !matches[0].designId ? `Use for your ${label.blend} label` : matches.some(row => row.designId) ? 'Review this design' : 'Add to your labels' }} onAdd={label => chooseCommunity(label)} selectedIds={activeDesigns.flatMap(design => design.publicationId ? [design.publicationId] : [])} onPrint={openReadyPrint} /></DeferredPanel></div>}
       {view === 'not-found' ? <div className="landing-page screen-only"><h1>Page not found</h1><p>This page doesn’t exist.</p><a href="/labels" onClick={routeClick('labels')}>Go to Labels</a></div> : view === 'labels' ? <Landing selectedCount={collection.rows.length} readyCount={labels.length} onNavigate={next => next === 'print' ? openImport() : navigate(next)} busy={busy} onFile={file => handlePack(file, 'example')} onClear={clearLabels} /> : view === 'gallery' ? null : view === 'order' ? <OrderPage rows={collection.rows} busy={busy} onAdd={async identities => { await addLabelRequests(identities); navigate('create') }} onBrowse={() => navigate('gallery')} /> : view === 'gallery-admin' ? <DeferredPanel><GalleryAdmin /></DeferredPanel> : view === 'create' ? <PreparationWorkspace rows={workspaceRows} busy={busy}
-        onOrder={() => navigate('order')} onCreateMany={saveCreationList} onAdd={async (identity, choice) => {
+        onOrder={() => navigate('order')} onAdd={async (identity, choice) => {
           if (choice !== 'ai') { await chooseCommunity(choice, undefined, identity); return }
           await commit(current => addManualLabel(current, identity, 'ai'))
           setGenericChat(false); setNotice('')
@@ -344,7 +347,7 @@ export default function PublicApp() {
         onCreate={setCreationRequested}
         onNotes={(id, value) => commit(current => updateRow(current, id, { notes: value })).then(() => undefined)}
         onResolve={(id, identity) => { void commit(current => updateRow(current, id, identity)).catch(ignoreHandledError) }}
-        onChooseCommunity={(id, label) => chooseCommunity(label, id)} onPrint={openReadyPrint} onBrowse={() => navigate('gallery')} onImport={openImport} onGenericChat={() => { setGenericChat(true); navigate('artwork') }} onContinueCreation={() => navigate('artwork')} /> : view === 'artwork' ? <ArtworkCreationFlow rows={creationRows} allRows={workspaceRows} requestKey={requestedKey} copied={Boolean(frozen?.copied)} generic={genericChat} busy={busy} onBack={() => navigate('create')} onEdit={saveCreationList} onNotes={(id, notes) => commit(current => updateRow(current, id, { notes })).then(() => undefined)} onCancel={id => setCreationRequested(id, false)} handoff={handoff ?? promptLoading} intake={intake} /> : view === 'help' ? <>{instructions !== null ? <HowItWorks instructions={instructions} /> : promptLoading}<StandaloneFeedback /></> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
+        onChooseCommunity={(id, label) => chooseCommunity(label, id)} onPrint={openReadyPrint} onBrowse={() => navigate('gallery')} onImport={openImport} onGenericChat={() => { setGenericChat(true); navigate('artwork') }} onContinueCreation={() => navigate('artwork')} /> : view === 'artwork' ? <ArtworkCreationFlow rows={creationRows} copied={Boolean(frozen?.copied)} generic={genericChat} onBack={() => navigate('create')} onNotes={(id, notes) => commit(current => updateRow(current, id, { notes })).then(() => undefined)} handoff={handoff ?? promptLoading} intake={intake} /> : view === 'help' ? <>{instructions !== null ? <HowItWorks instructions={instructions} /> : promptLoading}<StandaloneFeedback /></> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
         <div className="page-heading print-page-heading screen-only"><h1>{reviewingPack ? 'Review imported labels' : 'Print labels'}</h1><LabelPaperGuidance /></div>
         {!reviewingPack && <div className="handoff-actions print-page-controls screen-only"><button className="button secondary" type="button" onClick={() => navigate('create')}>Add more labels</button>{labels.length > 0 && <button type="button" className="button secondary" disabled={downloading} onClick={() => void download()}>{downloading ? 'Preparing download…' : 'Download labels'}</button>}{(collection.rows.length > 0 || collection.receipts.length > 0) && <button type="button" className="button quiet" disabled={busy} onClick={resetLabels}>Reset labels</button>}</div>}
         {!reviewingPack && printState === 'ready' && collection.rows.some(row => !row.designId) && <p className="field-hint screen-only">{collection.rows.filter(row => !row.designId).length} labels still need artwork. {labels.length > 0 ? 'You can print the ready labels now.' : 'Choose a design or import a finished ZIP to start printing.'}</p>}

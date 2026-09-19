@@ -74,7 +74,7 @@ test('browser selects artwork, submits privately, reviewer publishes, public use
   await page.getByRole('button', { name: /^Add \d+ labels?$/ }).click()
   await expect(page.getByRole('heading', { name: 'Share your labels' })).toBeVisible()
   expect(writes.filter(w => w.path.startsWith(base))).toEqual([])
-  await page.getByLabel(`Share ${tobacco.maker} ${tobacco.blend}`, { exact: true }).check()
+  await expect(page.getByLabel(`Share ${tobacco.maker} ${tobacco.blend}`, { exact: true })).toHaveCount(0)
   expect(writes.filter(w => w.path.startsWith(base))).toEqual([])
   await page.getByLabel('I created or generated these labels', { exact: false }).check()
   await page.getByRole('button', { name: 'Submit for review', exact: true }).click()

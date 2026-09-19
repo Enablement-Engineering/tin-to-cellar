@@ -62,8 +62,8 @@ export function Landing({ onNavigate, selectedCount = 0, readyCount = 0, busy, o
       </div>
       <div className="landing-start">
         <div className="landing-entry-paths">
-          <button className="landing-entry-card" type="button" onClick={() => onNavigate('order')}><Icon name="upload" /><strong>Add several blends</strong><span>Choose an image or PDF, or paste a blend list. Review your blends and choose designs.</span></button>
           <button className="landing-entry-card" type="button" onClick={() => onNavigate('gallery')}><Icon name="research" /><strong>Browse label designs</strong><span>Choose from community designs and go straight to printing.</span></button>
+          <button className="landing-entry-card" type="button" onClick={() => onNavigate('order')}><Icon name="upload" /><strong>Add several blends</strong><span>Choose an image or PDF, or paste a blend list. Review your blends and choose designs.</span></button>
         </div>
         <div className="landing-actions">
           <button className="button secondary" type="button" onClick={() => onNavigate('create')}><Icon name="pencil" size={20} /><span>Enter blends manually</span></button>

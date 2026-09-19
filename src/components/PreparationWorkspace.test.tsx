@@ -66,6 +66,19 @@ it('keeps ready artwork printable while another row is requested and no generic 
   expect(screen.queryByRole('button', { name: 'Choose blends in my AI chat' })).not.toBeInTheDocument()
 })
 
+it('opens creation directly from the saved selection without a duplicate list or selection dialog', () => {
+  const callbacks = props(), onContinueCreation = vi.fn()
+  const rows = [{ id: 'pending', catalogId: null, maker: '', blend: 'New', createRequested: true }]
+  const view = render(<PreparationWorkspace {...callbacks} rows={rows} onContinueCreation={onContinueCreation} />)
+  expect(screen.getAllByText('New')).toHaveLength(1)
+  expect(screen.queryByRole('button', { name: 'Edit creation list' })).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Create with ChatGPT' }))
+  expect(onContinueCreation).toHaveBeenCalledOnce()
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  view.rerender(<PreparationWorkspace {...callbacks} rows={rows} onContinueCreation={onContinueCreation} busy />)
+  expect(screen.getByRole('button', { name: 'Create with ChatGPT' })).toBeDisabled()
+})
+
 it('does not let a late lookup overwrite another row identity', async () => {
   let finish!: (page: Awaited<ReturnType<typeof searchExactLabels>>) => void
   vi.mocked(searchExactLabels).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))

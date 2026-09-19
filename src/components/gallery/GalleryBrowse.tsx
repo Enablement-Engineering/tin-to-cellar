@@ -45,9 +45,9 @@ function CreationReview({ identity, query, onCreate, onClose: dismiss }: {
       catch (failure) { setError(errorText(failure)); setSaving(false); inFlight.current = false }
     }}>
       <h2 ref={title} tabIndex={-1} id="gallery-creation-title">Create artwork in your AI chat</h2>
-      <p id="gallery-creation-description">Choose a blend for your AI creation list. From Your labels, you can review the list and copy instructions into your own AI chat.</p>
-      <p className="field-hint">You make the artwork in your chat and bring back the finished ZIP to print. Tin to Cellar does not run the AI chat.</p>
-      <TobaccoSelector label="Find a blend" hint="Type part of a blend or maker name, then choose a match." value={draft} disabled={saving} onChange={value => { setDraft(value); setSelected(null); setError('') }} onChoose={choice => { setSelected(choice); setDraft(choice.maker ? formatTobacco(choice) : choice.blend); setError('') }} />
+      <p id="gallery-creation-description">Choose a blend, create its artwork in your own AI chat, then bring back the finished label ZIP. Review your creation list in Your labels before copying the instructions.</p>
+      <p className="field-hint">Tin to Cellar does not run the AI chat.</p>
+      <TobaccoSelector label="Find a blend" hint="Search by blend or maker, then choose a match." value={draft} disabled={saving} confirmed={selected !== null} onChange={value => { setDraft(value); setSelected(null); setError('') }} onChoose={choice => { setSelected(choice); setDraft(choice.maker ? formatTobacco(choice) : choice.blend); setError('') }} />
       <div role="status" aria-atomic="true">{selected && <p className="gallery-confirmed-blend"><strong>{selected.blend}</strong><span>{selected.catalogId ? selected.maker : 'Custom blend'}</span></p>}</div>
       {selected && !selected.catalogId && <label className="field"><span>Maker <em>optional</em></span><input value={selected.maker} maxLength={120} disabled={saving} onChange={event => setSelected({ ...selected, maker: event.target.value })} /></label>}
       {error && <p role="alert">{error} Your reviewed blend is still here. Try again.</p>}
@@ -56,9 +56,9 @@ function CreationReview({ identity, query, onCreate, onClose: dismiss }: {
   </dialog>
 }
 
-export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedIds.length, selectedCount = readyCount, onView, onPrint, onCreate, getActionLabel, busy: saving = false }: {
+export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedIds.length, selectedCount = readyCount, onView, onPrint, onCreate, onImport, getActionLabel, busy: saving = false }: {
   onAdd: (label: GalleryPublicLabel) => Promise<void>; selectedIds?: string[]; readyCount?: number; selectedCount?: number
-  onView?: () => void; onPrint?: () => void; onCreate?: (identity: GalleryBlendIdentity) => void | Promise<void>
+  onView?: () => void; onPrint?: () => void; onImport?: () => void; onCreate?: (identity: GalleryBlendIdentity) => void | Promise<void>
   getActionLabel?: (label: GalleryPublicLabel) => string; busy?: boolean
 }) {
   const { config, error: configError } = useConfig()
@@ -121,9 +121,14 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
     setAdding(label.id); setAddError('')
     try { await onAdd(label) } catch (failure) { setAddError(errorText(failure)) } finally { setAdding(null) }
   }
-  const creationRoute = onCreate && <section className="gallery-create-route" aria-labelledby="gallery-create-heading"><div><h2 id="gallery-create-heading">{identity && !busy && !error && !results.length && !maker ? `Create artwork for ${identity.blend}` : 'Want a different design?'}</h2><p>{identity ? `Make new artwork for ${formatTobacco(identity)} in your own AI chat, then bring back the finished ZIP.` : 'Choose a blend, copy instructions into your own AI chat, and bring back the finished label ZIP.'}</p></div><button className="button secondary" type="button" disabled={saving || adding !== null} onClick={() => setCreating(true)}>Create in my AI chat</button></section>
   return <section className="gallery-page screen-only" aria-labelledby="gallery-title">
-    <header className="page-heading gallery-heading"><h1 id="gallery-title" tabIndex={-1}>Browse label designs</h1><p>Find your blends, compare the artwork, and add the designs you want to print. Community designs are ready to use without an AI chat.</p></header>
+    <header className="page-heading gallery-heading">
+      <div className="gallery-heading-copy"><h1 id="gallery-title" tabIndex={-1}>Browse label designs</h1><p>Find your blends, compare the artwork, and add the designs you want to print. Community designs are ready to use without an AI chat.</p></div>
+      {(onCreate || onImport) && <div className="gallery-entry-actions">
+        {onCreate && <button className="button secondary" type="button" aria-haspopup="dialog" disabled={saving || adding !== null} onClick={() => setCreating(true)}>Create custom labels</button>}
+        {onImport && <button className="button quiet" type="button" disabled={saving || adding !== null} onClick={onImport}>Import a label ZIP</button>}
+      </div>}
+    </header>
     {configError && <p role="alert">{configError}</p>}
     {!config && !configError && <p role="status">Loading community designs…</p>}
     {config && !config.serving && <p>Community designs are unavailable for now. You can still print saved labels, import a label ZIP, or create new artwork in your AI chat.</p>}
@@ -139,7 +144,9 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
         {(query || maker) && <div className="gallery-browse-actions"><button className="button quiet" type="button" onClick={clearFilters}>Clear filters</button></div>}
       </section>
       <p ref={resultCount} tabIndex={-1} className="gallery-result-count" role="status" aria-atomic="true">{busy ? 'Loading community designs…' : error ? '' : `${results.length} ${results.length === 1 ? 'design' : 'designs'}${maker ? ` by ${maker}` : ''}${query ? ` matching “${query}”` : ''}${results.length ? ` · Showing ${shown.length}` : ''}`}</p>
-      {!busy && !error && !results.length && <div className="gallery-empty"><h2>{identity && !maker ? 'No community artwork for this blend yet' : labels.length ? 'No designs match these filters' : 'No community designs yet'}</h2><p>{identity && !maker ? `${identity.maker} ${identity.blend} is selected. You can create its artwork, or clear the search to keep browsing.` : 'Try a shorter name, choose a suggested blend, or clear the filters. You can also create artwork for a blend of your own.'}</p></div>}
+      {!busy && !error && !results.length && <div className="gallery-empty"><h2>{identity && !maker ? 'No community artwork for this blend yet' : labels.length ? 'No designs match these filters' : 'No community designs yet'}</h2><p>{identity && !maker ? `${identity.maker} ${identity.blend} is selected. You can create its artwork, or clear the search to keep browsing.` : 'Try a shorter name, choose a suggested blend, or clear the filters. You can also create artwork for a blend of your own.'}</p>
+        {onCreate && <button className="button secondary" type="button" aria-haspopup="dialog" disabled={saving || adding !== null} onClick={() => setCreating(true)}>{identity && !maker ? `Create a label for ${identity.blend}` : 'Create custom labels'}</button>}
+      </div>}
       {error && <p role="alert">{error}</p>}
       {error && <button className="button secondary" type="button" disabled={busy} onClick={() => void load()}>Retry loading designs</button>}
       {!onCreate && !busy && !error && !results.length && <a className="button secondary" href="/labels/create">Choose labels to create</a>}
@@ -153,9 +160,7 @@ export function GalleryBrowse({ onAdd, selectedIds = [], readyCount = selectedId
       </article>)}</div>
       {adding && <p role="status">Downloading and checking the selected design…</p>}
       {shown.length < results.length && <div className="gallery-pagination"><button type="button" className="button secondary" onClick={() => setVisible(value => value + 24)}>Show more labels</button></div>}
-      {creationRoute}
     </>}
-    {!config?.serving && creationRoute}
     {preview && <GalleryArtworkPreview label={preview} onClose={() => setPreview(null)} />}
     {creating && onCreate && <CreationReview identity={identity} query={query} onCreate={onCreate} onClose={() => setCreating(false)} />}
     <footer className="gallery-disclaimer"><p className="field-hint">Shared by community members for personal cellaring. Tin to Cellar is independent of tobacco brands.</p><p className="field-hint">Questions about a label or source link? <a href="mailto:hello@enablement.engineering">Email me</a> with a link and a short note.</p></footer>

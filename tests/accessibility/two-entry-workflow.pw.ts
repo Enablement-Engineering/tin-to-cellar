@@ -14,7 +14,7 @@ async function library(context: BrowserContext) {
   const alternate = await fixture(825, 30)
   const labels = [...blends.slice(0, 6), blends[0]].map((entry, index) => ({
     ...entry, catalogId: entry.id, id: `43649b43-8094-4a32-b5ee-8be75208fb6${index + 1}`,
-    edition: index === 6 ? 'Alternate fixture' : 'Community fixture', altText: 'Geometric artwork with an empty date-writing area', artworkProfileId: 'circle-2.5@1',
+    edition: index === 6 ? 'Alternate fixture' : 'Community fixture', altText: 'Geometric artwork with an empty date-writing area', artworkProfileId: 'circle-2.5@1', publishedAt: '2026-09-07T00:00:00Z',
   }))
   const packs = await Promise.all(labels.map((label, index) => buildGalleryPack({ metadata: { ...(index === 6 ? alternate : source).draft, tobacco: { catalogId: label.catalogId }, edition: label.edition }, ...label, packId: label.id, createdAt: '2026-09-07T00:00:00Z' }, index === 6 ? alternate.png : source.png)))
   const outgoing: string[] = []
@@ -22,7 +22,7 @@ async function library(context: BrowserContext) {
   await context.route('**/api/gallery/v1/**', route => {
     const url = new URL(route.request().url())
     if (url.pathname.endsWith('/config')) return route.fulfill({ json: { serving: true, intake: false, noticeVersion: 'fixture', turnstileSiteKey: '' } })
-    if (url.pathname.endsWith('/labels')) {
+    if (url.pathname.endsWith('/labels') || url.pathname.endsWith('/browse')) {
       const id = url.searchParams.get('catalogId')
       return route.fulfill({ json: { serving: true, labels: id ? labels.filter(label => label.catalogId === id) : labels, nextCursor: null } })
     }
@@ -137,7 +137,7 @@ function card(page: Page, entry: Blend, edition = 'Community fixture') {
   const index = edition === 'Alternate fixture' ? 6 : blends.findIndex(blend => blend.id === entry.id)
   const publicationId = `43649b43-8094-4a32-b5ee-8be75208fb6${index + 1}`
   return page.getByRole('article', { name: `${entry.blend} ${entry.maker}`, exact: true })
-    .filter({ has: page.locator(`a[href$="/${publicationId}/artwork"]`) })
+    .and(page.locator(`[aria-labelledby="gallery-blend-${publicationId} gallery-maker-${publicationId}"]`))
 }
 
 async function useCommunity(page: Page, entry: Blend) {
@@ -168,7 +168,7 @@ for (const width of [1280, 320]) test(`equal home entrances, local order review,
   await page.getByRole('button', { name: 'Resume your labels', exact: true }).click()
   await expect(page).toHaveURL(/\/labels\/create$/)
   await expect(page.getByRole('article', { name: blends[0].blend, exact: true })).toContainText('Needs artwork')
-  await page.getByRole('button', { name: 'Browse label designs', exact: true }).click()
+  await page.getByRole('link', { name: 'Browse gallery', exact: true }).click()
   await useCommunity(page, blends[0])
   const saved = await savedRows(page)
   expect(saved).toHaveLength(2)
@@ -178,7 +178,7 @@ for (const width of [1280, 320]) test(`equal home entrances, local order review,
   await page.getByRole('button', { name: 'View your labels', exact: true }).focus()
   const browsePosition = await page.evaluate(() => window.scrollY)
   await page.getByRole('button', { name: 'View your labels', exact: true }).press('Enter')
-  await page.getByRole('button', { name: 'Browse label designs', exact: true }).click()
+  await page.getByRole('link', { name: 'Browse gallery', exact: true }).click()
   await expect.poll(() => page.evaluate(position => Math.abs(window.scrollY - position), browsePosition)).toBeLessThanOrEqual(8)
   await expect(card(page, blends[0]).getByRole('button', { name: 'Added to your labels', exact: true })).toBeDisabled()
   await page.getByRole('button', { name: 'View your labels', exact: true }).click()
@@ -199,20 +199,21 @@ test('ten saved requests combine six community choices and three returned design
   const { source, outgoing } = await library(context)
   await page.goto('/labels/order')
   await saveOrder(page, blends)
-  await page.getByRole('button', { name: 'Browse label designs', exact: true }).click()
+  await page.getByRole('link', { name: 'Browse gallery', exact: true }).click()
   for (const entry of blends.slice(0, 6)) await useCommunity(page, entry)
   await page.getByRole('button', { name: 'View your labels', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Ready (6)', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Needs artwork (4)', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: /^Copy prompt/ })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Choose artwork to create', exact: true }).click()
-  const creation = page.getByRole('dialog', { name: 'Choose artwork to create', exact: true })
-  await expect(creation.getByRole('checkbox', { checked: true })).toHaveCount(4)
-  await creation.getByRole('button', { name: 'Continue with 4 labels', exact: true }).click()
+  for (const entry of blends.slice(6)) {
+    const row = page.getByRole('article', { name: entry.blend, exact: true })
+    await row.getByRole('button', { name: 'Choose design', exact: true }).click()
+    await row.getByRole('button', { name: 'Create my own', exact: true }).click()
+  }
+  await page.getByRole('button', { name: 'Create with ChatGPT', exact: true }).click()
   await expect(page).toHaveURL(/\/labels\/artwork$/)
-  await page.getByRole('button', { name: 'Continue with 4 labels', exact: true }).click()
-  await page.getByRole('button', { name: 'Copy instructions for 4 labels', exact: true }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'Copied. Open your AI chat, paste, and send. Return here with the finished ZIP.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Copy instructions', exact: true }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Copied. Open ChatGPT or your preferred AI chat, paste, and send. Return here with the finished ZIP.' })).toBeVisible()
   const prompt = await page.evaluate(() => navigator.clipboard.readText())
   const input = prompt.slice(prompt.lastIndexOf('# Project input'))
   for (const entry of blends.slice(6)) expect(input).toContain(entry.blend)
@@ -250,14 +251,14 @@ test('canceling a gallery replacement on a narrow screen keeps the saved design 
   await page.setViewportSize({ width: 320, height: 900 })
   await page.goto('/labels/order')
   await saveOrder(page, blends.slice(0, 1))
-  await page.getByRole('button', { name: 'Browse label designs', exact: true }).click()
+  await page.getByRole('link', { name: 'Browse gallery', exact: true }).click()
   await useCommunity(page, blends[0])
   await page.getByRole('button', { name: 'Review & print', exact: true }).click()
   await page.getByRole('spinbutton', { name: `Quantity for ${blends[0].blend}`, exact: true }).fill('3')
   await expect(page.getByRole('button', { name: 'Print 3 labels', exact: true })).toBeEnabled()
   const before = await savedRows(page)
   await page.goto('/gallery')
-  await card(page, blends[0], 'Alternate fixture').getByRole('button').click()
+  await card(page, blends[0], 'Alternate fixture').getByRole('button', { name: 'Review this design', exact: true }).click()
   const review = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Replace design', exact: true }) })
   await expect(review).toBeVisible()
   await expect(review.getByRole('button', { name: 'Add separately', exact: true })).toBeVisible()
@@ -275,7 +276,7 @@ for (const width of [1280, 320]) test(`creation replacement can restore previous
   await page.setViewportSize({ width, height: 900 })
   await page.goto('/labels/order')
   await saveOrder(page, blends.slice(0, 2))
-  await page.getByRole('button', { name: 'Browse label designs', exact: true }).click()
+  await page.getByRole('link', { name: 'Browse gallery', exact: true }).click()
   for (const entry of blends.slice(0, 2)) await useCommunity(page, entry)
   await page.getByRole('button', { name: 'Review & print', exact: true }).click()
   await page.getByRole('spinbutton', { name: `Quantity for ${blends[0].blend}`, exact: true }).fill('3')
@@ -305,12 +306,12 @@ for (const width of [1280, 320]) test(`creation replacement can restore previous
   await expect(page.getByRole('button', { name: 'Print 4 labels', exact: true })).toBeEnabled()
   await page.getByRole('button', { name: 'Add more labels', exact: true }).click()
   await requestReplacement()
-  await page.getByRole('button', { name: 'Continue to creation', exact: true }).click()
+  await page.getByRole('button', { name: 'Create with ChatGPT', exact: true }).click()
   await expect(page).toHaveURL(/\/labels\/artwork$/)
-  await expect(page.getByRole('heading', { name: 'Review your request', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /labels? to create/, exact: false })).toBeVisible()
   await expect(page.getByRole('list', { name: 'Requested artwork', exact: true })).toContainText(blends[0].blend)
   await expect(page.getByRole('list', { name: 'Requested artwork', exact: true })).not.toContainText(blends[1].blend)
-  await expect(page.getByRole('button', { name: /^Copy instructions/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Copy instructions', exact: true })).toBeVisible()
   await page.getByText('Design notes · optional', { exact: true }).click()
   const notes = page.getByRole('textbox', { name: `Requests for ${blends[0].blend} optional`, exact: true })
   await notes.fill('Keep a generous blank date-writing area.')
@@ -338,7 +339,7 @@ for (const width of [1280, 320]) test(`creation replacement can restore previous
   await expect(page.getByRole('button', { name: 'Choose finished ZIP', exact: true })).toBeEnabled()
   expect(await savedRows(page)).toEqual(pending)
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Review your request', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /labels? to create/, exact: false })).toBeVisible()
   await page.getByText('Design notes · added', { exact: true }).click()
   await expect(notes).toHaveValue('Keep a generous blank date-writing area.')
   await page.getByRole('button', { name: 'I already have a finished ZIP', exact: true }).click()
