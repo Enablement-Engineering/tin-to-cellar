@@ -18,7 +18,7 @@ for (const width of [1280, 320]) {
       await page.goto(`/${route}`)
       await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
       if (route === 'labels') {
-        await expect(page.getByRole('navigation', { name: 'Workflow' }).getByRole('link')).toHaveText(['Your labels', 'Print labels', 'Gallery'])
+        await expect(page.getByRole('navigation', { name: 'Workflow' }).getByRole('link')).toHaveText(['Gallery', 'Your labels', 'Print labels'])
         await expect(page.getByText('Optional', { exact: true })).toBeVisible()
         await expect(page.getByRole('button', { name: 'Enter blends manually', exact: true })).toBeVisible()
         await page.screenshot({ path: `test-results/overview-${width}.png`, fullPage: true })
@@ -178,8 +178,7 @@ test('expanded prompt stays accessible at narrow width', async ({ page }) => {
   await page.getByRole('combobox', { name: 'Add a blend' }).fill('My custom test blend')
   await page.getByRole('combobox', { name: 'Add a blend' }).press('Enter')
   await page.getByRole('button', { name: 'Create with AI', exact: true }).click()
-  await page.getByRole('button', { name: 'Continue to creation', exact: true }).click()
-  await page.getByRole('button', { name: 'Continue with 1 label', exact: true }).click()
+  await page.getByRole('button', { name: 'Create with ChatGPT', exact: true }).click()
   await page.getByText('Read prompt', { exact: true }).click()
   await audit(page)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

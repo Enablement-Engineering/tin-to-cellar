@@ -6,7 +6,6 @@ import type { GalleryPublicLabel } from '../lib/gallery/types'
 import type { PrintLabel } from './ui-model'
 import { SelectionSummary } from './SelectionSummary'
 import { Icon } from './Icons'
-import { CreationSelection } from './CreationSelection'
 import { TobaccoSelector, type TobaccoIdentity } from './TobaccoSelector'
 import '../styles/label-workspace.css'
 import '../styles/preparation-actions.css'
@@ -25,7 +24,7 @@ export type PreparationWorkspaceProps = {
   onNotes?: (rowId: string, notes: string) => void | Promise<void>
   onResolve?: (rowId: string, identity: PreparationIdentity) => void
   onChooseCommunity: (rowId: string, label: GalleryPublicLabel) => Promise<void>
-  onOrder?: () => void; onCreateMany?: (ids: string[]) => Promise<void>
+  onOrder?: () => void
   onPrint: () => void; onBrowse: () => void; onImport: () => void; onGenericChat: () => void
   onContinueCreation?: () => void
 }
@@ -151,13 +150,11 @@ export function RowNotes({ row, onNotes }: { row: PreparationRow; onNotes: NonNu
   return <div className="field"><label htmlFor={`notes-${row.id}`}>Requests for {row.blend} <em>optional</em></label><textarea id={`notes-${row.id}`} rows={2} value={editor.value} onChange={event => setEditor(current => ({ ...current, value: event.target.value }))} onBlur={() => void save()} placeholder="A particular edition or detail to keep" />{error && <p role="alert">{error} Edit the request and leave the field to try saving again.</p>}</div>
 }
 
-export function PreparationWorkspace({ rows, busy, onAdd, onRemove, onCreate, onCreateMany, onOrder, onResolve, onChooseCommunity, onPrint, onBrowse, onImport, onGenericChat, onContinueCreation }: PreparationWorkspaceProps) {
+export function PreparationWorkspace({ rows, busy, onAdd, onRemove, onCreate, onOrder, onResolve, onChooseCommunity, onPrint, onBrowse, onImport, onGenericChat, onContinueCreation }: PreparationWorkspaceProps) {
   const workspace = useRef<HTMLElement>(null)
   const selectedHeading = useRef<HTMLHeadingElement>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'ready'>('all')
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [creationOpen, setCreationOpen] = useState(false)
-  useRecoveryBlocker(creationOpen ? 'Save or cancel your artwork selection before updating.' : null)
   const [creationNotice, setCreationNotice] = useState('')
   const [creationError, setCreationError] = useState('')
   const [confirmed, setConfirmed] = useState<{ id: string; designBefore?: string | null } | { identity: PreparationIdentity } | null>(null)
@@ -197,7 +194,7 @@ export function PreparationWorkspace({ rows, busy, onAdd, onRemove, onCreate, on
   }
   return <section ref={workspace} className="create-workspace preparation-workspace label-workspace screen-only" aria-labelledby="preparation-title">
     <header className="page-heading"><h1 id="preparation-title">Your labels</h1><p>Choose designs for your blends and keep track of artwork still to create. Print the labels that are ready.</p></header>
-    {rows.length > 0 && <SelectionSummary selectedCount={rows.length} readyCount={ready} creationCount={requested.length} onView={requested.length ? undefined : focusList} onPrint={onPrint} busy={busy}>{requested.length > 0 && onContinueCreation && <button className="button primary" type="button" disabled={busy} onClick={onContinueCreation}>Continue to creation</button>}</SelectionSummary>}
+    {rows.length > 0 && <SelectionSummary selectedCount={rows.length} readyCount={ready} creationCount={requested.length} onView={requested.length ? undefined : focusList} onPrint={onPrint} busy={busy}>{requested.length > 0 && onContinueCreation && <button className="button primary" type="button" disabled={busy} onClick={onContinueCreation}>Create with ChatGPT</button>}</SelectionSummary>}
     <section className="panel preparation-start" aria-label="Add labels">
       <BlendIntake busy={busy} onAdd={async (identity, choice) => { await onAdd(identity, choice); setConfirmed({ identity }); setFilter('all') }} rows={rows} />
       <div className="preparation-entry-actions preparation-shortcuts">
@@ -223,12 +220,7 @@ export function PreparationWorkspace({ rows, busy, onAdd, onRemove, onCreate, on
         </div><div className="preparation-create-choice"><p className="field-hint">{row.createRequested ? 'Selected for creation' : row.artwork ? 'Creating a new design will leave this label off your print sheet. You can restore the previous design at any time.' : 'Create artwork for this label'}</p>{!row.createRequested && <button type="button" className="button secondary" disabled={busy} onClick={() => void requestArtwork(row, true)}>Create my own</button>}</div></div>}
       </article>)}</div></section>)}
       {!shown.length && <p className="panel" role="status">{filter === 'ready' ? 'No artwork is ready yet. Choose a design or request new artwork.' : 'Every saved label has artwork.'}</p>}
-      <section className="panel workspace-creation" aria-labelledby="workspace-creation-title"><div><h2 id="workspace-creation-title">Create artwork in your AI chat</h2><p>{requested.length ? `${requested.length} ${requested.length === 1 ? 'label selected' : 'labels selected'} for creation. Continue to review your request and copy the instructions.` : 'Choose labels, copy the instructions into your AI chat, then bring back the finished ZIP.'}</p></div>
-        {onCreateMany && <button className="button secondary" type="button" disabled={busy} onClick={() => setCreationOpen(true)}>{requested.length ? 'Edit creation list' : 'Choose artwork to create'}</button>}
-        {requested.length > 0 && <ul className="workspace-request-list" aria-label="Requested artwork">{requested.map(row => <li key={row.id}>{row.blend}{row.previousDesignId ? ' · previous design saved' : ''}</li>)}</ul>}
-      </section>
     </>}
-    {creationOpen && onCreateMany && <CreationSelection rows={rows} busy={busy} onSave={async ids => { await onCreateMany(ids); if (ids.length) onContinueCreation?.() }} onClose={() => setCreationOpen(false)} />}
     <p className="preparation-import-return"><button type="button" className="button quiet" onClick={onImport}><Icon name="upload" size={18} />I already have a finished ZIP</button></p>
     {!rows.length && <p className="preparation-generic"><button type="button" className="button quiet" onClick={onGenericChat}><Icon name="spark" size={18} />Choose blends in my AI chat</button></p>}
     <p className="field-hint preparation-storage">Your labels and requests are saved in this browser. Keep downloaded ZIPs for another device or if you clear browser data.</p>

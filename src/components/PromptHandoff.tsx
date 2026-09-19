@@ -3,10 +3,15 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { CopyFeedbackIcon } from './Icons'
 
-type PromptHandoffProps = { prompt: string; request: string; copyLabel?: string; copied?: boolean; busy?: boolean; onCopy?: () => Promise<string>; onCopyLatest?: () => Promise<string>; onCopied?: (payload: string) => void; onCopyResult?: (result: 'copied' | 'preparation-failed' | 'clipboard-failed') => void }
+// Keep the launch URL generic. The complete, versioned instructions and the
+// user's label request remain in the copied payload, never in the URL.
+const chatGPTStarter = `I'm here to make jar labels with Tin to Cellar. Give me a warm, easygoing welcome starting with "Howdy!" and invite me to paste the instructions I just copied. Use your own words and a little personality; keep it to a sentence or two in everyday language. Then wait for the instructions before starting any label work.`
+const chatGPTUrl = `https://chatgpt.com/?${new URLSearchParams({ prompt: chatGPTStarter })}`
+
+type PromptHandoffProps = { prompt: string; request: string; copied?: boolean; busy?: boolean; onCopy?: () => Promise<string>; onCopyLatest?: () => Promise<string>; onCopied?: (payload: string) => void; onCopyResult?: (result: 'copied' | 'preparation-failed' | 'clipboard-failed') => void }
 type CopyResult = { payload: string; source: string; failed: boolean }
 
-export function PromptHandoff({ prompt, copyLabel = 'Copy instructions', copied = false, busy, onCopy, onCopyLatest, onCopied, onCopyResult }: PromptHandoffProps) {
+export function PromptHandoff({ prompt, copied = false, busy, onCopy, onCopyLatest, onCopied, onCopyResult }: PromptHandoffProps) {
   const observe = (result: 'copied' | 'preparation-failed' | 'clipboard-failed') => { try { onCopyResult?.(result) } catch { /* Optional measurement. */ } }
   const copyButton = useRef<HTMLButtonElement>(null)
   const restoreCopyFocus = useRef(false)
@@ -48,19 +53,24 @@ export function PromptHandoff({ prompt, copyLabel = 'Copy instructions', copied 
   return (
     <section className="handoff" aria-labelledby="handoff-title">
       <div className="handoff-content">
-      <div className="creation-step-heading"><span className="creation-step-number" aria-hidden="true">2</span><h2 id="handoff-title" tabIndex={-1}>Create in your AI chat</h2></div>
-      <ol className="creation-chat-instructions"><li>Copy the instructions below and send them in your AI chat.</li><li>Check the packaging photo for each blend. If it is the one you want, use Copy Image and paste the photo into the chat.</li><li>Review the label your AI makes. When the set is finished, download its label ZIP.</li></ol>
-      <h3>Designed for ChatGPT</h3>
-      <p className="field-hint">These instructions are designed for ChatGPT. Other AI agents may also work if they can browse the web, inspect and generate images, run code, and return downloadable ZIP files.</p>
-      <p className="field-hint">Your chat runs separately from this page.</p>
-      <h3>Allow time for each label</h3>
-      <p className="field-hint">Each label can take several minutes. The AI creates the artwork, checks it, and may make another attempt to correct problems. That back-and-forth is normal. Larger requests take longer because labels are made one at a time.</p>
-      <div className="handoff-actions"><button ref={copyButton} className={`button ${copySucceeded ? 'secondary' : 'primary'}`} type="button" disabled={busy || saving} onClick={() => void copy()}><CopyFeedbackIcon copied={copySucceeded} /><span className="copy-button-label"><span className="copy-button-width" aria-hidden="true">{copyLabel}</span><span className="copy-button-width" aria-hidden="true">Preparing request…</span><span>{saving ? 'Preparing request…' : copyLabel}</span></span></button></div>
+      <h2 id="handoff-title" tabIndex={-1}>Create in your AI chat</h2>
+      <p>Paste these instructions into ChatGPT. Bring back the finished ZIP to print.</p>
+      <p className="field-hint">Each label may take a few minutes.</p>
+      <div className="handoff-actions">
+        <button ref={copyButton} className={`button ${copySucceeded ? 'secondary' : 'primary'}`} type="button" disabled={busy || saving} onClick={() => void copy()}><CopyFeedbackIcon copied={copySucceeded} />{saving ? 'Preparing request…' : 'Copy instructions'}</button>
+        {copySucceeded && !busy && <a className="button primary" href={chatGPTUrl} target="_blank" rel="noopener noreferrer">Open ChatGPT <span aria-hidden="true">↗</span><span className="visually-hidden"> (opens in a new tab)</span></a>}
+      </div>
       {onCopyLatest && <div className="handoff-update"><p>Newer instructions are available for a new chat. Use your saved instructions to continue an existing chat.</p><button type="button" className="button secondary" disabled={busy || saving} onClick={() => void copy(true)}>Copy updated instructions for a new chat</button></div>}
       {saveError && <p role="alert">{saveError}</p>}
-      <p className="copy-status" role="status">{currentResult?.failed ? 'Automatic copying did not work. Select and copy the text below.' : copySucceeded ? 'Copied. Open your AI chat, paste, and send. Return here with the finished ZIP.' : ''}</p>
+      <p className="copy-status" role="status">{currentResult?.failed ? 'Automatic copying did not work. Select and copy the text below.' : copySucceeded ? 'Copied. Open ChatGPT or your preferred AI chat, paste, and send. Return here with the finished ZIP.' : ''}</p>
       </div>
       <div className="handoff-details">
+      <details className="prompt-preview">
+        <summary>More help</summary>
+        <p>Check the packaging photo for each blend in your chat. If it is the one you want, use Copy Image and paste it into the chat. Review each label, then download the finished label ZIP.</p>
+        <p>These instructions are designed for ChatGPT. Other AI chats may also work if they can browse the web, inspect and generate images, run code, and return downloadable ZIP files. Your chat runs separately from this page.</p>
+        <p>The AI creates and checks each label and may try again to correct problems. Larger requests take longer because labels are made one at a time.</p>
+      </details>
       <details className="prompt-preview" open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>
         <summary>Read prompt</summary>
         <p className="handoff-inspection-note">Both views show the complete prompt, including your blends, design notes, and instructions for creating, checking, and packaging the labels.</p>

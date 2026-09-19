@@ -291,12 +291,17 @@ it('keeps all emitted version declarations consistent with the selected pre-rele
 
 it('starts immediately, explains image pauses, and carries authorized work through delivery', () => {
   const prompt = buildTinToCellarInstructions()
-  for (const text of ['# Conversation contract', 'Start the requested work immediately', 'Do not stop after acknowledging the instructions', 'A request to critique, summarize, or revise the instructions is not an execution request', 'Carry authorized work to the next real boundary', 'Immediately before every authorized image-producing call', 'This notice does not instruct the assistant to pause', 'Do not create a numbered "check this image" menu', 'create and validate the ZIP without another approval', 'checked locally']) expect(prompt).toContain(text)
+  for (const text of ['# Conversation contract', 'Start the requested work immediately', 'Do not stop after acknowledging the instructions', 'A request to critique, summarize, or revise the instructions is not an execution request', 'Carry authorized work to the next real boundary', 'Immediately before every authorized image-producing call', 'This notice does not instruct the assistant to pause', 'not a new approval gate for checking and packaging', 'create and validate the ZIP without another approval', 'checked locally']) expect(prompt).toContain(text)
 })
 
-it('uses numbered choices only for genuine decisions and accepts natural replies', () => {
+it('offers recovery and decision choices while preserving explicit user intent', () => {
   const prompt = buildTinToCellarInstructions()
-  for (const text of ['Number only real decisions', 'one session-local `active_menu`', 'Never reuse reference choice 1 as repair authorization', '"Show me" is not permission to edit', 'Continue may approve the displayed package only while that package-approval question is pending']) expect(prompt).toContain(text)
+  expect(prompt).toContain('any new user message defaults to Continue')
+  expect(prompt).toContain('1. Continue.\\n2. Change something.\\n3. Stop for now.')
+  expect(prompt).toContain('Specific requests, corrections, questions, and stop instructions always take precedence')
+  expect(prompt).toContain('Arbitrary input never approves references or repairs, supplies missing photos, or skips failed labels')
+  expect(prompt).toContain('After an intentional stop or completed delivery, require an explicit new request')
+  for (const text of ['Offer short numbered choices for real decisions and optional pause recovery', 'including custom requests', 'one session-local `active_menu`', 'Never reuse reference choice 1 as repair authorization', '"Show me" is not permission to edit', 'Continue may approve the displayed package only while that package-approval question is pending']) expect(prompt).toContain(text)
 })
 
 it('uses the selected release in every explicit manifest protocol declaration', () => {
