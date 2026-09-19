@@ -1127,6 +1127,30 @@
     "id": "borkum-riff-original"
   },
   {
+    "maker": "Boswell",
+    "blend": "Boswell's Best",
+    "sourceUrl": "https://boswellpipes.com/boswell-tobacco-list/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [],
+    "id": "boswell-boswells-best"
+  },
+  {
+    "maker": "Boswell",
+    "blend": "Countryside",
+    "sourceUrl": "https://boswellpipes.com/boswell-tobacco-list/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [],
+    "id": "boswell-countryside"
+  },
+  {
+    "maker": "Boswell",
+    "blend": "Northwoods",
+    "sourceUrl": "https://boswellpipes.com/product/boswell-northwoods/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [],
+    "id": "boswell-northwoods"
+  },
+  {
     "maker": "Brebbia",
     "blend": "Balkan",
     "sourceUrl": "https://4noggins.com/products/brebbia-balkan-50g",
@@ -1379,8 +1403,8 @@
       "Blue Flake",
       "Original Navy Cut",
       "Original Flake Blue",
-      "Flake Blue",
       "Capstan Original Flake Blue",
+      "Flake Blue",
       "Capstan Flake Blue"
     ],
     "id": "capstan-original-flake"
@@ -1476,9 +1500,12 @@
   {
     "maker": "Captain Black",
     "blend": "Original White",
-    "sourceUrl": "https://wvsmokeshop.com/CaptainBlackOriginalWhiteTin7oz.aspx",
-    "reviewedAt": "2026-09-05",
-    "aliases": [],
+    "sourceUrl": "https://www.smokingpipes.com/pipe-tobacco/CaptainBlack/original-7oz/product_id/445125",
+    "reviewedAt": "2026-09-06",
+    "aliases": [
+      "Original",
+      "Captain Black Original"
+    ],
     "id": "captain-black-original-white"
   },
   {
@@ -2830,7 +2857,11 @@
     "blend": "EIGHT STATE BURLEY (Small Batch) 2026",
     "sourceUrl": "https://4noggins.com/products/cornell-diehl-eight-state-burley-small-batch-2oz",
     "reviewedAt": "2026-09-05",
-    "aliases": [],
+    "aliases": [
+      "Small Batch Eight State Burley",
+      "Eight State Burley",
+      "Cornell & Diehl Eight State Burley"
+    ],
     "id": "cornell-and-diehl-eight-state-burley-small-batch-2026"
   },
   {
@@ -3126,7 +3157,10 @@
     "blend": "Jolly Old St. Nicholas",
     "sourceUrl": "https://4noggins.com/products/cornell-diehl-jolly-old-st-nicholas-2oz-2026",
     "reviewedAt": "2026-09-05",
-    "aliases": [],
+    "aliases": [
+      "Jolly Old Saint Nicholas",
+      "Cornell & Diehl Jolly Old Saint Nicholas"
+    ],
     "id": "cornell-and-diehl-jolly-old-st-nicholas"
   },
   {
@@ -3766,7 +3800,10 @@
     "blend": "Small Batch Palmetto Balkan",
     "sourceUrl": "https://4noggins.com/products/cornell-diehl-small-batch-palmetto-balkan-8oz",
     "reviewedAt": "2026-09-05",
-    "aliases": [],
+    "aliases": [
+      "Palmetto Balkan",
+      "Cornell & Diehl Palmetto Balkan"
+    ],
     "id": "cornell-and-diehl-small-batch-palmetto-balkan"
   },
   {
@@ -3832,6 +3869,17 @@
     "reviewedAt": "2026-09-05",
     "aliases": [],
     "id": "cornell-and-diehl-snug-harbor"
+  },
+  {
+    "maker": "Cornell & Diehl",
+    "blend": "SP.com 20th Anniversary XX Flake",
+    "sourceUrl": "https://www.smokingpipes.com/tobacco/by-maker/cornell-diehl/moreinfo.cfm?product_id=361405",
+    "reviewedAt": "2026-09-19",
+    "aliases": [
+      "XX Flake",
+      "Smokingpipes 20th Anniversary Blend: XX Flake"
+    ],
+    "id": "cornell-and-diehl-sp-com-20th-anniversary-xx-flake"
   },
   {
     "maker": "Cornell & Diehl",
@@ -3968,6 +4016,24 @@
     "reviewedAt": "2026-09-05",
     "aliases": [],
     "id": "cornell-and-diehl-summit-series-watchmans-reach"
+  },
+  {
+    "maker": "Cornell & Diehl",
+    "blend": "Sun Bear",
+    "sourceUrl": "https://www.smokingpipes.com/smokingpipesblog/single.cfm/post/introducing-small-batch-sun-bear-tupelo-the-latest-iteration-cds-most-popular-summertime-blend",
+    "reviewedAt": "2026-09-19",
+    "aliases": [
+      "Sun Bear (2020)"
+    ],
+    "id": "cornell-and-diehl-sun-bear"
+  },
+  {
+    "maker": "Cornell & Diehl",
+    "blend": "Sun Bear Black Locust",
+    "sourceUrl": "https://www.smokingpipes.com/smokingpipesblog/single.cfm/post/the-fascinating-development-sun-bear-black-locust",
+    "reviewedAt": "2026-09-19",
+    "aliases": [],
+    "id": "cornell-and-diehl-sun-bear-black-locust"
   },
   {
     "maker": "Cornell & Diehl",
@@ -4474,6 +4540,14 @@
     "id": "drucquer-and-sons-blend-805"
   },
   {
+    "maker": "Drucquer & Sons",
+    "blend": "Loch Ness",
+    "sourceUrl": "https://www.smokingpipes.com/tobacco/by-maker/drucquer-and-sons/moreinfo.cfm?product_id=484067",
+    "reviewedAt": "2026-09-19",
+    "aliases": [],
+    "id": "drucquer-and-sons-loch-ness"
+  },
+  {
     "maker": "Dunhill",
     "blend": "A-20000 Toasted Cavendish",
     "sourceUrl": "https://4noggins.com/products/dunhill-bulk-a-20000-toasted-cavendish",
@@ -4736,6 +4810,14 @@
     "reviewedAt": "2026-09-05",
     "aliases": [],
     "id": "esoterica-tobacciana-margate"
+  },
+  {
+    "maker": "Esoterica Tobacciana",
+    "blend": "Peacehaven",
+    "sourceUrl": "https://www.smokingpipes.com/pipe-tobacco/esoterica/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [],
+    "id": "esoterica-tobacciana-peacehaven"
   },
   {
     "maker": "Esoterica Tobacciana",
@@ -6817,6 +6899,16 @@
   },
   {
     "maker": "J. F. Germain",
+    "blend": "Rich Dark Flake",
+    "sourceUrl": "https://www.uktobacco.com/categories/germains-tobacco",
+    "reviewedAt": "2026-09-19",
+    "aliases": [
+      "RDF"
+    ],
+    "id": "j-f-germain-rich-dark-flake"
+  },
+  {
+    "maker": "J. F. Germain",
     "blend": "Royal Jersey Cavendish & Virginia",
     "sourceUrl": "https://4noggins.com/products/j-f-germain-royal-jersey-cavendish-virginia-50g-1",
     "reviewedAt": "2026-09-05",
@@ -7336,6 +7428,22 @@
     "id": "kopp-limited-edition-year-of-the-snake"
   },
   {
+    "maker": "Kramer's",
+    "blend": "House Aromatic",
+    "sourceUrl": "https://www.smokingpipes.com/pipe-tobacco/kramers/house-aromatic-50g/product_id/225353",
+    "reviewedAt": "2026-09-19",
+    "aliases": [],
+    "id": "kramers-house-aromatic"
+  },
+  {
+    "maker": "L. J. Peretti",
+    "blend": "Thanksgiving Day",
+    "sourceUrl": "https://ljperetti.com/product/thanksgiving-day-4-oz-cake/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [],
+    "id": "l-j-peretti-thanksgiving-day"
+  },
+  {
     "maker": "Lane Limited",
     "blend": "1-Q",
     "sourceUrl": "https://4noggins.com/products/lane-limited-bulk-1-q",
@@ -7353,7 +7461,8 @@
     "reviewedAt": "2026-09-05",
     "aliases": [
       "Lane #101 BCA",
-      "Lane Limited Lane #101 BCA"
+      "Lane Limited Lane #101 BCA",
+      "Lane Limited Bca"
     ],
     "id": "lane-limited-bca"
   },
@@ -7484,7 +7593,8 @@
     "reviewedAt": "2026-09-05",
     "aliases": [
       "Lane #103 RLP-6",
-      "Lane Limited Lane #103 RLP-6"
+      "Lane Limited Lane #103 RLP-6",
+      "Lane Limited Rlp-6"
     ],
     "id": "lane-limited-rlp-6"
   },
@@ -8740,7 +8850,7 @@
     "sourceUrl": "https://wvsmokeshop.com/perjensenlegacycollectionbrothersinarms2oztin.aspx",
     "reviewedAt": "2026-09-05",
     "aliases": [
-      "Legacy Collection Brothers in Arms"
+      "Per Jensen Legacy Collection Brothers in Arms"
     ],
     "id": "per-jensen-legacy-collection-brothers-in-arms"
   },
@@ -8766,7 +8876,7 @@
     "sourceUrl": "https://wvsmokeshop.com/PerJensenLegacyCollectionPortGuardian2ozTin.aspx",
     "reviewedAt": "2026-09-05",
     "aliases": [
-      "Legacy Collection Port Guardian"
+      "Per Jensen Legacy Collection Port Guardian"
     ],
     "id": "per-jensen-legacy-collection-port-guardian"
   },
@@ -8955,7 +9065,11 @@
     "blend": "Luxury Bulls Eye Flake",
     "sourceUrl": "https://4noggins.com/products/peter-stokkebye-luxury-bulls-eye-flake",
     "reviewedAt": "2026-09-05",
-    "aliases": [],
+    "aliases": [
+      "Stokkebye Bulls Eye Flake",
+      "PS403 Luxury Bullseye Flake",
+      "Peter Stokkebye PS403 Luxury Bullseye Flake"
+    ],
     "id": "peter-stokkebye-luxury-bulls-eye-flake"
   },
   {
@@ -8964,6 +9078,8 @@
     "sourceUrl": "https://4noggins.com/products/peter-stokkebye-luxury-navy-flake",
     "reviewedAt": "2026-09-05",
     "aliases": [
+      "PS400 Luxury Navy Flake",
+      "Peter Stokkebye PS400 Luxury Navy Flake",
       "Stokkebye Luxury Navy Flake",
       "Peter Stokkebye Stokkebye Luxury Navy Flake"
     ],
@@ -8975,6 +9091,8 @@
     "sourceUrl": "https://4noggins.com/products/peter-stokkebye-luxury-twist-flake",
     "reviewedAt": "2026-09-05",
     "aliases": [
+      "PS402 Luxury Twist Flake",
+      "Peter Stokkebye PS402 Luxury Twist Flake",
       "Stokkebye Luxury Twist Flake",
       "Peter Stokkebye Stokkebye Luxury Twist Flake"
     ],
@@ -9182,7 +9300,10 @@
     "reviewedAt": "2026-09-05",
     "aliases": [
       "3P's PERFECT PLUG",
-      "Peterson 3P's PERFECT PLUG"
+      "Peterson 3P's PERFECT PLUG",
+      "3P's (Petersons Perfect Plug)",
+      "3 P's Peterson's Perfect Plug",
+      "Peterson 3 P's Peterson's Perfect Plug"
     ],
     "id": "peterson-3-ps-perfect-plug"
   },
@@ -9450,11 +9571,34 @@
     "id": "peterson-university-flake"
   },
   {
+    "maker": "pipesandcigars.com",
+    "blend": "Spring Training",
+    "sourceUrl": "https://www.tobaccoreviews.com/brand/239/pipesandcigarscom/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [
+      "Russ' Monthly Blend - Spring Training"
+    ],
+    "id": "pipesandcigars-com-spring-training"
+  },
+  {
+    "maker": "pipesandcigars.com",
+    "blend": "The Cavendish in the Woods",
+    "sourceUrl": "https://www.tobaccoreviews.com/blend/10127/pipesandcigarscom-the-cavendish-in-the-woods/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [
+      "Russ' Monthly Blend - The Cavendish in the Woods"
+    ],
+    "id": "pipesandcigars-com-the-cavendish-in-the-woods"
+  },
+  {
     "maker": "Presbyterian",
     "blend": "Presbyterian Mixture",
     "sourceUrl": "https://4noggins.com/products/presbyterian-presbyterian-mixture-50g-pouch",
     "reviewedAt": "2026-09-05",
-    "aliases": [],
+    "aliases": [
+      "Presbyterian",
+      "Presbyterian Presbyterian"
+    ],
     "id": "presbyterian-presbyterian-mixture"
   },
   {
@@ -10553,7 +10697,9 @@
     "sourceUrl": "https://4noggins.com/products/seattle-pipe-club-mississippi-river-barrel-aged-2oz",
     "reviewedAt": "2026-09-05",
     "aliases": [
-      "Mississippi River Barrel Aged"
+      "Mississippi River Rum Barrel Aged",
+      "Seattle Pipe Club Mississippi River Rum Barrel Aged",
+      "Seattle Pipe Club Mississippi River Barrel Aged"
     ],
     "id": "seattle-pipe-club-mississippi-river-barrel-aged"
   },
@@ -10578,7 +10724,10 @@
     "blend": "Plum Pudding Barrel Aged",
     "sourceUrl": "https://4noggins.com/products/seattle-pipe-club-plum-pudding-barrel-aged-2oz",
     "reviewedAt": "2026-09-05",
-    "aliases": [],
+    "aliases": [
+      "Plum Pudding Bourbon Barrel Aged",
+      "Seattle Pipe Club Plum Pudding Bourbon Barrel Aged"
+    ],
     "id": "seattle-pipe-club-plum-pudding-barrel-aged"
   },
   {
@@ -10588,6 +10737,14 @@
     "reviewedAt": "2026-09-05",
     "aliases": [],
     "id": "seattle-pipe-club-plum-pudding-special-reserve"
+  },
+  {
+    "maker": "Seattle Pipe Club",
+    "blend": "Seattle Evening",
+    "sourceUrl": "https://www.tobaccoreviews.com/blend/3067/seattle-pipe-club-seattle-evening/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [],
+    "id": "seattle-pipe-club-seattle-evening"
   },
   {
     "maker": "Seattle Pipe Club",
@@ -10988,6 +11145,16 @@
     "reviewedAt": "2026-09-05",
     "aliases": [],
     "id": "stokkebye-4th-generation-1931"
+  },
+  {
+    "maker": "Straus Tobacco",
+    "blend": "Sleepy Hollow",
+    "sourceUrl": "https://www.tobaccoreviews.com/blend/9216/straus-tobacco-sleepy-hollow/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [
+      "Straus Tobacconist Sleepy Hollow"
+    ],
+    "id": "straus-tobacco-sleepy-hollow"
   },
   {
     "maker": "Sutliff",
@@ -11399,6 +11566,26 @@
   },
   {
     "maker": "Sutliff",
+    "blend": "Edward G. Robinson's Pipe Blend",
+    "sourceUrl": "https://www.smokingpipes.com/smokingpipesblog/single.cfm/post/edward-robinson",
+    "reviewedAt": "2026-09-19",
+    "aliases": [
+      "Edward G. Robinson's Blend"
+    ],
+    "id": "sutliff-edward-g-robinsons-pipe-blend"
+  },
+  {
+    "maker": "Sutliff",
+    "blend": "Red Virginia Ribbon",
+    "sourceUrl": "https://www.smokingpipes.com/pipe-tobacco/Sutliff/Red-Virginia-Ribbon/product_id/127347/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [
+      "TS1R Red Virginia Ribbon"
+    ],
+    "id": "sutliff-red-virginia-ribbon"
+  },
+  {
+    "maker": "Sutliff",
     "blend": "Rum & Maple",
     "sourceUrl": "https://4noggins.com/products/sutliff-bulk-rum-maple",
     "reviewedAt": "2026-09-05",
@@ -11598,6 +11785,82 @@
     "id": "tabac-manil-reserve-du-patron"
   },
   {
+    "maker": "Tewksbury & Company",
+    "blend": "Hobbit's Weed",
+    "sourceUrl": "https://www.tobaccoreviews.com/blend/2007/tewksbury-company-hobbits-weed",
+    "reviewedAt": "2026-09-19",
+    "aliases": [],
+    "id": "tewksbury-and-company-hobbits-weed"
+  },
+  {
+    "maker": "The Country Squire",
+    "blend": "George's Dragon",
+    "sourceUrl": "https://www.thecountrysquireonline.com/product/fantasy-south-tobacco-series/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [
+      "Green Dragon",
+      "The Country Squire Green Dragon"
+    ],
+    "id": "the-country-squire-georges-dragon"
+  },
+  {
+    "maker": "The Country Squire",
+    "blend": "King's Highway",
+    "sourceUrl": "https://www.thecountrysquireonline.com/product/fantasy-south-tobacco-series/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [
+      "King's Foil",
+      "Kingsfoil",
+      "The Country Squire King's Foil",
+      "The Country Squire Kingsfoil"
+    ],
+    "id": "the-country-squire-kings-highway"
+  },
+  {
+    "maker": "The Country Squire",
+    "blend": "Picayune Pancake",
+    "sourceUrl": "https://www.thecountrysquireonline.com/product/fantasy-south-tobacco-series/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [
+      "Second Breakfast",
+      "The Country Squire Second Breakfast"
+    ],
+    "id": "the-country-squire-picayune-pancake"
+  },
+  {
+    "maker": "The Country Squire",
+    "blend": "Pilgrim's Muse",
+    "sourceUrl": "https://www.thecountrysquireonline.com/product/fantasy-south-tobacco-series/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [
+      "Bag End",
+      "The Country Squire Bag End"
+    ],
+    "id": "the-country-squire-pilgrims-muse"
+  },
+  {
+    "maker": "The Country Squire",
+    "blend": "Riverboat Queen",
+    "sourceUrl": "https://www.thecountrysquireonline.com/product/fantasy-south-tobacco-series/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [
+      "Rivendell",
+      "The Country Squire Rivendell"
+    ],
+    "id": "the-country-squire-riverboat-queen"
+  },
+  {
+    "maker": "The Country Squire",
+    "blend": "Tombigbee",
+    "sourceUrl": "https://www.thecountrysquireonline.com/product/fantasy-south-tobacco-series/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [
+      "Old Toby",
+      "The Country Squire Old Toby"
+    ],
+    "id": "the-country-squire-tombigbee"
+  },
+  {
     "maker": "The Smoker Ltd.",
     "blend": "Favorite",
     "sourceUrl": "https://4noggins.com/products/g-l-pease-ashbury-2013-c",
@@ -11658,7 +11921,9 @@
     "blend": "Maestro - Puccini",
     "sourceUrl": "https://4noggins.com/products/toscano-by-cornell-diehl-maestro-puccini",
     "reviewedAt": "2026-09-05",
-    "aliases": [],
+    "aliases": [
+      "Toscano Maestro Puccini"
+    ],
     "id": "toscano-by-cornell-and-diehl-maestro-puccini"
   },
   {
@@ -11748,6 +12013,14 @@
     "reviewedAt": "2026-09-05",
     "aliases": [],
     "id": "two-friends-valle-crucis"
+  },
+  {
+    "maker": "Vauen",
+    "blend": "Auenland",
+    "sourceUrl": "https://www.vauen.com/pipes/detail/collection/auenland-tobacco.html",
+    "reviewedAt": "2026-09-19",
+    "aliases": [],
+    "id": "vauen-auenland"
   },
   {
     "maker": "Velvet",
@@ -11872,9 +12145,12 @@
   {
     "maker": "W.O. Larsen",
     "blend": "Signature Mixture",
-    "sourceUrl": "https://wvsmokeshop.com/W.O.LarsenSignatureMixture3.5ozTin.aspx",
-    "reviewedAt": "2026-09-05",
-    "aliases": [],
+    "sourceUrl": "https://www.smokingpipes.com/pipe-tobacco/larsen/Signature-Vintage-Mixture-100g/product_id/4552",
+    "reviewedAt": "2026-09-06",
+    "aliases": [
+      "Signature Vintage Mixture",
+      "W.O. Larsen Signature Vintage Mixture"
+    ],
     "id": "w-o-larsen-signature-mixture"
   },
   {
@@ -11908,6 +12184,22 @@
     "reviewedAt": "2026-09-05",
     "aliases": [],
     "id": "warped-sarto"
+  },
+  {
+    "maker": "Warped",
+    "blend": "Scarecrow",
+    "sourceUrl": "https://www.smokingpipes.com/smokingpipesblog/single.cfm/post/warped-scarecrow-2024",
+    "reviewedAt": "2026-09-19",
+    "aliases": [],
+    "id": "warped-scarecrow"
+  },
+  {
+    "maker": "Warped",
+    "blend": "The Haunting Cake",
+    "sourceUrl": "https://www.smokingpipes.com/pipe-tobacco/warped/",
+    "reviewedAt": "2026-09-19",
+    "aliases": [],
+    "id": "warped-the-haunting-cake"
   },
   {
     "maker": "Warped",

@@ -1049,7 +1049,12 @@
       "id": "captain-black-original-white",
       "maker": "Captain Black",
       "blend": "Original White",
-      "previousNames": []
+      "previousNames": [
+        {
+          "maker": "Captain Black",
+          "blend": "Original"
+        }
+      ]
     },
     {
       "id": "captain-black-platinum",
@@ -8928,6 +8933,202 @@
       "id": "wilsons-of-sharrow-superior",
       "maker": "Wilsons of Sharrow",
       "blend": "Superior",
+      "previousNames": []
+    },
+    {
+      "id": "boswell-boswells-best",
+      "maker": "Boswell",
+      "blend": "Boswell's Best",
+      "previousNames": []
+    },
+    {
+      "id": "boswell-countryside",
+      "maker": "Boswell",
+      "blend": "Countryside",
+      "previousNames": []
+    },
+    {
+      "id": "boswell-northwoods",
+      "maker": "Boswell",
+      "blend": "Northwoods",
+      "previousNames": []
+    },
+    {
+      "id": "cornell-and-diehl-sp-com-20th-anniversary-xx-flake",
+      "maker": "Cornell & Diehl",
+      "blend": "SP.com 20th Anniversary XX Flake",
+      "previousNames": []
+    },
+    {
+      "id": "cornell-and-diehl-sun-bear",
+      "maker": "Cornell & Diehl",
+      "blend": "Sun Bear",
+      "previousNames": []
+    },
+    {
+      "id": "cornell-and-diehl-sun-bear-black-locust",
+      "maker": "Cornell & Diehl",
+      "blend": "Sun Bear Black Locust",
+      "previousNames": []
+    },
+    {
+      "id": "drucquer-and-sons-loch-ness",
+      "maker": "Drucquer & Sons",
+      "blend": "Loch Ness",
+      "previousNames": []
+    },
+    {
+      "id": "esoterica-tobacciana-peacehaven",
+      "maker": "Esoterica Tobacciana",
+      "blend": "Peacehaven",
+      "previousNames": []
+    },
+    {
+      "id": "j-f-germain-rich-dark-flake",
+      "maker": "J. F. Germain",
+      "blend": "Rich Dark Flake",
+      "previousNames": []
+    },
+    {
+      "id": "kramers-house-aromatic",
+      "maker": "Kramer's",
+      "blend": "House Aromatic",
+      "previousNames": []
+    },
+    {
+      "id": "l-j-peretti-thanksgiving-day",
+      "maker": "L. J. Peretti",
+      "blend": "Thanksgiving Day",
+      "previousNames": []
+    },
+    {
+      "id": "pipesandcigars-com-spring-training",
+      "maker": "pipesandcigars.com",
+      "blend": "Spring Training",
+      "previousNames": []
+    },
+    {
+      "id": "pipesandcigars-com-the-cavendish-in-the-woods",
+      "maker": "pipesandcigars.com",
+      "blend": "The Cavendish in the Woods",
+      "previousNames": []
+    },
+    {
+      "id": "seattle-pipe-club-seattle-evening",
+      "maker": "Seattle Pipe Club",
+      "blend": "Seattle Evening",
+      "previousNames": []
+    },
+    {
+      "id": "straus-tobacco-sleepy-hollow",
+      "maker": "Straus Tobacco",
+      "blend": "Sleepy Hollow",
+      "previousNames": []
+    },
+    {
+      "id": "sutliff-edward-g-robinsons-pipe-blend",
+      "maker": "Sutliff",
+      "blend": "Edward G. Robinson's Pipe Blend",
+      "previousNames": []
+    },
+    {
+      "id": "sutliff-red-virginia-ribbon",
+      "maker": "Sutliff",
+      "blend": "Red Virginia Ribbon",
+      "previousNames": []
+    },
+    {
+      "id": "tewksbury-and-company-hobbits-weed",
+      "maker": "Tewksbury & Company",
+      "blend": "Hobbit's Weed",
+      "previousNames": []
+    },
+    {
+      "id": "the-country-squire-georges-dragon",
+      "maker": "The Country Squire",
+      "blend": "George's Dragon",
+      "previousNames": [
+        {
+          "maker": "The Country Squire",
+          "blend": "Green Dragon"
+        }
+      ]
+    },
+    {
+      "id": "the-country-squire-kings-highway",
+      "maker": "The Country Squire",
+      "blend": "King's Highway",
+      "previousNames": [
+        {
+          "maker": "The Country Squire",
+          "blend": "King's Foil"
+        },
+        {
+          "maker": "The Country Squire",
+          "blend": "Kingsfoil"
+        }
+      ]
+    },
+    {
+      "id": "the-country-squire-picayune-pancake",
+      "maker": "The Country Squire",
+      "blend": "Picayune Pancake",
+      "previousNames": [
+        {
+          "maker": "The Country Squire",
+          "blend": "Second Breakfast"
+        }
+      ]
+    },
+    {
+      "id": "the-country-squire-pilgrims-muse",
+      "maker": "The Country Squire",
+      "blend": "Pilgrim's Muse",
+      "previousNames": [
+        {
+          "maker": "The Country Squire",
+          "blend": "Bag End"
+        }
+      ]
+    },
+    {
+      "id": "the-country-squire-riverboat-queen",
+      "maker": "The Country Squire",
+      "blend": "Riverboat Queen",
+      "previousNames": [
+        {
+          "maker": "The Country Squire",
+          "blend": "Rivendell"
+        }
+      ]
+    },
+    {
+      "id": "the-country-squire-tombigbee",
+      "maker": "The Country Squire",
+      "blend": "Tombigbee",
+      "previousNames": [
+        {
+          "maker": "The Country Squire",
+          "blend": "Old Toby"
+        }
+      ]
+    },
+    {
+      "id": "vauen-auenland",
+      "maker": "Vauen",
+      "blend": "Auenland",
+      "previousNames": []
+    },
+    {
+      "id": "warped-scarecrow",
+      "maker": "Warped",
+      "blend": "Scarecrow",
+      "previousNames": []
+    },
+    {
+      "id": "warped-the-haunting-cake",
+      "maker": "Warped",
+      "blend": "The Haunting Cake",
       "previousNames": []
     }
   ],

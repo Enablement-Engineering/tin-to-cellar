@@ -593,5 +593,96 @@
     "toMaker": "Gawith Hoggarth & Co.",
     "toBlend": "Seasonal Reserve",
     "reason": "The source title explicitly names Gawith & Hoggarth; storefront vendor is the retailer."
+  },
+  {
+    "maker": "Captain Black",
+    "blend": "Original",
+    "toMaker": "Captain Black",
+    "toBlend": "Original White",
+    "reason": "Smokingpipes lists Captain Black Original with Original White as a verified alias; normalize the abbreviated current name to the registered Original White identity."
+  },
+  {
+    "maker": "Cornell & Diehl",
+    "blend": "Palmetto Balkan",
+    "toMaker": "Cornell & Diehl",
+    "toBlend": "Small Batch Palmetto Balkan",
+    "reason": "Smokingpipes omits the Small Batch series prefix while identifying the same Cornell & Diehl Palmetto Balkan product."
+  },
+  {
+    "maker": "Cornell & Diehl",
+    "blend": "Eight State Burley",
+    "toMaker": "Cornell & Diehl",
+    "toBlend": "EIGHT STATE BURLEY (Small Batch) 2026",
+    "reason": "The Smokingpipes product was reviewed in 2026 and aliases the Small Batch name; retain the catalog's explicit 2026 edition identity."
+  },
+  {
+    "maker": "Cornell & Diehl",
+    "blend": "Jolly Old Saint Nicholas",
+    "toMaker": "Cornell & Diehl",
+    "toBlend": "Jolly Old St. Nicholas",
+    "reason": "Saint and St. are verified wording variants for the same Cornell & Diehl product."
+  },
+  {
+    "maker": "Presbyterian",
+    "blend": "Presbyterian",
+    "toMaker": "Presbyterian",
+    "toBlend": "Presbyterian Mixture",
+    "reason": "Smokingpipes lists Presbyterian as the abbreviated product name and supplies Presbyterian Mixture as the verified alias."
+  },
+  {
+    "maker": "Seattle Pipe Club",
+    "blend": "Plum Pudding Bourbon Barrel Aged",
+    "toMaker": "Seattle Pipe Club",
+    "toBlend": "Plum Pudding Barrel Aged",
+    "reason": "Smokingpipes' current Bourbon wording and the existing retailer Barrel Aged wording identify the same Seattle Pipe Club product."
+  },
+  {
+    "maker": "Peterson",
+    "blend": "3 P's Peterson's Perfect Plug",
+    "toMaker": "Peterson",
+    "toBlend": "3 P's Perfect Plug",
+    "reason": "The expanded Smokingpipes title and registered shorter title identify Peterson's same 3 P's product."
+  },
+  {
+    "maker": "Seattle Pipe Club",
+    "blend": "Mississippi River Rum Barrel Aged",
+    "toMaker": "Seattle Pipe Club",
+    "toBlend": "Mississippi River: Barrel Aged",
+    "reason": "Smokingpipes' current Rum wording and the existing retailer Barrel Aged wording identify the same Seattle Pipe Club product."
+  },
+  {
+    "maker": "Toscano",
+    "blend": "Maestro Puccini",
+    "toMaker": "Toscano by Cornell & Diehl",
+    "toBlend": "Maestro - Puccini",
+    "reason": "The Smokingpipes title and existing catalog record identify the same Puccini product in the Toscano Maestro line blended by Cornell & Diehl."
+  },
+  {
+    "maker": "W.O. Larsen",
+    "blend": "Signature Vintage Mixture",
+    "toMaker": "W.O. Larsen",
+    "toBlend": "Signature Mixture",
+    "reason": "Smokingpipes supplies Signature Mixture as the verified alias for Signature Vintage Mixture."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "PS403 Luxury Bullseye Flake",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Luxury Bulls Eye Flake",
+    "reason": "PS403 is the verified product code for the registered Luxury Bulls Eye Flake identity."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "PS400 Luxury Navy Flake",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Luxury Navy Flake",
+    "reason": "PS400 is the verified product code for the registered Luxury Navy Flake identity."
+  },
+  {
+    "maker": "Peter Stokkebye",
+    "blend": "PS402 Luxury Twist Flake",
+    "toMaker": "Peter Stokkebye",
+    "toBlend": "Luxury Twist Flake",
+    "reason": "PS402 is the verified product code for the registered Luxury Twist Flake identity."
   }
 ]

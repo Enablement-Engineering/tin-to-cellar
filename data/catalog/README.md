@@ -1,6 +1,6 @@
 # Pipe tobacco name collection
 
-The app's autocomplete catalog is built from the name records in `sources/`. The 2026-09-05 merge contains **1,482 distinct entries across 146 maker/brand names**, from 2,913 input records. It merged 1,409 duplicate records, excluded 22 unsuitable/unresolved records, and applied 222 reviewed corrections across source rows. It includes both retail and historical listings. Inclusion does not establish current stock, current production, or which package edition a user owns.
+The app's autocomplete catalog is built from the name records in `sources/`. The 2026-09-19 merge contains **1,511 distinct entries across 155 maker/brand names**, from 2,957 input records. It merged 1,424 duplicate records, excluded 22 unsuitable/unresolved records, and applied 237 reviewed corrections across source rows. It includes both retail and historical listings. Inclusion does not establish current stock, current production, or which package edition a user owns.
 
 ## Best resources found
 
@@ -51,7 +51,7 @@ Network collectors are optional maintenance commands; the application never invo
 
 ## Permanent identity registry
 
-`identities.json` freezes the original 1,482 runtime IDs. IDs are stored, never recomputed from display names. The merge fails on unknown names, collisions, ambiguous aliases, or missing registered identities. Register each researched new blend explicitly with an unused ID before rebuilding. For a rename, retain the same ID, change the registry's display maker/blend, and add the previous `{maker, blend}` to `previousNames`; update source corrections as appropriate. Historical names support exact pack matching, separately from fuzzy autocomplete.
+`identities.json` freezes the catalog's 1,511 active runtime IDs. IDs are stored, never recomputed from display names. The merge fails on unknown names, collisions, ambiguous aliases, or missing registered identities. Register each researched new blend explicitly with an unused ID before rebuilding. For a rename, retain the same ID, change the registry's display maker/blend, and add the previous `{maker, blend}` to `previousNames`; update source corrections as appropriate. Historical names support exact pack matching, separately from fuzzy autocomplete.
 
 `idAliases` contains explicit `{aliasId, catalogId}` redirects to canonical IDs. Alias chains, collisions with active IDs, and unknown targets are rejected. A true merge requires a reviewed migration of referenced records and source observations before registry retirement; the merge script intentionally cannot silently perform it. Generated runtime identity data mirrors this registry.
 

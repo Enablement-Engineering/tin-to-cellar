@@ -1,6 +1,6 @@
 # Tobacco selector proposal
 
-Status: the inline autocomplete is implemented. The starter catalog contains 1,482 entries across 146 maker/brand names, with source references and review dates. Tobacco entry remains optional and package research stays in the user's AI chat. Catalog expansion and live web search remain future work.
+Status: the inline autocomplete is implemented. The starter catalog contains 1,511 entries across 155 maker/brand names, with source references and review dates. Tobacco entry remains optional and package research stays in the user's AI chat. Catalog expansion and live web search remain future work.
 
 ## First version
 

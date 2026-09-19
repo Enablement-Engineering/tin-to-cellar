@@ -1,6 +1,6 @@
 # Tobacco names catalog
 
-1,482 entries across 146 maker/brand names, reviewed on 2026-09-05. This is a starter selection, not a popularity ranking, complete market inventory, or stock feed. The application accepts arbitrary names and optional empty requests.
+1,511 entries across 155 maker/brand names, reviewed on 2026-09-19. This is a starter selection, not a popularity ranking, complete market inventory, or stock feed. The application accepts arbitrary names and optional empty requests.
 
 Only factual maker/blend names, aliases, source URLs, and review dates are stored. No package photographs, generated artwork, descriptions, prices, or reviews are included. Source URLs are provenance data and are not fetched when searching or selecting. The full [source assessment and maintenance workflow](../../../data/catalog/README.md), raw records, merged provenance, and deduplication report are saved in data/catalog. Run scripts/catalog/merge.mjs to rebuild this runtime file; do not edit it directly.
 
