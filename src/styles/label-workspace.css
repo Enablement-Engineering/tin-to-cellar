@@ -8,7 +8,34 @@
 .workspace-row-title { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .workspace-row-actions { display: flex; align-items: center; gap: 8px; }
 .label-workspace .preparation-row-heading > .workspace-row-actions, .label-workspace .preparation-row-heading > .workspace-art-placeholder { flex: none; }
-.label-workspace .preparation-start { gap: 8px; }
+.preparation-workspace.label-workspace { gap: 24px; padding-bottom: 12px; }
+.label-workspace .page-heading { display: flex; flex-wrap: nowrap; align-items: center; gap: 24px; }
+.workspace-heading-copy { display: grid; gap: 12px; }
+.workspace-heading-copy h1 { width: fit-content; }
+.label-workspace .page-heading p { max-width: 60ch; }
+.workspace-label-examples { display: flex; align-items: center; flex: 0 0 auto; padding: 8px 8px 8px 0; }
+.workspace-label-examples img { width: 128px; height: 128px; border-radius: 50%; box-shadow: var(--shadow-1); transform: rotate(-9deg); }
+.workspace-label-examples img + img { margin-left: -28px; transform: rotate(9deg) translateY(8px); }
+.label-workspace .preparation-start { gap: 24px; box-shadow: none; }
+.label-workspace .preparation-intake { gap: 12px; }
+.label-workspace .preparation-intake > .field { margin-bottom: 0; }
+.label-workspace .workspace-list-heading { margin: 12px 0 0; }
+.label-workspace .preparation-group { margin-block: 0; }
+.label-workspace .preparation-intake .field-hint { max-width: 65ch; }
+.label-workspace .preparation-entry-actions.preparation-shortcuts { display: flex; flex-wrap: wrap; gap: 8px 16px; padding-top: 16px; }
+.label-workspace .preparation-shortcuts > .button { min-height: 44px; padding: 8px 12px; }
+.workspace-other-paths { display: flex; flex-wrap: wrap; gap: 4px 24px; margin-top: -8px; }
+.workspace-other-paths .button { padding-inline: 0; gap: 10px; white-space: normal; text-align: left; }
+.label-workspace .preparation-storage { max-width: none; padding-top: 20px; border-top: 1px solid var(--line-hairline); font-size: 13px; }
+.view-create > .usage-invitation { max-width: 1120px; padding-inline: 40px; }
+@media (max-width: 900px) {
+  .view-create > .usage-invitation { max-width: 760px; padding-inline: 24px; }
+}
+@media (max-width: 600px) {
+  .view-create > .usage-invitation { padding-inline: 16px; }
+  .label-workspace .preparation-start { padding: 20px; }
+  .workspace-label-examples { display: none; }
+}
 .label-workspace .selection-confirmation { margin-block: 4px 0; }
 .workspace-art-placeholder { display: grid; place-items: center; flex: none; width: 64px; height: 64px; border: 1px dashed var(--line-hairline); border-radius: 50%; font: var(--type-title); color: var(--text-muted); }
 .label-workspace .preparation-row-content { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line-hairline); }
