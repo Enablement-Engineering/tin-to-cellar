@@ -46,7 +46,7 @@ for (const width of [320, 390, 680, 681, 831, 1280]) test(`saved-design actions 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await newRow.screenshot({ path: testInfo.outputPath(`new-request-${width}.png`) })
   const summary = page.locator('.label-workspace > .preparation-summary')
-  await expect(summary.getByRole('button', { name: 'Continue to creation', exact: true })).toBeEnabled()
+  await expect(summary.getByRole('button', { name: 'Create with ChatGPT', exact: true })).toBeEnabled()
   await expect(summary.getByRole('button', { name: 'Review & print', exact: true })).toBeEnabled()
   await expect(summary).toHaveCSS('position', 'fixed')
   await page.evaluate(() => window.scrollTo(0, 0))

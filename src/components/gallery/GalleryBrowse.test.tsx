@@ -4,9 +4,10 @@ import { afterEach, expect, it, vi } from 'vitest'
 import '@testing-library/jest-dom/vitest'
 import { GalleryBrowse } from './GalleryBrowse'
 import { loadBrowseLabels } from './browse-model'
+import { useConfig } from './client'
 import type { GalleryPublicLabel } from '../../lib/gallery/types'
 
-vi.mock('./client', () => ({ API: '/api/gallery/v1', errorText: (error: Error) => error.message, useConfig: () => ({ config: { serving: true } }) }))
+vi.mock('./client', () => ({ API: '/api/gallery/v1', errorText: (error: Error) => error.message, useConfig: vi.fn(() => ({ config: { serving: true } })) }))
 vi.mock('./browse-model', async importOriginal => ({ ...await importOriginal<typeof import('./browse-model')>(), loadBrowseLabels: vi.fn() }))
 vi.mock('./GalleryThumbnail', () => ({ GalleryThumbnail: () => null }))
 
@@ -53,7 +54,7 @@ it('allows creating different artwork from a confirmed catalog blend even when d
   fireEvent.change(input, { target: { value: 'Peterson Nightcap' } })
   fireEvent.keyDown(input, { key: 'ArrowDown' }); fireEvent.keyDown(input, { key: 'Enter' })
   await screen.findByRole('button', { name: 'Add to your labels' })
-  fireEvent.click(screen.getByRole('button', { name: 'Create in my AI chat' }))
+  fireEvent.click(screen.getAllByRole('button', { name: 'Create custom labels' })[0])
   expect(screen.getByRole('dialog')).toHaveAccessibleName('Create artwork in your AI chat')
   expect(screen.getByRole('dialog')).toHaveTextContent('Tin to Cellar does not run the AI chat.')
   expect(onCreate).not.toHaveBeenCalled()
@@ -71,7 +72,7 @@ it('invalidates catalog identity when search changes and keeps custom review aft
   fireEvent.change(input, { target: { value: 'Peterson Nightcap' } })
   fireEvent.keyDown(input, { key: 'ArrowDown' }); fireEvent.keyDown(input, { key: 'Enter' })
   fireEvent.change(input, { target: { value: 'A custom blend' } })
-  fireEvent.click(screen.getByRole('button', { name: 'Create in my AI chat' }))
+  fireEvent.click(screen.getAllByRole('button', { name: 'Create custom labels' })[0])
   const custom = screen.getByRole('combobox', { name: 'Find a blend' })
   expect(custom).toHaveValue('A custom blend')
   fireEvent.keyDown(custom, { key: 'Enter' })
@@ -89,7 +90,7 @@ it('canceling creation preserves the search and does not add a request', async (
   const onCreate = vi.fn()
   render(<GalleryBrowse onAdd={vi.fn()} onCreate={onCreate} />)
   fireEvent.change(screen.getByRole('combobox', { name: 'Maker or blend' }), { target: { value: 'Custom blend' } })
-  const trigger = screen.getByRole('button', { name: 'Create in my AI chat' })
+  const trigger = screen.getAllByRole('button', { name: 'Create custom labels' })[0]
   trigger.focus(); fireEvent.click(trigger)
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
   expect(onCreate).not.toHaveBeenCalled()
@@ -102,7 +103,7 @@ it('finds a catalog blend from a partial name and clears the selection when the 
   vi.mocked(loadBrowseLabels).mockResolvedValue([])
   const onCreate = vi.fn()
   render(<GalleryBrowse onAdd={vi.fn()} onCreate={onCreate} />)
-  fireEvent.click(screen.getByRole('button', { name: 'Create in my AI chat' }))
+  fireEvent.click(screen.getAllByRole('button', { name: 'Create custom labels' })[0])
   const modal = within(screen.getByRole('dialog'))
   const input = modal.getByRole('combobox', { name: 'Find a blend' })
   const save = modal.getByRole('button', { name: 'Add to my AI creation list' })
@@ -131,7 +132,7 @@ it('lets a catalog selection be changed to an explicit custom name before saving
   const search = screen.getByRole('combobox', { name: 'Maker or blend' })
   fireEvent.change(search, { target: { value: 'Peterson Nightcap' } })
   fireEvent.keyDown(search, { key: 'ArrowDown' }); fireEvent.keyDown(search, { key: 'Enter' })
-  fireEvent.click(screen.getByRole('button', { name: 'Create in my AI chat' }))
+  fireEvent.click(screen.getAllByRole('button', { name: 'Create custom labels' })[0])
   const input = screen.getByRole('combobox', { name: 'Find a blend' })
   fireEvent.change(input, { target: { value: 'Nightcap' } })
   fireEvent.click(screen.getByRole('option', { name: 'Use “Nightcap” without a catalog match' }))
@@ -211,7 +212,10 @@ it('distinguishes a chosen catalog blend with no artwork and offers alternatives
   expect(screen.getByRole('option', { name: /Early Morning Pipe.*Peterson/ })).toHaveTextContent('No artwork yet')
   fireEvent.keyDown(input, { key: 'ArrowDown' }); fireEvent.keyDown(input, { key: 'Enter' })
   expect(screen.getByRole('heading', { name: 'No community artwork for this blend yet' })).toBeVisible()
-  expect(screen.getByRole('heading', { name: 'Create artwork for Early Morning Pipe' })).toBeVisible()
+  const create = screen.getByRole('button', { name: 'Create a label for Early Morning Pipe' })
+  mockDialog()
+  fireEvent.click(create)
+  expect(screen.getByRole('combobox', { name: 'Find a blend' })).toHaveValue('Peterson — Early Morning Pipe')
 })
 
 it('sorts makers by available artwork count with alphabetical ties', async () => {
@@ -223,4 +227,51 @@ it('sorts makers by available artwork count with alphabetical ties', async () =>
   await screen.findByText('4 designs · Showing 4')
   const maker = screen.getByRole('combobox', { name: 'Maker' }) as HTMLSelectElement
   expect(Array.from(maker.options, option => option.textContent)).toEqual(['All makers', 'Zeta (2)', 'Alpha (1)', 'Beta (1)'])
+})
+
+
+it.each(['loading', 'unavailable', 'failed'] as const)('keeps creation and import available when gallery config is %s', state => {
+  mockDialog()
+  vi.mocked(useConfig).mockReturnValue({ config: state === 'unavailable' ? { serving: false, intake: false, noticeVersion: '', turnstileSiteKey: '' } : null, error: state === 'failed' ? 'Library unavailable' : '' })
+  const onImport = vi.fn(), onCreate = vi.fn()
+  render(<GalleryBrowse onAdd={vi.fn()} onCreate={onCreate} onImport={onImport} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Import a label ZIP' }))
+  expect(onImport).toHaveBeenCalledOnce()
+  fireEvent.click(screen.getByRole('button', { name: 'Create custom labels' }))
+  expect(screen.getByRole('dialog')).toBeVisible()
+  expect(onCreate).not.toHaveBeenCalled()
+})
+
+it('does not describe a restrictive maker filter as missing blend artwork', async () => {
+  vi.mocked(loadBrowseLabels).mockResolvedValue([label, { ...label, id: 'other', maker: 'Other maker', blend: 'Other blend', catalogId: 'other-blend' }])
+  render(<GalleryBrowse onAdd={vi.fn()} onCreate={vi.fn()} />)
+  await screen.findByRole('heading', { name: 'Nightcap' })
+  const input = screen.getByRole('combobox', { name: 'Maker or blend' })
+  fireEvent.change(input, { target: { value: 'Peterson Nightcap' } })
+  fireEvent.keyDown(input, { key: 'ArrowDown' }); fireEvent.keyDown(input, { key: 'Enter' })
+  fireEvent.change(screen.getByRole('combobox', { name: /^Maker$/ }), { target: { value: 'Other maker' } })
+  expect(screen.getByRole('heading', { name: 'No designs match these filters' })).toBeVisible()
+  expect(screen.queryByRole('button', { name: 'Create a label for Nightcap' })).toBeNull()
+})
+
+
+it('chooses the pointer-highlighted suggestion with Enter without prematurely saving', () => {
+  mockDialog()
+  vi.mocked(loadBrowseLabels).mockResolvedValue([])
+  const onCreate = vi.fn()
+  render(<GalleryBrowse onAdd={vi.fn()} onCreate={onCreate} />)
+  fireEvent.click(screen.getAllByRole('button', { name: 'Create custom labels' })[0])
+  const input = screen.getByRole('combobox', { name: 'Find a blend' })
+  fireEvent.change(input, { target: { value: 'cor' } })
+  const option = screen.getByRole('option', { name: 'Adagio by Cornell & Diehl' })
+  fireEvent.mouseMove(option)
+  expect(input).toHaveAttribute('aria-activedescendant', option.id)
+  expect(option).toHaveAttribute('aria-selected', 'true')
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(input).toHaveValue('Cornell & Diehl — Adagio')
+  expect(input).toHaveAttribute('aria-expanded', 'false')
+  expect(screen.getByRole('button', { name: 'Add to my AI creation list' })).toBeEnabled()
+  expect(onCreate).not.toHaveBeenCalled()
+  // The next Enter must reach the form's native implicit submission.
+  expect(fireEvent.keyDown(input, { key: 'Enter' })).toBe(true)
 })

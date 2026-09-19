@@ -150,9 +150,8 @@ test('matches copied instructions, returned artwork, and printing entirely on th
   await input.fill(`${tobacco.maker} ${tobacco.blend}`)
   await input.press('ArrowDown'); await input.press('Enter')
   await page.getByRole('button', { name: 'Create with AI', exact: true }).click()
-  await page.getByRole('button', { name: 'Continue to creation', exact: true }).click()
-  await page.getByRole('button', { name: 'Continue with 1 label', exact: true }).click()
-  await page.getByRole('button', { name: 'Copy instructions for 1 label', exact: true }).click()
+  await page.getByRole('button', { name: 'Create with ChatGPT', exact: true }).click()
+  await page.getByRole('button', { name: 'Copy instructions', exact: true }).click()
   await expect.poll(() => progress.map(e => e.milestone)).toEqual(['started'])
   // The receipt must return before a later matching action is eligible.
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('tin-to-cellar:local-progress-v2') ?? '[]')[0]?.startRecorded)).toBe(true)
