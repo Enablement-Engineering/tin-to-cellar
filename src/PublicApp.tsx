@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSavedSources } from './lib/prompt/use-saved-sources'
 import { ContributionStatus } from './components/ContributionStatus'
 import { HowItWorks } from './components/HowItWorks'
+import { ClearLabelsDialog } from './components/ClearLabelsDialog'
 import { Landing } from './components/Landing'
 import { Privacy } from './components/Privacy'
 import { About } from './components/About'
@@ -77,6 +78,7 @@ export default function PublicApp() {
       void importProgress(before, after, incoming)
     },
   })
+  const [confirmReset, setConfirmReset] = useState(false)
   const [showIntake, setShowIntake] = useState(false)
   const openImport = () => { setShowIntake(true); navigate('print') }
   const [galleryVisited, setGalleryVisited] = useState(view === 'gallery')
@@ -214,10 +216,6 @@ export default function PublicApp() {
       main.current?.focus()
     })
   }
-  const resetLabels = () => {
-    if (!window.confirm('Reset all labels, requests, print settings and import history saved in this browser? Download your ready labels first. This cannot be undone.')) return
-    void clearLabels().catch(ignoreHandledError)
-  }
   const reviewingPack = candidate !== null || importing
   // Saved rows determine whether a selection exists. Blob previews only decide
   // whether that selection can currently be rendered for printing.
@@ -336,6 +334,7 @@ export default function PublicApp() {
       {review && candidate && !galleryMatch && <CollectionImportReview unresolvedRequests={collection.rows.filter(row => row.createRequested && !Object.values(decisions).some(decision => decision.action === 'replace' && decision.rowId === row.id)).map(row => row.blend)} collection={collection} plan={review} decisions={decisions} onChange={setDecisions} onAccept={() => void acceptImport()} onReplace={() => void replaceImport()} onCancel={() => { focusAfterImport.current = true; setShowIntake(false); cancelImport() }} busy={busy} invalidated={reviewInvalidated} onRefresh={refreshDecisions} error={importError || storageError}>{summary && (summary.status !== 'ready' || summary.issues.length > 0 || summary.quarantined.length > 0) ? <ImportReport summary={summary} /> : null}</CollectionImportReview>}
       {legacyChoices.length > 0 && <section className="panel screen-only"><h2>Your previous community selection</h2><p>{legacyChoices.length} selected designs can be saved in Your labels. A design only becomes ready after its artwork downloads.</p><button type="button" className="button secondary" disabled={busy} onClick={() => void restoreLegacy()}>Restore selected labels</button></section>}
       {(galleryVisited || view === 'gallery') && <div hidden={view !== 'gallery'} className="screen-only"><DeferredPanel><GalleryBrowse selectedCount={collection.rows.length} readyCount={labels.length} onView={() => navigate('create')} onCreate={addGalleryCreationRequest} onImport={openImport} getActionLabel={label => { const matches = collection.rows.filter(row => row.catalogId === label.catalogId && !row.edition); return matches.length === 1 && !matches[0].designId ? `Use for your ${label.blend} label` : matches.some(row => row.designId) ? 'Review this design' : 'Add to your labels' }} onAdd={label => chooseCommunity(label)} selectedIds={activeDesigns.flatMap(design => design.publicationId ? [design.publicationId] : [])} onPrint={openReadyPrint} /></DeferredPanel></div>}
+      {confirmReset && <ClearLabelsDialog action="Reset" count={collection.rows.length} busy={busy} onClear={clearLabels} onClose={() => setConfirmReset(false)} />}
       {view === 'not-found' ? <div className="landing-page screen-only"><h1>Page not found</h1><p>This page doesn’t exist.</p><a href="/labels" onClick={routeClick('labels')}>Go to Labels</a></div> : view === 'labels' ? <Landing selectedCount={collection.rows.length} readyCount={labels.length} onNavigate={next => next === 'print' ? openImport() : navigate(next)} busy={busy} onFile={file => handlePack(file, 'example')} onClear={clearLabels} /> : view === 'gallery' ? null : view === 'order' ? <OrderPage rows={collection.rows} busy={busy} onAdd={async identities => { await addLabelRequests(identities); navigate('create') }} onBrowse={() => navigate('gallery')} /> : view === 'gallery-admin' ? <DeferredPanel><GalleryAdmin /></DeferredPanel> : view === 'create' ? <PreparationWorkspace rows={workspaceRows} busy={busy}
         onOrder={() => navigate('order')} onAdd={async (identity, choice) => {
           if (choice !== 'ai') { await chooseCommunity(choice, undefined, identity); return }
@@ -349,7 +348,7 @@ export default function PublicApp() {
         onResolve={(id, identity) => { void commit(current => updateRow(current, id, identity)).catch(ignoreHandledError) }}
         onChooseCommunity={(id, label) => chooseCommunity(label, id)} onPrint={openReadyPrint} onBrowse={() => navigate('gallery')} onImport={openImport} onGenericChat={() => { setGenericChat(true); navigate('artwork') }} onContinueCreation={() => navigate('artwork')} /> : view === 'artwork' ? <ArtworkCreationFlow rows={creationRows} copied={Boolean(frozen?.copied)} generic={genericChat} onBack={() => navigate('create')} onNotes={(id, notes) => commit(current => updateRow(current, id, { notes })).then(() => undefined)} handoff={handoff ?? promptLoading} intake={intake} /> : view === 'help' ? <>{instructions !== null ? <HowItWorks instructions={instructions} /> : promptLoading}<StandaloneFeedback /></> : view === 'privacy' ? <Privacy /> : view === 'about' ? <About /> : view === 'inspiration' ? <Inspiration /> : <>
         <div className="page-heading print-page-heading screen-only"><h1>{reviewingPack ? 'Review imported labels' : 'Print labels'}</h1><LabelPaperGuidance /></div>
-        {!reviewingPack && <div className="handoff-actions print-page-controls screen-only"><button className="button secondary" type="button" onClick={() => navigate('create')}>Add more labels</button>{labels.length > 0 && <button type="button" className="button secondary" disabled={downloading} onClick={() => void download()}>{downloading ? 'Preparing download…' : 'Download labels'}</button>}{(collection.rows.length > 0 || collection.receipts.length > 0) && <button type="button" className="button quiet" disabled={busy} onClick={resetLabels}>Reset labels</button>}</div>}
+        {!reviewingPack && <div className="handoff-actions print-page-controls screen-only"><button className="button secondary" type="button" onClick={() => navigate('create')}>Add more labels</button>{labels.length > 0 && <button type="button" className="button secondary" disabled={downloading} onClick={() => void download()}>{downloading ? 'Preparing download…' : 'Download labels'}</button>}{(collection.rows.length > 0 || collection.receipts.length > 0) && <button type="button" className="button quiet" disabled={busy} onClick={() => setConfirmReset(true)}>Reset labels</button>}</div>}
         {!reviewingPack && printState === 'ready' && collection.rows.some(row => !row.designId) && <p className="field-hint screen-only">{collection.rows.filter(row => !row.designId).length} labels still need artwork. {labels.length > 0 ? 'You can print the ready labels now.' : 'Choose a design or import a finished ZIP to start printing.'}</p>}
         {!reviewingPack && collection.receipts.filter(receipt => activeDesigns.some(design => design.receiptId === receipt.id)).map(receipt => <ProtocolWarning key={receipt.id} context={receipt.protocolContext} feedback={receipt.contribution?.feedback} />)}
         {importProblem}
@@ -362,7 +361,7 @@ export default function PublicApp() {
         }).catch(ignoreHandledError) }} settings={collection.printSettings} onSettingsChange={settings => { void commit(current => setPrintSettings(current, { ...current.printSettings, ...settings, offset: { ...current.printSettings.offset, ...settings.offset } })).catch(ignoreHandledError) }} /> : printState !== 'empty' ? <><SavedPrintSelection rows={collection.rows} previewUnavailable={printState === 'unavailable'} onChoose={() => navigate('create')} /><details open={showIntake || undefined} className="print-add-labels screen-only"><summary>Add labels from a ZIP</summary>{intake}</details></> : <div className="print-intake screen-only">{intake}{!candidate && <ExamplePack busy={busy} onFile={file => handlePack(file, 'example')} />}</div>}
         {!reviewingPack && shareableLabels.length > 0 && <DeferredPanel><GallerySubmission labels={shareableLabels} /></DeferredPanel>}
       </>}
-      {view === 'create' && (collection.rows.length > 0 || collection.receipts.length > 0) && <div className="preparation-storage screen-only"><button type="button" className="button quiet" disabled={busy} onClick={resetLabels}>Clear saved labels</button></div>}
+      {view === 'create' && (collection.rows.length > 0 || collection.receipts.length > 0) && <div className="preparation-storage screen-only"><button type="button" className="button quiet" disabled={busy} onClick={() => setConfirmReset(true)}>Clear saved labels</button></div>}
       {collection.receipts.map(receipt => <ContributionStatus key={receipt.id} contribution={receipt.contribution} retrospective={notes[receipt.id] ?? null} onDismissNotes={() => setNotes(current => { const next = { ...current }; delete next[receipt.id]; return next })} hidden={view !== 'print' || currentReceipt?.id !== receipt.id} autoSend={freshReceipts.has(receipt.id)} delivery={receipt.delivery} onDelivery={delivery => { void commit(current => setReceiptDelivery(current, receipt.id, delivery)).catch(ignoreHandledError) }} />)}
       {['create', 'artwork', 'print'].includes(view) && <UsageInvitation key={view} />}
     </main>
