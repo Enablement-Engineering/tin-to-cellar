@@ -316,7 +316,7 @@ it('republishes the reviewed version using only the expectedVersion backend payl
   expect(republish).toBeDisabled()
   fireEvent.click(screen.getByLabelText(/I reviewed this artwork/))
   fireEvent.click(republish)
-  await screen.findByRole('button', { name: 'Unpublish now' })
+  await screen.findByRole('button', { name: 'Remove from gallery' })
   expect(writes).toHaveLength(1)
   expect(writes[0].url).toBe(`/api/gallery/v1/admin/submissions/${receipt.id}/republish`)
   expect(writes[0].init.method).toBe('POST')
