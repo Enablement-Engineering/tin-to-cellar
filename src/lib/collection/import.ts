@@ -1,6 +1,6 @@
 import type { CellarLabel, CellarPackImportResult, ImportedCellarLabel } from '../cellarpack/types'
 import { parseContribution, parseSource, SOURCE_KEY } from '../contributions'
-import { checkAvery94502Compatibility } from '../sheets'
+import { checkSupportedArtworkCompatibility } from '../sheets'
 import { findExactTobacco, resolveTobaccoId } from '../tobacco-catalog'
 import { finish, identityForDesign, newRow } from './commands'
 import { sha256 } from './validation'
@@ -51,7 +51,7 @@ export async function prepareImport(result: CellarPackImportResult, options: Pre
   }
   candidate.receipt.origin = options.origin
   for (const original of result.labels) {
-    if (!checkAvery94502Compatibility(original.label.surface).compatible) throw new CollectionError('invalid', 'This artwork must be a compatible 2.5-inch circle before it can be added.')
+    if (!checkSupportedArtworkCompatibility(original.label.surface).compatible) throw new CollectionError('invalid', 'This artwork must be a compatible 2.5-inch circle before it can be added.')
     if (await sha256(original.artwork.data) !== original.artwork.asset.sha256) throw new CollectionError('invalid', 'The artwork does not match the verified ZIP. Import the original ZIP again.')
     const item: ImportedCellarLabel = { id: original.id, label: projectLabel(original.label), artwork: { ...original.artwork, asset: { ...original.artwork.asset } }, issues: original.issues.map(issue => ({ ...issue })) }
     const fingerprint = await designFingerprint(item)

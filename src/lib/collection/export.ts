@@ -3,6 +3,7 @@ import { importCellarPack } from '../cellarpack/importer'
 import type { CellarPackManifest } from '../cellarpack/types'
 import { assertCollection } from './validation'
 import { CollectionError, type Collection } from './types'
+import { getPrintSheetProfile } from '../sheets'
 
 /** Ready artwork only: pending requests and print quantities are not a backup. */
 export async function exportCollection(collection: Collection): Promise<File> {
@@ -10,7 +11,7 @@ export async function exportCollection(collection: Collection): Promise<File> {
   const selected = [...new Set(collection.rows.flatMap(row => row.designId ? [row.designId] : []))]
   if (!selected.length) throw new CollectionError('invalid', 'Choose at least one ready label to download.')
   const zip = new JSZip()
-  const manifest: CellarPackManifest = { format: 'tin-to-cellar/cellarpack', schemaVersion: '0.1.0', packId: `urn:uuid:${crypto.randomUUID()}`, createdAt: new Date().toISOString(), title: 'Your labels', generator: { name: 'Tin to Cellar collection exporter', version: '1.0.0' }, labels: [], assets: {}, defaultPrintIntent: { sheetProfileId: 'tin-to-cellar:avery-94502@1', labelQuantityMode: 'one-each' } }
+  const manifest: CellarPackManifest = { format: 'tin-to-cellar/cellarpack', schemaVersion: '0.1.0', packId: `urn:uuid:${crypto.randomUUID()}`, createdAt: new Date().toISOString(), title: 'Your labels', generator: { name: 'Tin to Cellar collection exporter', version: '1.0.0' }, labels: [], assets: {}, defaultPrintIntent: { sheetProfileId: getPrintSheetProfile(collection.printSettings.sheetProfileId)!.id, labelQuantityMode: 'one-each' } }
   const assets = new Map<string, string>()
   selected.forEach((id, index) => {
     const item = collection.designs[id].item

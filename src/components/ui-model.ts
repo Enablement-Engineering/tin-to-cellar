@@ -1,4 +1,4 @@
-export type PrintSettings = { page: number; firstSlot: number; offset: { x: number; y: number } }
+export type { CollectionPrintSettings as PrintSettings } from '../lib/collection/types'
 export type PrintLabel = {
   id: string
   maker: string

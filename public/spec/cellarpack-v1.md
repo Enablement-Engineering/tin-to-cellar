@@ -331,6 +331,7 @@ Sheet profiles are separate from labels. A profile describes paper and repeated 
 The website maintains a versioned registry. Recommended IDs:
 
 - `tin-to-cellar:avery-94502@1` — 2.5-inch circles, 9-up on US Letter.
+- `tin-to-cellar:a4-63.5-circle-12@1` — 63.5 mm circles, 12-up on A4, OnlineLabels EU30023 / Label Planet LP12/64R geometry.
 - `tin-to-cellar:full-sheet-letter@1` — US Letter full-sheet adhesive stock; website computes a grid from label size, margins, and spacing.
 - `tin-to-cellar:full-sheet-a4@1` — A4 equivalent.
 - vendor profiles follow `vendor:product-code@revision`.

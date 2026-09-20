@@ -26,12 +26,12 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     <ol className="workflow-steps">
       <li><span className="workflow-step-number" aria-hidden="true">01</span><div><h2>Choose your labels</h2><p>Browse community designs, enter blend names, or add a list from an order or screenshot. Choose the artwork you want for each blend. Already have a label ZIP? Import it in Print labels.</p></div></li>
       <li><span className="workflow-step-number" aria-hidden="true">02</span><div><h2>Create new designs if needed</h2><p>Select the blends that need new artwork. Review the request, add any design notes, and copy the instructions into your own AI chat.</p><p>Your AI shows a packaging photo for each blend. If it is the right one, use Copy Image and paste the photo into the chat. The AI makes and checks one label at a time. Review the artwork, then download the finished label ZIP.</p><p>You can skip this step when community designs cover what you need.</p></div></li>
-      <li><span className="workflow-step-number" aria-hidden="true">03</span><div><h2>Add the artwork and print</h2><p>Import any new label ZIP and review the designs. Choose which to add or replace, then set your print quantities. In the print dialog, use US Letter, no margins, and Actual Size / 100%. Turn off headers and footers, or choose Save as PDF to keep the sheets.</p></div></li>
+      <li><span className="workflow-step-number" aria-hidden="true">03</span><div><h2>Add the artwork and print</h2><p>Import any new label ZIP and review the designs. Choose which to add or replace, then set your print quantities. Choose your label paper, then match A4 or US Letter in the print dialog. Use no margins, and Actual Size / 100%. Turn off headers and footers, or choose Save as PDF to keep the sheets.</p></div></li>
     </ol>
     </section>
     <section id="label-paper" className="help-answers" aria-labelledby="label-paper-title">
       <h2 id="label-paper-title" ref={paperHeading} tabIndex={-1}>What you'll need</h2>
-      <p>2.5-inch round labels for jar lids, printed at Actual Size / 100%.</p>
+      <p>63.5 mm (2.5-inch) round labels for jar lids, printed at Actual Size / 100%.</p>
       <LabelPaperGuidance />
     </section>
     <section className="help-answers" aria-labelledby="behind-scenes-title">
@@ -72,7 +72,7 @@ export function HowItWorks({ instructions }: { instructions: string }) {
     </article>
     <article>
     <h2>Check the fit before printing</h2>
-    <p>Print a test on plain paper before using label stock. In Paper and alignment, you can print an alignment sheet and adjust the label position. The ruler should measure two inches at Actual Size / 100%.</p>
+    <p>Print a test on plain paper before using label stock. In Paper and alignment, you can print an alignment sheet and adjust the label position. At Actual Size / 100%, the ruler should measure 50 mm for A4 or two inches for US Letter.</p>
     <p>Artwork checks help the design fit inside the cut edge. A test sheet checks how your printer places it on the page.</p>
     </article>
     <article>

@@ -30,12 +30,15 @@ describe('self-contained generation protocol', () => {
     const prompts = [buildTinToCellarInstructions(), buildCollectionHandoff({ tobaccos: [{ blend: 'Escudo' }] }).prompt, buildGenericChatHandoff().prompt]
     for (const prompt of prompts) {
       expect(prompt).toContain('https://www.avery.com/blank/labels/94502')
-      expect(prompt).toContain('This is not an affiliate link.')
+      expect(prompt).toContain('These are not affiliate links.')
+      expect(prompt).toContain('https://uk.onlinelabels.com/products/eu30023')
+      expect(prompt).toContain('tin-to-cellar:a4-63.5-circle-12@1')
+      expect(prompt).toContain('twelve circles per A4 sheet')
       expect(prompt).toContain('Plain printer paper and a glue stick are also an option')
       expect(prompt).toContain('print at Actual Size / 100%, cut out the labels')
       expect(prompt).toContain('flat area of their lid')
       expect(prompt).toContain('Paper choice does not change the artwork geometry')
-      expect(prompt).toContain('do not include it in label research sources')
+      expect(prompt).toContain('do not include them in label research sources')
     }
   })
   it('waits for a current-conversation request instead of retrieving an old inventory', () => {

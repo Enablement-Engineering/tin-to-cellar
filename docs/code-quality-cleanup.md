@@ -9,7 +9,7 @@ This cleanup starts from production main `d019bef`. It preserves the saved colle
 - `lib/cellarpack/importer.ts` sequences validation. `schema.ts` owns AJV compilation, `archive-contents.ts` owns bounded extraction, `artwork.ts` owns artwork checks, and `sheet-profiles.ts` owns optional profile parsing. The public import result contract is unchanged.
 - `lib/feedback/validation.ts` supplies the same validator to the browser and Worker. `scripts/feedback-validators.mjs` compiles strict AJV standalone functions without runtime code generation. Generated JavaScript is ignored; its declaration file and generator are tracked.
 - `worker/http.ts` owns bounded JSON reading and distinguishes invalid input, timeout and size failures. Legacy diagnostic migration is separate from collection and export requests. Its authenticated maintenance action and scheduled fallback retain original records and expiry. See [diagnostics operations](diagnostics/operations.md).
-- `lib/sheets/fixed-layout.ts` derives pagination and coordinates from the selected profile. Generalized profiles remain supported by the pack format; the website still prints Avery 94502. See [printing architecture](printing-architecture.md).
+- `lib/sheets/fixed-layout.ts` derives pagination and coordinates from the selected profile. Generalized profiles remain supported by the pack format; the website prints the supported Letter and A4 fixed-slot presets. See [printing architecture](printing-architecture.md).
 
 ## Runtime data and removed code
 

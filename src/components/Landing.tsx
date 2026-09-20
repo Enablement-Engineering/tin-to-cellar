@@ -9,7 +9,7 @@ type LandingProps = { onNavigate: (view: 'create' | 'print' | 'help' | 'order' |
 const steps = [
   { number: '01', icon: 'research' as const, title: 'Choose your labels', description: 'Find your blends and choose community designs that match the packaging you want to keep.' },
   { number: 'Optional', icon: 'spark' as const, title: 'Create your own', description: 'Need a different design? Use your own AI chat to adapt the original packaging. Bring back the finished label ZIP to add it to your selection.' },
-  { number: '02', icon: 'print' as const, title: 'Print them together', description: 'Choose how many of each label you need. Print your jar-lid labels nine to a US Letter sheet.' },
+  { number: '02', icon: 'print' as const, title: 'Print them together', description: 'Choose how many of each label you need. Print your jar-lid labels on US Letter or A4 label sheets.' },
 ]
 
 export function Landing({ onNavigate, selectedCount = 0, readyCount = 0, busy, onFile, onClear }: LandingProps) {

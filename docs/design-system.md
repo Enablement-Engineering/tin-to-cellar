@@ -205,7 +205,7 @@ Use real headings in order, preserve the skip link, label form controls, and ret
 
 `src/lib/sheets/profiles.ts` is the authority for physical sheet positions. The design archive repeats these values, but it is not a second geometry implementation.
 
-| Measurement | Current supported value |
+| Measurement | US Letter preset |
 | --- | --- |
 | Profile | `tin-to-cellar:avery-94502@1` |
 | Sheet | US Letter, 8.5 × 11in |
@@ -215,6 +215,8 @@ Use real headings in order, preserve the skip link, label form controls, and ret
 | Slot left positions | 0.375, 3, 5.625in |
 | Slot top positions | 1, 4.25, 7.5in |
 | Printer offsets | X and Y each limited to -0.25 through +0.25in |
+
+The A4 preset `tin-to-cellar:a4-63.5-circle-12@1` uses twelve 63.5 mm circles on 210 × 297 mm paper. Origins are x = 5.25, 73.25, 141.25 mm and y = 14.75, 82.75, 150.75, 218.75 mm. A4 offset controls display millimetres, limited to ±6.35 mm; stored offsets stay in inches. Both presets preserve artwork dimensions. See [printing architecture](printing-architecture.md).
 
 The preview clips at the 2.5-inch finished circle. Production printing reveals up to 1 mm of supplied bleed beyond that circle to accommodate small printer placement errors. The supplied artwork frame keeps its trim mapping and scale. Printing uses inch-based page and placement dimensions. The limited bleed leaves 1.175 mm clear between neighboring designs; exposing the default 2.75-inch bleed circle in full would overlap them because column centers are only 2.625 inches apart. Incompatible artwork is quarantined rather than stretched to fit. The generated image owns its entire blank writing area. The website adds no date words, lines, or other artwork overlays.
 
