@@ -151,11 +151,11 @@ export default function PublicApp() {
       savedSources,
       geometry: { shape: 'circle' as const, width: 2.5, height: 2.5, diameter: 2.5, unit: 'in' as const },
       websiteUrl: window.location.href,
-      printPreference: 'tin-to-cellar:avery-94502@1',
+      printPreference: collection.printSettings.sheetProfileId ?? 'tin-to-cellar:avery-94502@1',
       artDirection: 'Use 0.125 inch bleed on every side and integrate a blank, light date-writing surface into the artwork, with no words or writing line.',
     }
     return creationRows.length ? promptModule.module.buildCollectionHandoff(input) : genericChat ? promptModule.module.buildGenericChatHandoff(input) : null
-  }, [frozen, creationRows, savedSources, genericChat, promptModule.module])
+  }, [frozen, creationRows, savedSources, genericChat, promptModule.module, collection.printSettings.sheetProfileId])
   const instructions = useMemo(() => view === 'help' && promptModule.module ? promptModule.module.buildTinToCellarInstructions(window.location.href) : null, [view, promptModule.module])
   const copyHandoff = async (useLatest = false) => {
     if (!handoffDraft) throw new Error('Choose at least one label to create first.')

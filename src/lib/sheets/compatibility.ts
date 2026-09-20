@@ -93,7 +93,9 @@ export function checkLabelSheetCompatibility(
       }
 }
 
-/** The supported print path: exact-size circular artwork for the Avery die cut. */
-export function checkAvery94502Compatibility(surface: SheetCompatibleSurface): SheetCompatibilityResult {
+/** Both supported stocks use the same 63.5mm / 2.5-inch finished circle. */
+export function checkSupportedArtworkCompatibility(surface: SheetCompatibleSurface): SheetCompatibilityResult {
   return checkLabelSheetCompatibility(surface, AVERY_94502_PROFILE)
 }
+
+export const checkAvery94502Compatibility = checkSupportedArtworkCompatibility

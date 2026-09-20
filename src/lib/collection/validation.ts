@@ -1,6 +1,6 @@
 import { validateManifest } from '../cellarpack/schema'
 import type { CellarPackManifest } from '../cellarpack/types'
-import { checkAvery94502Compatibility } from '../sheets'
+import { checkSupportedArtworkCompatibility, getPrintSheetProfile } from '../sheets'
 import { parseContribution, SOURCE_KEY } from '../contributions'
 import { parseImageMetadata } from '../cellarpack/image'
 import { COLLECTION_LIMITS, CollectionError, type Collection, type CollectionDesign } from './types'
@@ -50,7 +50,9 @@ export function assertCollection(value: unknown): asserts value is Collection {
   }
   if (copies > 450) capacity('One print job can contain up to 450 labels. Reduce quantities before adding more.')
   const settings = value.printSettings
-  if (!integer(settings.page, 0, 100) || !integer(settings.firstSlot, 1, 9) || !record(settings.offset)) invalid()
+  if (settings.sheetProfileId !== undefined && typeof settings.sheetProfileId !== 'string') invalid()
+  const profile = getPrintSheetProfile(settings.sheetProfileId as string | undefined)
+  if (!profile || !integer(settings.page, 0, 100) || !integer(settings.firstSlot, 1, profile.slots.length) || !record(settings.offset)) invalid()
   const offset = settings.offset
   if (!['x', 'y'].every(axis => typeof offset[axis] === 'number' && Number.isFinite(offset[axis]) && Math.abs(offset[axis]) <= .25)) invalid()
   let bytes = 0, pixels = 0
@@ -59,7 +61,7 @@ export function assertCollection(value: unknown): asserts value is Collection {
     if (!record(entry) || entry.id !== id || !selected.has(id) || !hex(entry.fingerprint) || !['local', 'gallery', 'example'].includes(String(entry.origin)) || !string(entry.receiptId, 100) || !(entry.publicationId === undefined || string(entry.publicationId, 100)) || !record(entry.item) || !record(entry.item.artwork) || !record(entry.item.artwork.asset) || !record(entry.item.label) || !Array.isArray(entry.item.issues)) invalid()
     const design = entry as CollectionDesign
     const image = design.item.artwork
-    if (!encodedBuffer(image.data) || !hex(image.asset.sha256) || !integer(image.pixelWidth, 1, COLLECTION_LIMITS.perImageSide) || !integer(image.pixelHeight, 1, COLLECTION_LIMITS.perImageSide) || image.pixelWidth * image.pixelHeight > COLLECTION_LIMITS.perImagePixels || image.mediaType !== image.asset.mediaType || image.pixelWidth !== image.asset.pixelWidth || image.pixelHeight !== image.asset.pixelHeight || !validateManifest(manifestForDesign(design)).valid || !checkAvery94502Compatibility(design.item.label.surface).compatible) invalid()
+    if (!encodedBuffer(image.data) || !hex(image.asset.sha256) || !integer(image.pixelWidth, 1, COLLECTION_LIMITS.perImageSide) || !integer(image.pixelHeight, 1, COLLECTION_LIMITS.perImageSide) || image.pixelWidth * image.pixelHeight > COLLECTION_LIMITS.perImagePixels || image.mediaType !== image.asset.mediaType || image.pixelWidth !== image.asset.pixelWidth || image.pixelHeight !== image.asset.pixelHeight || !validateManifest(manifestForDesign(design)).valid || !checkSupportedArtworkCompatibility(design.item.label.surface).compatible) invalid()
     if (Object.keys(design.item.label.extensions ?? {}).some(key => key !== SOURCE_KEY)) invalid()
     if (!artwork.has(image.asset.sha256)) { artwork.add(image.asset.sha256); bytes += image.data.byteLength; pixels += image.pixelWidth * image.pixelHeight }
   }

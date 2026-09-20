@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest'
 import JSZip from 'jszip'
 import { importCellarPack } from '../cellarpack/importer'
 import { TOBACCO_CATALOG } from '../tobacco-catalog'
-import { addRequests, createCollection, removeRow, setHandoff, updateRow } from './commands'
+import { addRequests, createCollection, removeRow, setHandoff, updateRow, setPrintSettings } from './commands'
 import { applyImport, planImport, prepareImport } from './import'
 import { exportCollection } from './export'
 import { assertCollection, verifyCollectionArtwork } from './validation'
+import { A4_63_5_CIRCLE_PROFILE, AVERY_94502_PROFILE } from '../sheets'
 import { collectionFixture } from './test-fixtures'
 
 async function firstCollection() {
@@ -185,4 +186,26 @@ it('fills a canonical requested row from an explicitly declared blend alias', as
   const saved = applyImport(current, plan)
   expect(saved.rows).toHaveLength(1)
   expect(saved.rows[0]).toMatchObject({ catalogId: catalog.id, blend: 'Escudo Navy Deluxe', designId: candidate.designs[0].id })
+})
+
+it('preserves legacy settings and validates A4 settings without changing artwork', async () => {
+  const original = await firstCollection()
+  expect(original.printSettings.sheetProfileId).toBeUndefined()
+  expect(() => assertCollection(original)).not.toThrow()
+  const a4 = setPrintSettings(original, { ...original.printSettings, sheetProfileId: A4_63_5_CIRCLE_PROFILE.id })
+  const adjusted = setPrintSettings(a4, { ...a4.printSettings, firstSlot: 12, offset: { x: .1, y: -.1 } })
+  expect(() => assertCollection(adjusted)).not.toThrow()
+  expect(() => assertCollection({ ...adjusted, printSettings: { ...adjusted.printSettings, firstSlot: 13 } })).toThrow()
+  for (const sheetProfileId of ['custom:other@1', 'tin-to-cellar:full-sheet-a4@1', null, 42]) {
+    expect(() => assertCollection({ ...adjusted, printSettings: { ...adjusted.printSettings, sheetProfileId } })).toThrow()
+  }
+  const exported = await importCellarPack(await (await exportCollection(adjusted)).arrayBuffer())
+  expect(exported.status).toBe('ready')
+  expect(exported.manifest?.defaultPrintIntent?.sheetProfileId).toBe(A4_63_5_CIRCLE_PROFILE.id)
+  const source = Object.values(original.designs)[0].item
+  expect(exported.labels[0].artwork.data).toEqual(source.artwork.data)
+  expect(exported.labels[0].label.surface).toEqual(source.label.surface)
+  const letter = setPrintSettings(adjusted, { ...adjusted.printSettings, sheetProfileId: AVERY_94502_PROFILE.id })
+  expect(letter.printSettings).toMatchObject({ firstSlot: 1, page: 0, offset: { x: 0, y: 0 } })
+  expect(() => assertCollection({ ...letter, printSettings: { ...letter.printSettings, firstSlot: 10 } })).toThrow()
 })

@@ -1,4 +1,5 @@
 import { findExactTobacco, resolveTobaccoId } from '../tobacco-catalog'
+import { getPrintSheetProfile } from '../sheets'
 import { assertCollection } from './validation'
 import { CollectionError, type Collection, type CollectionHandoff, type CollectionPrintSettings, type CollectionRow, type ReceiptDelivery, type RequestInput } from './types'
 
@@ -44,7 +45,10 @@ export function updateRow(collection: Collection, id: string, patch: Partial<Pic
 }
 
 export function removeRow(collection: Collection, id: string): Collection { return finish({ ...collection, rows: collection.rows.filter(row => row.id !== id) }) }
-export function setPrintSettings(collection: Collection, printSettings: CollectionPrintSettings): Collection { return finish({ ...collection, printSettings }) }
+export function setPrintSettings(collection: Collection, printSettings: CollectionPrintSettings): Collection {
+  const changedPaper = getPrintSheetProfile(collection.printSettings.sheetProfileId)?.id !== getPrintSheetProfile(printSettings.sheetProfileId)?.id
+  return finish({ ...collection, printSettings: changedPaper ? { ...printSettings, page: 0, firstSlot: 1, offset: { x: 0, y: 0 } } : printSettings })
+}
 export function setHandoff(collection: Collection, handoff: CollectionHandoff | null): Collection { return finish({ ...collection, handoff }) }
 export function setReceiptDelivery(collection: Collection, id: string, delivery: ReceiptDelivery): Collection {
   const submissionId = collection.receipts.find(receipt => receipt.id === id)?.contribution?.submissionId

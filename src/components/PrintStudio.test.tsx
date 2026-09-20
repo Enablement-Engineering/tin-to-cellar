@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PrintStudio } from './PrintStudio'
 import type { PrintLabel, PrintSettings } from './ui-model'
-import { AVERY_94502_PROFILE } from '../lib/sheets/profiles'
+import { AVERY_94502_PROFILE, A4_63_5_CIRCLE_PROFILE } from '../lib/sheets/profiles'
 function Studio(props: Omit<ComponentProps<typeof PrintStudio>, 'settings' | 'onSettingsChange'>) {
   const [settings, setSettings] = useState<PrintSettings>({ page: 0, firstSlot: 1, offset: { x: 0, y: 0 } })
   return <PrintStudio {...props} settings={settings} onSettingsChange={patch => setSettings(current => ({ ...current, ...patch, offset: { ...current.offset, ...patch.offset } }))} />
@@ -116,4 +116,28 @@ it('counts only the explicit label print action and keeps printing independent o
   fireEvent.click(screen.getByRole('button', { name: 'Print 2 labels' }))
   expect(onPrintRequested).toHaveBeenCalledOnce()
   expect(print).toHaveBeenCalledTimes(2)
+})
+
+it('switches paper, resets alignment, and keeps metric preview and physical offsets consistent', () => {
+  const { container } = render(<Studio labels={[label]} quantities={{ a: 12 }} onQuantityChange={() => undefined} />)
+  fireEvent.change(screen.getByLabelText('Horizontal adjustment'), { target: { value: '.1' } })
+  fireEvent.change(screen.getByLabelText('Label paper'), { target: { value: A4_63_5_CIRCLE_PROFILE.id } })
+  expect(screen.getByLabelText('Horizontal adjustment')).toHaveValue(0)
+  expect(container.querySelector('style')?.textContent).toContain('size: 210mm 297mm')
+  expect(container.querySelectorAll('.production-page')).toHaveLength(1)
+  expect(container.querySelectorAll('.proof-slot')).toHaveLength(12)
+  fireEvent.change(screen.getByLabelText('Start at slot'), { target: { value: '12' } })
+  expect(container.querySelectorAll('.production-page')).toHaveLength(2)
+  expect(container.querySelector('.production-page')?.querySelectorAll('img')).toHaveLength(1)
+  fireEvent.change(screen.getByLabelText('Horizontal adjustment'), { target: { value: '2.54' } })
+  fireEvent.change(screen.getByLabelText('Vertical adjustment'), { target: { value: '-2.54' } })
+  const preview = container.querySelector<HTMLElement>('.preview-slot')!
+  expect(parseFloat(preview.style.left)).toBeCloseTo((5.25 + 2.54) / 210 * 100)
+  expect(parseFloat(preview.style.top)).toBeCloseTo((14.75 - 2.54) / 297 * 100)
+  expect(container.querySelector<HTMLElement>('.production-pages')?.style.getPropertyValue('--offset-x')).toBe('0.1in')
+  expect(container.querySelector<HTMLElement>('.calibration-print-ruler')?.style.width).toBe('50mm')
+  fireEvent.change(screen.getByLabelText('Label paper'), { target: { value: AVERY_94502_PROFILE.id } })
+  expect(screen.getByLabelText('Start at slot')).toHaveValue('1')
+  expect(screen.getByLabelText('Horizontal adjustment')).toHaveValue(0)
+  expect(container.querySelector('style')?.textContent).toContain('size: 8.5in 11in')
 })

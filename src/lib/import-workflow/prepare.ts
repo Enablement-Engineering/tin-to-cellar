@@ -1,5 +1,5 @@
 import { contributionFromManifest, parseContribution, type Contribution } from '../contributions'
-import { checkAvery94502Compatibility } from '../sheets'
+import { checkSupportedArtworkCompatibility } from '../sheets'
 import { parseRetrospective, RETROSPECTIVE_KEY, type Retrospective } from '../feedback/retrospective'
 import { websiteValidation } from '../contributions/validation'
 import { resolveProtocolContext } from '../protocol'
@@ -16,9 +16,9 @@ export async function preparePackImport(result: CellarPackImportResult, title: s
   const issues = [...result.issues]
   const quarantinedLabels = [...result.quarantinedLabels]
   const usable = result.labels.filter(item => {
-    const compatibility = checkAvery94502Compatibility(item.label.surface)
+    const compatibility = checkSupportedArtworkCompatibility(item.label.surface)
     if (compatibility.compatible) return true
-    const failures = compatibility.issues.map(issue => ({ ...issue, labelId: item.id, severity: 'error' as const, recovery: 'Return this label as a 2.5-inch circle for Avery 94502. Do not stretch the artwork.' }))
+    const failures = compatibility.issues.map(issue => ({ ...issue, labelId: item.id, severity: 'error' as const, recovery: 'Return this label as a 63.5 mm (2.5-inch) circle for the supported label sheets. Do not stretch the artwork.' }))
     issues.push(...failures); quarantinedLabels.push({ id: item.id, label: item.label, issues: failures })
     return false
   })

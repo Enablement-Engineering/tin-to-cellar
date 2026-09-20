@@ -102,8 +102,12 @@ it.each(['/labels/print', '/labels/help'])('links to the supported blank label s
   expect(link).toHaveAttribute('href', 'https://www.avery.com/blank/labels/94502')
   expect(link).toHaveAttribute('target', '_blank')
   expect(link).toHaveAttribute('rel', 'noreferrer')
-  expect(link.closest('p')).toHaveTextContent('Designed for Avery 94502: nine 2.5-inch round labels per US Letter sheet')
-  expect(link.closest('p')).toHaveTextContent('This is not an affiliate link.')
+  expect(link.closest('li')).toHaveTextContent('US Letter: Avery 94502, nine labels per sheet.')
+  expect(screen.getByText(/These are not affiliate links/)).toBeInTheDocument()
+  const a4Link = screen.getByRole('link', { name: /^OnlineLabels EU30023/ })
+  expect(a4Link).toHaveAttribute('href', 'https://uk.onlinelabels.com/products/eu30023')
+  expect(a4Link).toHaveAttribute('target', '_blank')
+  expect(a4Link.closest('li')).toHaveTextContent('A4: twelve labels per sheet')
   expect(screen.getByText(/You can also print on plain printer paper/)).toHaveTextContent('glue stick')
   expect(screen.getByText(/You can also print on plain printer paper/)).toHaveTextContent('flat area of your lid')
   if (path === '/labels/help') expect(screen.getByRole('heading', { name: "What you'll need" }).closest('section')).toHaveAttribute('id', 'label-paper')
@@ -114,7 +118,7 @@ it('links the landing print step to paper guidance without a shopping link', asy
   render(<App />)
   expect(await screen.findByRole('link', { name: 'Paper and printing guidance' })).toHaveAttribute('href', '/labels/help#label-paper')
   expect(screen.queryByRole('link', { name: /^Buy label sheets/ })).not.toBeInTheDocument()
-  expect(screen.getByText(/Print your jar-lid labels nine to a US Letter sheet/)).toBeInTheDocument()
+  expect(screen.getByText(/Print your jar-lid labels on US Letter or A4 label sheets/)).toBeInTheDocument()
 })
 
 it('counts explicit print entry and job requests without counting imported or restored labels', async () => {

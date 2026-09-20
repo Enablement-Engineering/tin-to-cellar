@@ -3,7 +3,8 @@ import type { Contribution } from '../contributions'
 import type { ProtocolContext } from '../protocol'
 
 export type CollectionOrigin = 'local' | 'gallery' | 'example'
-export type CollectionPrintSettings = { page: number; firstSlot: number; offset: { x: number; y: number } }
+/** Offset is always in inches, including legacy saved collections. */
+export type CollectionPrintSettings = { sheetProfileId?: string; page: number; firstSlot: number; offset: { x: number; y: number } }
 export type RequestInput = { catalogId: string | null; maker: string; blend: string; edition?: string; notes?: string }
 /** designId is active artwork; previousDesignId exists only during a replacement request. */
 export type CollectionRow = Required<RequestInput> & { id: string; revision: number; quantity: number; designId: string | null; createRequested: boolean; previousDesignId?: string }

@@ -1,5 +1,7 @@
 # Bundled protocol operation
 
+Protocol 0.0.33 adds A4 63.5 mm stock guidance and direct supplier links. Artwork geometry, proof requirements and schemas are unchanged. Earlier protocol revisions remain immutable.
+
 Protocol 0.0.32 consolidates reference-specific artwork briefs and measured repair planning. It removes the contradictory batch-research sentence and brief word-count expectation, specifies the default panel's full-canvas bounds, and distinguishes a failed rectangular enclosure from visible overflow. Repairs require absolute feasible targets and comparison with the returned candidate. The existing working receipt records authored briefs and available input evidence privately, outside feedback and retrospective. The canonical proof program and acceptance rule are unchanged.
 
 Protocol 0.0.31 adds default continuation after unexpected pauses, numbered recovery and decision choices, and natural-language custom requests. Meaningful requests and stop instructions take precedence; missing references and repair decisions retain their existing requirements. An intentional stop or completed delivery is never restarted by an arbitrary character.
@@ -10,7 +12,7 @@ The protocol API under `/api/labels/protocol/` is retired and returns 404. Versi
 
 ## Pre-release versions
 
-Current new-run versions are protocol `0.0.32`, CellarPack `0.1.0`, and feedback `0.2.0`. This migration adds no schema, sidecar or correlation-ID extension. Protocol version strings use the existing `revision` and `protocolRevision` fields. Numeric registry entries are historical snapshots. New releases use immutable semantic versions. Bump the patch for instruction edits and use a new minor version for incompatible pre-release schema changes. Existing CellarPack 1.x imports remain readable; new prompts emit 0.1.0.
+Current new-run versions are protocol `0.0.33`, CellarPack `0.1.0`, and feedback `0.2.0`. This migration adds no schema, sidecar or correlation-ID extension. Protocol version strings use the existing `revision` and `protocolRevision` fields. Numeric registry entries are historical snapshots. New releases use immutable semantic versions. Bump the patch for instruction edits and use a new minor version for incompatible pre-release schema changes. Existing CellarPack 1.x imports remain readable; new prompts emit 0.1.0.
 
 Protocol 0.0.24 starts an execution request immediately and pauses only for a real decision, an unresolved blocker, a host-ended image turn, or completion. Before each image call it explains that a host pause may occur and that Continue resumes inspection, preparation, proof and packaging, never another generation. Routine chat omits versions, hashes and proof coordinates; required checks still run, and unresolved problems remain visible. Technical details are available on request.
 

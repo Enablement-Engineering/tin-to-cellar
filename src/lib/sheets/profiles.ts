@@ -44,6 +44,30 @@ export const FULL_SHEET_LETTER_PROFILE: FullSheetProfile = {
   calibration: neutralCalibration,
 }
 
+/** Verified manufacturer geometry, 2026-09-20:
+ * https://uk.onlinelabels.com/products/eu30023
+ * https://www.labelplanet.co.uk/downloads/guide-printing-round-labels-oval-labels.pdf
+ * Both specify 63.5mm circles, 68mm pitch, 5.25mm side and 14.75mm top margins.
+ */
+export const A4_63_5_CIRCLE_PROFILE: FixedSlotSheetProfile = {
+  format: 'tin-to-cellar/sheet-profile',
+  schemaVersion: '1.0.0',
+  id: 'tin-to-cellar:a4-63.5-circle-12@1',
+  name: 'A4 · 12 × 63.5 mm circles · EU30023 / LP12/64R',
+  kind: 'fixed-slots',
+  page: { width: 210, height: 297, unit: 'mm' },
+  slots: makeGridSlots([5.25, 73.25, 141.25], [14.75, 82.75, 150.75, 218.75], 63.5, 63.5, 'circle'),
+  calibration: neutralCalibration,
+}
+
+/** Deliberate print allowlist; importing a custom profile never enables it. */
+export const PRINT_SHEET_PROFILES = [AVERY_94502_PROFILE, A4_63_5_CIRCLE_PROFILE] as const
+
+/** An absent setting is a legacy Letter collection. Unknown IDs remain invalid. */
+export function getPrintSheetProfile(id?: string): FixedSlotSheetProfile | undefined {
+  return PRINT_SHEET_PROFILES.find(profile => profile.id === (id ?? AVERY_94502_PROFILE.id))
+}
+
 export const FULL_SHEET_A4_PROFILE: FullSheetProfile = {
   format: 'tin-to-cellar/sheet-profile',
   schemaVersion: '1.0.0',
@@ -58,6 +82,7 @@ export const FULL_SHEET_A4_PROFILE: FullSheetProfile = {
 
 export const BUILT_IN_SHEET_PROFILES: readonly SheetProfile[] = [
   AVERY_94502_PROFILE,
+  A4_63_5_CIRCLE_PROFILE,
   FULL_SHEET_LETTER_PROFILE,
   FULL_SHEET_A4_PROFILE,
 ]
