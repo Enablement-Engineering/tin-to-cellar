@@ -301,13 +301,10 @@ export default function PublicApp() {
     <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); main.current?.focus(); main.current?.scrollIntoView({ block: 'start' }) }}>Skip to main content</a>
     <header className="site-header screen-only"><div className="site-header-inner">
       <a className="wordmark" href="/" onClick={routeClick('labels')} aria-label="Tin to Cellar home"><Wordmark /></a>
-      <nav className="nav-tabs" aria-label="Workflow">{navItems.map(item => <a key={item.view} href={viewPaths[item.view]} aria-label={item.label}
-        aria-describedby={item.view === 'create' && collection.rows.length > 0 ? 'saved-label-count' : undefined}
+      <nav className="nav-tabs" aria-label="Workflow">{navItems.map(item => <a key={item.view} href={viewPaths[item.view]}
+        aria-label={item.view === 'create' && collection.rows.length > 0 ? `${item.label} · ${collection.rows.length} saved ${collection.rows.length === 1 ? 'label' : 'labels'}` : item.label}
         aria-current={view === item.view ? 'page' : undefined} onClick={routeClick(item.view)}>
-        {item.label}{item.view === 'create' && collection.rows.length > 0 && <>
-          <span aria-hidden="true"> · {collection.rows.length}</span>
-          <span id="saved-label-count" className="visually-hidden">{collection.rows.length} saved {collection.rows.length === 1 ? 'label' : 'labels'}</span>
-        </>}
+        {item.label}{item.view === 'create' && collection.rows.length > 0 && <span aria-hidden="true"> · {collection.rows.length}</span>}
       </a>)}</nav>
       <ThemeControl />
     </div></header>

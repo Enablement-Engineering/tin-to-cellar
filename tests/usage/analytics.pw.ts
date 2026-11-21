@@ -53,7 +53,7 @@ test('direct print entry allows opting in without visiting Privacy and hides inv
   await page.getByRole('link', { name: 'Change data choices' }).click()
   await expect(page.getByRole('checkbox', { name: 'Allow app-action, request-progress, and label-demand counts' })).toBeChecked()
   await page.getByRole('checkbox').uncheck()
-  await page.getByRole('link', { name: 'Your labels', exact: true }).click()
+  await page.getByRole('link', { name: /^Your labels(?: · \d+ saved labels?)?$/ }).click()
   await expect(invitation).toHaveCount(0)
 })
 
@@ -145,7 +145,7 @@ test('matches copied instructions, returned artwork, and printing entirely on th
   const config = page.waitForResponse('**/api/analytics/v2/config')
   await page.getByRole('checkbox', { name: 'Allow app-action, request-progress, and label-demand counts' }).check()
   await config
-  await page.getByRole('link', { name: 'Your labels', exact: true }).click()
+  await page.getByRole('link', { name: /^Your labels(?: · \d+ saved labels?)?$/ }).click()
   const input = page.getByRole('combobox', { name: 'Add a blend' })
   await input.fill(`${tobacco.maker} ${tobacco.blend}`)
   await input.press('ArrowDown'); await input.press('Enter')

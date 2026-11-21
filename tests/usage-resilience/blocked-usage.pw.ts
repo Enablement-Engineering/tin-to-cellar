@@ -79,7 +79,7 @@ test('blocked optional module leaves browsing, saved designs, copying, import, e
   await page.getByRole('contentinfo').getByRole('link', { name: 'Gallery', exact: true }).click()
   await page.getByRole('button', { name: 'Add to your labels', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Added to your labels', exact: true })).toBeVisible()
-  await page.getByRole('link', { name: 'Your labels', exact: true }).click()
+  await page.getByRole('link', { name: /^Your labels(?: · \d+ saved labels?)?$/ }).click()
   const add = page.getByRole('combobox', { name: 'Add a blend' })
   await add.fill('Private test blend')
   await add.press('Enter')
@@ -131,7 +131,7 @@ for (const mode of ['blocked config', 'malformed config', 'blocked POST']) test(
   await importAndPrint(page)
   const count = observed.requests.length
   expect(count).toBe(mode === 'blocked POST' ? 2 : 1)
-  await page.getByRole('link', { name: 'Your labels', exact: true }).click()
+  await page.getByRole('link', { name: /^Your labels(?: · \d+ saved labels?)?$/ }).click()
   await page.getByRole('link', { name: 'Print labels', exact: true }).click()
   await page.getByRole('button', { name: 'Print 1 label', exact: true }).click()
   const choice = page.getByRole('checkbox', { name: 'Allow app-action, request-progress, and label-demand counts' })
