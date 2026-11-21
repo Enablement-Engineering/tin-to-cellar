@@ -92,7 +92,7 @@ test('canonical print intent is best effort, opt-out is silent and loaded printi
   await page.getByRole('button', { name: 'Add 1 label', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Print 1 label', exact: true })).toBeEnabled()
   expect(events).toEqual([])
-  await page.getByRole('link', { name: 'Your labels', exact: true }).click()
+  await page.getByRole('link', { name: /^Your labels(?: · \d+ saved labels?)?$/ }).click()
   await page.getByRole('link', { name: 'Print labels', exact: true }).click()
   await expect.poll(() => events.length).toBe(1)
   expect(events[0]).toEqual({ version: 2, event: 'selected-for-print', labels: [{ catalogId: 'peterson-nightcap', quantity: 1 }] })

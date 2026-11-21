@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 
 const base = '/examples/ten-blends/'
 const filename = 'tin-to-cellar-ten-blends.cellarpack.zip'
@@ -16,6 +16,7 @@ const blends = [
 ]
 
 export function ExamplePack({ busy, onFile, variant = 'print' }: { busy: boolean; onFile: (file: File) => Promise<void>; variant?: 'print' | 'landing' }) {
+  const captionId = useId()
   const [action, setAction] = useState<'import' | 'download' | null>(null)
   const [error, setError] = useState('')
   const pending = useRef(false)
@@ -68,9 +69,9 @@ export function ExamplePack({ busy, onFile, variant = 'print' }: { busy: boolean
     <h2 id="example-pack-title">Try the example pack</h2>
     <p className="field-hint">AI-generated examples for personal cellaring. Not official brand artwork or a license to reuse the original designs.</p>
     <p>Import these ten labels, choose how many of each to print, and preview your sheets.</p>
-    <button className="example-pack-gallery" type="button" disabled={disabled} onClick={() => void run('import')} aria-label="Import example pack with ten labels">
+    <button className="example-pack-gallery" type="button" disabled={disabled} onClick={() => void run('import')} aria-labelledby={captionId}>
       {blends.map(([id, name]) => <span className="example-pack-label" key={id}><img src={`${base}${id}.jpg`} alt={name} width={320} height={320} loading="lazy" /></span>)}
-      <span className="example-pack-caption">{action === 'import' ? 'Loading example pack…' : 'Import all 10 labels'}</span>
+      <span id={captionId} className="example-pack-caption">{action === 'import' ? 'Loading example pack…' : 'Import all 10 labels'}</span>
     </button>
     <button className="button secondary" type="button" disabled={disabled} onClick={() => void run('download')}>{action === 'download' ? 'Preparing download…' : 'Download example ZIP'}</button>
     <p className="field-hint">26 MB. You can also download the ZIP and choose it from your device.</p>

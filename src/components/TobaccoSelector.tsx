@@ -43,7 +43,7 @@ export function TobaccoSelector({ value, onChange, onChoose, inputRef, disabled,
         event.preventDefault(); setError(multilineHint)
       }} />
       {visible && <ul id={`${id}-options`} className="tobacco-suggestions" role="listbox" aria-label="Blend suggestions">
-        {matches.map((entry, index) => <li id={`${id}-${index}`} key={entry.id} role="option" aria-selected={selected === index} aria-label={`${entry.blend} by ${entry.maker}`} onMouseMove={() => setActive(index)} onMouseDown={event => event.preventDefault()} onClick={() => choose(entry)}><strong>{entry.blend}</strong><span>{entry.maker}</span></li>)}
+        {matches.map((entry, index) => <li id={`${id}-${index}`} key={entry.id} role="option" aria-selected={selected === index} aria-label={`${entry.blend} by ${entry.maker}`} onMouseMove={() => setActive(index)} onMouseDown={event => event.preventDefault()} onClick={() => choose(entry)}><strong>{entry.blend}</strong><span>{` by ${entry.maker}`}</span></li>)}
         <li id={`${id}-${matches.length}`} role="option" aria-selected={selected === matches.length} onMouseMove={() => setActive(matches.length)} onMouseDown={event => event.preventDefault()} onClick={() => choose()}>Use “{value.trim()}” without a catalog match</li>
       </ul>}
     </div>{actionLabel && <button type="button" className="button secondary" disabled={disabled || !value.trim()} onMouseDown={event => event.preventDefault()} onClick={submit}>{actionLabel}</button>}</div>

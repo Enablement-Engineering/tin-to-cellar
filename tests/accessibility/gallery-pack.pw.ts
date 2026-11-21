@@ -41,7 +41,7 @@ for (const width of [1280, 320]) test(`community designs share the durable print
   const manifest = JSON.parse(await zip.file('manifest.json')!.async('string'))
   expect(manifest.labels.map((label: { blend: string }) => label.blend)).toEqual(['One', 'Two'])
   for (const asset of Object.values(manifest.assets) as { path: string }[]) expect(await zip.file(asset.path)!.async('nodebuffer')).toEqual(source.png)
-  await page.getByRole('navigation', { name: 'Workflow' }).getByRole('link', { name: 'Your labels', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Workflow' }).getByRole('link', { name: /^Your labels(?: · \d+ saved labels?)?$/ }).click()
   await expect(page.getByRole('heading', { name: 'Your labels', exact: true })).toBeVisible()
   await page.screenshot({ path: `test-results/preparation-ready-${width}.png`, fullPage: true })
 })
