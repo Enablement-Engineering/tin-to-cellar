@@ -19,7 +19,8 @@ beforeEach(async () => {
   storage = await import('../usage-progress-storage')
   localStorage.clear()
   vi.stubGlobal('Blob', NodeBlob)
-  vi.spyOn(Date, 'now').mockReturnValue(now.getTime())
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(now)
   localStorage.setItem(PREFERENCE_KEY, 'on:00000000-0000-0000-0000-000000000000')
   let busy = false
   Object.defineProperty(navigator, 'locks', { configurable: true, value: { request: async (_name: string, options: unknown, callback?: (lock: unknown) => Promise<void>) => {
@@ -29,9 +30,14 @@ beforeEach(async () => {
     try { return await task({ name: 'local' }) } finally { busy = false }
   } } })
   vi.stubGlobal('fetch', vi.fn(async (url: string) => Response.json(url.endsWith('/config') ? { version: 2, demandEnabled: true, workflowEnabled: true, progressEnabled: true } : { recorded: true })))
-  await client.initializeDemandCollection()
+  expect(await client.initializeDemandCollection()).toBe(true)
+  expect(client.collectionAllowed('progressEnabled')).toBe(true)
 })
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
+afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
 async function fixture() {
   const incoming = await prepareImport(await collectionFixture(), { origin: 'local' })
   const label = incoming.designs[0].item.label
@@ -78,7 +84,7 @@ it('does not resurrect local metadata after off/on while a receipt is pending', 
   let complete!: (response: Response) => void
   vi.mocked(fetch).mockReturnValue(new Promise(resolve => { complete = resolve }))
   const pending = progress.startProgress(before.id, before.handoff!)
-  await Promise.resolve()
+  await vi.waitFor(() => expect(sent().map(r => r.milestone)).toEqual(['started']))
   preferences.setDemandPreference(false)
   preferences.setDemandPreference(true)
   complete(Response.json({ recorded: true }))
@@ -88,7 +94,7 @@ it('does not resurrect local metadata after off/on while a receipt is pending', 
 it('expires local records on the next check and stays silent without opt-in or browser locks', async () => {
   const { before } = await fixture()
   await progress.startProgress(before.id, before.handoff!)
-  vi.spyOn(Date, 'now').mockReturnValue(now.getTime() + 31 * 86400000)
+  vi.setSystemTime(new Date(now.getTime() + 31 * 86400000))
   storage.pruneProgress(); await Promise.resolve(); await Promise.resolve()
   expect(localStorage.getItem(PROGRESS_KEY)).toBe('[]')
   preferences.setDemandPreference(false)
